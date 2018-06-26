@@ -125,6 +125,8 @@ int ins_i2c::i2c_write(const u8 reg, const u8 *dat, unsigned int dat_len)
         }
         else
         {
+        	Log.d(TAG, "i2c write[%d] reg 0x%x val %x fd %d\n", i, reg, *dat, i2c_fd);
+        
             ret = 0;
             break;
         }

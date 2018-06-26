@@ -56,6 +56,7 @@ InputManager::InputManager(const sp<oled_handler> &handler): mHander(handler)
 	}
 }
 
+
 void InputManager::writePipe(int *p, int val)
 {
     char c = (char)val;

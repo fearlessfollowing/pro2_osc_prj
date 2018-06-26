@@ -48,11 +48,11 @@ $(BUILD)/%.d: %.cpp Makefile
 -include $(CXXDEPS)
 
 $(BUILD)/%.o: %.c Makefile
-	@echo CC $< ; \
+	@echo CC  $< ; \
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(BUILD)/%.o: %.cpp Makefile
-	@echo CPLUSPLUS $< ; \
+	@echo CXX  $< ; \
 	$(CPLUSPLUS) -c $(CXXFLAGS) -o $@ $<
 
 

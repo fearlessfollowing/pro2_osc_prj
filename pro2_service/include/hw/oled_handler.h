@@ -361,12 +361,12 @@ enum
 
 
 enum {
-    OLED_DISP_STR_TYPE,//0
+    OLED_DISP_STR_TYPE,				// 0
     OLED_DISP_ERR_TYPE,
     OLED_GET_KEY,
     OLED_GET_LONG_PRESS_KEY,
-    OLED_DISP_IP,
-    OLED_DISP_BATTERY,//5
+    OLED_DISP_IP,					// 4, display ip
+    OLED_DISP_BATTERY,				// 5
     //set config wifi same thread as oled wifi key action
     OLED_CONFIG_WIFI,
     OLED_SET_SN,
@@ -414,10 +414,6 @@ public:
     ~oled_handler();
     void handleMessage(const sp<ARMessage> &msg);
 	
-//    void send_disp_str(int type,int state);
-//    void send_disp_str(int x ,int y,u8 *str);
-//    void send_disp_str(sp<DISP_STR> &sp_disp);
-
     void send_disp_str(sp<struct _disp_type_> &sp_disp);
     void send_disp_err(sp<struct _err_type_info_> &sp_disp);
 	
@@ -425,9 +421,7 @@ public:
     //net type 0 -- default to wlan
     void send_disp_ip(int ip, int net_type = 0);
     void send_disp_battery(int battery, bool charge);
-//    void send_disp_bitmap(int x ,int y,u8 *bitmap);
-//    void send_disp_ext(sp<DISP_EXT> &dispExt);
-//    void send_disp_ext(int ext_id,int state);
+
     void send_wifi_config(sp<struct _wifi_config_> &mConfig);
     void send_sys_info(sp<SYS_INFO> &mSysInfo);
     void send_get_key(int key);
@@ -591,11 +585,8 @@ private:
     void exitAll();
     void set_org_addr(unsigned int addr);
     void set_mdev_list(std::vector<sp<USB_DEV_INFO>> &mList);
-//    bool check_need_speed_test();
 
     void sys_reboot(int cmd = REBOOT_SHUTDOWN);
-
-//    int read_notify(const char *dirname, int nfd, int print_flags);
 
 	void disp_cam_param(int higlight);
     void disp_bottom_info(bool high = false);
@@ -656,18 +647,11 @@ private:
     sp<ARHandler> mHandler;
     std::thread th_msg_;
 	
-    //std::thread th_read_key_;
-    //update live or rec
-//    std::thread th_update_mid;
-
-
     std::thread th_sound_;
 
-//    std::thread th_bat_;
 
     std::thread th_poll_;
 
-//    std::thread th_wifi_;
     bool bExitMsg = false;
     bool bExitPoll = false;
     bool bExitUpdate = false;
@@ -766,9 +750,6 @@ private:
     sp<dev_manager> mDevManager;
 	
     bool bLiveSaveOrg = false;
-
-
-//    int pipe_light[2]; // 0 -- read , 1 -- write
     int pipe_sound[2]; // 0 -- read , 1 -- write
 
 	

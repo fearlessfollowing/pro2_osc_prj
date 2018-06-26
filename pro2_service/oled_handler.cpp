@@ -48,7 +48,6 @@ using namespace std;
 #define TAG "oled_handler"
 
 
-// used for default end
 class oled_arhandler : public ARHandler
 {
 public:
@@ -2604,6 +2603,7 @@ void oled_handler::update_menu()
         case MENU_SYS_SETTING:
             update_menu_sys_setting(true);
             break;
+		
         case MENU_PIC_SET_DEF:
 //            Log.d(TAG," pic set def item is %d", item);
             mProCfg->set_def_info(KEY_PIC_DEF,item);
@@ -2750,6 +2750,7 @@ bool oled_handler::get_save_path_avail()
 
     return ret;
 }
+
 
 void oled_handler::get_save_path_remain()
 {
@@ -4306,12 +4307,16 @@ int oled_handler::oled_disp_ip(unsigned int addr)
 
 int oled_handler::oled_disp_battery()
 {
-//    Log.d(TAG,"mBatInterface->isSuc()  %d "
-//                  "m_bat_info_->bCharge %d "
-//                  "m_bat_info_->battery_level %d",
-//          mBatInterface->isSuc(),
-//          m_bat_info_->bCharge,
-//          m_bat_info_->battery_level);
+
+#ifdef DEBUG_BATTERY
+    Log.d(TAG,"mBatInterface->isSuc()  %d "
+                  "m_bat_info_->bCharge %d "
+                  "m_bat_info_->battery_level %d",
+          mBatInterface->isSuc(),
+          m_bat_info_->bCharge,
+          m_bat_info_->battery_level);
+#endif
+
     if (mBatInterface->isSuc()) {
         int icon;
         const int x = 110;
@@ -4339,7 +4344,7 @@ int oled_handler::oled_disp_battery()
         }
     } else {
         //disp nothing while no bat
-        clear_area(103,0,25,16);
+        clear_area(103, 0, 25, 16);
     }
 	
     set_light();
@@ -4563,6 +4568,7 @@ void oled_handler::add_state(int state)
 //                set_cur_menu(MENU_CALIBRATION);
 //            }
             break;
+
         case STATE_START_QRING:
             if(cur_menu != MENU_QR_SCAN)
             {
@@ -4641,10 +4647,10 @@ void oled_handler::disp_tl_count(int count)
         disp_str((const u8 *)buf,57,24);
         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
     } else {
-        if(check_state_in(STATE_RECORD) && !check_state_in(STATE_STOP_RECORDING))
+        if (check_state_in(STATE_RECORD) && !check_state_in(STATE_STOP_RECORDING))
         {
             char buf[32];
-            snprintf(buf,sizeof(buf),"%d",count);
+            snprintf(buf,sizeof(buf), "%d", count);
             disp_str((const u8 *)buf,57,24);
             set_light(FLASH_LIGHT);
             msg_util::sleep_ms(INTERVAL_5HZ/2);
@@ -4764,6 +4770,7 @@ void oled_handler::disp_err_code(int code, int back_menu)
     set_light_direct(BACK_RED | FRONT_RED);
     cur_menu = MENU_SYS_ERR;
     bDispTop = false;
+	
     Log.d(TAG,"disp_err_code code %d "
                   "back_menu %d cur_menu %d "
                   "bFound %d cam_state 0x%x",
@@ -5182,27 +5189,6 @@ int oled_handler::oled_disp_type(int type)
             }
             break;
 			
-#if 0
-        case COMPOSE_PIC:
-            set_cam_state(cam_state | STATE_COMPOSE_IN_PROCESS);
-            //disp composing pic
-            break;
-        case COMPOSE_VIDEO:
-            set_cam_state(cam_state | STATE_COMPOSE_IN_PROCESS);
-            //disp composing video
-            break;
-//no compose yet
-        case COMPOSE_PIC_FAIL:
-        case COMPOSE_PIC_SUC:
-            set_cam_state(cam_state & ~STATE_COMPOSE_IN_PROCESS);
-            Log.d(TAG,"compose pic over cam_state 0x%x\n",cam_state);
-            break;
-        case COMPOSE_VIDEO_FAIL:
-        case COMPOSE_VIDEO_SUC:
-            set_cam_state(cam_state & ~STATE_COMPOSE_IN_PROCESS);
-            Log.d(TAG,"compose video over cam cam_state 0x%x\n",cam_state);
-            break;
-#endif
         case STRAT_LIVING:
             add_state(STATE_START_LIVING);
             break;
@@ -5957,7 +5943,7 @@ void oled_handler::set_light(u8 val)
 //          get_setting_select(SET_LIGHT_ON));
 
     if (get_setting_select(SET_LIGHT_ON) == 1) {
-        set_light_direct(val|front_light);
+        set_light_direct(val | front_light);
     }
 #endif
 }
@@ -5971,8 +5957,6 @@ bool oled_handler::check_rec_tl()
 {
     bool ret = false;
     if (mControlAct != nullptr) {
-//        Log.d(TAG,"mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int is %d",
-//              mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
         if (mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0) {
             ret = true;
         }

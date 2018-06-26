@@ -3,10 +3,11 @@
 #include <log/stlog.h>
 #include <util/msg_util.h>
 
-
 using namespace std;
 
 #define TAG "oled_light"
+
+#define LED_I2C_REG		0x02
 
 oled_light::oled_light()
 {
@@ -21,43 +22,49 @@ oled_light::~oled_light()
 void oled_light::init()
 {
     mI2CLight = sp<ins_i2c>(new ins_i2c(0, 0x77, true));
+
+	/* 设置所有的i2c-gpio为输出 */
     mI2CLight->i2c_write_byte(0x06, 0x00);
     mI2CLight->i2c_write_byte(0x07, 0x00);
-
 }
 
-#if 0
-void oled_light::light_off(u8 uIndex)
-{
-    u8 val =~(0 << uIndex);
-    set_light_val(val);
-}
-
-void oled_light::light_off_all()
-{
-    set_light_val(LIGHT_OFF);
-}
-
-void oled_light::light_on(u8 uIndex)
-{
-    u8 val = (0 << uIndex);
-    set_light_val(val);
-}
-
-void oled_light::light_on_all()
-{
-    set_light_val(LIGHT_ALL);
-}
-#endif
-
+/*
+ * audio: default on
+ */
 
 void oled_light::set_light_val(u8 val)
 {
+	/* 1. read 0x2
+ 	 * 2. 
+ 	 */
+#if 0
+
+	
+ 	u8 orig_val = 0;
+	if (mI2CLight->i2c_read(LED_I2C_REG, &orig_val) == 0) 
+	{
+		Log.d(TAG, "orig val 0x%x", orig_val);
+		orig_val &= 0xc0;	/* led just low 6bit */
+		orig_val |= val;
+		if (mI2CLight->i2c_write_byte(0x02, orig_val) != 0)
+		{
+			Log.e(TAG, " oled write val 0x%x fail", val);
+		}
+	}
+	
+#else
+
+	val &= 0x3f;
     //keep audio on
     if (mI2CLight->i2c_write_byte(0x02, val) != 0)
     {
         Log.e(TAG, " oled write val 0x%x fail", val);
+    } else
+    {
+    	Log.d(TAG, " set light val 0x%x ",  val);
     }
+#endif
+
 }
 
 
