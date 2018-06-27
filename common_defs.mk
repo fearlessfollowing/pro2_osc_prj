@@ -42,7 +42,7 @@ endif
 #INSTALL_ROOT ?= /home/skymixos/work/pro2/app/out
 
 # For Release
-INSTALL_ROOT ?= /home/skymixos/work/pro2/app/image/insta360_pro2_image/pro2_osc/release/bin
+INSTALL_ROOT ?= /home/nvidia/work/image/insta360_pro2_image/pro2_osc/release/bin
 
 #INSTALL_ROOT ?= /home/nvidia/work/image/insta360_pro2_image/pro2_osc/release/bin
 #INSTALL_ROOT ?= $(DIDI_SDK_DIR)/build/$(ARCH)

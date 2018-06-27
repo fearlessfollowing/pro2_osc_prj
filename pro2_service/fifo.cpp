@@ -746,6 +746,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                             cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
                             //no break here
                             break;
+
 							
                         case ACTION_VIDEO:
                             Log.d(TAG, "mActInfo->stStiInfo.stStiAct.mStiV.sti_fr is %d",

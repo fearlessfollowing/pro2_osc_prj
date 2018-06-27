@@ -2105,6 +2105,7 @@ class control_center:
             res = True
         Info('check_live_save req {} res {}'.format(req,res))
         return res
+        
     #add oled = False to judge whether send req to oled
     def camera_live_done(self,res = None,req =None,oled = False):
         self.set_cam_state(self.get_cam_state() | config.STATE_LIVE)
@@ -2126,8 +2127,11 @@ class control_center:
     def camera_live_fail(self, err = -1):
         self.send_oled_type_err(config.START_LIVE_FAIL,err)
 
-    def start_live(self,req, from_oled = False):
-        read_info = self.write_and_read(req,from_oled)
+    def start_live(self, req, from_oled = False):
+        
+        read_info = self.write_and_read(req, from_oled)
+        Info('start_live: result is {}'.format(read_info))
+
         return read_info
 
     def camera_live(self,req):
@@ -2867,7 +2871,7 @@ class control_center:
         auto_connect['count'] = -1#forever
         return auto_connect
 
-    def camera_oled_live(self,action_info = None):
+    def camera_oled_live(self, action_info = None):
         name = config._START_LIVE
         Info('camera_oled_live start')
         try:
@@ -2877,9 +2881,11 @@ class control_center:
                     res = self.start_live(self.get_req(name, self.get_live_param()), True)
                 else:
                     if check_dic_key_exist(action_info,config.AUD) is False:
+                        Info('live oled audio not exist')
                         action_info[config.AUD] = self.get_audio()
                     else:
                         Info('live oled audio exist {}'.format(action_info[config.AUD]))
+
                     if check_dic_key_exist(action_info, config.LIVE_AUTO_CONNECT) is False:
                         action_info[config.LIVE_AUTO_CONNECT] = self.get_auto_connect_param()
                     else:
@@ -2888,7 +2894,9 @@ class control_center:
                     #     action_info[KEY_STABLIZATION] = False
                     # else:
                     #     action_info[KEY_STABLIZATION] = True
-                    res = self.start_live(self.get_req(name,action_info), True)
+                    
+                    Info('camera_oled_live action info {}'.format(action_info))
+                    res = self.start_live(self.get_req(name, action_info), True)
             elif self.check_in_live() or self.check_in_live_connecting():
                 name = config._STOP_LIVE
                 res = self.stop_live(self.get_req(name),True)
@@ -3559,9 +3567,11 @@ class control_center:
         try:
             # Info('handle_oled_key start2 content {}'.format(content))
             action = content['action']
+
+            # handle_oled_key action 3 -> camera_oled_live start
             Info('handle_oled_key action {}'.format(action))
-            if check_dic_key_exist(self.oled_func,action):
-                if check_dic_key_exist(content,_param):
+            if check_dic_key_exist(self.oled_func, action):
+                if check_dic_key_exist(content, _param):
                     res = self.oled_func[action](content[_param])
                 else:
                     res = self.oled_func[action]()
@@ -3572,6 +3582,9 @@ class control_center:
             Err('handle_oled_key exception {}'.format(e))
         self.release_sem_camera()
         Info('handle_oled_key over')
+
+
+
 
     def handle_notify_from_camera(self,content):
         Info('handle notify content {}'.format(content))

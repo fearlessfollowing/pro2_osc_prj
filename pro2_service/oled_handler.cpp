@@ -1424,6 +1424,7 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
                 bAllow = false;
             }
             break;
+			
         case ACTION_PREVIEW:
             if(check_state_preview() || check_state_equal(STATE_IDLE))
             {
@@ -1447,6 +1448,7 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
                 bAllow = false;
             }
             break;
+			
         case ACTION_QR:
 //            Log.d(TAG,"action qr state 0x%x", cam_state);
             if((check_state_equal(STATE_IDLE) || check_state_preview()))
