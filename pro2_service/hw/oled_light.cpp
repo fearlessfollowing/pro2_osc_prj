@@ -46,6 +46,22 @@ void oled_light::init()
 }
 
 
+void oled_light::suspend_led_status()
+{
+    if (mI2CLight->i2c_read(LED_I2C_REG, &light_restore_val) != 0) {
+        Log.e(TAG, ">>> restore led light status failed, so bad...");
+    }
+}
+
+
+void oled_light::resume_led_status()
+{
+    if (mI2CLight->i2c_write_byte(LED_I2C_REG, light_restore_val) != 0) {
+        Log.e(TAG, ">>> resume led light status failed,[0x%x]", light_restore_val);
+    }
+}
+
+
 void oled_light::set_light_val(u8 val)
 {
     u8 orig_val = 0;
@@ -61,7 +77,7 @@ void oled_light::set_light_val(u8 val)
         orig_val &= 0xc0;	/* led just low 6bit */
         orig_val |= val;
 
-        if (mI2CLight->i2c_write_byte(0x02, orig_val) != 0) {
+        if (mI2CLight->i2c_write_byte(LED_I2C_REG, orig_val) != 0) {
             Log.e(TAG, " oled write val 0x%x fail", val);
         } else {
         #ifdef DEBUG_OLED
@@ -93,34 +109,34 @@ int oled_light::factory_test(int icnt)
 		icnt = 3;
 	
     for (int i = 0; i < icnt; i++) {
-        if (mI2CLight->i2c_write_byte(0x02, 0x3f) != 0) {
+        if (mI2CLight->i2c_write_byte(LED_I2C_REG, 0x3f) != 0) {
 			Log.e(TAG," oled write val 0x%x fail", 0x3f);
 			iRet = -1;
 		}
 			
 		msg_util::sleep_ms(1000);
 		
-        if (mI2CLight->i2c_write_byte(0x02, 0x09) != 0) {
+        if (mI2CLight->i2c_write_byte(LED_I2C_REG, 0x09) != 0) {
 			Log.e(TAG," oled write val 0x%x fail", 0x09);
 			iRet = -1;
 		}
 			
 		msg_util::sleep_ms(1000);
 		
-        if (mI2CLight->i2c_write_byte(0x02, 0x12) != 0) {
+        if (mI2CLight->i2c_write_byte(LED_I2C_REG, 0x12) != 0) {
 			Log.e(TAG," oled write val 0x%x fail", 0x12);
 			iRet = -1;
 		}
 			
 		msg_util::sleep_ms(1000);
 		
-        if (mI2CLight->i2c_write_byte(0x02, 0x24) != 0) {
+        if (mI2CLight->i2c_write_byte(LED_I2C_REG, 0x24) != 0) {
 			Log.e(TAG," oled write val 0x%x fail", 0x24);
 			iRet = -1;
 		}	
 		
 		msg_util::sleep_ms(1000);
-		mI2CLight->i2c_write_byte(0x02, 0x00);
+        mI2CLight->i2c_write_byte(LED_I2C_REG, 0x00);
 
 	}
 

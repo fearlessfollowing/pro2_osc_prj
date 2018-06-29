@@ -77,14 +77,12 @@
 //#define HORIZONAL_ADDRESS_MODE
 //#define USE_U64
 
-enum
-{
+enum {
 	FILL_EMPTY,
 	FILL_FULL,
 };
 
-enum
-{
+enum {
     FRAME_5 = 0,
     FRAME_64,
     FRAME_128,
@@ -96,8 +94,7 @@ enum
 };
 
 
-typedef struct _page_info_
-{
+typedef struct _page_info_ {
     u8 delta_y;
     u8 page_start;
     //page num that dat occupied
@@ -120,8 +117,7 @@ bool check_old_pro()
 
     snprintf(buf,sizeof(buf),"%s", SDCARD_TEST_SUC);
 
-    if (check_path_exist(buf))
-    {
+    if (check_path_exist(buf)) {
         ret = true;
     }
 
@@ -168,14 +164,12 @@ void oled_module::deinit()
 //    SSD_Set_Charge_Pump(0x10);
     ssd1306_reset();
 
-    if (ucBuf)
-    {
+    if (ucBuf) {
         free(ucBuf);
         ucBuf = nullptr;
     }
 
-    if (ucBufLast)
-    {
+    if (ucBufLast) {
         free(ucBufLast);
         ucBufLast = nullptr;
     }
@@ -183,8 +177,7 @@ void oled_module::deinit()
 
 void oled_module::ssd1306_reset()
 {   
-    if (gpio_is_requested(OLED_RESET_GPIO) != 1)
-    {
+    if (gpio_is_requested(OLED_RESET_GPIO) != 1) {
         gpio_request(OLED_RESET_GPIO);
     }
 
@@ -239,14 +232,11 @@ void oled_module::SSD_Set_Page_Address(u8 start, u8 end)
 //          0 = Display OFF in sleep mode (RESET)
 void oled_module::SSD_Set_Display_ON_OFF(u8 attr)
 {
-    if (attr)
-    {
+    if (attr) { // Set Display ON
         ssd1306_write_cmd(SSD_SET_DISPLAY_ON);
-    } // Set Display ON
-    else
-    {
+    } else {    // Set Display OFF
         ssd1306_write_cmd(SSD_SET_DISPLAY_OFF);
-    } // Set Display OFF
+    }
 }
 
 
@@ -1010,12 +1000,9 @@ void oled_module::clear_area_w(const u8 x,const u8 y,const u8 w)
 
 void oled_module::display_onoff(u8 sw)
 {
-	if (sw) 
-	{
+    if (sw) {
 		SSD_Set_Display_ON_OFF(1);
-	}
-	else
-	{
+    } else {
 		SSD_Set_Display_ON_OFF(0);
 	}
 }

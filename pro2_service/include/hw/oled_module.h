@@ -39,6 +39,7 @@ public:
     void clear_area(const u8 x,const u8 y);
     void clear_area_w(const u8 x,const u8 y,const u8 w);
     void clear_area_h(const u8 x,const u8 y,const u8 h);
+
 	void display_onoff(u8 sw);
 	
 private:
@@ -90,6 +91,7 @@ private:
     void disp_buf_last();
 
     sp<ins_i2c> pstI2C_OLED;
+
     // byte0 --page0,col0 byte1 -- page0 col1  ...
     u8 *ucBuf;
     u8 *ucBufLast;

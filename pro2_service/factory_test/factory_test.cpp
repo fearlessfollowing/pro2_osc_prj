@@ -43,14 +43,6 @@ void FactoryTest::init()
 
     mOLEDModule = sp<oled_module>(new oled_module());
     CHECK_NE(mOLEDModule, nullptr);
-
-    //move ahead avoiding scan dev finished before oled disp
-    //sp<ARMessage> dev_notify = obtainMessage(OLED_UPDATE_DEV_INFO);
-   // mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
-    //CHECK_NE(mDevManager, nullptr);
-
-    //mProCfg = sp<pro_cfg>(new pro_cfg());
-
 	
     mOLEDLight = sp<oled_light>(new oled_light());
     CHECK_NE(mOLEDLight, nullptr);
@@ -58,45 +50,12 @@ void FactoryTest::init()
 	mTrans = sp<Trans>(new Trans());
     CHECK_NE(mTrans, nullptr);
 
-
-    //mBatInterface = sp<battery_interface>(new battery_interface());
-    //CHECK_NE(mBatInterface, nullptr);
-
-    //m_bat_info_ = sp<BAT_INFO>(new BAT_INFO());
-    //CHECK_NE(m_bat_info_, nullptr);
-    //memset(m_bat_info_.get(), 0, sizeof(BAT_INFO));
-    //m_bat_info_->battery_level = 1000;
-
-//    mControlAct = sp<ACTION_INFO>(new ACTION_INFO());
-//    CHECK_NE(mControlAct,nullptr);
-
-    //mReadSys = sp<SYS_INFO>(new SYS_INFO());
-    //CHECK_NE(mReadSys, nullptr);
-
-    //mVerInfo = sp<VER_INFO>(new VER_INFO());
-    //CHECK_NE(mVerInfo, nullptr);
-
-    //mWifiConfig = sp<WIFI_CONFIG>(new WIFI_CONFIG());
-    //CHECK_NE(mVerInfo, nullptr);
-	
-    //memset(mWifiConfig.get(), 0, sizeof(WIFI_CONFIG));
-    //mpNetManager = sp<net_manager>(new net_manager());
-    //CHECK_NE(mpNetManager, nullptr);
-
 }
-
-
-/*
- * power_on.sh
- * power_init.sh
- */
 
 
 FactoryTest::FactoryTest()
 {
-	
-    init();					/* oled_handler内部成员初始化 */
-	
+    init(); /* oled_handler内部成员初始化 */
 }
 
 
@@ -161,19 +120,14 @@ int FactoryTest::awbCorrectTest()
 
 void FactoryTest::enterBlcbpc()
 {
-	mOLEDModule->display_onoff(0);
+    mOLEDModule->display_onoff(0);
 }
 
 void FactoryTest::exitBlcbpc()
 {
-	mOLEDModule->display_onoff(1);
+    mOLEDModule->display_onoff(1);
 
 }
-
-
-
-
-
 
 
 void FactoryTest::oledTest()
@@ -188,11 +142,11 @@ void FactoryTest::awbTest()
 	mOLEDLight->set_light_val(0x3f);
 	ret = awbCorrectTest();
 
-		if (ret != 0) {
-			mOLEDLight->set_light_val(0x09);
-		} else {
-			mOLEDLight->set_light_val(0x12);
-		}
+    if (ret != 0) {
+        mOLEDLight->set_light_val(0x09);
+    } else {
+        mOLEDLight->set_light_val(0x12);
+    }
 }
 
 

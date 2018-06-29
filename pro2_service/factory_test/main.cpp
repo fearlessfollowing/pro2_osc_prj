@@ -83,9 +83,6 @@ int main(int argc ,char *argv[])
     signal(SIGPIPE, pipe_signal_handler);
 
 
-    	arlog_configure(true, true, log_name, false);
-  
-
 #if 0      
 	iRet = __system_properties_init();              /* 属性区域初始化 */
         if (iRet) {
@@ -99,41 +96,26 @@ int main(int argc ,char *argv[])
 		Log.d(TAG, "arg[%d] -> [%s]", i, argv[i]);
 	}
 
- //       Log.d(TAG, "ro.version [%s]", property_get("ro.version"));
-
-//	Log.d(TAG, "prop1[factory_func] -> [%s]", property_get("factory_func"));
-
-
-//	property_set("sys.factory_tool", "false");
-
-
-//	Log.d(TAG, "prop2[sys.factory_tool] -> [%s]", property_get("sys.factory_tool"));
-
 	int choice;
 
 	/*
 	 * 启动测试线程
 	 */
 	factoryTestHndl = sp<FactoryTest> (new FactoryTest());
-	//factoryTestHndl = sp<FactoryTest> (new FactoryTest(msg2));
 
 	if (strcmp(argv[1], "awb") == 0) {
 		factoryTestHndl->awbTest();
 	} else if (strcmp(argv[1], "oled") == 0) {
 		factoryTestHndl->oledTest();
-	} else if (strcmp(argv[1], "enter_blcbpc") == 0) {
+        system("killall pro2_service");
+    } else if (strcmp(argv[1], "enter_blcbpc") == 0) {
 		factoryTestHndl->enterBlcbpc();
 	} else if (strcmp(argv[1], "exit_blcbpc") == 0) {
 		factoryTestHndl->exitBlcbpc();
-		system("killall pro2_service");
+        system("killall pro2_service");
 	}
 
-	arlog_close();
-
 	exit(0);
-
-
-
 }
 
 

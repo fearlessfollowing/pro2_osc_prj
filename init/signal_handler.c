@@ -89,21 +89,7 @@ static int wait_for_one_process(int block)
         return 0;
     }
 
-    now = gettime();
-    if (svc->flags & SVC_CRITICAL) {
-        if (svc->time_crashed + CRITICAL_CRASH_WINDOW >= now) {
-            if (++svc->nr_crashed > CRITICAL_CRASH_THRESHOLD) {
-                ERROR("critical process '%s' exited %d times in %d minutes; "
-                      "rebooting into recovery mode\n", svc->name,
-                      CRITICAL_CRASH_THRESHOLD, CRITICAL_CRASH_WINDOW / 60);
-//                android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
-            }
-        } else {
-            svc->time_crashed = now;
-            svc->nr_crashed = 1;
-        }
-    }
-
+	
     svc->flags |= SVC_RESTARTING;
 
     /* Execute all onrestart commands for this service. */
