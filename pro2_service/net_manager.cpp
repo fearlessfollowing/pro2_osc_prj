@@ -1,6 +1,3 @@
-//
-// Created by vans on 16-12-7.
-//
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -63,13 +60,10 @@ bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
 
     sp<net_dev_info> found_dev = sp<net_dev_info>(new net_dev_info());
 
-	for (int i = 0; i< DEV_MAX; i++)
-    {
-        if (GSNet_CheckLinkByType(i) == 1)
-        {
+	for (int i = 0; i< DEV_MAX; i++) {
+        if (GSNet_CheckLinkByType(i) == 1) {
             unsigned int addr = GSNet_GetIPInfo(i);
-            if (addr != 0)
-            {
+            if (addr != 0) {
                 found_dev->dev_type = i;
                 found_dev->dev_addr = addr;
                 found_dev->net_link = 1;
@@ -79,39 +73,34 @@ bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
         }
     }
 
-    if (bFoundIP)
-    {
+    if (bFoundIP) {
+		
 #ifdef ENABLE_IP_DEBUG
         u8 ip[32];
         int_to_ip(found_dev->dev_addr,ip,sizeof(ip));
 #endif
         if( found_dev->dev_addr == org_dev_info->dev_addr &&
                 found_dev->dev_type == org_dev_info->dev_type &&
-                found_dev->net_link == org_dev_info->net_link)
-        {
-#ifdef ENABLE_IP_DEBUG
+                found_dev->net_link == org_dev_info->net_link) {
+
+		#ifdef ENABLE_IP_DEBUG
             Log.d(TAG, "met same addr type %d %s", found_dev->dev_type, ip);
-#endif
-            //still send disp for wlan still error
+		#endif
+
+			//still send disp for wlan still error
             bUpdate = true;
-        }
-        else
-        {
-#ifdef ENABLE_IP_DEBUG
+        } else {
+
+		#ifdef ENABLE_IP_DEBUG
             Log.d(TAG, "found new addr type %d %s", found_dev->dev_type, ip);
-#endif
-//            org_dev_info->dev_addr = found_dev->dev_addr;
-//            org_dev_info->dev_type = found_dev->dev_type;
-//            org_dev_info->net_link = found_dev->net_link;
+		#endif
             memcpy(org_dev_info.get(),found_dev.get(),sizeof(net_dev_info));
             bUpdate = true;
         }
-    }
-    else
-    {
-        //first check or net link disconnect
-        if (org_dev_info->dev_addr != 0 || org_dev_info->net_link == -1)
-        {
+    } else {
+    
+        // first check or net link disconnect
+        if (org_dev_info->dev_addr != 0 || org_dev_info->net_link == -1) {
             // net from connect to disconnect
             bUpdate = true;
             org_dev_info->dev_addr = 0;
@@ -119,8 +108,8 @@ bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
         }
     }
 
-    if (bUpdate)
-    {
+    if (bUpdate) {
+
 	#ifdef ENABLE_IP_DEBUG
         u8 ip[32];
         int_to_ip(org_dev_info->dev_addr,ip,sizeof(ip));
@@ -139,18 +128,17 @@ bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
 
 void net_manager::get_dev_name(int dev_type, char *dev_name)
 {
-    switch (dev_type)
-    {
+    switch (dev_type) {
         case DEV_LAN:
-            sprintf(dev_name,"eth%d",0);
+            sprintf(dev_name, "eth%d", 0);
             break;
 		
         case DEV_WLAN:
-            sprintf(dev_name,"%s","wlan0");
+            sprintf(dev_name, "%s", "wlan0");
             break;
 		
         case DEV_4G:
-            sprintf(dev_name,"ppp%d",0);
+            sprintf(dev_name, "ppp%d", 0);
             break;
 		
         default:
@@ -164,32 +152,23 @@ int net_manager::GSNet_CheckLinkByType(int eDeviceType)
     int   skfd = -1;
 //	int i,mii_val[32];
 //	int   bmsr;
-    struct   ifreq   ifr;
+    struct ifreq ifr;
     int istatus = 0;
 	
-//	if(iInitLinkCheck == 1)
-//	{
-//		GSOS_MutexCreate(&link_mutex);
-//		iInitLinkCheck = 0;
-//	}
     memset((u8 *)&ifr,0,sizeof(struct ifreq));
-    get_dev_name(eDeviceType,ifr.ifr_name);
-    if (strlen(ifr.ifr_name) == 0)
-    {
+    get_dev_name(eDeviceType, ifr.ifr_name);
+    if (strlen(ifr.ifr_name) == 0) {
         goto RET_VALUE;
     }
 	
-    if (skfd == -1)
-    {
-        /*   Open   a   basic   socket.   */
-        if((skfd = socket(PF_INET,SOCK_DGRAM,IPPROTO_UDP))   <   0)
-        {
+    if (skfd == -1) {
+        /* Open a basic socket. */
+        if ((skfd = socket(PF_INET,SOCK_DGRAM,IPPROTO_UDP)) < 0) {
             goto RET_VALUE;
         }
     }
 	
-    if (ioctl(skfd, SIOCGIFFLAGS, &ifr)   <   0)//no device or device down
-    {
+    if (ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0) { //no device or device down
 //        printf("SIOCGMIIPHY----   on   '%s'   failed:   %s\n",
 //               ifr.ifr_name,   strerror(errno));
         goto RET_VALUE;
@@ -209,9 +188,6 @@ int net_manager::GSNet_CheckLinkByType(int eDeviceType)
     istatus = (ifr.ifr_flags & IFF_RUNNING) == IFF_RUNNING;
 #endif
 
-//	printf("####%s     %s\n",   ifr.ifr_name,   istatus ?   "link   ok"   :   "no   link");
-//	printf("other way get status=%d\n",interface_detect_beat_ethtool(skfd,ifr.ifr_name));
-    //	close(skfd);
 RET_VALUE:
 
     if (skfd != -1) {

@@ -180,6 +180,7 @@ void oled_handler::oled_init_disp()
     read_sn();						/* 获取系统序列号 */
     read_uuid();					/* 读取设备的UUID */
     read_ver_info();				/* 读取系统的版本信息 */ 
+	
     init_cfg_select();				/* 根据配置初始化选择项 */
 
 	//disp top before check battery 170623 for met enter low power of protect at beginning
@@ -207,9 +208,6 @@ void oled_handler::send_update_light(int menu, int state, int interval, bool bLi
 	
         //force to 0 ,for play sounds cost times
         interval = 0;
-		
-//        flick_light();
-//        interval = 0;
     } else if (bLight) {	/* 需要闪灯 */
         flick_light();
     }
@@ -683,10 +681,20 @@ void oled_handler::init()
 
 }
 
+
+/*
+ * 网络状态管理:
+ * 启动一个秒钟检测一次的监听线程
+ */
+
+
 void oled_handler::check_net_status()
 {
     sp<net_dev_info> mpDevInfo = sp<net_dev_info>(new net_dev_info());
+
+	/* 测试发现,IP地址及网络状态没有发生变化,但是不停的在发消息 */
     if (mpNetManager->check_net_change(mpDevInfo)) {
+		Log.d(TAG, "net device status changed, new ip: %d", mpDevInfo->dev_addr);
         send_disp_ip((int) mpDevInfo->dev_addr, mpDevInfo->dev_type);
     }
 }
@@ -3788,22 +3796,21 @@ bool oled_handler::switch_dhcp_mode(int iDHCP)
 {
     bool bRet = false;
 	
-    Log.d(TAG, "iDHCP  is %d mProCfg->get_val(KEY_WIFI_ON)  %d "
+    Log.d(TAG, "iDHCP is %d mProCfg->get_val(KEY_WIFI_ON)  %d "
                   "org_addr 0x%x",
           iDHCP, mProCfg->get_val(KEY_WIFI_ON), org_addr);
 
 	if (/*(mProCfg->get_val(KEY_WIFI_ON) == 0) &&*/ (10001 != org_addr)) {
-        exec_sh("ifconfig eth0 down");
-        set_org_addr(10001);
-        if (iDHCP == 0) {
-			// disp_icon(ICON_INDEX_IC_ETHERNET_0_0_16_1616_16);
-            msg_util::sleep_ms(2000);
+        //exec_sh("ifconfig eth0 down");
+        //set_org_addr(10001);
+	
+        if (iDHCP == 0) {	/* 静态地址模式:  默认设置为192.168.1.188 */
             system("ifconfig eth0 192.168.1.188 netmask 255.255.255.0 up");
-        } else {
+        } else {	/* DHCP模式 */
 			// disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
-            msg_util::sleep_ms(5000);
-            exec_sh("ifconfig eth0 up");
-            msg_util::sleep_ms(1000);
+            exec_sh("ifconfig eth0 down");
+            exec_sh("killall dhclient");
+			exec_sh("dhclient eth0");
         }
         bRet = true;
     }
