@@ -177,9 +177,6 @@ void oled_handler::init_cfg_select()
 *************************************************************************/
 void oled_handler::oled_init_disp()
 {
-
-//    disp_icon(ICON_LINE_UP8124_8);
-
     read_sn();						/* 获取系统序列号 */
     read_uuid();					/* 读取设备的UUID */
     read_ver_info();				/* 读取系统的版本信息 */ 
@@ -201,17 +198,19 @@ void oled_handler::exit_qr_func()
     send_option_to_fifo(ACTION_QR);
 }
 
-void oled_handler::send_update_light(int menu, int state, int interval,bool bLight,int sound_id )
+void oled_handler::send_update_light(int menu, int state, int interval, bool bLight, int sound_id)
 {
 //    Log.d(TAG,"send_update_light　(%d %d %d %d) ",bSendUpdate,menu,state,interval);
     if (sound_id != -1 && get_setting_select(SET_SPEAK_ON) == 1) {
         flick_light();
         play_sound(sound_id);
+	
         //force to 0 ,for play sounds cost times
         interval = 0;
+		
 //        flick_light();
 //        interval = 0;
-    } else if (bLight) {
+    } else if (bLight) {	/* 需要闪灯 */
         flick_light();
     }
 
@@ -243,8 +242,8 @@ void oled_handler::write_p(int *p, int val)
 void oled_handler::play_sound(u32 type)
 {
 	Log.d(TAG, "play_sound speaker state [%d]", get_setting_select(SET_SPEAK_ON));
-    if (get_setting_select(SET_SPEAK_ON) == 1) 
-	{
+
+    if (get_setting_select(SET_SPEAK_ON) == 1)  {
         if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
             char cmd[1024];
             snprintf(cmd, sizeof(cmd), "aplay %s", sound_str[type]);
@@ -563,9 +562,10 @@ void oled_handler::init_menu_select()
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_LOGO);
                 break;
 
-            case SET_LIGHT_ON:
+            case SET_LIGHT_ON:	/* 开机时根据配置,来决定是否开机后关闭前灯 */
                 val = mProCfg->get_val(KEY_LIGHT_ON);
                 set_setting_select(i, val);
+
                 //off the light 170802
                 if (val == 0) {
                     set_light_direct(LIGHT_OFF);
@@ -622,13 +622,13 @@ void oled_handler::init()
     Log.d(TAG, "version:%s\n", GIT_SHA1);
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
-    CHECK_EQ(sizeof(mPICAction)/sizeof(mPICAction[0]), PIC_CUSTOM);
-    CHECK_EQ(sizeof(mVIDAction)/sizeof(mVIDAction[0]), VID_CUSTOM);
-    CHECK_EQ(sizeof(mLiveAction)/sizeof(mLiveAction[0]), LIVE_CUSTOM);
+    CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_CUSTOM);
+    CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
+    CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
 
-    CHECK_EQ(sizeof(setting_icon_normal)/sizeof(setting_icon_normal[0]), SETTING_MAX);
-    CHECK_EQ(sizeof(setting_icon_lights)/sizeof(setting_icon_lights[0]), SETTING_MAX);
+    CHECK_EQ(sizeof(setting_icon_normal) / sizeof(setting_icon_normal[0]), SETTING_MAX);
+    CHECK_EQ(sizeof(setting_icon_lights) / sizeof(setting_icon_lights[0]), SETTING_MAX);
 
     mSaveList.clear();
     cam_state = STATE_IDLE;
@@ -1805,6 +1805,7 @@ void oled_handler::read_uuid()
 bool oled_handler::read_sys_info(int type, const char *name)
 {
     bool ret = false;
+	
     if (check_path_exist(name)) {
         int fd = open(name, O_RDONLY);
         if (fd != -1) {
@@ -1855,14 +1856,24 @@ bool oled_handler::read_sys_info(int type)
     char cmd[1024];
     bool bFound = false;
 
-    snprintf(cmd,sizeof(cmd), "factool get %s > %s", astSysRead[type].key, SYS_TMP);
-	Log.d(TAG,"cmd is %s", cmd);
+#if 0
+    snprintf(cmd, sizeof(cmd), "factool get %s > %s", astSysRead[type].key, SYS_TMP);
+	Log.d(TAG, "cmd is %s", cmd);
 	
     if (exec_sh(cmd) == 0) {
         bFound = read_sys_info(type, SYS_TMP);
     } else  {
         Log.e(TAG,"error cmd %s\n",cmd);
     }
+#endif
+
+	/*
+	 * 检查/data/下是否存在sn,uuid文件
+	 * 1.检查/home/nvidia/insta360/etc/下SN及UUID文件是否存在,如果不存在,查看/data/下的SN,UUID文件是否存在
+	 * 2.如果/home/nvidia/insta360/etc/下SN及UUID文件存在,直接读取配置
+	 * 3.如果/home/nvidia/insta360/etc/下SN,UUID不存在,而/data/下存在,拷贝过来并读取
+	 * 4.都不存在,在/home/nvidia/insta360/etc/下创建SN,UUID文件并使用默认值
+	 */
 	
     if (!bFound) {
         bFound = read_sys_info(type, astSysRead[type].file_name);
@@ -4411,13 +4422,11 @@ void oled_handler::disp_ready_icon(bool bDispReady)
     }
 }
 
+    
 void oled_handler::disp_shooting()
 {
-//    if(!check_save_path_none())
-//    {
     Log.d(TAG, "check_save_path_none() is %d\n", check_save_path_none());
     disp_icon(ICON_CAMERA_SHOOTING_2016_76X32);
-//    }
     set_light(fli_light);
 }
 
@@ -4800,6 +4809,17 @@ void oled_handler::disp_sys_err(int type,int back_menu)
     disp_err_str(type);
 }
 
+
+
+
+/*************************************************************************
+** 方法名称: set_flick_light
+** 方法功能: 设置灯光闪烁的颜色值
+** 入口参数: 无
+** 返 回 值: 无 
+** 调     用: set_light
+**
+*************************************************************************/
 void oled_handler::set_flick_light()
 {
 #ifdef ENABLE_LIGHT
@@ -4834,6 +4854,8 @@ void oled_handler::set_flick_light()
 #endif
 }
 
+
+
 bool oled_handler::check_cam_busy()
 {
     bool bRet = false;
@@ -4856,21 +4878,20 @@ bool oled_handler::check_cam_busy()
 
 void oled_handler::set_light()
 {
-    if (mBatInterface->isSuc()) {
-        if (m_bat_info_->battery_level < 10) {
+    if (mBatInterface->isSuc()) {	/* 电池存在,根据电池的电量来设置前灯的显示状态:   */
+        if (m_bat_info_->battery_level < 10) {			/* 电量小于10%显示红色 */
             front_light = FRONT_RED;
-        } else if (m_bat_info_->battery_level < 20) {
+        } else if (m_bat_info_->battery_level < 20) {	/* 电量小于20%显示黄色 */
             front_light = FRONT_YELLOW;
-        } else {
+        } else {										/* 电量高于20%,显示白色 */
             front_light = FRONT_WHITE;
         }
-    } else {
+    } else {	/* 电池不存在,显示白色 */
         front_light = FRONT_WHITE;
     }
 	
-//    Log.d(TAG,"set light val 0x%x cam_state 0x%x bat suc %d",
-//          front_light, cam_state,mBatInterface->isSuc());
-    set_flick_light();
+    set_flick_light();	/* 根据前灯的状态来设置闪烁时的灯颜色 */
+
     if (!check_cam_busy() && (cur_menu != MENU_SYS_ERR) && (cur_menu != MENU_LOW_BAT)) {
         set_light(front_light);
     }
@@ -5802,10 +5823,9 @@ void oled_handler::increase_rec_time()
 
 void oled_handler::flick_light()
 {
-//    Log.d(TAG,"last_light 0x%x fli_light 0x%x",
-//          last_light ,
-//          fli_light);
-    if ((last_light& 0xf8) != fli_light) {
+	Log.d(TAG, "last_light 0x%x fli_light 0x%x", last_light, fli_light);
+	
+    if ((last_light & 0xf8) != fli_light) {
         set_light(fli_light);
     } else {
         set_light(LIGHT_OFF);
@@ -5881,7 +5901,7 @@ bool oled_handler::check_bat_protect()
 void oled_handler::func_low_bat()
 {
 #if 1
-    send_option_to_fifo(ACTION_LOW_BAT,REBOOT_SHUTDOWN);
+    send_option_to_fifo(ACTION_LOW_BAT, REBOOT_SHUTDOWN);
 #else
     int times = 10;
     bool bSend = true;
@@ -5933,10 +5953,6 @@ void oled_handler::set_light_direct(u8 val)
 void oled_handler::set_light(u8 val)
 {
 #ifdef ENABLE_LIGHT
-//    Log.d(TAG,"set_light (0x%x  0x%x  0x%x 0x%x %d)",
-//          last_light,val, front_light,fli_light,
-//          get_setting_select(SET_LIGHT_ON));
-
     if (get_setting_select(SET_LIGHT_ON) == 1) {
         set_light_direct(val | front_light);
     }
@@ -6257,8 +6273,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                 CHECK_EQ(msg->find<int>("menu", &menu), true);
                 CHECK_EQ(msg->find<int>("interval", &interval), true);
                 CHECK_EQ(msg->find<int>("state", &state), true);
-//                Log.d(TAG," (%d %d  %d %d)",
-//                      menu,state,interval,  cap_delay);
+//                Log.d(TAG," (%d %d  %d %d)", menu,state,interval,  cap_delay);
                 bSendUpdate = false;
                 {
                     unique_lock<mutex> lock(mutexState);

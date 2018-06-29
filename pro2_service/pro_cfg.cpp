@@ -118,33 +118,33 @@ static const char *key[] = {
     "vid_aud_sr:",
     "vid_aud_br:",
 
-        //live
-        "live_mode:",
-        "live_size_per_act:",
-        "live_delay:",
-        "live_org_mime:",
-        "live_save_org:",
-        "live_org_w:",
-        "live_org_h:",
-        "live_org_fr:",
-        "live_org_br:",
-        "live_log_mode:",
-        "live_sti_mime:",
-        "live_sti_mode:",
-        "live_sti_w:",
-        "live_sti_h:",
-        "live_sti_fr:",
-        "live_sti_br:",
-        "live_sti_hdmi_on:",
-        "live_file_save:",
-        "live_sti_url:",
-        "live_sti_format:",
-        "live_aud_gain:",
-        "live_aud_mime:",
-        "live_aud_sample_fmt:",
-        "live_aud_ch_layout:",
-        "live_aud_sr:",
-        "live_aud_br:",
+    //live
+    "live_mode:",
+    "live_size_per_act:",
+    "live_delay:",
+    "live_org_mime:",
+    "live_save_org:",
+    "live_org_w:",
+    "live_org_h:",
+    "live_org_fr:",
+    "live_org_br:",
+    "live_log_mode:",
+    "live_sti_mime:",
+    "live_sti_mode:",
+    "live_sti_w:",
+    "live_sti_h:",
+    "live_sti_fr:",
+    "live_sti_br:",
+    "live_sti_hdmi_on:",
+    "live_file_save:",
+    "live_sti_url:",
+    "live_sti_format:",
+    "live_aud_gain:",
+    "live_aud_mime:",
+    "live_aud_sample_fmt:",
+    "live_aud_ch_layout:",
+    "live_aud_sr:",
+    "live_aud_br:",
 };
 
 static void int_to_str_val(int val, char *str, int size)
@@ -170,7 +170,9 @@ pro_cfg::~pro_cfg()
 
 void pro_cfg::init()
 {
-    CHECK_EQ(sizeof(key)/sizeof(key[0]),KEY_CFG_MAX);
+    CHECK_EQ(sizeof(key) / sizeof(key[0]), KEY_CFG_MAX);
+
+	Log.d(TAG, "pro_cfg::init...");
     mCurInfo = sp<OLED_CUR_INFO>(new OLED_CUR_INFO());
     memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
 }
@@ -635,38 +637,36 @@ void pro_cfg::update_wifi_cfg(sp<struct _wifi_config_> &mCfg)
 
 void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_> &mCfg)
 {
-    if(check_path_exist(WIFI_CFG_PARAM_PATH))
-    {
+    if (check_path_exist(WIFI_CFG_PARAM_PATH)) {
         int fd = open(WIFI_CFG_PARAM_PATH, O_RDWR);
         CHECK_NE(fd, -1);
 
         char buf[1024];
         int max_key = sizeof(wifi_key) / sizeof(wifi_key[0]);
 
-        lseek(fd,0,SEEK_SET);
-        while (read_line(fd, (void *) buf, sizeof(buf)) > 0)
-        {
+        lseek(fd, 0, SEEK_SET);
+        while (read_line(fd, (void *) buf, sizeof(buf)) > 0) {
             //skip begging from#
-            if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/'))
-            {
+            if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/')) {
                 continue;
             }
-            for (int i = 0; i < max_key; i++)
-            {
+			
+            for (int i = 0; i < max_key; i++) {
                 char *pStr = ::strstr(buf, wifi_key[i]);
-                if (pStr)
-                {
+                if (pStr) {
                     pStr += strlen(wifi_key[i]);
 //                Log.d(TAG, " %s is %s len %d atoi(pStr) %d",
 //                      key[i], pStr, strlen(pStr),atoi(pStr));
-                    switch (i)
-                    {
+
+                    switch (i) {
                         case KEY_WIFI_SSID:
                             snprintf(mCfg->ssid,sizeof(mCfg->ssid),"%s",pStr);
                             break;
+
                         case KEY_WIFI_PWD:
                             snprintf(mCfg->pwd,sizeof(mCfg->pwd),"%s",pStr);
                             break;
+
                         default:
                             break;
                     }
@@ -674,35 +674,32 @@ void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_> &mCfg)
             }
         }
         close(fd);
-        Log.d(TAG,"ssid %s pwd %s",mCfg->ssid,mCfg->pwd);
-    }
-    else
-    {
-        Log.e(TAG,"no %s exist",WIFI_CFG_PARAM_PATH);
+        Log.d(TAG, "ssid %s pwd %s", mCfg->ssid, mCfg->pwd);
+    } else {
+        Log.e(TAG, "no %s exist", WIFI_CFG_PARAM_PATH);
     }
 }
+
+
 
 void pro_cfg::read_cfg(const char *name)
 {
     int fd = open(name, O_RDWR);
     CHECK_NE(fd, -1);
+	
     char buf[2048];
     int max_key = sizeof(key) / sizeof(key[0]);
-//        Log.d(TAG, " max key %d\n", max_key);
 
-    while (read_line(fd, (void *) buf, sizeof(buf)) > 0)
-    {
-//            Log.d(TAG, "read line len %d\n", iLen);
-        //skip begging from#
-        if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/'))
-        {
+    while (read_line(fd, (void *) buf, sizeof(buf)) > 0) {
+
+		/* '#'或'//'开头的为注释行 */
+		if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/')) {
             continue;
         }
-        for (int i = 0; i < max_key; i++)
-        {
+		
+        for (int i = 0; i < max_key; i++) {
             char *pStr = ::strstr(buf, key[i]);
-            if (pStr)
-            {
+            if (pStr) {
                 pStr += strlen(key[i]);
 //                Log.d(TAG, " %s is %s len %d atoi(pStr) %d",
 //                      key[i], pStr, strlen(pStr),atoi(pStr));
@@ -725,125 +722,165 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_WIFI_AP:
                         mCurInfo->cfg_val[i] = atoi(pStr);
                         break;
+					
                     case KEY_PIC_MODE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].mode = atoi(pStr);
                         break;
+					
                     case KEY_PIC_SIZE_PER_ACT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].size_per_act = atoi(pStr);
                         break;
+					
                     case KEY_PIC_DELAY:
                         mCurInfo->mActInfo[KEY_PIC_DEF].delay = atoi(pStr);
                         break;
+					
                     case KEY_PIC_ORG_MIME:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.mime = atoi(pStr);
                         break;
+					
                     case KEY_PIC_ORG_SAVE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.save_org = atoi(pStr);
                         break;
+					
                     case KEY_PIC_ORG_W:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.w = atoi(pStr);
                         break;
+					
                     case KEY_PIC_ORG_H:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.h = atoi(pStr);
                         break;
+					
                     case KEY_PIC_HDR_COUNT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.hdr_count = atoi(pStr);
                         break;
+					
                     case KEY_PIC_MIN_EV:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.min_ev = atoi(pStr);
                         break;
+					
                     case KEY_PIC_MAX_EV:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.max_ev= atoi(pStr);
                         break;
+					
                     case KEY_PIC_BURST_COUNT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.burst_count= atoi(pStr);;
                         break;
+					
                     case KEY_PIC_STI_MIME:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.mime = atoi(pStr);
                         break;
+					
                     case KEY_PIC_STI_MODE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.stich_mode = atoi(pStr);
                         break;
+					
                     case KEY_PIC_STI_W:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.w = atoi(pStr);
                         break;
+					
                     case KEY_PIC_STI_H:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.h = atoi(pStr);
                         break;
+					
                         //video
                     case KEY_VID_MODE:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].mode = atoi(pStr);
                         break;
+					
                     case KEY_VID_SIZE_PER_ACT:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].size_per_act = atoi(pStr);
                         break;
+					
                     case KEY_VID_DELAY:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].delay = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_MIME:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.mime = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_SAVE:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.save_org = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_W:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.w = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_H:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.h = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_FR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.stOrgAct.mOrgV.org_fr = atoi(pStr);
                         break;
+					
                     case KEY_VID_ORG_BR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.stOrgAct.mOrgV.org_br = atoi(pStr);
                         break;
+					
                     case KEY_VID_LOG:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.stOrgAct.mOrgV.logMode = atoi(pStr);
                         break;
+					
                     case KEY_VID_TL:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stOrgInfo.stOrgAct.mOrgV.tim_lap_int = atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_MIME:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.mime = atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_MODE:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.stich_mode = atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_W:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.w= atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_H:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.h= atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_FR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.stStiAct.mStiV.sti_fr = atoi(pStr);
                         break;
+					
                     case KEY_VID_STI_BR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.stStiAct.mStiV.sti_br = atoi(pStr);
                         break;
+					
                     case KEY_VID_AUD_GAIN:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.audio_gain= atoi(pStr);
                         break;
+					
                     case KEY_VID_AUD_MIME:
                         snprintf(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.mime,sizeof(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.mime),"%s",pStr);
                         break;
+					
                     case KEY_VID_AUD_SAMPLE_FMT:
                         snprintf(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_fmt,sizeof(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_fmt),"%s",pStr);
                         break;
+					
                     case KEY_VID_AUD_CH_LAYOUT:
                         snprintf(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.ch_layout,sizeof(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.ch_layout),"%s",pStr);
                         break;
+					
                     case KEY_VID_AUD_SR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate = atoi(pStr);
                         break;
+					
                     case KEY_VID_AUD_BR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.br = atoi(pStr);
                         break;
+					
                         //live
                     case KEY_LIVE_MODE:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].mode = atoi(pStr);
                         break;
+					
                     case KEY_LIVE_SIZE_PER_ACT:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].size_per_act = atoi(pStr);
                         break;
@@ -895,57 +932,60 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_LIVE_FILE_SAVE:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.file_save = atoi(pStr);
                         break;
+					
                     case KEY_LIVE_STI_URL:
                         snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url,
                                  sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url),
                                  "%s",pStr);
                         break;
+						
                     case KEY_LIVE_FORMAT:
                         snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.format,
                                  sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.format),
                                  "%s",pStr);
                         break;
+						
                     case KEY_LIVE_AUD_GAIN:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.audio_gain = atoi(pStr);
                         break;
+					
                     case KEY_LIVE_AUD_MIME:
                         snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.mime,sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.mime),"%s",pStr);
                         break;
+					
                     case KEY_LIVE_AUD_SAMPLE_FMT:
                         snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.sample_fmt,sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.sample_fmt),"%s",pStr);
                         break;
+					
                     case KEY_LIVE_AUD_CH_LAYOUT:
                         snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.ch_layout,sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.ch_layout),"%s",pStr);
                         break;
+					
                     case KEY_LIVE_AUD_SR:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.sample_rate = atoi(pStr);
                         break;
+					
                     case KEY_LIVE_AUD_BR:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.br = atoi(pStr);
                         break;
+					
                     SWITCH_DEF_ERROR(i)
                 }
             }
         }
     }
+
     close(fd);
-//    for(u32 i = 0; i < sizeof(mCurInfo->cfg_val)/sizeof(mCurInfo->cfg_val[0]); i++)
-//    {
-//        Log.d(TAG, " %s val %d", key[i], mCurInfo->cfg_val[i]);
-//    }
-//
-//    Log.d(TAG,"wifi ap is %d",mCurInfo->cfg_val[KEY_WIFI_AP]);
+	Log.d(TAG, "read_cfg [%s] parse done...", name);
+	
 }
 
 void pro_cfg::read_def_cfg()
 {
-    if (access(DEF_CFG_PARAM_PATH, R_OK | W_OK) == -1)
-    {
+    if (access(DEF_CFG_PARAM_PATH, R_OK | W_OK) == -1) {
         Log.e(TAG, "%s no r/w access", DEF_CFG_PARAM_PATH);
         create_user_cfg();
-    }
-    else
-    {
+    } else {
         read_cfg(DEF_CFG_PARAM_PATH);
     }
 }
@@ -956,14 +996,12 @@ void pro_cfg::create_user_cfg()
 
     Log.e(TAG, "%s no r/w access", USER_CFG_PARAM_PATH);
 
-    if (access(DEF_CFG_PARAM_PATH, R_OK | W_OK) == -1) {
-        snprintf(sys_cmd, sizeof(sys_cmd), "mkdir -p /data/etc");
-        system(sys_cmd);
+	/* 判断默认的配置参数文件是否存在 */
+    if (access(DEF_CFG_PARAM_PATH, F_OK | R_OK | W_OK) == -1) {		/* 不存在,创建def_cfg文件 */
         snprintf(sys_cmd, sizeof(sys_cmd), "touch %s", DEF_CFG_PARAM_PATH);
-        system(sys_cmd);
+        system(sys_cmd);		
     }
 
-//  copy default cf to user
     snprintf(sys_cmd, sizeof(sys_cmd), "cp -pR %s %s", DEF_CFG_PARAM_PATH, USER_CFG_PARAM_PATH);
     system(sys_cmd);
 }
@@ -975,13 +1013,19 @@ void pro_cfg::reset_all()
     read_cfg(DEF_CFG_PARAM_PATH);
 }
 
+
+
 void pro_cfg::read_user_cfg()
 {
+
+	/* 用户配置文件不存在,根据默认配置文件来创建用户配置文件 */
     if (access(USER_CFG_PARAM_PATH, R_OK | W_OK) == -1) {
+		Log.d(TAG, ">> user cfg [%s] not exist, crate now...", USER_CFG_PARAM_PATH);
         create_user_cfg();
     }
 
-    read_cfg(USER_CFG_PARAM_PATH);
+	Log.d(TAG, "Reading and parse [%s] now", USER_CFG_PARAM_PATH);
+    read_cfg(USER_CFG_PARAM_PATH);	/* 读取用户配置文件 */
 }
 
 void pro_cfg::update_val(int type, int val)
@@ -1070,15 +1114,14 @@ void pro_cfg::update_val(int type, const char *val)
         }
     }
 
-    if (!bFound)
-    {
+    if (!bFound) {
         snprintf(buf, sizeof(buf), "%s%s%s", key[type], val, new_line);
+
         Log.w(TAG, " %s not found just write val %s", key[type], buf);
         lseek(fd, 0, SEEK_END);
         len = strlen(buf);
         write_len = write(fd, buf, len);
-        if ( write_len != len)
-        {
+        if (write_len != len) {
             Log.w(TAG, "2write pro_cfg mismatch(%d %d)", write_len, len);
         }
     }

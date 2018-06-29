@@ -169,8 +169,7 @@ enum
     LIVE_DEF_MAX,
 };
 
-enum
-{
+enum {
     MAINMENU_PIC,
     MAINMENU_VIDEO,
     MAINMENU_LIVE,
@@ -180,39 +179,50 @@ enum
     MAINMENU_MAX,
 };
 
-enum
-{
-    LIGHT_OFF = 0xc0,
-    FRONT_RED = 0xc1,
-    FRONT_GREEN =0xc2,
-    FRONT_YELLOW = 0xc3,
-    FRONT_DARK_BLUE = 0xc4,
-    FRONT_PURPLE = 0xc5,
-    FRONT_BLUE = 0xc6,
-    FRONT_WHITE = 0xc7,
 
-    BACK_RED = 0xc8,
-    BACK_GREEN = 0xd0,
-    BACK_YELLOW = 0xd8,
-    BACK_DARK_BLUE = 0xe0,
-    BACK_PURPLE = 0xe8,
-    BACK_BLUE = 0xf0,
-    BACK_WHITE= 0xf8,
-    LIGHT_ALL = 0xff
+/* Slave Addr: 0x77 Reg Addr: 0x02
+ * bit[7] - USB_POWER_EN2
+ * bit[6] - USB_POWER_EN1
+ * bit[5] - LED_BACK_B
+ * bit[4] - LED_BACK_G
+ * bit[3] - LED_BACK_R
+ * bit[2] - LED_FRONT_B
+ * bit[1] - LED_FRONT_G
+ * bit[0] - LED_FRONT_R
+ */
+enum {
+	LIGHT_OFF 		= 0xc0,		/* 关闭所有的灯 bit[7:6] = Camera module */
+    FRONT_RED 		= 0xc1,		/* 前灯亮红色,后灯全灭 */
+    FRONT_GREEN 	= 0xc2,		/* 前灯亮绿色,后灯全灭 */
+    FRONT_YELLOW 	= 0xc3,		/* 前灯亮黄色(G+R), 后灯全灭 */
+    FRONT_DARK_BLUE = 0xc4,		/* 前灯亮蓝色, 后灯全灭 */
+    FRONT_PURPLE 	= 0xc5,
+    FRONT_BLUE 		= 0xc6,
+    FRONT_WHITE 	= 0xc7,		/* 前灯亮白色(R+G+B),后灯全灭 */
+
+    BACK_RED 		= 0xc8,		/* 后灯亮红色 */
+    BACK_GREEN 		= 0xd0,		/* 后灯亮绿色 */
+    BACK_YELLOW 	= 0xd8,		/* 后灯亮黄色 */
+    BACK_DARK_BLUE 	= 0xe0,
+    BACK_PURPLE 	= 0xe8,
+    BACK_BLUE 		= 0xf0,
+    BACK_WHITE		= 0xf8,		/* 后灯亮白色 */
+    
+    LIGHT_ALL 		= 0xff		/* 所有的灯亮白色 */
 };
 
 #define PAGE_MAX (3)
 
-#define INTERVAL_1HZ (1000)
+#define INTERVAL_1HZ 	(1000)
+
 //#define INTERVAL_3HZ (333)
-#define INTERVAL_5HZ (200)
+#define INTERVAL_5HZ 		(200)
 
-#define FLASH_LIGHT BACK_BLUE
-#define BAT_INTERVAL (5000)
-#define AVAIL_SUBSTRACT (1024)
+#define FLASH_LIGHT			BACK_BLUE
+#define BAT_INTERVAL		(5000)
+#define AVAIL_SUBSTRACT		(1024)
 
-enum
-{
+enum {
     SND_SHUTTER,
     SND_COMPLE,
     SND_FIVE_T,

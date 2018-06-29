@@ -1,7 +1,3 @@
-//
-// Created by vans on 16-12-6.
-//
-
 #ifndef PROJECT_OLED_WRAPPER_H
 #define PROJECT_OLED_WRAPPER_H
 
@@ -91,11 +87,12 @@ typedef enum _type_ {
     MAX_TYPE,
 }TYPE;
 
+
 typedef struct _sys_info_ {
-    char sn[128];
-    char uuid[128];
-    char ssid[128];
-    char sn_str[128];
+    char sn[128];				/* 序列号 */
+    char uuid[128];				/* UUID */
+    char ssid[128];				/* SSID */
+    char sn_str[128];			/* SN字符串 */
 } SYS_INFO;
 
 typedef struct oled_coordinate {
@@ -112,13 +109,12 @@ typedef struct _disp_str_ {
     int state;
 } DISP_STR;
 
-typedef struct _disp_bitmap_
-{
+typedef struct _disp_bitmap_ {
     int x;
     int y;
     u8 bitmap[128];
     int state;
-}DISP_BITMAP;
+} DISP_BITMAP;
 
 typedef struct _disp_ext_ {
     int ext_id;

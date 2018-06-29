@@ -166,8 +166,7 @@ enum
 };
 
 
-enum
-{
+enum {
     KEY_PIC_DEF,
     KEY_VIDEO_DEF,
     KEY_LIVE_DEF,
