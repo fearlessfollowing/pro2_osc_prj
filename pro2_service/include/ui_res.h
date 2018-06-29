@@ -987,7 +987,7 @@ static const ACTION_INFO mVIDAction[] = {
 };
 
 static const ACTION_INFO mLiveAction[] = {
-#if 0	
+
 	//live
 	{
 	    MODE_3D,
@@ -1019,7 +1019,6 @@ static const ACTION_INFO mLiveAction[] = {
         {},
         {}
     },
-#endif
 
     {
 		MODE_PANO,

@@ -36,27 +36,29 @@
 #include <thread>
 #include <vector>
 
+#include <prop_cfg.h>
+
+
+#define TAG "pro2_service"
+
 void start_all();
 void init_fifo();
 void debug_version_info();
 
-#define TAG "pro_service"
-
-const char *log_name = "/home/nvidia/insta360/log/p_log";
 
 int main(int argc ,char *argv[])
 {
     int iRet = 0;
+
     debug_version_info();
     registerSig(default_signal_handler);
     signal(SIGPIPE, pipe_signal_handler);
 
-    arlog_configure(true, true, log_name, false);
+    arlog_configure(true, true, PRO2_SERVICE_LOG_PATH, false);
 
     iRet = __system_properties_init();	/* 属性区域初始化 */
-    if (iRet)
-    {
-    	Log.e(TAG, "pro_service service exit: __system_properties_init() faile, ret = %d\n", iRet);
+    if (iRet) {
+        Log.e(TAG, "pro_service service exit: __system_properties_init() faile, ret = %d", iRet);
         return -1;
     }
 
@@ -65,10 +67,9 @@ int main(int argc ,char *argv[])
     init_fifo();
     start_all();
 
-    while (1)
-    {
+    while (1) {
         msg_util::sleep_ms(5 * 1000);
     }
 
-    Log.d(TAG, "main pro over\n");
+    Log.d(TAG, "main pro over");
 }

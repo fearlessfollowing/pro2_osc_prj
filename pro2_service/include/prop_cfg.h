@@ -49,6 +49,17 @@
 #define VER_FULL_TMP_PATH		"/home/nvidia/insta360/etc/.sys_tmp_ver"
 #define VER_BUILD_PATH 			"/home/nvidia/insta360/etc/pro_build_version"
 
+/*
+ * 配置参数路径
+ */
+#define USER_CFG_PARAM_PATH     "/home/nvidia/insta360/etc/user_cfg"
+#define DEF_CFG_PARAM_PATH      "/home/nvidia/insta360/etc/def_cfg"
+#define WIFI_CFG_PARAM_PATH     "/home/nvidia/insta360/etc/wifi_cfg"
 
+
+/*
+ * 日志存放路径名
+ */
+#define PRO2_SERVICE_LOG_PATH   "/home/nvidia/insta360/log/p_log"
 
 #endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */

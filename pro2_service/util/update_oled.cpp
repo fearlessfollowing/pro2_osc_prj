@@ -53,15 +53,15 @@ static OLED_STR mSysStr[] = {
 	{ERR_APP_HEADER_LEN_MISMATCH2, 	"806"},
 
 	/* add by skymixos */
-	{ERR_APP_CHECK_BILL,			"807"},	
-	{ERR_UPAPP_BATTERY_LOW,			"808"},
-	{ERR_UPAPP_GET_APP_TAR,			"809"},
-	{ERR_UPAPP_BILL,				"810"},
-	{ERR_UPAPP_MODUE,				"811"},
-	{ERR_UPAPP_BIN,					"812"},
-	{ERR_UPAPP_LIB,					"813"},
-	{ERR_UPAPP_CFG,					"814"},
-	{ERR_UPAPP_DATA,				"815"},
+    {ERR_APP_CHECK_BILL,			"807"},     /* 升级清单文件不存在 */
+    {ERR_UPAPP_BATTERY_LOW,			"808"},     /* 电池点量低 */
+    {ERR_UPAPP_GET_APP_TAR,			"809"},     /* 提取升级包失败 */
+    {ERR_UPAPP_BILL,				"810"},     /* 升级清单文件解析错误 */
+    {ERR_UPAPP_MODUE,				"811"},     /* 模组升级失败 */
+    {ERR_UPAPP_BIN,					"812"},     /* 可执行文件升级失败 */
+    {ERR_UPAPP_LIB,					"813"},     /* 库文件更新失败 */
+    {ERR_UPAPP_CFG,					"814"},     /* 配置文件失败 */
+    {ERR_UPAPP_DATA,				"815"},     /* 更新数据失败 */
 	{ERR_UPAPP_DEFAULT,				"816"},
 	
 };

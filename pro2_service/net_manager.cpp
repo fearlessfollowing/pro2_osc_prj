@@ -16,8 +16,9 @@
 
 using namespace std;
 //#define WLAN_PRIOR
-enum
-{
+
+enum {
+
 #ifdef WLAN_PRIOR
     DEV_WLAN,
     DEV_LAN,
@@ -25,11 +26,13 @@ enum
     DEV_LAN,
     DEV_WLAN,
 #endif
+
     DEV_4G,
     DEV_MAX
 };
 
 #define TAG "net_manager"
+
 //#define ENABLE_IP_DEBUG
 net_manager::net_manager()
 {
@@ -195,8 +198,7 @@ int net_manager::GSNet_CheckLinkByType(int eDeviceType)
     /*   Some   bits   in   the   BMSR   are   latched,   but   we   can't   rely   on   being
 		the   only   reader,   so   only   the   current   values   are   meaningful   */
 	mdio_read(skfd, &ifr,  MII_BMSR);
-	for   (i   =   0;   i   <   8;   i++)
-	{
+    for (i = 0; i < 8; i++) {
 		mii_val[i]   =   mdio_read(skfd, &ifr,  i);
 	}
 
@@ -211,8 +213,8 @@ int net_manager::GSNet_CheckLinkByType(int eDeviceType)
 //	printf("other way get status=%d\n",interface_detect_beat_ethtool(skfd,ifr.ifr_name));
     //	close(skfd);
 RET_VALUE:
-    if (skfd != -1)
-    {
+
+    if (skfd != -1) {
         close(skfd);
     }
     return istatus;
@@ -227,18 +229,16 @@ unsigned int net_manager::GSNet_GetIPInfo(int dev_type)
     struct sockaddr_in *addr;
     unsigned int ip = 0;
     get_dev_name(dev_type,ifr.ifr_name);
-    if (strlen(ifr.ifr_name) == 0)
-    {
+
+    if (strlen(ifr.ifr_name) == 0) {
         return 0;
     }
 
-    if ((skfd = socket(AF_INET, SOCK_DGRAM,0))   <   0)
-    {
+    if ((skfd = socket(AF_INET, SOCK_DGRAM,0)) < 0) {
         return 0;
     }
 
-    if (ioctl(skfd,SIOCGIFADDR,&ifr) == -1)
-    {
+    if (ioctl(skfd,SIOCGIFADDR,&ifr) == -1) {
         close(skfd);
         return 0;
     }
@@ -248,8 +248,7 @@ unsigned int net_manager::GSNet_GetIPInfo(int dev_type)
     strcpy(acAddr, inet_ntoa(addr->sin_addr));
 	
 //    Log.d(TAG,"get ip dev %s ip %s",ifr.ifr_name,acAddr);
-    if (4 == sscanf(acAddr, "%u.%u.%u.%u", &ucA0, &ucA1, &ucA2, &ucA3))
-    {
+    if (4 == sscanf(acAddr, "%u.%u.%u.%u", &ucA0, &ucA1, &ucA2, &ucA3)) {
         ip = (ucA0 << 24)| (ucA1 << 16)|(ucA2 << 8)| ucA3;
     }
 	

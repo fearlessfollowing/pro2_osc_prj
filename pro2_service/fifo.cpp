@@ -1,6 +1,17 @@
-//
-// Created by vans on 16-12-2.
-//
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: fifo.cpp
+** 功能描述: 输入管理器（用于处理按键事件）
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V1.0
+** 日     期: 2018年05月04日
+** 修改记录:
+** V1.0			Skymixos		2018-05-04		创建文件，添加注释
+******************************************************************************************************/
 
 #include <sys/stat.h>
 #include <future>
@@ -15,9 +26,6 @@
 #include <util/bytes_int_convert.h>
 #include <hw/oled_handler.h>
 
-//#include "poll_timer.h"
-//#include "fifo_struct.h"
-//#include "dev_manager.h"
 
 #include <sys/action_info.h>
 #include <hw/ins_gpio.h>
@@ -40,16 +48,19 @@ enum {
 //    MSG_POLL_TIMER,
     MSG_GET_OLED_KEY,
     MSG_DEV_NOTIFY,
+
 //    MSG_DISP_STR,
     MSG_DISP_STR_TYPE,
     MSG_DISP_ERR_TYPE,
-//    MSG_DISP_EXT,
+
+    //    MSG_DISP_EXT,
     MSG_SET_WIFI_CONFIG,
     MSG_SET_SYS_INFO,
     MSG_SET_SYNC_INFO,
 
     MSG_START_POWER_OFF,
-    //while boot with usb inserted
+
+    // while boot with usb inserted
     MSG_INIT_SCAN,
     MSG_EXIT,
 };

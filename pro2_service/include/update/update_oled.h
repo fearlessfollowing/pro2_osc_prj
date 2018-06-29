@@ -7,6 +7,7 @@
 
 enum {
     START_CHECK,
+
     //error 6XX
     ERR_SPACE_LIMIT,		/* 存储空间不足 */
 	ERR_RDONLY_DEV,			/* 升级设备只读 */

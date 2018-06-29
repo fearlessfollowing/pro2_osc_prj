@@ -1,6 +1,20 @@
-//
-// Created by vans on 17-1-19.
-//
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: pro_uevent.cpp
+** 功能描述: 接收处理内核的netlink消息
+**
+**
+**
+** 作     者: Wans
+** 版     本: V2.0
+** 日     期: 2016年12月1日
+** 修改记录:
+** V1.0			Wans			2016-12-01		创建文件
+** V2.0			Skymixos		2018-06-05		添加注释
+******************************************************************************************************/
+
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
@@ -24,7 +38,9 @@ ssize_t uevent_kernel_recv(int socket, void *buffer, size_t length, bool require
 {
     struct iovec iov = { buffer, length };
     struct sockaddr_nl addr;
+
     char control[CMSG_SPACE(sizeof(struct ucred))];
+
     struct msghdr hdr = {
             &addr,
             sizeof(addr),
@@ -71,6 +87,7 @@ ssize_t uevent_kernel_recv(int socket, void *buffer, size_t length, bool require
     return -1;
 }
 
+
 /**
  * Like the above, but passes a uid_t in by pointer. In the event that this
  * fails due to a bad uid check, the uid_t will be set to the uid of the
@@ -84,6 +101,7 @@ ssize_t uevent_kernel_multicast_uid_recv(int socket, void *buffer, size_t length
 {
     return uevent_kernel_recv(socket, buffer, length, true, uid);
 }
+
 
 /**
  * Like recv(), but checks that messages actually originate from the kernel.

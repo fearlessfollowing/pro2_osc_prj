@@ -42,7 +42,7 @@ endif
 #INSTALL_ROOT ?= /home/skymixos/work/pro2/app/out
 
 # For Release
-INSTALL_ROOT ?= /home/nvidia/work/image/insta360_pro2_image/pro2_osc/release/bin
+INSTALL_ROOT ?= /home/skymixos/work/pro2/app/image/insta360_pro2_image/pro2_osc/release/bin
 
 #INSTALL_ROOT ?= /home/nvidia/work/image/insta360_pro2_image/pro2_osc/release/bin
 #INSTALL_ROOT ?= $(DIDI_SDK_DIR)/build/$(ARCH)
@@ -66,6 +66,9 @@ COMFLAGS += $(EXTRA_INC_PATH)
 
 # enable ageing mode for factory test
 COMFLAGS += -DENABLE_AGEING_MODE
+
+# enable led light debug
+COMFLAGS += -DDEBUG_OLED
 
 # enable inputmanager debug
 #COMFLAGS += -DDEBUG_INPUT_MANAGER

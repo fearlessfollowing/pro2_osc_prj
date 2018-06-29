@@ -1,0 +1,309 @@
+1.APP - PRO service: http
+
+2.PRO service - camera servie:fifo
+/data/ins_fifo_to_server : client to server
+/data/ins_fifo_to_client : server to client
+/data/ins_fifo_to_client_a : server to client
+/data/ins_fifo_to_server_father : client to server father process
+/data/ins_fifo_to_client_father :server father process to client
+
+3.camera service - module: usb
+
+
+camera._reset:
+request:
+{"name":"camera._reset" ｝
+
+respone:
+{"name":"camera._reset", "state":"done","error":{"code":int, "description":string}}
+
+
+
+camera._queryState
+request:
+{
+    "name":"camera._queryState"
+}
+respone:
+{
+    "name":"camera._queryState"，
+    "state":"done"
+    "results":{
+        "state":string,
+        "version":string,
+        "moduleVersion":string,
+
+        "origin":{
+            "width":int,
+            "height":int,
+            "framerate":int,
+            "bitrate":int,
+            "mime":string,
+            "saveOrigin":bool
+        },
+
+        "preview":{
+            "width":int,
+            "height":int,
+            "framerate":int,
+            "bitrate":int,
+            "mime":string
+        },
+
+        "live":{
+            "width":int,
+            "height":int,
+            "framerate":int,
+            "bitrate":int,
+            "mime":string,
+            "url":string,
+            "timePast":int,
+            "timeLeft":int,
+            "liveOnHdmi":bool,
+            "liveRecording":bool
+        },
+
+        "record":{
+            "width":int,
+            "height":int,
+            "framerate":int,
+            "bitrate":int,
+            "mime":string,
+            "url":string,
+            "timePast":int,
+            "timeLeft":int
+        },
+
+        "audio":{
+            "mime":string,
+            "sampleFormat":string,
+            "channelLayout":string,
+            "samplerate":int,
+            "bitrate":int
+         }
+    }
+}
+
+tips:
+
+1.state
+idle/record/preview/live/pic_shoot/pic_process/storage_speed_test/
+gyro_calibration/calibration/stitching_box/blc_calibration
+qrscan/stop_rec/stop_live/audio_capture
+
+2.mime
+video mime:h264/h265
+audio mime:aac
+
+3.record
+如果只录原始流的时候，record obj就只有url
+
+4.duration:单位秒
+5.liveOnHdmi:如果是直播到hdmi那么，live中的width/height/url参数都没有
+6.liveRecording:直播过程中是否存原始流
+
+
+camera._setOffset
+request:
+{
+    "name": "camera._setOffset",
+    "parameters":{
+        "offset_pano_4_3":string,
+        "offset_pano_16_9":string,
+        "offset_3d_left":string,
+        "offset_3d_right":string
+    }
+}
+respone:
+{
+    "name":"camera._setOffset",
+    "state":"done",
+    "error":{"code":int, "description":string}
+}
+
+camera._getOffset
+request:
+{
+    "name": "camera._getOffset"
+}
+respone:
+{
+    "name":"camera._getOffset"，
+    "state":"done",
+    "results":{
+        "offset_pano_4_3":string,
+        "offset_pano_16_9":string,
+        "offset_3d_left":string,
+        "offset_3d_right":string
+    }
+}
+
+
+
+
+camera._setOptions
+１.单个设置
+request:
+{
+    "name": "camera._setOptions",
+    "parameters":{“property”:string, "value":int}
+}
+
+2.单个设置：如果property有多个参数的话，value就是一个对象
+request:
+{
+    "name": "camera._setOptions",
+    "parameters":{“property”:string, "value"{xxx}}
+}
+
+3.批量设置：
+request:
+{
+    "name": "camera._setOptions",
+    "parameters":[{“property”:string, "value":int}] //数组
+}
+单个设置响应：
+respone:
+{
+    "name":"camera._setOptions",
+    "state":"done",
+    "error":{"code":int, "description":string}
+}
+
+批量设置响应：
+respone:
+{
+    "name":"camera._setOptions",
+    "state":"done", //如果state不为done,每一个的错误通过result数组返回
+    "error":{"code":int, "description":string},
+    results":{"detail":[{"property":string,"code":int, "description":string}]
+}
+
+tips:
+"aaa_mode": 0:手动 1：自动 2：独立 3：快门优先 4：iso优先
+"wb": 0-14
+"iso_value": 0-9
+"shutter_value": 0-43
+"long_shutter": 1-60(s)
+"brightness": -255:255
+"contrast": 0:255
+"saturation": 0:255
+"hue": -15:15
+"sharpness": 0:6
+"ev_bias": -255:255
+"ae_meter": 0:2
+"iso_cap": int
+"stabilization": 1-eanble 0-disable
+"flicker": 0-pal 1-ntsc
+"logMode": "value":{"mode":int, "effect":int}
+"fanless": 0/1        //0:启动风扇 1:关闭风扇
+"panoAudio":0/1   //0:拼接流不存声音 1:拼接流存非全景声 2:拼接流存全景声
+"logo": 0/1    //0:不打logo 1:打logo
+"audio_gain": 1-127
+"video_fragment": 0/1 //0:视频不分段 1：视频分段
+"depthMap": string, 深度图数据
+
+
+
+camera._getOptions
+request:
+{
+    "name": "camera._getOptions",
+    "parameters":{“property”:string}
+}
+
+respone:
+{
+    "name":"camera._getOptions",
+    "state":"done",
+    "results":{“value”:string}
+}
+
+说明：
+可以获取的property:
+1.moduleHwVersion
+2.supportedFunctions:
+"liveFormat": ["hls","rtsp","rtmp"],
+"projection": ["flat","cube"],
+"gammaCurve": bool,
+"pmode": bool,
+"p8k5fps": bool
+"audioGain": bool
+"depthMap": bool 是否支持深度图功能
+"blc": bool是否支持blc矫正
+3.depthMap:bool 是否有深度图信息
+4.blc_state:int
+0:blc没有矫正过
+1:blc矫正过
+
+
+camera._update_gamma_curve
+request:
+{
+    "name": "camera._update_gamma_curve",
+    "parameters": {"data":string}
+}
+respone:
+{
+    "name": "camera._update_gamma_curve",
+    "state": string,
+}
+说明：
+1.gamma曲线的数据base64编码
+2.重置曲线:data为空:data为空
+
+
+
+
+camera._startPreview
+request:
+{
+    "name": "camera._startPreview",
+    "parameters":{
+        "origin":{"mime":string,"width":int,"height":int,"framerate":int,"bitrate":int,"logMode":int},
+        "stiching":{"mode":string,"mime":string,"width":int,"height":int,"framerate":int,"bitrate":int},
+    },
+
+    "stabilization":bool,
+    "imageProperty":{
+        "aaa_mode":int,
+        "wb":int,
+        "iso_value":int,
+        "shutter_value":int,
+        "brightness":int,
+        "contrast":int,
+        "saturation":int,
+        "hue":int,
+        "sharpness":int,
+        "ev_bias":int,
+        "ae_meter":int,
+        "dig_effect":int,
+        "flicker":int
+    }
+}
+
+respone:
+{
+    "name": "camera._startPreview"，
+    "state": "done"
+    "results": {"_previewUrl": string}
+}
+
+tips:
+mime: h264/h265
+mode: pano/3d_top_left/3d_top_right
+bitrate: kbits/s
+logMode: 0-关闭log模式 1-开启log模式
+
+
+camera._stopPreview
+request:
+{
+    "name":"camera._stopPreview"
+}
+respone:
+{
+    "name":"camera._stopPreview",
+    "state":"done",
+    "error":{"code":int, "description":string}
+}

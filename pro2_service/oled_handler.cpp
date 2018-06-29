@@ -155,18 +155,15 @@ void oled_handler::init_cfg_select()
     if (mProCfg->get_val(KEY_WIFI_ON) == 1) {	/* 如果WiFi处于打开状态,开启WiFi */
         start_wifi();
     } else {	/* WiFi处于关闭状态 */
-        //confirm wifi stop
         wifi_stop();		/* 停止WiFi */
         disp_wifi(false);
-#if 0
+
         if (get_setting_select(SET_DHCP_MODE) == 0) {
             switch_dhcp_mode(0);
         }
-#else
-		switch_dhcp_mode(1);
-#endif
     }
 }
+
 
 
 
@@ -3799,11 +3796,7 @@ bool oled_handler::switch_dhcp_mode(int iDHCP)
         }
         bRet = true;
     }
-//    else
-//    {
-//        Log.w(TAG,"not allow switch dhcp while wifi on");
-//        disp_msg_box(DISP_WIFI_ON);
-//    }
+
     return bRet;
 }
 

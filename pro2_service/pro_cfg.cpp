@@ -1,6 +1,19 @@
-//
-// Created by vans on 16-12-22.
-//
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: pro_uevent.cpp
+** 功能描述: 配置参数管理
+**
+**
+**
+** 作     者: Wans
+** 版     本: V2.0
+** 日     期: 2016年12月1日
+** 修改记录:
+** V1.0			Wans			2016-12-01		创建文件
+** V2.0			Skymixos		2018-06-05		添加注释
+******************************************************************************************************/
+
 #include <common/include_common.h>
 #include <sys/pro_cfg.h>
 #include <hw/lan.h>
@@ -12,98 +25,99 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <prop_cfg.h>
 
 
 using namespace std;
+
 #define TAG "pro_cfg"
+
 #define FILE_SIZE (8192)
 
-static const char *user_cfg = "/data/etc/user_cfg";
-static const char *def_cfg = "/data/etc/def_cfg";
-static const char *wifi_cfg = "/data/etc/wifi_cfg";
 
 // live end
-typedef struct _oled_cur_info_
-{
-    // pal -- 0, ntsc -- 1
-    //save all the int val
-    int cfg_val[KEY_PIC_MODE];
+typedef struct _oled_cur_info_ {
+
+    int cfg_val[KEY_PIC_MODE];      // pal -- 0, ntsc -- 1  save all the int val
+
     //save_path
 //    char path[128];
     ACTION_INFO mActInfo[KEY_LIVE_DEF + 1];
-}OLED_CUR_INFO;
+} OLED_CUR_INFO;
+
 
 static const AUD_INFO def_aud = {
-        "aac",
-        "s16",
-        "stereo",
-        48000,
-        128
+    "aac",
+    "s16",
+    "stereo",
+    48000,
+    128
 };
 
-static const char *wifi_key[] =
-{
+static const char *wifi_key[] = {
     "wifi_ssid:",
     "wifi_pwd:",
 };
 
-static const char *key[] =
-{
-        "def_pic:",
-        "def_video:",
-        "def_live:",
-        "pal_ntsc:",
-        "language:",
-        "speaker:",
-        "set_logo:",
-        "light_on:",
-        "dhcp:",
-        "wifi_on:",
-        "fan_on:",
-        "aud_on:",
-        "aud_spatial:",
-        "gyro_on:",
-        "wifi_ap:",
-        //pic
-        "pic_mode:",
-        "pic_size_per_act:",
-        "pic_delay:",
-        "pic_org_mime:",
-        "pic_save_org:",
-        "pic_org_w:",
-        "pic_org_h:",
-        "pic_hdr_count:",
-        "pic_min_ev:",
-        "pic_max_ev:",
-        "pic_burst_count:",
-        "pic_sti_mime:",
-        "pic_sti_mode:",
-        "pic_sti_w:",
-        "pic_sti_h:",
-        //video
-        "vid_mode:",
-        "vid_size_per_act:",
-        "vid_delay:",
-        "vid_org_mime:",
-        "vid_save_org:",
-        "vid_org_w:",
-        "vid_org_h:",
-        "vid_org_fr:",
-        "vid_org_br:",
-        "vid_log_mode:",
-        "vid_tl:",
-        "vid_sti_mime:",
-        "vid_sti_mode:",
-        "vid_sti_w:",
-        "vid_sti_h:",
-        "vid_sti_fr:",
-        "vid_sti_br:",
-        "vid_aud_gain:",
-        "vid_aud_mime:",
-        "vid_aud_sample_fmt:",
-        "vid_aud_ch_layout:",
-        "vid_aud_sr:",
-        "vid_aud_br:",
+static const char *key[] = {
+    "def_pic:",
+    "def_video:",
+    "def_live:",
+    "pal_ntsc:",
+    "language:",
+    "speaker:",
+    "set_logo:",
+    "light_on:",
+    "dhcp:",
+    "wifi_on:",
+    "fan_on:",
+    "aud_on:",
+    "aud_spatial:",
+    "gyro_on:",
+    "wifi_ap:",
+
+    //pic
+    "pic_mode:",
+    "pic_size_per_act:",
+    "pic_delay:",
+    "pic_org_mime:",
+    "pic_save_org:",
+    "pic_org_w:",
+    "pic_org_h:",
+    "pic_hdr_count:",
+    "pic_min_ev:",
+    "pic_max_ev:",
+    "pic_burst_count:",
+    "pic_sti_mime:",
+    "pic_sti_mode:",
+    "pic_sti_w:",
+    "pic_sti_h:",
+
+    //video
+    "vid_mode:",
+    "vid_size_per_act:",
+    "vid_delay:",
+    "vid_org_mime:",
+    "vid_save_org:",
+    "vid_org_w:",
+    "vid_org_h:",
+    "vid_org_fr:",
+    "vid_org_br:",
+    "vid_log_mode:",
+    "vid_tl:",
+    "vid_sti_mime:",
+    "vid_sti_mode:",
+    "vid_sti_w:",
+    "vid_sti_h:",
+    "vid_sti_fr:",
+    "vid_sti_br:",
+    "vid_aud_gain:",
+    "vid_aud_mime:",
+    "vid_aud_sample_fmt:",
+    "vid_aud_ch_layout:",
+    "vid_aud_sr:",
+    "vid_aud_br:",
+
         //live
         "live_mode:",
         "live_size_per_act:",
@@ -147,10 +161,6 @@ pro_cfg::pro_cfg()
 {
     init();
     read_user_cfg();
-//    for (unsigned int i = 0; i < sizeof(gstLan)/sizeof(gstLan[0]);i++)
-//    {
-//        Log.d(TAG," lan str %s",gstLan[i].lan_array[0]);
-//    }
 }
 
 pro_cfg::~pro_cfg()
@@ -167,23 +177,18 @@ void pro_cfg::init()
 
 bool pro_cfg::check_key_valid(u32 key)
 {
-    if(key >= 0 && key < sizeof(mCurInfo->cfg_val)/sizeof(mCurInfo->cfg_val[0]))
-    {
+    if (key >= 0 && key < sizeof(mCurInfo->cfg_val)/sizeof(mCurInfo->cfg_val[0])) {
         return true;
-    }
-    else
-    {
-        Log.e(TAG,"1error key %d",key);
-#ifdef ENABLE_ABORT
-        abort();
-#endif
+    } else {
+        Log.e(TAG,"1error key %d", key);
     }
     return false;
 }
+
+
 int pro_cfg::get_val(u32 key)
 {
-    if(check_key_valid(key))
-    {
+    if (check_key_valid(key)) {
         return mCurInfo->cfg_val[key];
     }
     return 0;
@@ -192,10 +197,8 @@ int pro_cfg::get_val(u32 key)
 void pro_cfg::set_val(u32 key,int val)
 {
 //    Log.d(TAG, "set key %d val %d", key, val);
-    if(check_key_valid(key))
-    {
-        if(mCurInfo->cfg_val[key] != val)
-        {
+    if (check_key_valid(key)) {
+        if (mCurInfo->cfg_val[key] != val) {
             mCurInfo->cfg_val[key] = val;
             update_val(key, val);
         }
@@ -205,31 +208,36 @@ void pro_cfg::set_val(u32 key,int val)
 void pro_cfg::update_act_info(int iIndex)
 {
     const char *new_line = "\n";
-    int fd = open(user_cfg, O_RDWR);
-    CHECK_NE(fd, -1);
+
+    int fd = -1;
+
     char buf[FILE_SIZE];
     char val[512];
     char write_buf[4096];
-    memset(buf, 0, sizeof(buf));
+
     unsigned int write_len = -1;
     unsigned int len = 0;
-    u32 read_len = read(fd, buf, sizeof(buf));
+    u32 read_len = -1;
+
+    fd = open(USER_CFG_PARAM_PATH, O_RDWR);
+    CHECK_NE(fd, -1);
+
+    read_len = read(fd, buf, sizeof(buf));
+    memset(buf, 0, sizeof(buf));
 
     Log.d(TAG, " update_act_info iIndex %d　"
-                  "read_len %d strlen buf %d",
-          iIndex, read_len,strlen(buf));
+                  "read_len %d strlen buf %d", iIndex, read_len,strlen(buf));
 //    Log.d(TAG,"buf is %s",buf);
-    if(read_len <= 0)
-    {
+
+    if (read_len <= 0) {
         close(fd);
         create_user_cfg();
-        fd = open(user_cfg, O_RDWR);
+        fd = open(USER_CFG_PARAM_PATH, O_RDWR);
         CHECK_NE(fd, -1);
         read_len = read(fd, buf, sizeof(buf));
     }
 
-    if (read_len > 0)
-    {
+    if (read_len > 0) {
         char *pStr,*pStr1;
         int start;
         int end;
@@ -594,8 +602,8 @@ void pro_cfg::set_def_info(int type, int val, sp<struct _action_info_> mActInfo)
 
 void pro_cfg::update_wifi_cfg(sp<struct _wifi_config_> &mCfg)
 {
-    ins_rm_file(wifi_cfg);
-    int fd = open(wifi_cfg, O_RDWR|O_CREAT, 0666);
+    ins_rm_file(WIFI_CFG_PARAM_PATH);
+    int fd = open(WIFI_CFG_PARAM_PATH, O_RDWR|O_CREAT, 0666);
     CHECK_NE(fd, -1);
     char buf[1024];
     int max_key = sizeof(wifi_key) / sizeof(wifi_key[0]);
@@ -627,9 +635,9 @@ void pro_cfg::update_wifi_cfg(sp<struct _wifi_config_> &mCfg)
 
 void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_> &mCfg)
 {
-    if(check_path_exist(wifi_cfg))
+    if(check_path_exist(WIFI_CFG_PARAM_PATH))
     {
-        int fd = open(wifi_cfg, O_RDWR);
+        int fd = open(WIFI_CFG_PARAM_PATH, O_RDWR);
         CHECK_NE(fd, -1);
 
         char buf[1024];
@@ -670,7 +678,7 @@ void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_> &mCfg)
     }
     else
     {
-        Log.e(TAG,"no %s exist",wifi_cfg);
+        Log.e(TAG,"no %s exist",WIFI_CFG_PARAM_PATH);
     }
 }
 
@@ -931,31 +939,32 @@ void pro_cfg::read_cfg(const char *name)
 
 void pro_cfg::read_def_cfg()
 {
-    if (access(def_cfg, R_OK | W_OK) == -1)
+    if (access(DEF_CFG_PARAM_PATH, R_OK | W_OK) == -1)
     {
-        Log.e(TAG, "%s no r/w access", def_cfg);
+        Log.e(TAG, "%s no r/w access", DEF_CFG_PARAM_PATH);
         create_user_cfg();
     }
     else
     {
-        read_cfg(def_cfg);
+        read_cfg(DEF_CFG_PARAM_PATH);
     }
 }
 
 void pro_cfg::create_user_cfg()
 {
     char sys_cmd[128];
-    Log.e(TAG, "%s no r/w access", user_cfg);
 
-    if (access(def_cfg, R_OK | W_OK) == -1)
-    {
+    Log.e(TAG, "%s no r/w access", USER_CFG_PARAM_PATH);
+
+    if (access(DEF_CFG_PARAM_PATH, R_OK | W_OK) == -1) {
         snprintf(sys_cmd, sizeof(sys_cmd), "mkdir -p /data/etc");
         system(sys_cmd);
-        snprintf(sys_cmd, sizeof(sys_cmd), "touch %s", def_cfg);
+        snprintf(sys_cmd, sizeof(sys_cmd), "touch %s", DEF_CFG_PARAM_PATH);
         system(sys_cmd);
     }
+
 //  copy default cf to user
-    snprintf(sys_cmd, sizeof(sys_cmd), "cp -pR %s %s", def_cfg, user_cfg);
+    snprintf(sys_cmd, sizeof(sys_cmd), "cp -pR %s %s", DEF_CFG_PARAM_PATH, USER_CFG_PARAM_PATH);
     system(sys_cmd);
 }
 
@@ -963,16 +972,16 @@ void pro_cfg::reset_all()
 {
     memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
     create_user_cfg();
-    read_cfg(def_cfg);
+    read_cfg(DEF_CFG_PARAM_PATH);
 }
 
 void pro_cfg::read_user_cfg()
 {
-    if (access(user_cfg, R_OK | W_OK) == -1)
-    {
+    if (access(USER_CFG_PARAM_PATH, R_OK | W_OK) == -1) {
         create_user_cfg();
     }
-    read_cfg(user_cfg);
+
+    read_cfg(USER_CFG_PARAM_PATH);
 }
 
 void pro_cfg::update_val(int type, int val)
@@ -985,11 +994,14 @@ void pro_cfg::update_val(int type, int val)
 void pro_cfg::update_val(int type, const char *val)
 {
     const char *new_line = "\n";
-    int fd = open(user_cfg, O_RDWR);
+
+    int fd = open(USER_CFG_PARAM_PATH, O_RDWR);
     CHECK_NE(fd, -1);
+
     bool bFound = false;
     char buf[FILE_SIZE];
     memset(buf, 0, sizeof(buf));
+
     unsigned int write_len = 0;
     unsigned int len = 0;
     u32 read_len = read(fd, buf, sizeof(buf));
@@ -998,33 +1010,29 @@ void pro_cfg::update_val(int type, const char *val)
 //                  "strlen buf %d",
 //          type, key[type], val, read_len,strlen(buf));
 
-    if (read_len <= 0)
-    {
+    if (read_len <= 0) {
         close(fd);
         create_user_cfg();
-        fd = open(user_cfg, O_RDWR);
+        fd = open(USER_CFG_PARAM_PATH, O_RDWR);
         CHECK_NE(fd, -1);
         read_len = read(fd, buf, sizeof(buf));
     }
-    if(read_len > 0)
-    {
+
+    if (read_len > 0) {
         char *pStr = strstr(buf, key[type]);
-        if (pStr)
-        {
+        if (pStr) {
             u32 val_start_pos;
             pStr += strlen(key[type]);
             val_start_pos = pStr - buf;
             lseek(fd, val_start_pos, SEEK_SET);
             len = strlen(val);
             write_len = write(fd, val, len);
-            if (write_len != len)
-            {
-                Log.w(TAG, "0write pro_cfg mismatch(%d %d)",
-                      write_len, len);
+            if (write_len != len) {
+                Log.w(TAG, "0write pro_cfg mismatch(%d %d)", write_len, len);
             }
+
             bFound = true;
-            switch (type)
-            {
+            switch (type) {
 #if 0
                 case KEY_SAVE_PATH:
                 {

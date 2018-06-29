@@ -1,15 +1,6 @@
-//
-// Created by vans on 17-2-6.
-//
-
-/*
- * V1.00 2017.2.6
- *
- *
- */
 #include <common/include_common.h>
 
-#define TAG ("pro_version")
+#define TAG "pro2_version"
 
 const char * get_version_num()
 {
@@ -18,7 +9,7 @@ const char * get_version_num()
 
 static const char *get_version_date()
 {
-    return "2017.2.6";
+    return "2018.06.28";
 }
 
 static const char *get_git_version()
@@ -30,7 +21,7 @@ void debug_version_info()
 {
     char buf[128];
 
-    snprintf(buf, sizeof(buf),"%s %s %s",get_version_num(),get_version_date(),get_git_version());
+    snprintf(buf, sizeof(buf), "%s %s %s", get_version_num(), get_version_date(), get_git_version());
 
-    Log.d(TAG,"%s",buf);
+    Log.d(TAG, "%s", buf);
 }

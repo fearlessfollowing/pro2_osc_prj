@@ -74,7 +74,6 @@ has_prefix(const char* str, const char* end, const char* prefix, size_t prefixle
 
 static const char *mount_src[] = {
     "/dev/mmcblk1",
-    "/dev/block/vold",
     "/dev/sd",
 };
 
