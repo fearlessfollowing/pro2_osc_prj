@@ -724,7 +724,7 @@ void oled_handler::stop_poll_thread()
             Log.e(TAG, " th_poll_ not joinable ");
         }
     }
-    Log.d(TAG,"stop_poll_thread  %d over",bExitPoll);
+    Log.d(TAG, "stop_poll_thread  %d over",bExitPoll);
 }
 
 
