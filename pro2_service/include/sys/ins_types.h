@@ -1,7 +1,3 @@
-//
-// Created by vans on 17-2-18.
-//
-
 #ifndef PROJECT_INS_TYPES_H
 #define PROJECT_INS_TYPES_H
 
@@ -15,4 +11,4 @@ typedef short int16;
 typedef int int32;
 typedef long long int64;
 
-#endif //PROJECT_INS_TYPES_H
+#endif /* PROJECT_INS_TYPES_H */

@@ -1,8 +1,3 @@
-//
-// Created by vans on 16-12-6.
-//
-// not support capture during recing for oled key
-
 #include <future>
 #include <vector>
 #include <dirent.h>
@@ -33,7 +28,6 @@
 #include <sys/action_info.h>
 #include <hw/battery_interface.h>
 #include <sys/net_manager.h>
-#include <trans/fifo_struct.h>
 #include <util/GitVersion.h>
 #include <log/stlog.h>
 #include <hw/oled_handler.h>
@@ -48,8 +42,7 @@ using namespace std;
 #define TAG "oled_handler"
 
 
-class oled_arhandler : public ARHandler
-{
+class oled_arhandler : public ARHandler {
 public:
     oled_arhandler(oled_handler *source): mHandler(source)
     {
@@ -189,15 +182,18 @@ void oled_handler::oled_init_disp()
 	check_battery_change(true);		/* 检查电池的状态 */
 }
 
+
 void oled_handler::start_qr_func()
 {
     send_option_to_fifo(ACTION_QR);
 }
 
+
 void oled_handler::exit_qr_func()
 {
     send_option_to_fifo(ACTION_QR);
 }
+
 
 void oled_handler::send_update_light(int menu, int state, int interval, bool bLight, int sound_id)
 {
@@ -267,10 +263,7 @@ void oled_handler::sound_thread()
 
 void oled_handler::init_sound_thread()
 {
-    th_sound_ = thread([this]
-                          {
-                              sound_thread();
-                          });
+    th_sound_ = thread([this] { sound_thread(); });
 }
 
 
@@ -407,7 +400,7 @@ void oled_handler::init_handler_thread()
 
 void oled_handler::set_lan(int lan)
 {
-    mProCfg->set_val(KEY_LAN,lan);
+    mProCfg->set_val(KEY_LAN, lan);
     update_disp_func(lan);
 }
 
@@ -745,23 +738,20 @@ void oled_handler::init_poll_thread()
                      });
 }
 
+
 void oled_handler::stop_bat_thread()
 {
 #if 0
-    Log.d(TAG,"sendExit bExitBat %d",bExitBat);
-    if(!bExitBat)
-    {
+    Log.d(TAG, "sendExit bExitBat %d", bExitBat);
+    if (!bExitBat) {
         bExitBat = true;
-        if (th_bat_.joinable())
-        {
+        if (th_bat_.joinable()) {
             th_bat_.join();
-        }
-        else
-        {
+        } else {
             Log.e(TAG, " th_light_ not joinable ");
         }
     }
-    Log.d(TAG,"sendExit bExitBat %d over",bExitBat);
+    Log.d(TAG, "sendExit bExitBat %d over", bExitBat);
 #endif
 }
 
@@ -769,20 +759,16 @@ void oled_handler::sendExit()
 {
     Log.d(TAG, "sendExit");
 
-    if (!bExitMsg)
-    {
+    if (!bExitMsg) {
         bExitMsg = true;
-        if (th_msg_.joinable())
-        {
+        if (th_msg_.joinable()) {
             obtainMessage(OLED_EXIT)->post();
             th_msg_.join();
-        }
-        else
-        {
+        } else {
             Log.e(TAG, " th_msg_ not joinable ");
         }
     }
-    Log.d(TAG,"sendExit2");
+    Log.d(TAG, "sendExit2");
 }
 
 
@@ -827,15 +813,15 @@ void oled_handler::send_long_press_key(int key,int64 ts)
 void oled_handler::send_disp_ip(int ip, int net_type)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_IP);
-    msg->set<int>("ip",ip);
+    msg->set<int>("ip", ip);
     msg->post();
 }
 
 void oled_handler::send_disp_battery(int battery, bool charge)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_BATTERY);
-    msg->set<int>("battery",battery);
-    msg->set<bool>("charge",charge);
+    msg->set<int>("battery", battery);
+    msg->set<bool>("charge", charge);
     msg->post();
 }
 
@@ -959,26 +945,20 @@ void oled_handler::set_cur_menu_from_exit()
 void oled_handler::set_cur_menu(int menu, int back_menu)
 {
     bool bDispBottom = true; //add 170804 for menu_pic_info not recalculate for pic num MENU_TOP
-    if (menu == cur_menu)
-	{
+    if (menu == cur_menu) {
         Log.d(TAG, "set cur menu same menu %d cur menu %d\n", menu, cur_menu);
         bDispBottom = false;
-    }
-	else 
-	{
-        if (is_top_clear(menu)) 
-		{
-            if (back_menu == -1) 
-			{
+    } else  {
+        if (is_top_clear(menu))  {
+            if (back_menu == -1)  {
                 set_back_menu(menu, cur_menu);
-            }
-			else 
-			{
+            } else {
                 set_back_menu(menu, back_menu);
             }
         }
         cur_menu = menu;
     }
+	
     disp_menu(bDispBottom);
 }
 
@@ -1271,14 +1251,11 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
     int item = 0;
 	char tmp_buf[4096] = {0};
 
-    switch (option)
-    {
+    switch (option) {
         case ACTION_PIC:
-            if (check_dev_exist(option))
-            {
+            if (check_dev_exist(option)) {
                 // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
-                if(check_allow_pic())
-                {
+                if (check_allow_pic()) {
 //                    if(cap_delay == 0)
 //                    {
 //                        set_cap_delay(CAL_DELAY);
@@ -4308,15 +4285,18 @@ int oled_handler::oled_disp_ip(unsigned int addr)
         u8 org_ip[32];
         u8 ip[32];
 
-        int_to_ip(org_addr,org_ip,sizeof(org_ip));
-        int_to_ip(addr,ip,sizeof(ip));
+        int_to_ip(org_addr, org_ip, sizeof(org_ip));
+        int_to_ip(addr, ip, sizeof(ip));
+
         if (check_allow_update_top()) {
             mOLEDModule->disp_ip((const u8 *)ip);
         }
+
         set_org_addr(addr);
     }
     return 0;
 }
+
 
 int oled_handler::oled_disp_battery()
 {
@@ -4419,6 +4399,7 @@ void oled_handler::disp_live_ready()
         disp_icon(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);
     }
 }
+
 
 void oled_handler::disp_ready_icon(bool bDispReady)
 {
@@ -6138,8 +6119,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
             }
 
 			/* 显示IP地址 -   (状态栏处理) */
-            case OLED_DISP_IP:	/* 显示IP消息 */
-            {
+            case OLED_DISP_IP: {   /* 显示IP消息 */
                 int ip;
                 CHECK_EQ(msg->find<int>("ip", &ip), true);
                 oled_disp_ip((unsigned int)ip);

@@ -273,8 +273,8 @@ typedef struct _select_info_ {
 } SELECT_INFO;
 
 typedef struct _menu_info_ {
-    int back_menu;							/* 鑿滃崟閫�鍑烘椂鐨勮繑鍥炶彍鍗旾D */
-    SELECT_INFO mSelectInfo;				/* 鑿滃崟鐨勯�夋嫨椤逛俊鎭� */
+    int back_menu;
+    SELECT_INFO mSelectInfo;
 	const int mSupportkeys[OLED_KEY_MAX];
 } MENU_INFO;
 

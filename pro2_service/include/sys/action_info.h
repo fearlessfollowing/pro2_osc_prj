@@ -1,7 +1,6 @@
 #define CONTROL_SET_CUSTOM (10)
 
-typedef struct _vid_org_
-{
+typedef struct _vid_org_ {
     int org_fr;
     //M/s
     int org_br;
