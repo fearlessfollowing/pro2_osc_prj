@@ -3,6 +3,8 @@
 
 #include <mutex>
 #include <common/sp.h>
+#include <util/ARHandler.h>
+#include <util/ARMessage.h>
 
 
 /*
@@ -39,6 +41,7 @@ enum {
     WIFI_WORK_MODE_MAX,
 };
 
+#if 0
 /*
  * 网络设备
  */
@@ -48,6 +51,8 @@ struct net_dev_info {
     int             active_stat;        /* 网络设备的激活状态 */
     unsigned int    dev_addr;           /* 网络设备的IP地址 */
 };
+
+#endif
 
 class NetDev {
 public:
@@ -112,15 +117,17 @@ class NetManager {
 public:
     static sp<NetManager> getNetManagerInstance();      	/* Signal Mode */
 
-    void startNetManager();
-    void stopNetManager();
+	void startNetManager();
+	void stopNetManager();
 
     int registerNetdev(sp<NetDev>& netDev);
     void unregisterNetDev(sp<NetDev>& netDev);
 
     int getSysNetdevCnt();
 
-    sp<NetDev> getNetDevByname(std::string devName);
+    sp<NetDev> getNetDevByname(std::string& devName);
+
+	sp<ARMessage> obtainMessage(uint32_t what);
 
 	void handleMessage(const sp<ARMessage> &msg);
 
@@ -133,11 +140,11 @@ public:
      * - 设置指定网卡的状态
      * - 获取指定网卡的状态
      */
-    int postNetMessage(sp<ARMessage>& msg);
+    void postNetMessage(sp<ARMessage>& msg);
+    ~NetManager();
+    NetManager();
 
 private:
-    NetManager();
-    ~NetManager();
 
     int mState;
 	bool mExit;
@@ -150,40 +157,6 @@ private:
     std::mutex mMutex;                      /* 访问网络设备的互斥锁 */
     std::vector<sp<NetDev>> mDevList;       /* 网络设备列表 */
     sp<NetDev> mCurdev;                     /* 当前需要在屏幕上显示IP地址的激活设备 */
-};
-
-
-
-class net_manager {
-public:
-    explicit net_manager();
-    ~net_manager();
-
-    bool check_net_change(sp<net_dev_info> &new_dev_info);
-
-    /* 激活/关闭指定的网络设备
-     * dev_type - 指定激活的设备类型
-     * state - 激活或关闭
-     */
-    int switch_net_dev(int dev_type, int state);
-
-    int get_active_net_count();
-
-    const sp<net_dev_info>& get_net_dev(int dev_type);
-
-
-private:
-    void init();
-    void deinit();
-
-    void get_dev_name(int dev_type, char *dev_name);
-	int get_net_link_state(int dev_type);
-	unsigned int get_ipaddr_by_dev_type(int dev_type);
-
-
-    std::mutex mMutex;                      /* 访问网络设备的互斥锁 */
-    std::vector<sp<NetDev>> net_devs;       /* 网络设备列表 */
-    sp<NetDev> cur_dev;                     /* 当前需要在屏幕上显示IP地址的激活设备 */
 };
 
 

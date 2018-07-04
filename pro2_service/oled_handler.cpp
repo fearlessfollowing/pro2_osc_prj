@@ -13,6 +13,9 @@
 #include <common/include_common.h>
 #include <hw/oled_handler.h>
 
+#include <sys/net_manager.h>
+
+
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
 #include <util/msg_util.h>
@@ -27,7 +30,6 @@
 #include <hw/oled_light.h>
 #include <sys/action_info.h>
 #include <hw/battery_interface.h>
-#include <sys/net_manager.h>
 #include <util/GitVersion.h>
 #include <log/stlog.h>
 #include <hw/oled_handler.h>
@@ -42,20 +44,21 @@ using namespace std;
 #define TAG "oled_handler"
 
 
+//#define USE_OLD_NET
+
+
 class oled_arhandler : public ARHandler {
 public:
-    oled_arhandler(oled_handler *source): mHandler(source)
-    {
+    oled_arhandler(oled_handler *source): mHandler(source) {
     }
 
-    virtual ~oled_arhandler() override
-    {
+    virtual ~oled_arhandler() override {
     }
 
-    virtual void handleMessage(const sp<ARMessage> &msg) override
-    {
+    virtual void handleMessage(const sp<ARMessage> &msg) override {
         mHandler->handleMessage(msg);
     }
+	
 private:
     oled_handler *mHandler;
 };
@@ -76,9 +79,11 @@ oled_handler::oled_handler(const sp<ARMessage> &notify): mNotify(notify)
     init_handler_thread();	/* 初始化消息处理线程 */
 	
     init();					/* oled_handler内部成员初始化 */
-	
+
+#ifdef USE_OLD_NET
     init_poll_thread();		/* 初始化网络检测线程(用于检测网络状态的变化) */
-	
+#endif
+
     send_init_disp();		/* 给消息处理线程发送初始化显示消息 */
 }
 
@@ -525,6 +530,7 @@ void oled_handler::init_menu_select()
     }
 
     for (int i = 0; i < SETTING_MAX; i++) {
+		
         switch (i) {
             case SET_WIFI_AP:
                 val = mProCfg->get_val(KEY_WIFI_AP);
@@ -666,11 +672,21 @@ void oled_handler::init()
     CHECK_NE(mVerInfo, nullptr);
 
     mWifiConfig = sp<WIFI_CONFIG>(new WIFI_CONFIG());
-    CHECK_NE(mWifiConfig, nullptr);
-	
+    CHECK_NE(mWifiConfig, nullptr);	
     memset(mWifiConfig.get(), 0, sizeof(WIFI_CONFIG));
+
+#ifdef USE_OLD_NET
     mpNetManager = sp<net_manager>(new net_manager());
     CHECK_NE(mpNetManager, nullptr);
+#else
+	mNetManager = NetManager::getNetManagerInstance();
+	mNetManager->startNetManager();
+
+	sp<ARMessage> test = obtainMessage(0x123);
+	mNetManager->postNetMessage(test);
+
+	
+#endif
 
 }
 
@@ -683,6 +699,9 @@ void oled_handler::init()
 
 void oled_handler::check_net_status()
 {
+
+#ifdef USE_OLD_NET
+
     sp<net_dev_info> mpDevInfo = sp<net_dev_info>(new net_dev_info());
 
 	/* 测试发现,IP地址及网络状态没有发生变化,但是不停的在发消息 */
@@ -690,6 +709,7 @@ void oled_handler::check_net_status()
 		Log.d(TAG, "net device status changed, new ip: %d", mpDevInfo->dev_addr);
         send_disp_ip((int) mpDevInfo->dev_addr, mpDevInfo->dev_type);
     }
+#endif
 }
 
 
@@ -721,6 +741,7 @@ void oled_handler::stop_poll_thread()
 }
 
 
+#if 0
 
 /*************************************************************************
 ** 方法名称: init_poll_thread
@@ -737,6 +758,8 @@ void oled_handler::init_poll_thread()
                          start_poll_thread();
                      });
 }
+
+#endif
 
 
 void oled_handler::stop_bat_thread()
@@ -6485,7 +6508,9 @@ void oled_handler::deinit()
 	
     set_light_direct(LIGHT_OFF);
     mDevManager = nullptr;
-    mpNetManager = nullptr;
+    //mpNetManager = nullptr;
+
+	mNetManager = nullptr;
 
     stop_poll_thread();
 

@@ -31,30 +31,32 @@ public:
         return true;
     }
 
-    void post()
-    {
+    void post() {
         postWithDelayMs(0);
     }
 
-    wp<ARHandler> getHandler()
-    {
+    wp<ARHandler> getHandler() {
         return mHandler;
     }
 
     void postWithDelayMs(int ms);
 
-    sp<ARMessage> dup()
-    {
+    sp<ARMessage> dup() {
         sp<ARMessage> msg(new ARMessage(mWhat));
         msg->mHandler = mHandler;
         msg->mFields = mFields;
         return msg;
     }
 
-    uint32_t what()
-    {
+    uint32_t what() {
         return mWhat;
     }
+
+	
+    void setHandler(sp<ARHandler> handler) {
+        mHandler = handler;
+    }
+
 
 private:
     /* data */
@@ -64,11 +66,6 @@ private:
 
 private:
     ARMessage(uint32_t what) : mWhat(what) {}
-
-    void setHandler(sp<ARHandler> handler)
-    {
-        mHandler = handler;
-    }
 
     ARMessage(const ARMessage &) = delete;
     ARMessage &operator=(ARMessage &) = delete;

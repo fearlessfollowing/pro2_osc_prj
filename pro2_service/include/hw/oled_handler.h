@@ -6,7 +6,9 @@
 #include <common/sp.h>
 #include <hw/usb_dev_info.h>
 #include <hw/battery_interface.h>
-
+#include <sys/net_manager.h>
+#include <util/ARHandler.h>
+#include <util/ARMessage.h>
 
 typedef enum _type_ {
     START_RECING ,// 0,
@@ -742,7 +744,12 @@ private:
     //whether need calculate remain 0616
 //    char last_error_str[8];
 
+#if 0
     sp<net_manager> mpNetManager;
+#else
+	sp<NetManager> mNetManager;
+#endif
+
     sp<dev_manager> mDevManager;
 	
     bool bLiveSaveOrg = false;
