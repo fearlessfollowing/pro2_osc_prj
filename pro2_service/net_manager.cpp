@@ -34,13 +34,46 @@ struct ethtool_value {
 };
 
 
+static sp<NetManager> gSysNetManager = NULL;
+static bool gInitNetManagerThread = false;
+static std::mutex gSysNetMutex;
+
+
+enum {
+    NET_MANAGER_STAT_INIT,
+    NET_MANAGER_STAT_START,
+    NET_MANAGER_STAT_RUNNING,
+    NET_MANAGER_STAT_STOP,
+    NET_MANAGER_STAT_STOPED,
+    NET_MANAGER_STAT_DESTORYED,
+    NET_MANAGER_STAT_MAX
+};
+
+#define NETM_EXIT_LOOP 			0x100		/* 退出消息循环 */
+#define NETM_REGISTER_NETDEV 	0x101		/* 注册网络设备 */
+#define NETM_UNREGISTER_NETDEV	0x102		/* 注销网络设备 */
+#define NETM_STARTUP_NETDEV		0x103		/* 启动网络设备 */
+#define NETM_CLOSE_NETDEV		0x104		/* 关闭网络设备 */
+#define NETM_SET_NETDEV_IP		0x105		/* 设置设备的IP地址 */
+#define NETM_LIST_NETDEV		0x106		/* 列出所有注册的网络设备 */
+#define NETM_POLL_NET_STATE		0x107
+
+#define NETM_NETDEV_MAX_COUNT	10
+
+
+#define NET_POLL_INTERVAL 2000
+
+
+
 /*********************************** NetDev **********************************/
-NetDev::NetDev(int iType, int iState, bool activeFlag, string ifName):
-			devType(iType),
-			linkState(iState),
-			active(activeFlag),
-			ipAddr(0),
-			devName(ifName)
+NetDev::NetDev(int iType, int iWkMode, int iState, bool activeFlag, string ifName):
+		mDevType(iType),
+		mWorkMode(iWkMode),	
+		mLinkState(iState),
+		mActive(activeFlag),
+		mCurIpAddr(0),
+		mSaveIpAddr(0),
+		mDevName(ifName)
 {
     Log.d(TAG, "++> constructor net device");
 }
@@ -53,16 +86,58 @@ NetDev::~NetDev()
 int NetDev::netdevOpen()
 {
     Log.d(TAG, "NetDev -> netdevOpen");
+	
 	return 0;
 }
 
-void NetDev::netdevClose()
+int NetDev::netdevClose()
 {
     Log.d(TAG, "NetDev -> netdevClose");
+	return 0;
 }
 
 
-int NetDev::getNetdevLink()
+int NetDev::getNetdevSavedLink()
+{
+	return mLinkState;
+}
+
+void NetDev::setNetdevSavedLink(int linkState)
+{
+	mLinkState = linkState;
+}
+
+
+void NetDev::storeNetDevIp()
+{
+	mSaveIpAddr = mCurIpAddr;
+}
+
+void NetDev::resumeNetDevIp()
+{
+	mCurIpAddr = mSaveIpAddr;
+}
+
+unsigned int NetDev::getCurIpAddr()
+{
+	return mCurIpAddr;
+}
+
+
+void NetDev::setCurIpAddr(uint32_t ip)
+{
+	mCurIpAddr = ip;
+	
+}
+
+
+unsigned int NetDev::getSavedIpAddr()
+{
+	return mSaveIpAddr;
+}
+
+
+int NetDev::getNetdevLinkFrmPhy()
 {
     int skfd = -1;
     int err = NET_LINK_ERROR;
@@ -72,7 +147,7 @@ int NetDev::getNetdevLink()
 	struct ethtool_value edata;
 
     memset((u8 *)&ifr, 0, sizeof(struct ifreq));
-    sprintf(ifr.ifr_name, "%s", devName.c_str());
+    sprintf(ifr.ifr_name, "%s", getDevName().c_str());
 
     if (strlen(ifr.ifr_name) == 0) {
         goto RET_VALUE;
@@ -110,35 +185,71 @@ RET_VALUE:
 }
 
 
-unsigned int NetDev::getNetdevIpaddr()
+uint32_t NetDev::getNetDevIpFrmPhy()
 {
-    return ipAddr;
+	uint32_t ucA0 = 0, ucA1 = 0, ucA2 = 0, ucA3 = 0;
+    int skfd = -1;
+    struct ifreq ifr;
+    char acAddr[64];
+    struct sockaddr_in *addr;
+	
+    uint32_t ip = 0;
+
+	strcpy(ifr.ifr_name, mDevName.c_str());
+    if (strlen(ifr.ifr_name) == 0) {
+        return 0;
+    }
+
+    if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        return 0;
+    }
+
+    if (ioctl(skfd, SIOCGIFADDR, &ifr) == -1) {
+        close(skfd);
+        return 0;
+    }
+	
+    close(skfd);
+    addr = (struct sockaddr_in *)(&ifr.ifr_addr);
+    strcpy(acAddr, inet_ntoa(addr->sin_addr));
+	
+    if (4 == sscanf(acAddr, "%u.%u.%u.%u", &ucA0, &ucA1, &ucA2, &ucA3)) {
+        ip = (ucA0 << 24) | (ucA1 << 16) | (ucA2 << 8) | ucA3;
+    }	
+    return ip;
 }
 
 
-void NetDev::setNetdevIpaddr(unsigned int ipaddr)
+bool NetDev::setNetDevIpToPhy(uint32_t ip)
 {
-    /* set ipaddr to device */
 
-    ipAddr = ipaddr;
-}
-
-int NetDev::getNetDevActiveState()
-{
-    return active;
+	return true;
 }
 
 
-std::string NetDev::getDevName()
+bool NetDev::getNetDevActiveState()
 {
-	return devName;
+    return mActive;
+}
+
+
+int NetDev::setNetDevActiveState(bool state)
+{
+	mActive = state;
+	return 0;
+}
+
+
+string& NetDev::getDevName()
+{
+	return mDevName;
 }
 
 
 
 /************************************* Ethernet Dev ***************************************/
 
-EtherNetDev::EtherNetDev(std::string name):NetDev(DEV_LAN, NET_DEV_STAT_INACTIVE, false, name)
+EtherNetDev::EtherNetDev(string name):NetDev(DEV_LAN, WIFI_WORK_MODE_STA, NET_DEV_STAT_INACTIVE, false, name)
 {
 }
 
@@ -150,21 +261,24 @@ EtherNetDev::~EtherNetDev()
 
 int EtherNetDev::netdevOpen()
 {
-    /* ifconfig ethX up */
+    /* ifconfig ethX up 
+ 	 *
+ 	 */
+ 	 
 	return 0;
 }
 
-void EtherNetDev::netdevClose()
+int EtherNetDev::netdevClose()
 {
     /* ifconfig ethX down */
+	return 0;
 }
 
 
 
 /************************************* WiFi Dev ***************************************/
 
-WiFiNetDev::WiFiNetDev(int work_mode, string name):NetDev(DEV_LAN, NET_DEV_STAT_INACTIVE, false, name),
-													   mWorkMode(work_mode)
+WiFiNetDev::WiFiNetDev(int work_mode, string name):NetDev(DEV_LAN, work_mode, NET_DEV_STAT_INACTIVE, false, name)
 {
 
 }
@@ -177,55 +291,16 @@ WiFiNetDev::~WiFiNetDev()
 int WiFiNetDev::netdevOpen()
 {
     /* Maybe need reload driver */
+	return 0;
 }
 
-void WiFiNetDev::netdevClose()
+int WiFiNetDev::netdevClose()
 {
     /* Maybe need rmmod driver */
+	return 0;
 }
-
-void WiFiNetDev::setWifiWorkMode(int mode)
-{
-    /* If used different firmware, need changed it here... */
-    mWorkMode = mode;
-}
-
-int WiFiNetDev::getWifiWorkMode()
-{
-    return mWorkMode;
-}
-
-
 
 #if 0
-net_manager::net_manager()
-{
-    init();
-}
-
-net_manager::~net_manager()
-{
-    deinit();
-}
-
-
-void net_manager::init()
-{
-    for (int i = 0; i < DEV_MAX; i++) {
-        sp<net_dev_info> tmp_net = sp<net_dev_info>(new net_dev_info(DEV_LAN + i, NET_LINK_DISCONNECT, NET_DEV_STAT_INACTIVE, 0));
-        Log.d(TAG, ">>> register net dev type [%d]", DEV_LAN + i);
-        net_devs.push_back(tmp_net);
-    }
-}
-
-void net_manager::deinit()
-{
-
-    for (int i = 0; i < DEV_MAX; i++) {
-        net_devs.pop_back();
-    }
-}
-
 
 /*
  * 网络状态改变
@@ -312,150 +387,10 @@ bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
 }
 
 
-
-
-/*************************************************************************
-** 方法名称: get_dev_name
-** 方法功能: 根据网络设备的类型,获取对应的网络设备名
-** 入口参数: 
-**		dev_type - 设备类型(DEV_LAN, DEV_WLAN, DEV_4G)
-**		dev_name - 设备名称
-** 返 回 值: 无 
-**
-**
-*************************************************************************/
-void net_manager::get_dev_name(int dev_type, char *dev_name)
-{
-    switch (dev_type) {
-        case DEV_LAN:
-            sprintf(dev_name, "eth%d", 0);
-            break;
-		
-        case DEV_WLAN:
-            sprintf(dev_name, "%s", "wlan0");
-            break;
-		
-        case DEV_4G:
-            sprintf(dev_name, "ppp%d", 0);
-            break;
-		
-        default:
-            Log.e(TAG,"error net dev %d", dev_type);
-            break;
-    }
-}
-
-
-
-int net_manager::get_net_link_state(int dev_type, int & link_stat)
-{
-    int skfd = -1;
-	int err = 0;
-    struct ifreq ifr;
-	
-    memset((u8 *)&ifr, 0, sizeof(struct ifreq));
-
-    get_dev_name(dev_type, ifr.ifr_name);
-    if (strlen(ifr.ifr_name) == 0) {
-		err = -1;
-        goto RET_VALUE;
-    }
-	
-    if (skfd == -1) {
-        if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-			err = -1;
-            goto RET_VALUE;
-        }
-    }
-
-    edata.cmd = 0x0000000A;
-    ifr.ifr_data = (caddr_t)&edata;
-
-    err = ioctl(fd, 0x8946, &ifr);
-    if (err == 0) {
-        Log.d(TAG, "Link detected: %s\n", edata.data ? "yes" : "no");
-    } else {
-        Log.e(TAG, "Cannot get link status");
-	}
-
-	if (edata.data == 1) {
-		link_stat == NET_LINK_CONNECT;
-	} else {
-		link_stat == NET_LINK_DISCONNECT;
-	}
-
-RET_VALUE:
-
-    if (skfd != -1) {
-        close(skfd);
-    }
-    return err;
-}
-
-
-
-unsigned int net_manager::get_ipaddr_by_dev_type(int dev_type)
-{
-    unsigned int ucA0 = 0, ucA1 = 0, ucA2 = 0, ucA3 = 0;
-
-    int skfd = -1;
-    struct ifreq ifr;
-    char acAddr[64];
-    struct sockaddr_in *addr;
-	
-    unsigned int ip = 0;
-    get_dev_name(dev_type, ifr.ifr_name);
-
-    if (strlen(ifr.ifr_name) == 0) {
-        return 0;
-    }
-
-    if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        return 0;
-    }
-
-    if (ioctl(skfd, SIOCGIFADDR, &ifr) == -1) {
-        close(skfd);
-        return 0;
-    }
-	
-    close(skfd);
-    addr = (struct sockaddr_in *)(&ifr.ifr_addr);
-    strcpy(acAddr, inet_ntoa(addr->sin_addr));
-	
-    if (4 == sscanf(acAddr, "%u.%u.%u.%u", &ucA0, &ucA1, &ucA2, &ucA3)) {
-        ip = (ucA0 << 24)| (ucA1 << 16)|(ucA2 << 8)| ucA3;
-    }	
-    return ip;
-}
 #endif
 
 
-static sp<NetManager> gSysNetManager = NULL;
-static bool gInitNetManagerThread = false;
-static std::mutex gSysNetMutex;
 
-
-enum {
-    NET_MANAGER_STAT_INIT,
-    NET_MANAGER_STAT_START,
-    NET_MANAGER_STAT_RUNNING,
-    NET_MANAGER_STAT_STOP,
-    NET_MANAGER_STAT_STOPED,
-    NET_MANAGER_STAT_DESTORYED,
-    NET_MANAGER_STAT_MAX
-};
-
-#define NETM_EXIT_LOOP 			0x100		/* 退出消息循环 */
-#define NETM_REGISTER_NETDEV 	0x101		/* 注册网络设备 */
-#define NETM_UNREGISTER_NETDEV	0x102		/* 注销网络设备 */
-#define NETM_STARTUP_NETDEV		0x103		/* 启动网络设备 */
-#define NETM_CLOSE_NETDEV		0x104		/* 关闭网络设备 */
-#define NETM_SET_NETDEV_IP		0x105		/* 设置设备的IP地址 */
-#define NETM_LIST_NETDEV		0x106		/* 列出所有注册的网络设备 */
-#define NETM_POLL_NET_STATE		0x107
-
-#define NETM_NETDEV_MAX_COUNT	10
 
 class NetManagerHandler : public ARHandler {
 public:
@@ -495,15 +430,151 @@ sp<ARMessage> NetManager::obtainMessage(uint32_t what)
 }
 
 
+void NetManager::removeNetDev(sp<NetDev> & netdev)
+{
+	vector<sp<NetDev>>::iterator itor;
+	
+	for (itor = mDevList.begin(); itor != mDevList.end(); itor++) {
+		if (*itor == netdev) {
+			mDevList.erase(itor);
+			break;
+		}
+	}
+}
+
+bool NetManager::checkNetDevHaveRegistered(sp<NetDev> & netdev)
+{
+
+	for (uint32_t i = 0; i < mDevList.size(); i++) {
+		if (mDevList.at(i) == netdev || mDevList.at(i)->getDevName() == netdev->getDevName()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+void NetManager::sendNetPollMsg()
+{
+	postNetMessage(mPollMsg, NET_POLL_INTERVAL);
+}
+
+
+/*
+ * 处理以太网网卡
+ */
+void NetManager::processEthernetEvent(sp<NetDev>& etherDev) 
+{
+	/*
+	 * 1.链路状态,主要针对以太网设备
+	 * 初始化时,网卡的链路为断开状态,当前网卡链路状态发生改变时
+	 * 由断开到连接: 
+	 *	-> 设置网卡的IP地址
+	 *		-> Static:
+	 *			如果 mCurIpAddr,mSaveIpAddr为0,将其设置为192.168.1.188,并设置到UI
+	 *			如果 mCurIpAddr = 0, mSaveIpAddr != 0, 将mSaveIpAddr设置为mCurIpAddr,并设置到UI
+	 *		-> DHCP: 
+	 *			如果 mCurIpAddr,mSaveIpAddr为0, 调用DHCP
+	 * 由连接到断开:
+	 *	将mCurIpAddr保存到mSaveIpAddr, 将mCurIpAddr设置为0,发送mCurIpAddr到UI
+	 * 
+	 * 2.IP地址的变化: (主要针对DHCP)
+	 * 	-> 如果从网卡获取的IP地址跟mCurIpAddr不一致,将网卡实际地址设置为mCurIpAddr,发送UI消息
+	 */
+	int iCurLinkState = etherDev->getNetdevLinkFrmPhy();
+	if (etherDev->getNetdevSavedLink() != iCurLinkState) {	/* 链路发生变化 */
+
+		Log.d(TAG, "NetManger: netdev[%s] link state changed", etherDev->getDevName().c_str());
+
+		if (iCurLinkState == NET_LINK_CONNECT) {	/* Disconnect -> Connect */
+			Log.d(TAG, ">>> link connect");
+
+			/* Static */
+			if (1) {
+				Log.d(TAG, "get ip use static");
+				/* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为0 */
+				if (etherDev->getCurIpAddr() == etherDev->getSavedIpAddr()) { /* mCurIpAddr == mSaveIpAddr */
+					/* setip 192.168.1.188,设置mCurIpAddr为192.168.1.188,并且将该地址设置Phy中 */
+					//etherDev->setCurIpAddr();	// ip = 192.168.1.188
+				} else {	/* mCurIpAddr != mSaveIpAddr */
+					etherDev->resumeNetDevIp();	/* 将保存的IP恢复到mCurIpAddr */
+				}
+				
+				/* 将地址设置到网卡,并将地址发送给UI */
+			} else {
+				Log.d(TAG, "get ip use dhcp");
+
+			}
+		} else {	/* Connect -> Disconnect */
+			//etherDev->storeNetDevIp();
+			//etherDev->setNetdevIp(0);	
+			
+			/* 发送0.0.0.0到UI */
+		}
+
+		etherDev->setNetdevSavedLink(iCurLinkState);
+	} else {	/* 链路未发生变化 */
+		/* IP发生变化
+		 * Static - 链路未发生变化时,IP地址不会发生变化
+		 * DHCP   - 可能IP地址会发生变化
+		 */
+		if (etherDev->getCurIpAddr() != etherDev->getNetDevIpFrmPhy()) {
+			etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy());	// ip = 192.168.1.188
+			
+			/* 发送IP到UI
+			*/
+		}
+	}
+
+	
+}
+
+
+
+
 void NetManager::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
-	bool bHaveRegistered = false;
 	
 	Log.d(TAG, "NetManager get msg what %d", what);
 
 	switch (what) {
 		case NETM_POLL_NET_STATE: {		/* 轮询网络设备的状态 */
+			/* 检查系统中所有处于激活状态的网卡
+			 * 如果链路发生变化
+			 * 如果IP发生变化
+			 */
+			
+			vector<sp<NetDev>>::iterator itor;
+			vector<sp<NetDev>> tmpList;
+
+			tmpList.clear();
+			
+			for (itor = mDevList.begin(); itor != mDevList.end(); itor++) {
+				if ((*itor)->getNetDevActiveState()) {
+					tmpList.push_back(*itor);
+				}
+			}
+
+			/*
+			 * 链路发送了改变
+			 * 对于RJ45: 网线的插入和拔出
+			 * 插入: 如果之前已经有保存的IP地址(值不为0),直接使用之前保存的IP地址(地址变化,发送消息给UI)
+			 *		 如果之前没有保存过IP地址: 
+			 *		 	如果是静态IP模式,设置网卡的IP地址(如: 192.168.1.188),并且通知UI显示该IP地址
+			 *		 	如果是DHCP模式,如果之前已经DHCP过,直接使用之前已经DHCP获得的地址
+			 * 拔出: 保存之前设置的IP地址,将当前设备IP地址设置为0(如果IP地址发生了变化,发生消息给UI)
+			 *
+			 * WiFi:
+			 * 打开:
+			 *	AP模式: IP地址是固定的()
+			 * 关闭:
+			 */
+			for (itor = tmpList.begin(); itor != tmpList.end(); itor++) {
+
+			}
+
+			sendNetPollMsg();	/* 继续发送轮询消息 */
 			break;
 		}
 	
@@ -521,15 +592,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 			if (mDevList.size() > NETM_NETDEV_MAX_COUNT) {
 				Log.e(TAG, "NetManager registered netdev is maxed...");
 			} else {
-				for (int i = 0; i < mDevList.size(); i++) {
-					if (mDevList.at(i) == tmpNet || mDevList.at(i)->getDevName() == tmpNet->getDevName()) {
-						Log.e(TAG, "NetManager same name netdev have registered...");
-						bHaveRegistered = true;
-						break;
-					}
-				}
-
-				if (!bHaveRegistered) {
+				if (checkNetDevHaveRegistered(tmpNet) == false) {
 					Log.d(TAG, "NetManager: netdev[%s] register now", tmpNet->getDevName().c_str());
 					mDevList.push_back(tmpNet);
 					if (tmpNet->getNetDevActiveState() == true) {	/* 激活状态 */
@@ -542,31 +605,87 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 
 		case NETM_UNREGISTER_NETDEV: {	/* 注销网络设备 */
+			
+			Log.d(TAG, "NetManager -> unregister net device...");
+			sp<NetDev> tmpNet;
+			CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
 
+			if (checkNetDevHaveRegistered(tmpNet) == true) {
+				/* 从注册列表中移除该网络设备 */
+				removeNetDev(tmpNet);
+			} else {
+				Log.e(TAG, "NetManager: netdev [%s] not registered yet", tmpNet->getDevName().c_str());
+			}
 			break;
 		}
 
 
 		case NETM_STARTUP_NETDEV: {		/* 启动网络设备 */
+			
+			sp<NetDev> tmpNet;
+			CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
+
+			if (checkNetDevHaveRegistered(tmpNet) == true) {
+				if (tmpNet->getNetDevActiveState() == true) {
+					Log.d(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNet->getDevName());
+				} else {
+					if (tmpNet->netdevOpen() == 0) {
+						tmpNet->setNetDevActiveState(true);
+					} else {
+						Log.d(TAG, "NetManager: netdev[%s] active failed...", tmpNet->getDevName());
+					}
+				}
+			}
 			break;
 		}
 
 
 		case NETM_CLOSE_NETDEV: {		/* 关闭网络设备 */
+			
+			sp<NetDev> tmpNet;
+			CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
+
+			if (checkNetDevHaveRegistered(tmpNet) == true) {
+				if (tmpNet->getNetDevActiveState() == false) {
+					Log.d(TAG, "NetManager: netdev [%s] have inactived, ignore this command", tmpNet->getDevName());
+				} else {
+					if (tmpNet->netdevClose() == 0) {
+						tmpNet->setNetDevActiveState(false);
+					} else {
+						Log.d(TAG, "NetManager: netdev[%s] inactive failed...", tmpNet->getDevName());
+					}
+				}
+			}
 			break;
 		}
 
 
-		case NETM_SET_NETDEV_IP: {		/* 设备设备IP地址(DHCP/static) */
+		case NETM_SET_NETDEV_IP: {	/* 设备设备IP地址(DHCP/static) */
+			#if 0
+			/* 根据是全局开关是DHCP还是Static */		
+			sp<NetDev> tmpNet;
+			uint32_t ipaddr;
+			CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
+			CHECK_EQ(msg->find<uint32_t>("ip", &ipaddr), true);
+
+			if (checkNetDevHaveRegistered(tmpNet) == true) {
+				if (1) {	/* DHCP */
+					//tmpNet->setNetDevIpByDhcp();
+				} else {	/* Static */
+					tmpNet->setNetdevIp(ipaddr);
+				}
+			} else {
+				Log.e(TAG, "NetManager: netdev[%s] not reigstered...", tmpNet->getDevName());
+			}
+			#endif
 			break;
 		}
-
 
 
 		case NETM_LIST_NETDEV: {
 			sp<NetDev> tmpDev;
 			
-			for (int i = 0; i < mDevList.size(); i++) {
+			for (uint32_t i = 0; i < mDevList.size(); i++) {
 				tmpDev = mDevList.at(i);
 				Log.d(TAG, "--------------- NetManager List Netdev ------------------");
 				Log.d(TAG, "Name: %s", tmpDev->getDevName().c_str());
@@ -580,14 +699,14 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 		}
 
 		case NETM_EXIT_LOOP: {
-			Log.d(TAG, "netmanager exit loop...");
+			Log.d(TAG, "NetManager: netmanager exit loop...");
 			mLooper->quit();
 			break;
 		}
 
 
 		default:
-			Log.d(TAG, "Unsupport Message recieve ...");
+			Log.d(TAG, "NetManager: Unsupport Message recieve");
 			break;
 	}
 }
@@ -633,8 +752,8 @@ void NetManager::stopNetManager()
 
 int NetManager::registerNetdev(sp<NetDev>& netDev)
 {
-	int i;
-
+	uint32_t i;
+	int ret = 0;
     unique_lock<mutex> lock(mMutex);
     for (i = 0; i < mDevList.size(); i++) {
         if (mDevList.at(i)->getDevName() == netDev->getDevName()) {
@@ -648,7 +767,10 @@ int NetManager::registerNetdev(sp<NetDev>& netDev)
 
 	} else {
 		Log.d(TAG, "net device [%s] have existed", netDev->getDevName());
+		ret = -1;
 	}
+
+	return ret;
 }
 
 void NetManager::unregisterNetDev(sp<NetDev>& netDev)
@@ -656,7 +778,7 @@ void NetManager::unregisterNetDev(sp<NetDev>& netDev)
 	sp<NetDev> tmpDev = netDev;
 	
     unique_lock<mutex> lock(mMutex);
-    for (int i = 0; i < mDevList.size(); i++) {
+    for (uint32_t i = 0; i < mDevList.size(); i++) {
         if (mDevList.at(i) == netDev) {
 			tmpDev->netdevClose();
 			//mDevList.erase(i);
@@ -673,26 +795,25 @@ int NetManager::getSysNetdevCnt()
 }
 
 
-sp<NetDev> NetManager::getNetDevByname(std::string& devName)
-{
-	sp<NetDev> tmpDev = NULL;
-	
+sp<NetDev>& NetManager::getNetDevByname(std::string& devName)
+{	
+	sp<NetDev> tmpDev = nullptr;
+
     unique_lock<mutex> lock(mMutex);
-    for (int i = 0; i < mDevList.size(); i++) {
+    for (uint32_t i = 0; i < mDevList.size(); i++) {
         if (mDevList.at(i)->getDevName() == devName) {
 			tmpDev = mDevList.at(i);
 			break;
 		}
     }
-
 	return tmpDev;
 }
 
 
-void NetManager::postNetMessage(sp<ARMessage>& msg)
+void NetManager::postNetMessage(sp<ARMessage>& msg, int interval)
 {
 	msg->setHandler(mHandler);
-	msg->post();
+	msg->postWithDelayMs(interval);
 }
 
 
@@ -701,6 +822,8 @@ NetManager::NetManager(): mState(NET_MANAGER_STAT_INIT),
 							  mExit(false)
 {
     Log.d(TAG, "construct NetManager....");
+	
+	mPollMsg = obtainMessage(NETM_POLL_NET_STATE);
 	mDevList.clear();
 }
 

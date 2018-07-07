@@ -197,32 +197,38 @@ STATE_BPC_CALIBRATE = 0x20000000
 STATE_TEST = 0x8000001
 
 #json param
-MIME = 'mime'
-WIDTH = 'width'
-HEIGHT = 'height'
-MODE = 'mode'
-PREFIX = 'prefix'
-NUM = 'num'
-_NAME = 'name'
-_STATE = 'state'
-PARAM = 'parameters'
+MIME    = 'mime'
+WIDTH   = 'width'
+HEIGHT  = 'height'
+MODE    = 'mode'
+PREFIX  = 'prefix'
+NUM     = 'num'
+_NAME   = 'name'
+_STATE  = 'state'
+PARAM   = 'parameters'
 
-ORG = 'origin'
-STICH = 'stiching'
-AUD = 'audio'
+ORG     = 'origin'
+STICH   = 'stiching'
+AUD     = 'audio'
 LIVE_AUTO_CONNECT='autoConnect'
 
-FILE_TYPE = 'fileType'
-SAVE_ORG = 'saveOrigin'
-FRAME_RATE = 'framerate'
-#BIT_RATE = 'bitrate'
+FILE_TYPE   = 'fileType'
+SAVE_ORG    = 'saveOrigin'
+FRAME_RATE  = 'framerate'
+#BIT_RATE   = 'bitrate'
+
+
+# Machine
+MACHINE_TYPE = 'machine'
+MACHINE = 'pro2'
+
 
 #audio
-SAMPLE_FMT = 'sampleFormat'
-CHANNEL_LAYOUT = 'channelLayout'
-#CAMERA_INDEX = 'camera_index'
-BIT_RATE ='bitrate'
-SAMPLE_RATE ='samplerate'
+SAMPLE_FMT      = 'sampleFormat'
+CHANNEL_LAYOUT  = 'channelLayout'
+#CAMERA_INDEX   = 'camera_index'
+BIT_RATE        = 'bitrate'
+SAMPLE_RATE     = 'samplerate'
 
 HDR = 'hdr'
 PICTURE_COUNT= 'pictureCount'
@@ -272,7 +278,7 @@ elif platform.machine() == 'aarch64':
     INS_FIFO_RESET_FROM = BASE_PATH + 'ins_fifo_to_client_father'
 
     # ETH_DEV = 'eth0'
-    BROWER_ROOT = '/data/'
+    BROWER_ROOT = '/home/nvidia/insta360/log/'
     STORAGE_ROOT = BROWER_ROOT
     
     # LOG_ROOT = STORAGE_ROOT + 'py_log/'
@@ -301,6 +307,8 @@ else:
     ADD_STORAGE = '/sdcard/'
     USER_RELOAD = False
     UPLOAD_DIR = '/data/uploads'
+
+
 
 #error des
 UNKONWNCOMMAND = {'unknownCommand':'Invalid command is issued'}

@@ -66,7 +66,7 @@ std::mutex devMutex;
 
 #define WATCH_PATH "/dev"
 
-#define VOLD_VER "v2.2"
+#define VOLD_VER "v2.3"
 
 #define TAG "vold"
 #define VOLD_LOG_PATH "/home/nvidia/insta360/log/vold_log"
@@ -339,36 +339,28 @@ static void handleAddAction(const char* deviceName)
 	unique_lock<mutex> lock(devMutex);
 
 	needMounted = isDevNeedMount(deviceName, fsType, 64);
-	if (needMounted)
-	{
+    if (needMounted) {
 		/* 调用挂载函数进行挂载 */
 		mountPath = getDeviceMountPath(deviceName, &iIndex);
-		if (mountPath)
-		{
+        if (mountPath) {
 			Log.d(TAG, "mount: devname[%s], path[%s], fstype[%s]\n", deviceName, mountPath, fsType);
 			#if 0
 			iRet = mount(deviceName, mountPath, fsType, 0, NULL);
-			if (iRet)
-			{
+            if (iRet) {
 				printf("mount failed, reason [%s] \n", strerror(errno));
-			}
-			else
-			{
+            } else {
 				printf("mount success ...\n");
 				mountObjs[iMediaType].hasMounted = true;
 			}
 			#else
-			for (int i = 0; i < 3; i++)
-			{
-				sprintf(mount_cmd, "mount %s %s", deviceName, mountPath);
+
+            for (int i = 0; i < 3; i++) {
+                sprintf(mount_cmd, "mount.exfat %s %s", deviceName, mountPath);
 				iRet = exec_cmd(mount_cmd);
-				if (iRet)
-				{
+                if (iRet) {
 					Log.e(TAG, "mount device[%s] failed, reason [%s]", deviceName, strerror(errno));
-				}
-				else
-				{
-					Log.d(TAG, "mount device[%s] on path [%s] success", deviceName, mountPath);
+                } else {
+                    Log.d(TAG, "mount.exfat device[%s] on path [%s] success", deviceName, mountPath);
 					mountObjs[iIndex].hasMounted = true;
 					gCurDiskCnt += 1;
 					sprintf(cDiskNum, "%d", gCurDiskCnt);
@@ -393,21 +385,15 @@ static void handleRmAction(const char* deviceName)
 
 	printf("rm device name: %s\n", deviceName);
 	
-	for (u32 i = 0; i < MAX_MOUNT_POINT; i++)
-	{
-		if ((mountObjs[i].devNodeName != NULL) &&  strcmp(deviceName, mountObjs[i].devNodeName) == 0 && mountObjs[i].hasMounted == true)
-		{
+    for (u32 i = 0; i < MAX_MOUNT_POINT; i++) {
+        if ((mountObjs[i].devNodeName != NULL) &&  strcmp(deviceName, mountObjs[i].devNodeName) == 0 && mountObjs[i].hasMounted == true) {
 			iRet = umount2(mountObjs[i].cMountPointPath, MNT_FORCE);
-			if (iRet)
-			{
+            if (iRet) {
 				Log.e(TAG, "umout failed, reason [%s]\n", strerror(errno));
-			}
-			else
-			{
+            } else {
 				Log.d(TAG, "umount path[%s] success", mountObjs[i].cMountPointPath);
 				mountObjs[i].hasMounted = false;
-				if (mountObjs[i].devNodeName)
-				{
+                if (mountObjs[i].devNodeName) {
 					gCurDiskCnt -= 1;
 					if (gCurDiskCnt < 0)
 						gCurDiskCnt = 0;

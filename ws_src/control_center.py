@@ -1670,10 +1670,12 @@ class control_center:
     def camera_connect(self,req):
         Info('a camera_connect req {}'.format(req))
         #avoid rec connect twice at same time 170621
+        
         self.aquire_connect_sem()
         try:
             Info('b camera_connect req {}'.format(req))
             self.generate_fp();
+            
             # st = self.get_cam_state()
             ret = OrderedDict({_name:req[_name], _state:config.DONE,config.RESULTS:{config.FINGERPRINT:self.finger_print}})
             #if st != config.STATE_IDLE:
@@ -1687,6 +1689,7 @@ class control_center:
                 #     Warn('state mismatch (old {} new {})'.format(self.get_cam_state(),st))
                 #     self.set_cam_state(st)
                 #     self.camera_oled_sync_state()
+
             # Info('a camera_connect ')
             st = self.get_cam_state()
             Info('b camera_connect st {}'.format(hex(st)))
@@ -1706,6 +1709,9 @@ class control_center:
 
             ret[config.RESULTS]['_cam_state'] = st
 
+            # 加添一个字段来区分'pro2'
+            ret[config.RESULTS][config.MACHINE_TYPE] = config.MACHINE
+
             if self.sync_param is not None:
                 Info('self.sync_param is {}'.format(self.sync_param))
                 ret[config.RESULTS]['sys_info'] = self.sync_param
@@ -1717,8 +1723,10 @@ class control_center:
             Print('connect ret {}'.format(ret))
             self.release_connect_sem()
             self.set_connect(True)
-            Print('2connect ret {}'.format(ret))
+            
+            Print('>>>>>>>>> connect ret {}'.format(ret))
             self.start_poll_timer()
+            
             return dict_to_jsonstr(ret)
         except Exception as e:
             Err('connect exception {}'.format(e))
