@@ -42,6 +42,31 @@ enum {
 };
 
 
+enum {
+    NET_MANAGER_STAT_INIT,
+    NET_MANAGER_STAT_START,
+    NET_MANAGER_STAT_RUNNING,
+    NET_MANAGER_STAT_STOP,
+    NET_MANAGER_STAT_STOPED,
+    NET_MANAGER_STAT_DESTORYED,
+    NET_MANAGER_STAT_MAX
+};
+
+#define NETM_EXIT_LOOP 			0x100		/* 退出消息循环 */
+#define NETM_REGISTER_NETDEV 	0x101		/* 注册网络设备 */
+#define NETM_UNREGISTER_NETDEV	0x102		/* 注销网络设备 */
+#define NETM_STARTUP_NETDEV		0x103		/* 启动网络设备 */
+#define NETM_CLOSE_NETDEV		0x104		/* 关闭网络设备 */
+#define NETM_SET_NETDEV_IP		0x105		/* 设置设备的IP地址 */
+#define NETM_LIST_NETDEV		0x106		/* 列出所有注册的网络设备 */
+#define NETM_POLL_NET_STATE		0x107
+
+#define NETM_NETDEV_MAX_COUNT	10
+
+
+#define NET_POLL_INTERVAL 2000
+
+
 class NetDev {
 public:
 
@@ -49,8 +74,10 @@ public:
     ~NetDev();
 
 	/* 打开/关闭网络设备 */
-    int netdevOpen();
-    int netdevClose();
+    virtual int netdevOpen();
+    virtual int netdevClose();
+
+    virtual void processPollEvent(sp<NetDev>& netdev);
 
 	/* 获取/设置保存的链路状态 */
     int getNetdevSavedLink();
@@ -66,13 +93,16 @@ public:
 
 
 	/* 将当前有效的网卡地址保存起来 */
-	void storeNetDevIp();
+    void storeCurIp2Saved();
 
 	/* 将保存起来有效的网卡地址恢复到mCurIpAddr及硬件中 */
-	void resumeNetDevIp();
+    void resumeSavedIp2CurAndPhy(bool bUpPhy);
+
 
 	unsigned int getCurIpAddr();				
-	void setCurIpAddr(uint32_t ip);			/* 设置当前的IP地址(除了更新mCurIpAddr,还会将地址更新到网卡硬件中) */
+
+    /* 设置当前的IP地址(除了更新mCurIpAddr,还会将地址更新到网卡硬件中) */
+    void setCurIpAddr(uint32_t ip, bool bUpPhy = true);
 
 	/* 获取/设置Phy IP地址 */
 	uint32_t getNetDevIpFrmPhy();
@@ -120,6 +150,7 @@ public:
     int netdevOpen();
     int netdevClose();
 
+    void processPollEvent(sp<NetDev>& etherDev);
 };
 
 
@@ -133,6 +164,8 @@ public:
 
     /* Close WiFi Net Device */
     int netdevClose();
+
+    void processPollEvent(sp<NetDev>& netdev);
 
 };
 
@@ -170,11 +203,13 @@ public:
      */
     void postNetMessage(sp<ARMessage>& msg, int interval = 0);
     ~NetManager();
-    NetManager();
+
 
 private:
 
-	bool checkNetDevHaveRegistered(sp<NetDev> &);
+    NetManager();
+
+    bool checkNetDevHaveRegistered(sp<NetDev> &);
 	void removeNetDev(sp<NetDev> &);
 	void processEthernetEvent(sp<NetDev>& etherDev);
 
@@ -187,10 +222,9 @@ private:
 	sp<ARLooper> mLooper;
     sp<ARHandler> mHandler;
 
-	sp<ARMessage> mPollMsg;					/* 轮询消息 */
+    sp<ARMessage> mPollMsg;					/* 轮询消息 */
 
     std::thread mThread;                    /* 网络管理器线程 */
-
     std::mutex mMutex;                      /* 访问网络设备的互斥锁 */
     std::vector<sp<NetDev>> mDevList;       /* 网络设备列表 */
     sp<NetDev> mCurdev;                     /* 当前需要在屏幕上显示IP地址的激活设备 */

@@ -22,6 +22,11 @@
 #include <util/bytes_int_convert.h>
 #include <string>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+
 using namespace std;
 
 #define TAG "NetManager"
@@ -39,29 +44,6 @@ static bool gInitNetManagerThread = false;
 static std::mutex gSysNetMutex;
 
 
-enum {
-    NET_MANAGER_STAT_INIT,
-    NET_MANAGER_STAT_START,
-    NET_MANAGER_STAT_RUNNING,
-    NET_MANAGER_STAT_STOP,
-    NET_MANAGER_STAT_STOPED,
-    NET_MANAGER_STAT_DESTORYED,
-    NET_MANAGER_STAT_MAX
-};
-
-#define NETM_EXIT_LOOP 			0x100		/* 退出消息循环 */
-#define NETM_REGISTER_NETDEV 	0x101		/* 注册网络设备 */
-#define NETM_UNREGISTER_NETDEV	0x102		/* 注销网络设备 */
-#define NETM_STARTUP_NETDEV		0x103		/* 启动网络设备 */
-#define NETM_CLOSE_NETDEV		0x104		/* 关闭网络设备 */
-#define NETM_SET_NETDEV_IP		0x105		/* 设置设备的IP地址 */
-#define NETM_LIST_NETDEV		0x106		/* 列出所有注册的网络设备 */
-#define NETM_POLL_NET_STATE		0x107
-
-#define NETM_NETDEV_MAX_COUNT	10
-
-
-#define NET_POLL_INTERVAL 2000
 
 
 
@@ -82,6 +64,7 @@ NetDev::~NetDev()
 {
     Log.d(TAG, "++> deconstructor net device");
 }
+
 
 int NetDev::netdevOpen()
 {
@@ -108,15 +91,24 @@ void NetDev::setNetdevSavedLink(int linkState)
 }
 
 
-void NetDev::storeNetDevIp()
+void NetDev::storeCurIp2Saved()
 {
 	mSaveIpAddr = mCurIpAddr;
 }
 
-void NetDev::resumeNetDevIp()
+void NetDev::resumeSavedIp2CurAndPhy(bool bUpPhy)
 {
-	mCurIpAddr = mSaveIpAddr;
+    if (mSaveIpAddr != 0) {
+        mCurIpAddr = mSaveIpAddr;
+        if (bUpPhy) {
+            setNetDevIpToPhy(mCurIpAddr);
+        }
+    } else {
+        Log.e(TAG, "resumeSavedIp2CurAndPhy >> mSavceIpAddr is zero, ignore it...");
+    }
 }
+
+
 
 unsigned int NetDev::getCurIpAddr()
 {
@@ -124,11 +116,14 @@ unsigned int NetDev::getCurIpAddr()
 }
 
 
-void NetDev::setCurIpAddr(uint32_t ip)
+void NetDev::setCurIpAddr(uint32_t ip, bool bUpPhy)
 {
 	mCurIpAddr = ip;
-	
+    if (bUpPhy) {
+        setNetDevIpToPhy(ip);
+    }
 }
+
 
 
 unsigned int NetDev::getSavedIpAddr()
@@ -164,12 +159,12 @@ int NetDev::getNetdevLinkFrmPhy()
 
     ret = ioctl(skfd, 0x8946, &ifr);
     if (ret == 0) {
-        Log.d(TAG, "Link detected: %s\n", edata.data ? "yes" : "no");
+        Log.d(TAG, "Link detected: %d\n", edata.data);
 
         if (edata.data == 1) {
-            err == NET_LINK_CONNECT;
+            err = NET_LINK_CONNECT;
         } else {
-            err == NET_LINK_DISCONNECT;
+            err = NET_LINK_DISCONNECT;
         }
     } else {
         Log.e(TAG, "Cannot get link status");
@@ -219,11 +214,41 @@ uint32_t NetDev::getNetDevIpFrmPhy()
     return ip;
 }
 
-
 bool NetDev::setNetDevIpToPhy(uint32_t ip)
 {
+    bool ret = false;
+    struct ifreq ifr;
+    u8 ipStr[32] = {0};
+    struct sockaddr_in *p = NULL;
 
-	return true;
+    memset(&ifr, 0, sizeof(ifr));
+    int_to_ip(ip, ipStr, sizeof(uint32_t));
+    p = (struct sockaddr_in *)&(ifr.ifr_addr);
+
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        Log.e(TAG, "open socket failed....");
+    } else {
+        strcpy(ifr.ifr_name, getDevName().c_str());
+        p->sin_family = AF_INET;
+
+        inet_aton((const char*)"192.168.3.51", &(p->sin_addr));
+
+        if (ioctl(sockfd, SIOCSIFADDR, &ifr)) {
+            Log.e(TAG, "setNetDevIpToPhy -> [%s] failed", getDevName().c_str());
+        } else {
+            Log.d(TAG, "setNetDevIpToPhy -> [%s] Success", getDevName().c_str());
+
+            if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == -1)
+                   Log.d(TAG, "active fault");
+               else
+                   Log.d(TAG, "is working...\n");
+            ret = true;
+
+        }
+        close(sockfd);
+    }
+    return ret;
 }
 
 
@@ -246,11 +271,17 @@ string& NetDev::getDevName()
 }
 
 
+void NetDev::processPollEvent(sp<NetDev>& netdev)
+{
+    Log.d(TAG, "Netdev -> processPollEvent");
+}
+
 
 /************************************* Ethernet Dev ***************************************/
 
-EtherNetDev::EtherNetDev(string name):NetDev(DEV_LAN, WIFI_WORK_MODE_STA, NET_DEV_STAT_INACTIVE, false, name)
+EtherNetDev::EtherNetDev(string name):NetDev(DEV_LAN, WIFI_WORK_MODE_STA, NET_LINK_DISCONNECT, true, name)
 {
+    Log.d(TAG, "constructor ethernet device...");
 }
 
 EtherNetDev::~EtherNetDev()
@@ -264,14 +295,104 @@ int EtherNetDev::netdevOpen()
     /* ifconfig ethX up 
  	 *
  	 */
- 	 
+    Log.d(TAG, "EtherNetdev Open ....");
 	return 0;
 }
 
 int EtherNetDev::netdevClose()
 {
-    /* ifconfig ethX down */
+    Log.d(TAG, "Ethernetdev Close...");
 	return 0;
+}
+
+
+/*
+ * 链路发送了改变
+ * 对于RJ45: 网线的插入和拔出
+ * 插入: 如果之前已经有保存的IP地址(值不为0),直接使用之前保存的IP地址(地址变化,发送消息给UI)
+ *		 如果之前没有保存过IP地址:
+ *		 	如果是静态IP模式,设置网卡的IP地址(如: 192.168.1.188),并且通知UI显示该IP地址
+ *		 	如果是DHCP模式,如果之前已经DHCP过,直接使用之前已经DHCP获得的地址
+ * 拔出: 保存之前设置的IP地址,将当前设备IP地址设置为0(如果IP地址发生了变化,发生消息给UI)
+ *
+ * WiFi:
+ * 打开:
+ *	AP模式: IP地址是固定的()
+ * 关闭:
+ */
+void EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
+{
+    Log.d(TAG, "EtherNetDev --> processPollEvent");
+    /*
+     * 1.链路状态,主要针对以太网设备
+     * 初始化时,网卡的链路为断开状态,当前网卡链路状态发生改变时
+     * 由断开到连接:
+     *	-> 设置网卡的IP地址
+     *		-> Static:
+     *			如果 mCurIpAddr,mSaveIpAddr为0,将其设置为192.168.1.188,并设置到UI
+     *			如果 mCurIpAddr = 0, mSaveIpAddr != 0, 将mSaveIpAddr设置为mCurIpAddr,并设置到UI
+     *		-> DHCP:
+     *			如果 mCurIpAddr,mSaveIpAddr为0, 调用DHCP
+     * 由连接到断开:
+     *	将mCurIpAddr保存到mSaveIpAddr, 将mCurIpAddr设置为0,发送mCurIpAddr到UI
+     *
+     * 2.IP地址的变化: (主要针对DHCP)
+     * 	-> 如果从网卡获取的IP地址跟mCurIpAddr不一致,将网卡实际地址设置为mCurIpAddr,发送UI消息
+     */
+    int iCurLinkState = etherDev->getNetdevLinkFrmPhy();
+
+    Log.d(TAG, "ethernet current state: 0x%x, %s", iCurLinkState, (iCurLinkState == NET_LINK_CONNECT) ? "Connect": "Disconnect");
+
+    if (etherDev->getNetdevSavedLink() != iCurLinkState) {	/* 链路发生变化 */
+
+        Log.d(TAG, "NetManger: netdev[%s] link state changed", etherDev->getDevName().c_str());
+
+        if (iCurLinkState == NET_LINK_CONNECT) {	/* Disconnect -> Connect */
+            Log.d(TAG, ">>> link connect");
+
+            /* Static */
+            if (1) {
+                Log.d(TAG, "get ip use static");
+                /* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为0 */
+                if (etherDev->getCurIpAddr() == etherDev->getSavedIpAddr()) { /* mCurIpAddr == mSaveIpAddr */
+                    /* setip 192.168.1.188,设置mCurIpAddr为192.168.1.188,并且将该地址设置Phy中 */
+                    Log.d(TAG, ">>> set eth0 ip 192.168.23.2");
+                    etherDev->setCurIpAddr(3232235964);	// ip = 192.168.1.188
+
+                    /* update (from property)192.168.1.188 to mCurIpAddr and phy */
+
+
+                } else {	/* mCurIpAddr != mSaveIpAddr */
+                    //etherDev->resumeNetDevIp();	/* 将保存的IP恢复到mCurIpAddr */
+                    /* update mSaveIpAddr(if mSaveIpAddr != 0) to mCurIpAddr and phy */
+                }
+
+                /* 将地址设置到网卡,并将地址发送给UI */
+
+            } else {
+                Log.d(TAG, "get ip use dhcp");
+
+            }
+        } else {	/* Connect -> Disconnect */
+            //etherDev->storeNetDevIp();
+            //etherDev->setNetdevIp(0);
+
+            /* 发送0.0.0.0到UI */
+        }
+
+        etherDev->setNetdevSavedLink(iCurLinkState);
+    } else {	/* 链路未发生变化 */
+        /* IP发生变化
+         * Static - 链路未发生变化时,IP地址不会发生变化
+         * DHCP   - 可能IP地址会发生变化
+         */
+        if (etherDev->getCurIpAddr() != etherDev->getNetDevIpFrmPhy()) {
+            etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy());	// ip = 192.168.1.188
+
+            /* 发送IP到UI
+            */
+        }
+    }
 }
 
 
@@ -298,6 +419,12 @@ int WiFiNetDev::netdevClose()
 {
     /* Maybe need rmmod driver */
 	return 0;
+}
+
+
+void WiFiNetDev::processPollEvent(sp<NetDev>& wifiDev)
+{
+
 }
 
 #if 0
@@ -456,78 +583,10 @@ bool NetManager::checkNetDevHaveRegistered(sp<NetDev> & netdev)
 
 void NetManager::sendNetPollMsg()
 {
-	postNetMessage(mPollMsg, NET_POLL_INTERVAL);
+    if (mPollMsg)
+        postNetMessage(mPollMsg, NET_POLL_INTERVAL);
 }
 
-
-/*
- * 处理以太网网卡
- */
-void NetManager::processEthernetEvent(sp<NetDev>& etherDev) 
-{
-	/*
-	 * 1.链路状态,主要针对以太网设备
-	 * 初始化时,网卡的链路为断开状态,当前网卡链路状态发生改变时
-	 * 由断开到连接: 
-	 *	-> 设置网卡的IP地址
-	 *		-> Static:
-	 *			如果 mCurIpAddr,mSaveIpAddr为0,将其设置为192.168.1.188,并设置到UI
-	 *			如果 mCurIpAddr = 0, mSaveIpAddr != 0, 将mSaveIpAddr设置为mCurIpAddr,并设置到UI
-	 *		-> DHCP: 
-	 *			如果 mCurIpAddr,mSaveIpAddr为0, 调用DHCP
-	 * 由连接到断开:
-	 *	将mCurIpAddr保存到mSaveIpAddr, 将mCurIpAddr设置为0,发送mCurIpAddr到UI
-	 * 
-	 * 2.IP地址的变化: (主要针对DHCP)
-	 * 	-> 如果从网卡获取的IP地址跟mCurIpAddr不一致,将网卡实际地址设置为mCurIpAddr,发送UI消息
-	 */
-	int iCurLinkState = etherDev->getNetdevLinkFrmPhy();
-	if (etherDev->getNetdevSavedLink() != iCurLinkState) {	/* 链路发生变化 */
-
-		Log.d(TAG, "NetManger: netdev[%s] link state changed", etherDev->getDevName().c_str());
-
-		if (iCurLinkState == NET_LINK_CONNECT) {	/* Disconnect -> Connect */
-			Log.d(TAG, ">>> link connect");
-
-			/* Static */
-			if (1) {
-				Log.d(TAG, "get ip use static");
-				/* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为0 */
-				if (etherDev->getCurIpAddr() == etherDev->getSavedIpAddr()) { /* mCurIpAddr == mSaveIpAddr */
-					/* setip 192.168.1.188,设置mCurIpAddr为192.168.1.188,并且将该地址设置Phy中 */
-					//etherDev->setCurIpAddr();	// ip = 192.168.1.188
-				} else {	/* mCurIpAddr != mSaveIpAddr */
-					etherDev->resumeNetDevIp();	/* 将保存的IP恢复到mCurIpAddr */
-				}
-				
-				/* 将地址设置到网卡,并将地址发送给UI */
-			} else {
-				Log.d(TAG, "get ip use dhcp");
-
-			}
-		} else {	/* Connect -> Disconnect */
-			//etherDev->storeNetDevIp();
-			//etherDev->setNetdevIp(0);	
-			
-			/* 发送0.0.0.0到UI */
-		}
-
-		etherDev->setNetdevSavedLink(iCurLinkState);
-	} else {	/* 链路未发生变化 */
-		/* IP发生变化
-		 * Static - 链路未发生变化时,IP地址不会发生变化
-		 * DHCP   - 可能IP地址会发生变化
-		 */
-		if (etherDev->getCurIpAddr() != etherDev->getNetDevIpFrmPhy()) {
-			etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy());	// ip = 192.168.1.188
-			
-			/* 发送IP到UI
-			*/
-		}
-	}
-
-	
-}
 
 
 
@@ -545,8 +604,13 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 			 * 如果IP发生变化
 			 */
 			
+            if (!mPollMsg) {
+                mPollMsg = msg->dup();
+            }
+
 			vector<sp<NetDev>>::iterator itor;
 			vector<sp<NetDev>> tmpList;
+            sp<NetDev> tmpDev;
 
 			tmpList.clear();
 			
@@ -555,25 +619,17 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 					tmpList.push_back(*itor);
 				}
 			}
-
-			/*
-			 * 链路发送了改变
-			 * 对于RJ45: 网线的插入和拔出
-			 * 插入: 如果之前已经有保存的IP地址(值不为0),直接使用之前保存的IP地址(地址变化,发送消息给UI)
-			 *		 如果之前没有保存过IP地址: 
-			 *		 	如果是静态IP模式,设置网卡的IP地址(如: 192.168.1.188),并且通知UI显示该IP地址
-			 *		 	如果是DHCP模式,如果之前已经DHCP过,直接使用之前已经DHCP获得的地址
-			 * 拔出: 保存之前设置的IP地址,将当前设备IP地址设置为0(如果IP地址发生了变化,发生消息给UI)
-			 *
-			 * WiFi:
-			 * 打开:
-			 *	AP模式: IP地址是固定的()
-			 * 关闭:
-			 */
+/*
 			for (itor = tmpList.begin(); itor != tmpList.end(); itor++) {
-
+                (*itor)->processPollEvent((*itor));
 			}
+  */
+            for (uint32_t i = 0; i < tmpList.size(); i++) {
+                tmpDev = tmpList.at(i);
+                tmpDev->processPollEvent(tmpDev);
+            }
 
+            Log.d(TAG, "NetManager: in poll mode ...");
 			sendNetPollMsg();	/* 继续发送轮询消息 */
 			break;
 		}
@@ -581,12 +637,14 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 		case NETM_REGISTER_NETDEV: {	/* 注册网络设备 */
 			Log.d(TAG, "NetManager -> register net device...");
+
 			/*
 			 * msg.what = NETM_REGISTER_NETDEV
 			 * msg."netdev" = sp<NetDev>
 			 */
 			sp<NetDev> tmpNet;
-			CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
+            CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
+
 
 			/* 检查该网络设备是否已经被注册过,及管理器管理的网卡是否达到上限 */
 			if (mDevList.size() > NETM_NETDEV_MAX_COUNT) {
@@ -819,11 +877,10 @@ void NetManager::postNetMessage(sp<ARMessage>& msg, int interval)
 
 NetManager::NetManager(): mState(NET_MANAGER_STAT_INIT), 
 							  mCurdev(NULL), 
+                              mPollMsg(NULL),
 							  mExit(false)
 {
     Log.d(TAG, "construct NetManager....");
-	
-	mPollMsg = obtainMessage(NETM_POLL_NET_STATE);
 	mDevList.clear();
 }
 

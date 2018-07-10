@@ -682,10 +682,20 @@ void oled_handler::init()
 	mNetManager = NetManager::getNetManagerInstance();
 	mNetManager->startNetManager();
 
-	sp<ARMessage> test = obtainMessage(0x123);
-	mNetManager->postNetMessage(test);
+    /* Register Ethernet device(eth0) */
+    sp<EtherNetDev> eth0 = (sp<EtherNetDev>)(new EtherNetDev("eth0"));
+    sp<ARMessage> registerMsg = obtainMessage(NETM_REGISTER_NETDEV);
+    registerMsg->set<sp<NetDev>>("netdev", eth0);
 
-	
+    mNetManager->postNetMessage(registerMsg);
+
+    sp<ARMessage> looperMsg = obtainMessage(NETM_POLL_NET_STATE);
+    mNetManager->postNetMessage(looperMsg);
+
+
+    sp<ARMessage> listMsg = obtainMessage(NETM_LIST_NETDEV);
+    mNetManager->postNetMessage(listMsg);
+
 #endif
 
 }
