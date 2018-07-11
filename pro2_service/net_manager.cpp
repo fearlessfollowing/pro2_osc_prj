@@ -26,6 +26,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <prop_cfg.h>
+
+#include <trans/fifo.h>
 
 using namespace std;
 
@@ -44,19 +47,20 @@ static bool gInitNetManagerThread = false;
 static std::mutex gSysNetMutex;
 
 
-
-
-
 /*********************************** NetDev **********************************/
 NetDev::NetDev(int iType, int iWkMode, int iState, bool activeFlag, string ifName):
 		mDevType(iType),
 		mWorkMode(iWkMode),	
 		mLinkState(iState),
 		mActive(activeFlag),
-		mCurIpAddr(0),
-		mSaveIpAddr(0),
-		mDevName(ifName)
+        mDevName(ifName)
+        //mHaveCachedDhcp(false)
+
 {
+    memset(mCurIpAddr, 0, sizeof(mCurIpAddr));
+    memset(mSaveIpAddr, 0, sizeof(mSaveIpAddr));
+    //memset(mCachedDhcpAddr, 0, sizeof(mCachedDhcpAddr));
+
     Log.d(TAG, "++> constructor net device");
 }
 
@@ -65,6 +69,34 @@ NetDev::~NetDev()
     Log.d(TAG, "++> deconstructor net device");
 }
 
+
+void NetDev::flushDhcpAddr()
+{
+    memset(mCachedDhcpAddr, 0, sizeof(mCachedDhcpAddr));
+    mHaveCachedDhcp = false;
+}
+
+bool NetDev::isCachedDhcpAddr()
+{
+    return mHaveCachedDhcp;
+}
+
+const char* NetDev::getCachedDhcpAddr()
+{
+    return mCachedDhcpAddr;
+}
+
+void NetDev::setCachedDhcpAddr(const char* ipAddr)
+{
+    memset(mCachedDhcpAddr, 0, sizeof(mCachedDhcpAddr));
+    strcpy(mCachedDhcpAddr, ipAddr);
+    mHaveCachedDhcp = true;
+}
+
+int NetDev::getNetDevType()
+{
+    return mDevType;
+}
 
 int NetDev::netdevOpen()
 {
@@ -90,46 +122,43 @@ void NetDev::setNetdevSavedLink(int linkState)
 	mLinkState = linkState;
 }
 
+const char* NetDev::getCurIpAddr()
+{
+    return mCurIpAddr;
+}
+
+const char* NetDev::getSaveIpAddr()
+{
+    return mSaveIpAddr;
+}
+
 
 void NetDev::storeCurIp2Saved()
 {
-	mSaveIpAddr = mCurIpAddr;
+    memset(mSaveIpAddr, 0, sizeof(mSaveIpAddr));
+    strcpy(mSaveIpAddr, mCurIpAddr);
 }
 
 void NetDev::resumeSavedIp2CurAndPhy(bool bUpPhy)
 {
-    if (mSaveIpAddr != 0) {
-        mCurIpAddr = mSaveIpAddr;
-        if (bUpPhy) {
-            setNetDevIpToPhy(mCurIpAddr);
-        }
-    } else {
-        Log.e(TAG, "resumeSavedIp2CurAndPhy >> mSavceIpAddr is zero, ignore it...");
-    }
-}
-
-
-
-unsigned int NetDev::getCurIpAddr()
-{
-	return mCurIpAddr;
-}
-
-
-void NetDev::setCurIpAddr(uint32_t ip, bool bUpPhy)
-{
-	mCurIpAddr = ip;
+    Log.d(TAG, "saved ip: %s", mSaveIpAddr);
+    memset(mCurIpAddr, 0, sizeof(mCurIpAddr));
+    strcpy(mCurIpAddr, mSaveIpAddr);
     if (bUpPhy) {
-        setNetDevIpToPhy(ip);
+        setNetDevIp2Phy(mCurIpAddr);
     }
 }
 
 
-
-unsigned int NetDev::getSavedIpAddr()
+void NetDev::setCurIpAddr(const char* ip, bool bUpPhy = true)
 {
-	return mSaveIpAddr;
+    memset(mCurIpAddr, 0, sizeof(mCurIpAddr));
+    strcpy(mCurIpAddr, ip);
+    if (bUpPhy) {
+        setNetDevIp2Phy(mCurIpAddr);
+    }
 }
+
 
 
 int NetDev::getNetdevLinkFrmPhy()
@@ -159,7 +188,7 @@ int NetDev::getNetdevLinkFrmPhy()
 
     ret = ioctl(skfd, 0x8946, &ifr);
     if (ret == 0) {
-        Log.d(TAG, "Link detected: %d\n", edata.data);
+        Log.i(TAG, "Link detected: %d\n", edata.data);
 
         if (edata.data == 1) {
             err = NET_LINK_CONNECT;
@@ -180,49 +209,44 @@ RET_VALUE:
 }
 
 
-uint32_t NetDev::getNetDevIpFrmPhy()
+const char* NetDev::getNetDevIpFrmPhy()
 {
-	uint32_t ucA0 = 0, ucA1 = 0, ucA2 = 0, ucA3 = 0;
     int skfd = -1;
     struct ifreq ifr;
-    char acAddr[64];
     struct sockaddr_in *addr;
-	
+
     uint32_t ip = 0;
 
-	strcpy(ifr.ifr_name, mDevName.c_str());
-    if (strlen(ifr.ifr_name) == 0) {
-        return 0;
-    }
+    strcpy(ifr.ifr_name, mDevName.c_str());
+
 
     if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        return 0;
+        goto ERR;
     }
 
     if (ioctl(skfd, SIOCGIFADDR, &ifr) == -1) {
         close(skfd);
-        return 0;
+        goto ERR;
     }
-	
+
     close(skfd);
     addr = (struct sockaddr_in *)(&ifr.ifr_addr);
-    strcpy(acAddr, inet_ntoa(addr->sin_addr));
-	
-    if (4 == sscanf(acAddr, "%u.%u.%u.%u", &ucA0, &ucA1, &ucA2, &ucA3)) {
-        ip = (ucA0 << 24) | (ucA1 << 16) | (ucA2 << 8) | ucA3;
-    }	
-    return ip;
+
+    return inet_ntoa(addr->sin_addr);
+
+ERR:
+    return NULL;
 }
 
-bool NetDev::setNetDevIpToPhy(uint32_t ip)
+
+bool NetDev::setNetDevIp2Phy(const char* ip)
 {
     bool ret = false;
     struct ifreq ifr;
-    u8 ipStr[32] = {0};
     struct sockaddr_in *p = NULL;
 
     memset(&ifr, 0, sizeof(ifr));
-    int_to_ip(ip, ipStr, sizeof(uint32_t));
+
     p = (struct sockaddr_in *)&(ifr.ifr_addr);
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -232,23 +256,26 @@ bool NetDev::setNetDevIpToPhy(uint32_t ip)
         strcpy(ifr.ifr_name, getDevName().c_str());
         p->sin_family = AF_INET;
 
-        inet_aton((const char*)"192.168.3.51", &(p->sin_addr));
+        inet_aton(ip, &(p->sin_addr));
 
         if (ioctl(sockfd, SIOCSIFADDR, &ifr)) {
-            Log.e(TAG, "setNetDevIpToPhy -> [%s] failed", getDevName().c_str());
+            Log.e(TAG, "setNetDevIp2Phy -> [%s:%s] failed", getDevName().c_str(), ip);
         } else {
-            Log.d(TAG, "setNetDevIpToPhy -> [%s] Success", getDevName().c_str());
+            Log.d(TAG, "setNetDevIp2Phy -> [%s:%s] Success", getDevName().c_str(), ip);
 
+            ifr.ifr_flags |= IFF_UP;
             if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == -1)
-                   Log.d(TAG, "active fault");
+                   Log.d(TAG, "setNetDevIp2Phy FAILED");
                else
-                   Log.d(TAG, "is working...\n");
+                   Log.d(TAG, "setNetDevIp2Phy OK");
+
             ret = true;
 
         }
         close(sockfd);
     }
     return ret;
+
 }
 
 
@@ -271,9 +298,32 @@ string& NetDev::getDevName()
 }
 
 
+void NetDev::getIpByDhcp()
+{
+    char cmd[512] = {0};
+
+    system("killall dhclient");
+    sprintf(cmd, "dhclient %s &", mDevName.c_str());
+    system(cmd);
+}
+
+
 void NetDev::processPollEvent(sp<NetDev>& netdev)
 {
     Log.d(TAG, "Netdev -> processPollEvent");
+}
+
+
+void NetDev::postDevInfo2Ui()
+{
+    sp<DEV_IP_INFO> pInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
+    strcpy(pInfo->cDevName, getDevName().c_str());
+    strcpy(pInfo->ipAddr, getCurIpAddr());
+
+    sp<ARMessage> msg = (sp<ARMessage>)(new ARMessage(OLED_DISP_IP));
+    msg->set<sp<DEV_IP_INFO>>("info", pInfo);
+
+    NetManager::getNetManagerInstance()->sendIpInfo2Ui(msg);
 }
 
 
@@ -286,22 +336,29 @@ EtherNetDev::EtherNetDev(string name):NetDev(DEV_LAN, WIFI_WORK_MODE_STA, NET_LI
 
 EtherNetDev::~EtherNetDev()
 {
-
+    Log.d(TAG, "deconstructor ethernet device...");
 }
 
 
 int EtherNetDev::netdevOpen()
 {
-    /* ifconfig ethX up 
- 	 *
- 	 */
+    char cmd[512] = {0};
+
     Log.d(TAG, "EtherNetdev Open ....");
+    sprintf(cmd, "ifconfig %s up", getDevName().c_str());
+    system(cmd);
+
 	return 0;
 }
 
 int EtherNetDev::netdevClose()
 {
+    char cmd[512] = {0};
+
     Log.d(TAG, "Ethernetdev Close...");
+    sprintf(cmd, "ifconfig %s down", getDevName().c_str());
+    system(cmd);
+
 	return 0;
 }
 
@@ -322,62 +379,48 @@ int EtherNetDev::netdevClose()
  */
 void EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
 {
-    Log.d(TAG, "EtherNetDev --> processPollEvent");
-    /*
-     * 1.链路状态,主要针对以太网设备
-     * 初始化时,网卡的链路为断开状态,当前网卡链路状态发生改变时
-     * 由断开到连接:
-     *	-> 设置网卡的IP地址
-     *		-> Static:
-     *			如果 mCurIpAddr,mSaveIpAddr为0,将其设置为192.168.1.188,并设置到UI
-     *			如果 mCurIpAddr = 0, mSaveIpAddr != 0, 将mSaveIpAddr设置为mCurIpAddr,并设置到UI
-     *		-> DHCP:
-     *			如果 mCurIpAddr,mSaveIpAddr为0, 调用DHCP
-     * 由连接到断开:
-     *	将mCurIpAddr保存到mSaveIpAddr, 将mCurIpAddr设置为0,发送mCurIpAddr到UI
-     *
-     * 2.IP地址的变化: (主要针对DHCP)
-     * 	-> 如果从网卡获取的IP地址跟mCurIpAddr不一致,将网卡实际地址设置为mCurIpAddr,发送UI消息
-     */
+
     int iCurLinkState = etherDev->getNetdevLinkFrmPhy();
 
-    Log.d(TAG, "ethernet current state: 0x%x, %s", iCurLinkState, (iCurLinkState == NET_LINK_CONNECT) ? "Connect": "Disconnect");
+    Log.i(TAG, "ethernet current state: %s", (iCurLinkState == NET_LINK_CONNECT) ? "Connect": "Disconnect");
 
     if (etherDev->getNetdevSavedLink() != iCurLinkState) {	/* 链路发生变化 */
 
         Log.d(TAG, "NetManger: netdev[%s] link state changed", etherDev->getDevName().c_str());
 
         if (iCurLinkState == NET_LINK_CONNECT) {	/* Disconnect -> Connect */
-            Log.d(TAG, ">>> link connect");
-
-            /* Static */
-            if (1) {
-                Log.d(TAG, "get ip use static");
-                /* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为0 */
-                if (etherDev->getCurIpAddr() == etherDev->getSavedIpAddr()) { /* mCurIpAddr == mSaveIpAddr */
-                    /* setip 192.168.1.188,设置mCurIpAddr为192.168.1.188,并且将该地址设置Phy中 */
-                    Log.d(TAG, ">>> set eth0 ip 192.168.23.2");
-                    etherDev->setCurIpAddr(3232235964);	// ip = 192.168.1.188
-
-                    /* update (from property)192.168.1.188 to mCurIpAddr and phy */
+            Log.i(TAG, "++++>>> link connect");
 
 
-                } else {	/* mCurIpAddr != mSaveIpAddr */
-                    //etherDev->resumeNetDevIp();	/* 将保存的IP恢复到mCurIpAddr */
-                    /* update mSaveIpAddr(if mSaveIpAddr != 0) to mCurIpAddr and phy */
+            Log.d(TAG, "current ip [%s], saved ip [%s]", etherDev->getCurIpAddr(), etherDev->getSaveIpAddr());
+            int iCurIpLen = strlen(etherDev->getCurIpAddr());
+            int iSaveIpLen = strlen(etherDev->getSaveIpAddr());
+
+            /* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为"0" */
+            if ((iCurIpLen == iSaveIpLen) && !strcmp(etherDev->getCurIpAddr(), etherDev->getSaveIpAddr())) {
+                if (0) {    /* Static */
+                    etherDev->setCurIpAddr(DEFAULT_ETH0_IP, true);
+                } else {    /* DHCP */
+                    etherDev->setCurIpAddr("0.0.0.0", true);    /* 避免屏幕没有任何显示: 0.0.0.0 */
+                    etherDev->getIpByDhcp();
                 }
-
-                /* 将地址设置到网卡,并将地址发送给UI */
-
-            } else {
-                Log.d(TAG, "get ip use dhcp");
-
+            } else {	/* mCurIpAddr != mSaveIpAddr */
+                Log.d(TAG, ">>>> Resume mSaveIpAddr to mCurIpAddr");
+                etherDev->resumeSavedIp2CurAndPhy(true);
             }
+            /* 将地址设置到网卡,并将地址发送给UI */
+            Log.d(TAG, ">>>> send our ip to UI thread ....");
+            etherDev->postDevInfo2Ui();
+
         } else {	/* Connect -> Disconnect */
-            //etherDev->storeNetDevIp();
-            //etherDev->setNetdevIp(0);
+            Log.i(TAG, "++++>>> link disconnect");
+
+            etherDev->storeCurIp2Saved();
+            etherDev->setCurIpAddr("0.0.0.0", true);
 
             /* 发送0.0.0.0到UI */
+            Log.d(TAG, ">>>> send our ip(0.0.0.0) to UI thread .... ");
+            etherDev->postDevInfo2Ui();
         }
 
         etherDev->setNetdevSavedLink(iCurLinkState);
@@ -386,11 +429,21 @@ void EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
          * Static - 链路未发生变化时,IP地址不会发生变化
          * DHCP   - 可能IP地址会发生变化
          */
-        if (etherDev->getCurIpAddr() != etherDev->getNetDevIpFrmPhy()) {
-            etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy());	// ip = 192.168.1.188
+        if (etherDev->getNetdevSavedLink() == NET_LINK_CONNECT) {   /* Connected */
+            Log.d(TAG, "+++++>>> link not changed(Connected), check ip haved changed ....");
+            if (etherDev->getNetDevIpFrmPhy() && strcmp(etherDev->getNetDevIpFrmPhy(), etherDev->getCurIpAddr())) {  /* Ip changed */
 
-            /* 发送IP到UI
-            */
+                Log.d(TAG, ">>>> send our ip(%s) to UI thread .... ", etherDev->getNetDevIpFrmPhy());
+#if 0
+                if (etherDev->isCachedDhcpAddr() == false || strcmp(etherDev->getCachedDhcpAddr(), etherDev->getNetDevIpFrmPhy())) {
+                    etherDev->setCachedDhcpAddr(etherDev->getNetDevIpFrmPhy());
+                }
+#endif
+                etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy(), false);
+                etherDev->postDevInfo2Ui();
+            }
+        } else {
+            Log.i(TAG, "+++++>>> link not changed(Disconnected), do nothing.");
         }
     }
 }
@@ -427,110 +480,18 @@ void WiFiNetDev::processPollEvent(sp<NetDev>& wifiDev)
 
 }
 
-#if 0
-
-/*
- * 网络状态改变
- * 1.链路状态的改变: (由连接到断开; 由断开到连接)
- * 2.IP地址的变化
- * eth0: 由连接到断开, IP地址将强制设置为0.0.0.0
- *		 由断开到连接, 如果时Direct模式,IP地址强制设置为192.168.1.188; 如果是DHCP模式,调用dhclient为eth0
- *		 动态获取IP
- */
-
-bool net_manager::check_net_change(sp<net_dev_info> &new_dev_info)
-{
-    bool bUpdate = false;
-    bool bFoundIP = false;
-	int net_link = NET_LINK_MAX;
-	
-    sp<net_dev_info> found_dev = sp<net_dev_info>(new net_dev_info());
-
-	for (int i = 0; i < DEV_MAX; i++) {
-        if (get_net_link_state(i, net_link) == 0) {
-            unsigned int addr = GSNet_GetIPInfo(i);
-            if (addr != 0) {
-                found_dev->dev_type = i;
-                found_dev->dev_addr = addr;
-                found_dev->net_link = net_link;
-                bFoundIP = true;
-                break;
-            }
-        }
-    }
-
-    if (bFoundIP) {
-		
-#ifdef ENABLE_IP_DEBUG
-        u8 ip[32];
-        int_to_ip(found_dev->dev_addr, ip, sizeof(ip));
-#endif
-
-        if (found_dev->dev_addr == org_dev_info->dev_addr &&
-                found_dev->dev_type == org_dev_info->dev_type &&
-                found_dev->net_link == org_dev_info->net_link) {
-
-		#ifdef ENABLE_IP_DEBUG
-            Log.d(TAG, "met same addr type %d %s", found_dev->dev_type, ip);
-		#endif
-
-			//still send disp for wlan still error
-            bUpdate = true;
-        } else {
-
-		#ifdef ENABLE_IP_DEBUG
-            Log.d(TAG, "found new addr type %d %s", found_dev->dev_type, ip);
-		#endif
-            memcpy(org_dev_info.get(), found_dev.get(), sizeof(net_dev_info));
-            bUpdate = true;
-        }
-    } else {
-    
-        // first check or net link disconnect
-        if (org_dev_info->dev_addr != 0 || org_dev_info->net_link == -1) {
-            // net from connect to disconnect
-            bUpdate = true;
-            org_dev_info->dev_addr = 0;
-            org_dev_info->net_link = GSNet_CheckLinkByType(org_dev_info->dev_type);
-        }
-    }
-
-    if (bUpdate) {
-
-	#ifdef ENABLE_IP_DEBUG
-        u8 ip[32];
-        int_to_ip(org_dev_info->dev_addr,ip,sizeof(ip));
-        Log.d(TAG," net update %d %s", org_dev_info->dev_type, ip);
-	#endif
-        memcpy(new_dev_info.get(), org_dev_info.get(), sizeof(net_dev_info));
-    }
-
-    {
-        u8 org_ip[32];
-        int_to_ip(found_dev->dev_addr, org_ip, sizeof(org_ip));
-    }
-
-    return bUpdate;
-}
-
-
-#endif
-
 
 
 
 class NetManagerHandler : public ARHandler {
 public:
-    NetManagerHandler(NetManager *source): mNetManager(source)
-    {
+    NetManagerHandler(NetManager *source): mNetManager(source) {
     }
 
-    virtual ~NetManagerHandler() override
-    {
+    virtual ~NetManagerHandler() override {
     }
 
-    virtual void handleMessage(const sp<ARMessage> & msg) override
-    {
+    virtual void handleMessage(const sp<ARMessage> & msg) override {
         mNetManager->handleMessage(msg);
     }
 	
@@ -589,13 +550,57 @@ void NetManager::sendNetPollMsg()
 
 
 
+string NetManager::convWhat2Msg(uint32_t what)
+{
+    string msg;
+    switch (what) {
+        case NETM_POLL_NET_STATE:
+            msg = "NETM_POLL_NET_STATE";
+            break;
+
+        case NETM_REGISTER_NETDEV:
+            msg = "NETM_REGISTER_NETDEV";
+            break;
+
+        case NETM_UNREGISTER_NETDEV:
+            msg = "NETM_UNREGISTER_NETDEV";
+            break;
+
+        case NETM_STARTUP_NETDEV:
+            msg = "NETM_STARTUP_NETDEV";
+            break;
+
+        case NETM_CLOSE_NETDEV:
+            msg = "NETM_CLOSE_NETDEV";
+            break;
+
+        case NETM_SET_NETDEV_IP:
+            msg = "NETM_SET_NETDEV_IP";
+            break;
+
+        case NETM_LIST_NETDEV:
+            msg = "NETM_LIST_NETDEV";
+            break;
+
+        case NETM_EXIT_LOOP:
+            msg = "NETM_EXIT_LOOP";
+            break;
+
+        default:
+            msg = "Unkown Msg";
+            break;
+    }
+
+    return msg;
+}
+
 
 
 void NetManager::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
 	
-	Log.d(TAG, "NetManager get msg what %d", what);
+    Log.d(TAG, "NetManager get msg what %s", convWhat2Msg(what).c_str());
 
 	switch (what) {
 		case NETM_POLL_NET_STATE: {		/* 轮询网络设备的状态 */
@@ -619,17 +624,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 					tmpList.push_back(*itor);
 				}
 			}
-/*
-			for (itor = tmpList.begin(); itor != tmpList.end(); itor++) {
-                (*itor)->processPollEvent((*itor));
-			}
-  */
+
             for (uint32_t i = 0; i < tmpList.size(); i++) {
                 tmpDev = tmpList.at(i);
                 tmpDev->processPollEvent(tmpDev);
             }
 
-            Log.d(TAG, "NetManager: in poll mode ...");
 			sendNetPollMsg();	/* 继续发送轮询消息 */
 			break;
 		}
@@ -718,7 +718,10 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 		}
 
 
-		case NETM_SET_NETDEV_IP: {	/* 设备设备IP地址(DHCP/static) */
+        /* NET_IP_INFO(name, ipaddr)
+         *
+         */
+        case NETM_SET_NETDEV_IP: {	/* 设备设备IP地址(DHCP/static) */
 			#if 0
 			/* 根据是全局开关是DHCP还是Static */		
 			sp<NetDev> tmpNet;
@@ -735,7 +738,28 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 			} else {
 				Log.e(TAG, "NetManager: netdev[%s] not reigstered...", tmpNet->getDevName());
 			}
+            #else
+            Log.d(TAG, "______=+++++++++++++++ set ip>>>>");
+            sp<DEV_IP_INFO> tmpIpInfo = NULL;
+            sp<NetDev> tmpNetDev = NULL;
+            CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
+
+            Log.d(TAG, "net [%s], ip %s, mode =%d, type = %d",tmpIpInfo->cDevName, tmpIpInfo->ipAddr, tmpIpInfo->iDhcp, tmpIpInfo->iDevType);
+#if 1
+            /* get netdev used dev name */
+            tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
+            if (tmpNetDev) {
+                if (tmpIpInfo->iDhcp) { /* DHCP */
+                    /* Need set our ip 0.0.0.0 first??? */
+                    tmpNetDev->getIpByDhcp();
+                } else {    /* Static */
+                    tmpNetDev->setCurIpAddr("192.168.3.13", true);
+                }
+                Log.d(TAG, ">>>>>>> get device ");
+            }
+          #endif
 			#endif
+
 			break;
 		}
 
@@ -769,6 +793,20 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 	}
 }
 
+sp<NetDev>& NetManager::getNetDevByType(int iType)
+{
+    uint32_t i;
+    {
+        unique_lock<mutex> lock(mMutex);
+        for (uint32_t i = 0; i < mDevList.size(); i++) {
+            Log.d(TAG, "dev name: %s", mDevList.at(i)->getDevName().c_str());
+            if (mDevList.at(i)->getNetDevType() == iType) {
+                return mDevList.at(i);
+            }
+        }
+    }
+
+}
 
 void NetManager::startNetManager()
 {
@@ -807,6 +845,7 @@ void NetManager::stopNetManager()
 		}
 	}
 }
+
 
 int NetManager::registerNetdev(sp<NetDev>& netDev)
 {
@@ -848,23 +887,22 @@ void NetManager::unregisterNetDev(sp<NetDev>& netDev)
 
 int NetManager::getSysNetdevCnt()
 {
-    unique_lock<mutex> lock(mMutex);
     return mDevList.size();
 }
 
 
-sp<NetDev>& NetManager::getNetDevByname(std::string& devName)
+sp<NetDev>& NetManager::getNetDevByname(const char* devName)
 {	
-	sp<NetDev> tmpDev = nullptr;
-
-    unique_lock<mutex> lock(mMutex);
-    for (uint32_t i = 0; i < mDevList.size(); i++) {
-        if (mDevList.at(i)->getDevName() == devName) {
-			tmpDev = mDevList.at(i);
-			break;
-		}
+    uint32_t i;
+    {
+        unique_lock<mutex> lock(mMutex);
+        for (i = 0; i < mDevList.size(); i++) {
+            Log.d(TAG, "dev name: %s", mDevList.at(i)->getDevName().c_str());
+            if (!strncmp(mDevList.at(i)->getDevName().c_str(), devName, strlen(devName))) {
+                return mDevList.at(i);
+            }
+        }
     }
-	return tmpDev;
 }
 
 
@@ -872,6 +910,14 @@ void NetManager::postNetMessage(sp<ARMessage>& msg, int interval)
 {
 	msg->setHandler(mHandler);
 	msg->postWithDelayMs(interval);
+}
+
+
+void NetManager::sendIpInfo2Ui(sp<ARMessage>& msg)
+{
+    /* Get Global UI object */
+    Log.d(TAG, "NetManager: send ip info to ui");
+    fifo::getSysTranObj()->sendUiMessage(msg);
 }
 
 

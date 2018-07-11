@@ -57,6 +57,10 @@ public:
         mHandler = handler;
     }
 
+    ARMessage(uint32_t what) : mWhat(what) {}
+
+    ARMessage(const ARMessage &) = delete;
+    ARMessage &operator=(ARMessage &) = delete;
 
 private:
     /* data */
@@ -64,11 +68,8 @@ private:
     wp<ARHandler> mHandler;
     uint32_t mWhat;
 
-private:
-    ARMessage(uint32_t what) : mWhat(what) {}
 
-    ARMessage(const ARMessage &) = delete;
-    ARMessage &operator=(ARMessage &) = delete;
+
 };
 
 #endif

@@ -1,7 +1,3 @@
-//
-// Created by vans on 16-12-2.
-//
-
 #ifndef INC_360PRO_SERVICE_FIFO_H
 #define INC_360PRO_SERVICE_FIFO_H
 
@@ -13,24 +9,91 @@ class ARHandler;
 class ARMessage;
 class oled_handler;
 
-//class poll_timer;
-//class usb_hp;
-//class dev_manager;
 
 struct _disp_type_;
 class fan_control;
 struct _sys_info_;
 struct _sync_init_info_;
 
-class fifo
-{
+
+
+#define  FIFO_FROM_CLIENT	"/home/nvidia/insta360/fifo/fifo_read_client"
+#define  FIFO_TO_CLIENT		"/home/nvidia/insta360/fifo/fifo_write_client"
+
+#define  TAG "fifo"
+
+#define  FIFO_HEAD_LEN (8)
+#define  FIFO_DATA_LEN_OFF (FIFO_HEAD_LEN - 4)
+
+enum {
+//    MSG_POLL_TIMER,
+    MSG_GET_OLED_KEY,
+    MSG_DEV_NOTIFY,
+
+//    MSG_DISP_STR,
+    MSG_DISP_STR_TYPE,
+    MSG_DISP_ERR_TYPE,
+
+    //    MSG_DISP_EXT,
+    MSG_SET_WIFI_CONFIG,
+    MSG_SET_SYS_INFO,
+    MSG_SET_SYNC_INFO,
+
+    MSG_START_POWER_OFF,
+
+    // while boot with usb inserted
+    MSG_INIT_SCAN,
+    MSG_EXIT,
+};
+
+//rec from controller
+enum {
+    CMD_OLED_DISP_TYPE,
+    CMD_OLED_SYNC_INIT,
+//    CMD_OLED_POWER_OFF = 17,
+
+    CMD_OLED_DISP_TYPE_ERR = 16,
+    CMD_OLED_SET_SN = 18,
+    CMD_CONFIG_WIFI = 19,
+    //clear all camera state
+    //for kill self
+            CMD_EXIT = 20
+};
+
+
+
+
+
+//send to controller
+enum {
+    EVENT_BATTERY = 0,
+    EVENT_NET_CHANGE = 1,
+    EVENT_OLED_KEY = 2,
+    EVENT_DEV_NOTIFY = 3,
+    EVENT_SAVE_PATH = 4,
+    EVENT_AGEING_TEST = 5,
+};
+
+class fifo {
 public:
-    explicit fifo();
     ~fifo();
+
     void start_all();
     void stop_all(bool delay = true);
     void handleMessage(const std::shared_ptr<ARMessage> &msg);
+
+    static sp<fifo> getSysTranObj();
+
+    void postTranMessage(sp<ARMessage>& msg, int interval = 0);
+
+    //sp<ARMessage> dupMessage();
+
+    void sendUiMessage(sp<ARMessage>& msg);
+
 private:
+
+    fifo();
+
     sp<ARLooper> mLooper;
     sp<ARHandler> mHandler;
     std::thread th_msg_;
@@ -42,6 +105,9 @@ private:
     int make_fifo();
     void init_thread();
     void sendExit();
+
+    sp<ARMessage> notify;
+
 //    void req_sync_state();
 //    void send_dev_manager_scan();
     sp<ARMessage> obtainMessage(uint32_t what);
@@ -60,16 +126,15 @@ private:
     void send_power_off();
     void send_sys_info(sp<struct _sys_info_> &mSysInfo);
     void send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
+
+
     sp<oled_handler> mOLEDHandle;
 
 	sp<InputManager> mInputManager;
 	
-//    sp<poll_timer> mpPollTimer;
-//    sp<dev_manager> mDevManager;
-//    sp<fan_control> mFanControl;
-
 //    bool bRFifoStop = false;
     bool bWFifoStop = false;
+
     //msg thread
     bool bExit = false;
     bool bReadThread = false;

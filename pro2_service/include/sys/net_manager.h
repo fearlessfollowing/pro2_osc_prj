@@ -66,6 +66,13 @@ enum {
 
 #define NET_POLL_INTERVAL 2000
 
+typedef struct stIpInfo {
+    char cDevName[32];      /* 网卡名称 */
+    char ipAddr[32];        /* 网卡的IP地址 */
+    int iDhcp;              /* 获取IP地址模式, 1 = DHCP; 0 = Static */
+    int iDevType;
+} DEV_IP_INFO;
+
 
 class NetDev {
 public:
@@ -92,30 +99,42 @@ public:
 	int setNetDevActiveState(bool state);
 
 
+    const char* getCurIpAddr();
+    const char* getSaveIpAddr();
+
+
 	/* 将当前有效的网卡地址保存起来 */
     void storeCurIp2Saved();
-
 	/* 将保存起来有效的网卡地址恢复到mCurIpAddr及硬件中 */
     void resumeSavedIp2CurAndPhy(bool bUpPhy);
 
 
-	unsigned int getCurIpAddr();				
-
     /* 设置当前的IP地址(除了更新mCurIpAddr,还会将地址更新到网卡硬件中) */
-    void setCurIpAddr(uint32_t ip, bool bUpPhy = true);
+    void setCurIpAddr(const char* ip, bool bUpPhy);
+
 
 	/* 获取/设置Phy IP地址 */
-	uint32_t getNetDevIpFrmPhy();
-	bool setNetDevIpToPhy(uint32_t ip);
+    const char* getNetDevIpFrmPhy();
 
 
-	/* 获取保存的IP地址,用于快速恢复网卡的地址 */	
-	uint32_t getSavedIpAddr();
-
+    bool setNetDevIp2Phy(const char* ip);
 
 	/* 获取网卡的设备名 */
 	std::string& getDevName();
 
+
+    void postDevInfo2Ui();
+
+    void getIpByDhcp();
+
+    void flushDhcpAddr();
+
+    bool isCachedDhcpAddr();
+
+    const char* getCachedDhcpAddr();
+    void setCachedDhcpAddr(const char* ipAddr);
+
+    int getNetDevType();
 
 private:
 
@@ -130,12 +149,10 @@ private:
 	 */
     bool            mActive;				/* 网卡的状态 */
 
-
-	/* 构造网卡设备时,mCurIpAddr，mSaveIpAddr = 0
-	 * 
-	 */
-    unsigned int    mCurIpAddr;			/* 当前的IP地址,与网卡的实际地址保持一致 */
-	unsigned int 	mSaveIpAddr;		/* 链路状态变化时,保存上次的IP地址 */
+    char            mCurIpAddr[32];
+    char            mSaveIpAddr[32];
+    char            mCachedDhcpAddr[32];    /* Saved DHCP Ipaddr */
+    bool            mHaveCachedDhcp;
 
     std::string     mDevName;
 };
@@ -186,11 +203,15 @@ public:
 
     int getSysNetdevCnt();
 
-    sp<NetDev>& getNetDevByname(std::string& devName);
+    sp<NetDev>& getNetDevByname(const char* devName);
+
+    sp<NetDev>& getNetDevByType(int iType);
 
 	sp<ARMessage> obtainMessage(uint32_t what);
 
 	void handleMessage(const sp<ARMessage> &msg);
+
+    std::string convWhat2Msg(uint32_t what);
 
     /*
      * - 启动管理器
@@ -204,6 +225,7 @@ public:
     void postNetMessage(sp<ARMessage>& msg, int interval = 0);
     ~NetManager();
 
+    void sendIpInfo2Ui(sp<ARMessage>& msg);
 
 private:
 

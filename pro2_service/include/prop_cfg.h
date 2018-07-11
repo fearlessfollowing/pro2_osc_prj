@@ -8,6 +8,10 @@
 #ifndef PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_
 #define PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_
 
+
+#define ETH0_NAME "eth0"
+#define DEFAULT_ETH0_IP "192.168.1.188"
+
 /*
  * Prop system
  */

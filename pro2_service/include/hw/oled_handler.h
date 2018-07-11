@@ -87,7 +87,7 @@ typedef enum _type_ {
     RESET_ALL = 100,// 100,
 //    WRITE_FOR_BROKEN = 101,
     MAX_TYPE,
-}TYPE;
+} TYPE;
 
 
 typedef struct _sys_info_ {
@@ -324,8 +324,7 @@ typedef struct _req_sync_ {
     char k_v[128];
 }REQ_SYNC;
 
-enum
-{
+enum {
     STI_7680x7680,//= 0,
     STI_5760x5760,
     STI_4096x4096,
@@ -346,8 +345,7 @@ enum
     RES_MAX,
 };
 
-enum
-{
+enum {
     ALL_FR_24,
     ALL_FR_25,
     ALL_FR_30,
@@ -398,9 +396,9 @@ struct _err_type_info_;
 struct _cam_prop_;
 
 
-class oled_handler
-{
+class oled_handler {
 public:
+
     enum {
         OLED_KEY,
         SAVE_PATH_CHANGE,
@@ -408,6 +406,11 @@ public:
         UPDATE_DEV,
         FACTORY_AGEING,
     };
+
+    void postUiMessage(sp<ARMessage>& msg);
+
+    //static sp<oled_handler> getSysUiObj(sp<ARMessage> msg = nullptr);
+
     explicit oled_handler(const sp<ARMessage> &notify);
     ~oled_handler();
     void handleMessage(const sp<ARMessage> &msg);
@@ -430,8 +433,17 @@ public:
 
     sp<ARMessage> obtainMessage(uint32_t what);
 
-	
+    //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
+
 private:
+
+#if 0
+    explicit oled_handler(const sp<ARMessage> &notify);
+#else
+    oled_handler();
+
+#endif
+
     bool start_speed_test();
     bool check_rec_tl();
     void disp_dev_msg_box(int bAdd,int type,bool bChange = false);
@@ -640,6 +652,9 @@ private:
     void stop_poll_thread();
 	
 	// void set_disp_control(bool state);
+
+    bool switchEtherIpMode(int iMode);
+
 
 	sp<ARLooper> mLooper;
     sp<ARHandler> mHandler;

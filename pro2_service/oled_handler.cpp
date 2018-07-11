@@ -21,20 +21,23 @@
 #include <util/msg_util.h>
 #include <util/bytes_int_convert.h>
 #include <sys/pro_cfg.h>
-#include <hw/lan.h>
-#include <hw/dev_manager.h>
-#include <hw/tx_softap.h>
-#include <hw/oled_module.h>
 #include <util/icon_ascii.h>
 #include <sys/pro_uevent.h>
-#include <hw/oled_light.h>
 #include <sys/action_info.h>
-#include <hw/battery_interface.h>
 #include <util/GitVersion.h>
 #include <log/stlog.h>
-#include <hw/oled_handler.h>
 #include <system_properties.h>
 #include <prop_cfg.h>
+
+
+#include <hw/oled_handler.h>
+#include <hw/battery_interface.h>
+#include <hw/oled_light.h>
+#include <hw/lan.h>
+#include <hw/dev_manager.h>
+#include <hw/oled_module.h>
+
+#include <trans/fifo.h>
 
 using namespace std;
 
@@ -64,6 +67,23 @@ private:
 };
 
 
+#if 0
+static sp<oled_handler> gSysUiObj = NULL;
+static std::mutex gSysUiMutex;
+
+sp<oled_handler> oled_handler::getSysUiObj(sp<ARMessage> msg)
+{
+    unique_lock<mutex> lock(gSysUiMutex);
+    if (gSysUiObj != NULL) {
+        return gSysUiObj;
+    } else {
+        gSysUiObj = sp<oled_handler> (new oled_handler(msg));
+        CHECK_NE(gSysUiObj, nullptr);
+    }
+    return gSysUiObj;
+
+}
+#endif
 
 
 /*************************************************************************
@@ -74,7 +94,11 @@ private:
 **
 **
 *************************************************************************/
+#if 1
 oled_handler::oled_handler(const sp<ARMessage> &notify): mNotify(notify)
+#else
+oled_handler::oled_handler()
+#endif
 {
     init_handler_thread();	/* 初始化消息处理线程 */
 	
@@ -628,6 +652,7 @@ void oled_handler::init()
     CHECK_EQ(sizeof(setting_icon_lights) / sizeof(setting_icon_lights[0]), SETTING_MAX);
 
     mSaveList.clear();
+
     cam_state = STATE_IDLE;
     mOLEDModule = sp<oled_module>(new oled_module());
     CHECK_NE(mOLEDModule, nullptr);
@@ -679,14 +704,13 @@ void oled_handler::init()
     mpNetManager = sp<net_manager>(new net_manager());
     CHECK_NE(mpNetManager, nullptr);
 #else
-	mNetManager = NetManager::getNetManagerInstance();
-	mNetManager->startNetManager();
+    mNetManager = NetManager::getNetManagerInstance();
+    mNetManager->startNetManager();
 
     /* Register Ethernet device(eth0) */
     sp<EtherNetDev> eth0 = (sp<EtherNetDev>)(new EtherNetDev("eth0"));
     sp<ARMessage> registerMsg = obtainMessage(NETM_REGISTER_NETDEV);
     registerMsg->set<sp<NetDev>>("netdev", eth0);
-
     mNetManager->postNetMessage(registerMsg);
 
     sp<ARMessage> looperMsg = obtainMessage(NETM_POLL_NET_STATE);
@@ -1279,7 +1303,11 @@ bool oled_handler::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *
 bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 {
     bool bAllow = true;
+#if 1
     sp<ARMessage> msg = mNotify->dup();
+#else
+    sp<ARMessage> msg = fifo::getSysTranObj()->dupMessage();
+#endif
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
     int item = 0;
 	char tmp_buf[4096] = {0};
@@ -1625,12 +1653,18 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
 			msg->set<int>("what", OLED_KEY);
 		}
         msg->set<int>("action", option);
+
         msg->post();
+        //fifo::getSysTranObj()->postTranMessage(msg);
     }
     return bAllow;
 }
 
-
+void oled_handler::postUiMessage(sp<ARMessage>& msg)
+{
+    msg->setHandler(mHandler);
+    msg->post();
+}
 
 /*
  * send_save_path_change - 设备的存储路径发生改变
@@ -2161,37 +2195,15 @@ void oled_handler::start_wifi(int disp_main)
 int oled_handler::wifi_stop()
 {
     int ret = -1;
-#if 0
-//    Log.w(TAG,"b wifi  mode val %d tx_wifi_status %d",
-//          get_setting_select(SET_WIFI_AP),tx_wifi_status());
-    oled_disp_ip(0);
-    if(tx_softsta_stop() != 0)
-    {
-        Log.e(TAG, " stop sta fail");
-    }
-    else
-    {
-//        Log.e(TAG, " stop sta suc");
-        ret = 0;
-    }
-    if (tx_softap_stop() != 0)
-    {
-        Log.e(TAG, "stop ap fail");
-    }
-    else
-    {
-//        Log.e(TAG, "stop ap suc");
-        ret = 0;
-    }
-#endif  
-  msg_util::sleep_ms(10);
+
+    msg_util::sleep_ms(10);
     return ret;
 }
 
 void oled_handler::disp_wifi(bool bState, int disp_main)
 {
-    Log.d(TAG,"disp wifi bState %d disp_main %d",
-          bState,disp_main);
+    Log.d(TAG, "disp wifi bState %d disp_main %d",
+          bState, disp_main);
     if (bState)
     {
         set_mainmenu_item(MAINMENU_WIFI, 1);
@@ -2251,15 +2263,13 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
 void oled_handler::wifi_action()
 {
     Log.d(TAG," wifi on %d", mProCfg->get_val(KEY_WIFI_ON));
-    if (mProCfg->get_val(KEY_WIFI_ON) == 1)
-    {
-        mProCfg->set_val(KEY_WIFI_ON,0);
+
+    if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+        mProCfg->set_val(KEY_WIFI_ON, 0);
         wifi_stop();
         disp_wifi(false,1);
-    }
-    else
-    {
-        mProCfg->set_val(KEY_WIFI_ON,1);
+    } else {
+        mProCfg->set_val(KEY_WIFI_ON, 1);
         start_wifi(1);
     }
 }
@@ -3815,7 +3825,7 @@ bool oled_handler::switch_dhcp_mode(int iDHCP)
         //set_org_addr(10001);
 	
         if (iDHCP == 0) {	/* 静态地址模式:  默认设置为192.168.1.188 */
-            system("ifconfig eth0 192.168.1.188 netmask 255.255.255.0 up");
+            //system("ifconfig eth0 192.168.1.188 netmask 255.255.255.0 up");
         } else {	/* DHCP模式 */
 			// disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
             exec_sh("ifconfig eth0 down");
@@ -3829,6 +3839,31 @@ bool oled_handler::switch_dhcp_mode(int iDHCP)
 }
 
 
+
+bool oled_handler::switchEtherIpMode(int iMode)
+{
+    sp<ARMessage> msg;
+    sp<DEV_IP_INFO> tmpInfo;
+
+    tmpInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
+    msg = (sp<ARMessage>)(new ARMessage(NETM_SET_NETDEV_IP));
+
+    strcpy(tmpInfo->cDevName, ETH0_NAME);
+    strcpy(tmpInfo->ipAddr, DEFAULT_ETH0_IP);
+    tmpInfo->iDevType = DEV_LAN;
+
+    if (iMode) {    /* DHCP */
+        tmpInfo->iDhcp = 1;
+    } else {    /* Static */
+        tmpInfo->iDhcp = 0;
+    }
+
+    msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
+    NetManager::getNetManagerInstance()->postNetMessage(msg);
+
+    return true;
+
+}
 
 
 /*************************************************************************
@@ -3875,7 +3910,7 @@ void oled_handler::func_power()
                     }
                     break;
 					
-                case MAINMENU_WIFI:
+                case MAINMENU_WIFI:     /* WiFi菜单项用于打开关闭AP */
                     wifi_action();
                     break;
 				
@@ -3924,9 +3959,9 @@ void oled_handler::func_power()
                     }
                     break;
 					
-                case SET_DHCP_MODE:
+                case SET_DHCP_MODE: /* 用于设置eth0的IP地址 */
                     val = ((~val) & 0x00000001);
-                    if (switch_dhcp_mode(val)) {
+                    if (switchEtherIpMode(val)) {
                         mProCfg->set_val(KEY_DHCP, val);
                         set_setting_select(item, val);
                         update_menu_sys_setting();
@@ -4329,6 +4364,19 @@ int oled_handler::oled_disp_ip(unsigned int addr)
     }
     return 0;
 }
+
+
+#if 0
+void oled_handler::postUiMessage(sp<ARMessage>& msg, int interval)
+{
+    if (interval < 0)
+        interval = 0;
+
+    msg->setHandler(mHandler);
+    msg->postWithDelayMs(interval);
+}
+#endif
+
 
 
 int oled_handler::oled_disp_battery()
@@ -6153,9 +6201,17 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 
 			/* 显示IP地址 -   (状态栏处理) */
             case OLED_DISP_IP: {   /* 显示IP消息 */
-                int ip;
-                CHECK_EQ(msg->find<int>("ip", &ip), true);
-                oled_disp_ip((unsigned int)ip);
+                #if 0
+                    int ip;
+                    CHECK_EQ(msg->find<int>("ip", &ip), true);
+                    oled_disp_ip((unsigned int)ip);
+                #else
+                    sp<DEV_IP_INFO> tmpIpInfo;
+                    CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
+                    Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
+                    mOLEDModule->disp_ip((const u8 *)tmpIpInfo->ipAddr);
+                #endif
+
                 break;
             }
 

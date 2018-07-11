@@ -36,58 +36,6 @@
 
 using namespace std;
 
-#define  FIFO_FROM_CLIENT	"/home/nvidia/insta360/fifo/fifo_read_client"
-#define  FIFO_TO_CLIENT		"/home/nvidia/insta360/fifo/fifo_write_client"
-
-#define  TAG "fifo"
-
-#define  FIFO_HEAD_LEN (8)
-#define  FIFO_DATA_LEN_OFF (FIFO_HEAD_LEN - 4)
-
-enum {
-//    MSG_POLL_TIMER,
-    MSG_GET_OLED_KEY,
-    MSG_DEV_NOTIFY,
-
-//    MSG_DISP_STR,
-    MSG_DISP_STR_TYPE,
-    MSG_DISP_ERR_TYPE,
-
-    //    MSG_DISP_EXT,
-    MSG_SET_WIFI_CONFIG,
-    MSG_SET_SYS_INFO,
-    MSG_SET_SYNC_INFO,
-
-    MSG_START_POWER_OFF,
-
-    // while boot with usb inserted
-    MSG_INIT_SCAN,
-    MSG_EXIT,
-};
-
-//rec from controller
-enum {
-    CMD_OLED_DISP_TYPE,
-    CMD_OLED_SYNC_INIT,
-//    CMD_OLED_POWER_OFF = 17,
-
-    CMD_OLED_DISP_TYPE_ERR = 16,
-    CMD_OLED_SET_SN = 18,
-    CMD_CONFIG_WIFI = 19,
-    //clear all camera state
-    //for kill self
-            CMD_EXIT = 20
-};
-
-//send to controller
-enum {
-    EVENT_BATTERY = 0,
-    EVENT_NET_CHANGE = 1,
-    EVENT_OLED_KEY = 2,
-    EVENT_DEV_NOTIFY = 3,
-    EVENT_SAVE_PATH = 4,
-    EVENT_AGEING_TEST = 5,
-};
 
 typedef struct _res_info_ {
     int w;
@@ -106,7 +54,7 @@ typedef struct _qr_info_ {
 typedef struct _qr_struct_ {
     int version;
     QR_INFO astQRInfo[3];
-}QR_STRUCT;
+} QR_STRUCT;
 
 static QR_STRUCT mQRInfo[] = {
 	100,{{7,4,4,3,1,0},{6,6,5,0,0,1},{6,6,6}}
@@ -182,43 +130,54 @@ static void set_gpio_level(unsigned int gpio_num,int val)
     Log.d(TAG, "set_gpio_level gpio_num %d val %d", gpio_num, val);
 }
 
+
+static sp<fifo> gSysTranObj = NULL;
+static std::mutex gSysTranMutex;
+
+
+sp<fifo> fifo::getSysTranObj()
+{
+    unique_lock<mutex> lock(gSysTranMutex);
+    if (gSysTranObj != NULL) {
+        return gSysTranObj;
+    } else {
+        gSysTranObj = sp<fifo> (new fifo());
+        CHECK_NE(gSysTranObj, nullptr);
+    }
+    return gSysTranObj;
+}
+
+
 void init_fifo()
 {
+    /*
     CHECK_EQ(mpFIFO, nullptr);
     mpFIFO = sp<fifo>(new fifo());
     CHECK_NE(mpFIFO, nullptr);
+    */
+    fifo::getSysTranObj();
+}
+
+
+void fifo::sendUiMessage(sp<ARMessage>& msg)
+{
+    mOLEDHandle->postUiMessage(msg);
 }
 
 void start_all()
 {
+
+#if 0
     if (nullptr != mpFIFO) {
         mpFIFO->start_all();
     }
+#ele
+    fifo::getSysTranObj()->start_all();
+#endif
+
 }
 
-void json_array_to_int_array()
-{
 
-}
-
-//static void start_sys_reboot()
-//{
-//    CHECK_NE(mpFIFO, nullptr);
-//    Log.d(TAG,"start_sys_reboot");
-//    mpFIFO->stop_all();
-//    //confirm all obj deinit
-//    Log.d(TAG,"start_sys_reboot reboot_cmd %d",reboot_cmd);
-//    switch(reboot_cmd)
-//    {
-//        case REBOOT_NORMAL:
-//            exec_sh("setprop sys.powerctl reboot");
-//            break;
-//        case REBOOT_SHUTDOWN:
-//            exec_sh("setprop sys.powerctl shutdown");
-//            break;
-//        SWITCH_DEF_ERROR(reboot_cmd);
-//    }
-//}
 #define GET_CJSON_OBJ_ITEM_STR(child, root, key,str,size) \
     child = cJSON_GetObjectItem(root,key); \
     if(child)\
@@ -261,25 +220,6 @@ static int get_mode_index(char *mode)
     }
     return iIndex;
 }
-
-//static int get_pic_mime_index(char *mime)
-//{
-//    int i;
-//    int max = sizeof(pic_mime) / sizeof(pic_mime[0]);
-//    for (i = 0; i < max; i++)
-//    {
-//        if (strcmp(pic_mime[i], mime) == 0)
-//        {
-//            break;
-//        }
-//    }
-//    if (i == max)
-//    {
-//        Log.e(TAG, "pic mime not found");
-//        i = 0;
-//    }
-//    return i;
-//}
 
 static int get_sti_mode(char *map)
 {
@@ -352,50 +292,33 @@ void fifo::init()
     make_fifo();
     init_thread();
 
-//    sp<ARMessage> notification = obtainMessage(MSG_POLL_TIMER);
-//    mpPollTimer = sp<poll_timer>(new poll_timer(notification));
-//    CHECK_NE(mpPollTimer, nullptr);
-//    sp<ARMessage> dev_notify = obtainMessage(MSG_DEV_NOTIFY);
-//    mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
-//    Log.d(TAG,"start fan control init");
-//    mFanControl = sp<fan_control>(new fan_control());
-
     //set in the end
-    sp<ARMessage> notify = obtainMessage(MSG_GET_OLED_KEY);
-    mOLEDHandle = sp<oled_handler>(new oled_handler(notify));	
+    notify = obtainMessage(MSG_GET_OLED_KEY);
+
+    mOLEDHandle = (sp<oled_handler>)(new oled_handler(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
 	mInputManager = sp<InputManager>(new InputManager(mOLEDHandle));
     CHECK_NE(mInputManager, nullptr);
 	
     //keep at end 0617 to rec fifo from python
-    th_read_fifo_ = thread([this]
-    {
-       read_fifo_thread();
-    });
+    th_read_fifo_ = thread([this] {
+                              read_fifo_thread(); });
+
+    Log.d(TAG, "fifo::init() ... OK");
 }
 
-//void fifo::req_sync_state()
-//{
-//    sp<ARMessage> notify = obtainMessage(MSG_GET_OLED_KEY);
-//    notify->set<int>("what", oled_handler::OLED_KEY);
-//    notify->set<int>("action", ACTION_REQ_SYNC);
-//    notify->post();
-//    Log.d(TAG, "req_sync_state");
-//}
-
-//void fifo::send_dev_manager_scan()
-//{
-//    sp<ARMessage> notify = obtainMessage(MSG_INIT_SCAN);
-//    notify->post();
-//}
+#if 0
+sp<ARMessage> fifo::dupMessage()
+{
+    return notify->dup();
+    //return obtainMessage(MSG_GET_OLED_KEY);
+}
+#endif
 
 void fifo::start_all()
 {
-//    if (mpPollTimer != nullptr)
-//    {
-//        mpPollTimer->start_timer_thread();
-//    }
+
 }
 
 void fifo::stop_all(bool delay)
@@ -1163,7 +1086,14 @@ void fifo::handle_poll_change(const sp<ARMessage> &msg)
     }
 }
 
+void fifo::postTranMessage(sp<ARMessage>& msg, int interval)
+{
+    if (interval < 0)
+        interval = 0;
 
+    msg->setHandler(mHandler);
+    msg->postWithDelayMs(interval);
+}
 
 
 /*************************************************************************
