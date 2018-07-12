@@ -77,14 +77,14 @@ typedef struct stIpInfo {
 class NetDev {
 public:
 
-	NetDev(int iType, int iWkMode, int iState, bool activeFlag, std::string ifName);
+	NetDev(int iType, int iWkMode, int iState, bool activeFlag, std::string ifName, int iMode);
     ~NetDev();
 
 	/* 打开/关闭网络设备 */
     virtual int netdevOpen();
     virtual int netdevClose();
 
-    virtual void processPollEvent(sp<NetDev>& netdev);
+    virtual int processPollEvent(sp<NetDev>& netdev);
 
 	/* 获取/设置保存的链路状态 */
     int getNetdevSavedLink();
@@ -123,6 +123,8 @@ public:
 	std::string& getDevName();
 
 
+
+
     void postDevInfo2Ui();
 
     void getIpByDhcp();
@@ -135,6 +137,13 @@ public:
     void setCachedDhcpAddr(const char* ipAddr);
 
     int getNetDevType();
+	
+	int getCurGetIpMode();
+	
+	void setCurGetIpMode(int iMode);
+
+	void setWiFiWorkMode(int iMode);
+	int  getWiFiWorkMode();	
 
 private:
 
@@ -142,6 +151,7 @@ private:
 	int 			mWorkMode;			/* 工作模式 */
 
     int             mLinkState;			/* 链路状态,初始化时为DISCONNECT状态 */
+    std::mutex      mLinkLock;          /* 设备的链路状态由多个线程访问，需加锁控制 */
 
 
 	/* RJ45: 从构造开始一直处于激活状态
@@ -153,6 +163,7 @@ private:
     char            mSaveIpAddr[32];
     char            mCachedDhcpAddr[32];    /* Saved DHCP Ipaddr */
     bool            mHaveCachedDhcp;
+	int 			iGetIpMode; 		/* 1 = DHCP, 0 = Static */
 
     std::string     mDevName;
 };
@@ -161,19 +172,20 @@ private:
 
 class EtherNetDev: public NetDev {
 public:
-    EtherNetDev(std::string ifName);
+    EtherNetDev(std::string ifName, int iMode);
     ~EtherNetDev();
 
     int netdevOpen();
     int netdevClose();
 
-    void processPollEvent(sp<NetDev>& etherDev);
+    int processPollEvent(sp<NetDev>& etherDev);
+	
 };
 
 
 class WiFiNetDev: public NetDev {
 public:
-    WiFiNetDev(int iWorkMode, std::string ifName);
+    WiFiNetDev(int iWorkMode, std::string ifName, int iMode);
     ~WiFiNetDev();
 
     /* Open WiFi Net Device */
@@ -182,7 +194,7 @@ public:
     /* Close WiFi Net Device */
     int netdevClose();
 
-    void processPollEvent(sp<NetDev>& netdev);
+    int processPollEvent(sp<NetDev>& netdev);
 
 };
 
@@ -236,7 +248,7 @@ private:
 	void processEthernetEvent(sp<NetDev>& etherDev);
 
 
-	void sendNetPollMsg();
+	void sendNetPollMsg(int iPollInterval = 1);
 
     int mState;
 	bool mExit;

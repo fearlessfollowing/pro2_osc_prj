@@ -47,6 +47,13 @@
 
 
 /*
+ * WIFI固件路径
+ */
+#define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
+
+
+
+/*
  * 路径
  */
 #define VER_FULL_PATH 			"/home/nvidia/insta360/etc/.sys_ver"

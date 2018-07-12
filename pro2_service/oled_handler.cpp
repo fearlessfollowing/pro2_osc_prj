@@ -696,31 +696,42 @@ void oled_handler::init()
     mVerInfo = sp<VER_INFO>(new VER_INFO());
     CHECK_NE(mVerInfo, nullptr);
 
+#ifdef ENABLE_WIFI_STA
     mWifiConfig = sp<WIFI_CONFIG>(new WIFI_CONFIG());
     CHECK_NE(mWifiConfig, nullptr);	
     memset(mWifiConfig.get(), 0, sizeof(WIFI_CONFIG));
+#endif
 
-#ifdef USE_OLD_NET
-    mpNetManager = sp<net_manager>(new net_manager());
-    CHECK_NE(mpNetManager, nullptr);
-#else
+
+
+    /* NetManager Subsystem Init
+     * Eth0
+     * Wlan0
+     */
+
     mNetManager = NetManager::getNetManagerInstance();
     mNetManager->startNetManager();
 
-    /* Register Ethernet device(eth0) */
-    sp<EtherNetDev> eth0 = (sp<EtherNetDev>)(new EtherNetDev("eth0"));
-    sp<ARMessage> registerMsg = obtainMessage(NETM_REGISTER_NETDEV);
-    registerMsg->set<sp<NetDev>>("netdev", eth0);
-    mNetManager->postNetMessage(registerMsg);
+    /* 注册以太网卡(eth0) */
+	Log.d(TAG, "eth0 get ip mode [%s]", (mProCfg->get_val(KEY_DHCP) == 1) ? "DHCP" : "STATIC" );
+    sp<EtherNetDev> eth0 = (sp<EtherNetDev>)(new EtherNetDev("eth0", mProCfg->get_val(KEY_DHCP)));
+    sp<ARMessage> registerLanMsg = obtainMessage(NETM_REGISTER_NETDEV);
+    registerLanMsg->set<sp<NetDev>>("netdev", eth0);
+    mNetManager->postNetMessage(registerLanMsg);
+
+    /* Register Wlan0 */
+    sp<WiFiNetDev> wlan0 = (sp<WiFiNetDev>)(new WiFiNetDev(WIFI_WORK_MODE_AP, "wlan0", 0));
+    sp<ARMessage> registerWlanMsg = obtainMessage(NETM_REGISTER_NETDEV);
+    registerWlanMsg->set<sp<NetDev>>("netdev", wlan0);
+    mNetManager->postNetMessage(registerWlanMsg);
+
 
     sp<ARMessage> looperMsg = obtainMessage(NETM_POLL_NET_STATE);
     mNetManager->postNetMessage(looperMsg);
 
-
     sp<ARMessage> listMsg = obtainMessage(NETM_LIST_NETDEV);
     mNetManager->postNetMessage(listMsg);
 
-#endif
 
 }
 
@@ -1744,23 +1755,26 @@ const u8* oled_handler::get_disp_str(int str_index)
     Log.d(TAG,"333 get disp str[%d] %s\n",str_index,str);
     return str;
 }
+
+
+
 //sta
+
+#ifdef ENABLE_WIFI_STA
 void oled_handler::wifi_config(sp<WIFI_CONFIG> &config)
 {
     if (strlen(config->ssid) > 0 /*&& strlen(config->pwd) > 0*/) {
-//        Log.d(TAG,"wifi config %s %s cam_state 0x%x cur_menu %d",
-//              config->ssid,config->pwd,cam_state,cur_menu);
         oled_disp_type(QR_FINISH_CORRECT);
         memcpy(mWifiConfig.get(), config.get(), sizeof(WIFI_CONFIG));
         mProCfg->update_wifi_cfg(mWifiConfig);
 
-		// force wifi on
         mProCfg->set_val(KEY_WIFI_ON,1);
         start_wifi_sta(1);
     } else {
         oled_disp_type(QR_FINISH_ERROR);
     }
 }
+#endif
 
 
 
@@ -2071,6 +2085,8 @@ void oled_handler::set_org_addr(unsigned int addr)
     org_addr = addr;
 }
 
+
+#ifdef ENABLE_WIFI_STA
 bool oled_handler::start_wifi_sta(int disp_main)
 {
     bool ret = false;
@@ -2079,27 +2095,21 @@ bool oled_handler::start_wifi_sta(int disp_main)
           mProCfg->get_val(KEY_WIFI_ON),
           mProCfg->get_val(KEY_WIFI_AP));
 
-    if (mProCfg->get_val(KEY_WIFI_ON) == 1 && mProCfg->get_val(KEY_WIFI_AP) == 0)
-    {
+    if (mProCfg->get_val(KEY_WIFI_ON) == 1 && mProCfg->get_val(KEY_WIFI_AP) == 0) {
         Log.d(TAG, "wifi ssid %s pwd %s "
                       "disp_main %d cur_menu %d",
               mWifiConfig->ssid,
               mWifiConfig->pwd,
               disp_main,
               cur_menu);
-        if (strlen(mWifiConfig->ssid) > 0 /*&& strlen(mWifiConfig->pwd) > 0*/)
-        {
+        if (strlen(mWifiConfig->ssid) > 0 /*&& strlen(mWifiConfig->pwd) > 0*/) {
             wifi_stop();
-            if (disp_main != -1)
-            {
+            if (disp_main != -1) {
                 set_cur_menu(MENU_WIFI_CONNECT);
-                if(strlen(mWifiConfig->pwd) == 0)
-                {
+                if (strlen(mWifiConfig->pwd) == 0) {
                     Log.d(TAG,"connect no pwd %s", mWifiConfig->ssid);
                     //tx_softsta_start(mWifiConfig->ssid,0, 7);
-                }
-                else
-                {
+                } else {
                     //tx_softsta_start(mWifiConfig->ssid, mWifiConfig->pwd, 7);
                 }
 //            Log.d(TAG,"tx_softsta_start is %d", iRet);
@@ -2124,6 +2134,7 @@ bool oled_handler::start_wifi_sta(int disp_main)
     }
     return ret;
 }
+#endif
 
 
 void oled_handler::tx_softap_config_def()
@@ -2165,27 +2176,25 @@ void oled_handler::start_wifi(int disp_main)
     if (org_addr != 10000) {
         oled_disp_ip(0);
         set_org_addr(10000);
-        if (get_setting_select(SET_WIFI_AP) == 1)
-        {
+	
+        if (get_setting_select(SET_WIFI_AP) == 1) {
             start_wifi_ap(disp_main);
-        }
-        else
-        {
-            if (!start_wifi_sta(disp_main))
-            {
-                if (cur_menu != -1)
-                {
+        } else {
+
+		#ifdef ENABLE_WIFI_STA
+            if (!start_wifi_sta(disp_main)) {
+                if (cur_menu != -1) {
                     start_qr_func();
                     //even not connect
                     disp_wifi(true,-1);
-                }
-                else
-                {
+                } else {
                     Log.e(TAG,"not start qr while first init force");
                     //force close 170623
                     disp_wifi(false, 0);
                 }
             }
+		#endif
+		
         }
     }
 }
@@ -2204,16 +2213,15 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
 {
     Log.d(TAG, "disp wifi bState %d disp_main %d",
           bState, disp_main);
-    if (bState)
-    {
+
+    if (bState) {
         set_mainmenu_item(MAINMENU_WIFI, 1);
-        if (check_allow_update_top())
-        {
+        if (check_allow_update_top()) {
             disp_icon(ICON_WIFI_OPEN_0_0_16_16);
         }
 		
         //force wifi on
-        mProCfg->set_val(KEY_WIFI_ON,1);
+        mProCfg->set_val(KEY_WIFI_ON, 1);
         if (cur_menu == MENU_TOP)
         {
             switch (disp_main)
@@ -2267,7 +2275,7 @@ void oled_handler::wifi_action()
     if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
         mProCfg->set_val(KEY_WIFI_ON, 0);
         wifi_stop();
-        disp_wifi(false,1);
+        disp_wifi(false, 1);
     } else {
         mProCfg->set_val(KEY_WIFI_ON, 1);
         start_wifi(1);
@@ -2277,12 +2285,9 @@ void oled_handler::wifi_action()
 
 int oled_handler::get_back_menu(int item)
 {
-    if (item >= 0 && (item < MENU_MAX))
-    {
+    if (item >= 0 && (item < MENU_MAX)) {
         return mMenuInfos[item].back_menu;
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "get_back_menu item %d", item);
 
         #ifdef ENABLE_ABORT
@@ -3828,9 +3833,9 @@ bool oled_handler::switch_dhcp_mode(int iDHCP)
             //system("ifconfig eth0 192.168.1.188 netmask 255.255.255.0 up");
         } else {	/* DHCP模式 */
 			// disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
-            exec_sh("ifconfig eth0 down");
-            exec_sh("killall dhclient");
-			exec_sh("dhclient eth0");
+           // exec_sh("ifconfig eth0 down");
+           // exec_sh("killall dhclient");
+            //exec_sh("dhclient eth0");
         }
         bRet = true;
     }
@@ -6218,11 +6223,11 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 配置WIFI (UI-CORE处理)
 			 */
-            case OLED_CONFIG_WIFI:
+            case OLED_CONFIG_WIFI:  /* On/Off Wifi AP */
             {
                 sp<WIFI_CONFIG> mConfig;
                 CHECK_EQ(msg->find<sp<WIFI_CONFIG>>("wifi_config", &mConfig), true);
-                wifi_config(mConfig);
+                //wifi_config(mConfig);
             }
                 break;
 

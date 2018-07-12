@@ -30,19 +30,13 @@
 
 using namespace std;
 
-#define TAG "pro_cfg"
+#define TAG			"pro2_cfg"
 
-#define FILE_SIZE (8192)
+#define FILE_SIZE 	(8192)
 
-
-// live end
 typedef struct _oled_cur_info_ {
-
-    int cfg_val[KEY_PIC_MODE];      // pal -- 0, ntsc -- 1  save all the int val
-
-    //save_path
-//    char path[128];
-    ACTION_INFO mActInfo[KEY_LIVE_DEF + 1];
+    int cfg_val[KEY_PIC_MODE];      			/* 配置值: KEY_PIC_DEF - KEY_WIFI_AP  */
+    ACTION_INFO mActInfo[KEY_LIVE_DEF + 1];		/* ACTION_PIC, ACTION_VID, ACTION_LIVE */
 } OLED_CUR_INFO;
 
 
@@ -63,7 +57,7 @@ static const char *key[] = {
     "def_pic:",
     "def_video:",
     "def_live:",
-    "pal_ntsc:",
+    "flicker:",		//change "pal_ntsc:" to "flicker"
     "language:",
     "speaker:",
     "set_logo:",
@@ -92,6 +86,8 @@ static const char *key[] = {
     "pic_sti_mode:",
     "pic_sti_w:",
     "pic_sti_h:",
+	"pic_len_param:",
+	"pic_gamma:",
 
     //video
     "vid_mode:",
@@ -117,6 +113,8 @@ static const char *key[] = {
     "vid_aud_ch_layout:",
     "vid_aud_sr:",
     "vid_aud_br:",
+    "vid_len_param:",
+    "vid_gamma:",
 
     //live
     "live_mode:",
@@ -145,6 +143,8 @@ static const char *key[] = {
     "live_aud_ch_layout:",
     "live_aud_sr:",
     "live_aud_br:",
+    "live_len_param:",
+    "live_gamma:",    
 };
 
 static void int_to_str_val(int val, char *str, int size)
@@ -173,13 +173,14 @@ void pro_cfg::init()
     CHECK_EQ(sizeof(key) / sizeof(key[0]), KEY_CFG_MAX);
 
 	Log.d(TAG, "pro_cfg::init...");
+	
     mCurInfo = sp<OLED_CUR_INFO>(new OLED_CUR_INFO());
     memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
 }
 
 bool pro_cfg::check_key_valid(u32 key)
 {
-    if (key >= 0 && key < sizeof(mCurInfo->cfg_val)/sizeof(mCurInfo->cfg_val[0])) {
+    if (key >= 0 && key < sizeof(mCurInfo->cfg_val) / sizeof(mCurInfo->cfg_val[0])) {
         return true;
     } else {
         Log.e(TAG,"1error key %d", key);
@@ -196,7 +197,7 @@ int pro_cfg::get_val(u32 key)
     return 0;
 }
 
-void pro_cfg::set_val(u32 key,int val)
+void pro_cfg::set_val(u32 key, int val)
 {
 //    Log.d(TAG, "set key %d val %d", key, val);
     if (check_key_valid(key)) {
@@ -214,8 +215,8 @@ void pro_cfg::update_act_info(int iIndex)
     int fd = -1;
 
     char buf[FILE_SIZE];
-    char val[512];
-    char write_buf[4096];
+    char val[4096];
+    char write_buf[8192];
 
     unsigned int write_len = -1;
     unsigned int len = 0;
@@ -246,20 +247,20 @@ void pro_cfg::update_act_info(int iIndex)
         int max = sizeof(val);
         u32 val_start_pos;
         u32 val_end_pos;
-        switch(iIndex)
-        {
+		
+        switch (iIndex) {
             case KEY_PIC_DEF:
-                Log.d(TAG,"update pic save_org %d",
+                Log.d(TAG, "update pic save_org %d",
                       mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.save_org);
                 start = KEY_PIC_MODE;
                 end = KEY_VID_MODE;
                 break;
+				
             case KEY_VIDEO_DEF:
                 start = KEY_VID_MODE;
-                Log.d(TAG," mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate  %d",
+                Log.d(TAG, " mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate  %d",
                       mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate );
-                if(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate == 0)
-                {
+                if (mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate == 0) {
                     memcpy(&mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo,&def_aud,sizeof(AUD_INFO));
                 }
                 end = KEY_VID_AUD_BR + 1;
@@ -564,14 +565,12 @@ void pro_cfg::update_act_info(int iIndex)
 
 const u8 *pro_cfg::get_str(u32 iIndex)
 {
-//    Log.d(TAG,"str index %d lan index %d",iIndex,mCurInfo->cur_lan);
     return (const u8 *) (gstStrInfos[iIndex][mCurInfo->cfg_val[KEY_LAN]].dat);
 }
 
 struct _action_info_ *pro_cfg::get_def_info(int type)
 {
-    switch (type)
-    {
+    switch (type) {
         case KEY_PIC_DEF:
         case KEY_VIDEO_DEF:
         case KEY_LIVE_DEF:
@@ -583,22 +582,16 @@ struct _action_info_ *pro_cfg::get_def_info(int type)
 
 void pro_cfg::set_def_info(int type, int val, sp<struct _action_info_> mActInfo)
 {
-    if(val != -1)
-    {
-        set_val(type,val);
+    if (val != -1) {
+        set_val(type, val);
     }
-    if (mActInfo != nullptr)
-    {
-//        Log.d(TAG,"set_def_info type %d",type);
+	
+    if (mActInfo != nullptr) {
         memcpy(&mCurInfo->mActInfo[type],
                mActInfo.get(),
                sizeof(ACTION_INFO));
+		
         update_act_info(type);
-//        if(type == KEY_LIVE_DEF)
-//        {
-//            Log.d(TAG,"url is %s",mCurInfo->mActInfo[type].stStiInfo.stStiAct.mStiL.url);
-//            Log.d(TAG,"2url is %s",mActInfo->stStiInfo.stStiAct.mStiL.url);
-//        }
     }
 }
 
@@ -611,33 +604,33 @@ void pro_cfg::update_wifi_cfg(sp<struct _wifi_config_> &mCfg)
     int max_key = sizeof(wifi_key) / sizeof(wifi_key[0]);
     u32 write_len;
 
-    for (int i = 0; i < max_key; i++)
-    {
-        switch (i)
-        {
+    for (int i = 0; i < max_key; i++) {
+        switch (i) {
             case KEY_WIFI_SSID:
                 snprintf(buf,sizeof(buf),"%s%s\n",wifi_key[i],mCfg->ssid);
                 break;
+			
             case KEY_WIFI_PWD:
                 snprintf(buf,sizeof(buf),"%s%s",wifi_key[i],mCfg->pwd);
                 break;
+			
             default:
                 break;
         }
-        write_len  = write(fd,buf,strlen(buf));
-        Log.d(TAG,"update wifi buf %s",buf);
-        if(write_len != strlen(buf))
-        {
-            Log.e(TAG,"write wifi cfg err (%d %d)",write_len,strlen(buf));
+        write_len  = write(fd, buf, strlen(buf));
+        Log.d(TAG, "update wifi buf %s", buf);
+        if (write_len != strlen(buf)) {
+            Log.e(TAG, "write wifi cfg err (%d %d)", write_len, strlen(buf));
         }
     }
     close(fd);
-    Log.d(TAG,"update_wifi_cfg ssid %s pwd %s",mCfg->ssid,mCfg->pwd);
+    Log.d(TAG, "update_wifi_cfg ssid %s pwd %s", mCfg->ssid, mCfg->pwd);
 }
 
-void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_> &mCfg)
+void pro_cfg::read_wifi_cfg(sp<struct _wifi_config_>& mCfg)
 {
     if (check_path_exist(WIFI_CFG_PARAM_PATH)) {
+		
         int fd = open(WIFI_CFG_PARAM_PATH, O_RDWR);
         CHECK_NE(fd, -1);
 
@@ -701,10 +694,7 @@ void pro_cfg::read_cfg(const char *name)
             char *pStr = ::strstr(buf, key[i]);
             if (pStr) {
                 pStr += strlen(key[i]);
-//                Log.d(TAG, " %s is %s len %d atoi(pStr) %d",
-//                      key[i], pStr, strlen(pStr),atoi(pStr));
-                switch (i)
-                {
+                switch (i) {
                     case KEY_PIC_DEF:
                     case KEY_VIDEO_DEF:
                     case KEY_LIVE_DEF:
@@ -722,68 +712,66 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_WIFI_AP:
                         mCurInfo->cfg_val[i] = atoi(pStr);
                         break;
-					
+
+					/*
+					 * PIC
+					 */
                     case KEY_PIC_MODE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].mode = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_SIZE_PER_ACT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].size_per_act = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_DELAY:
                         mCurInfo->mActInfo[KEY_PIC_DEF].delay = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_ORG_MIME:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.mime = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_ORG_SAVE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.save_org = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_ORG_W:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.w = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_ORG_H:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.h = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_HDR_COUNT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.hdr_count = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_MIN_EV:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.min_ev = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_MAX_EV:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.max_ev= atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_BURST_COUNT:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stOrgInfo.stOrgAct.mOrgP.burst_count= atoi(pStr);;
-                        break;
-					
+                        break;					
                     case KEY_PIC_STI_MIME:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.mime = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_STI_MODE:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.stich_mode = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_STI_W:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.w = atoi(pStr);
-                        break;
-					
+                        break;					
                     case KEY_PIC_STI_H:
                         mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.h = atoi(pStr);
                         break;
+					case KEY_PIC_LEN_PARAM:
+						snprintf(mCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param,sizeof(mCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param),"%s",pStr);
+						break;
+					case KEY_PIC_GAMMA:
+						memcpy(mCurInfo->mActInfo[KEY_PIC_DEF].stProp.mGammaData, pStr, strlen(pStr));
+						break;
+
 					
-                        //video
+					/*
+					 * VID
+					 */
                     case KEY_VID_MODE:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].mode = atoi(pStr);
                         break;
@@ -875,8 +863,16 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_VID_AUD_BR:
                         mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.br = atoi(pStr);
                         break;
+
+					case KEY_VID_LEN_PARAM:
+						snprintf(mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.len_param,sizeof(mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.len_param),"%s",pStr);
+						break;
+					case KEY_VID_GAMMA:
+						memcpy(mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.mGammaData,pStr,strlen(pStr));
+						break;
+
 					
-                        //live
+                    // LIVE
                     case KEY_LIVE_MODE:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].mode = atoi(pStr);
                         break;
@@ -968,6 +964,13 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_LIVE_AUD_BR:
                         mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.br = atoi(pStr);
                         break;
+
+					case KEY_LIVE_LEN_PARAM:
+						snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.len_param,sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.len_param),"%s",pStr);
+						break;
+					case KEY_LIVE_GAMMA:
+						memcpy(mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.mGammaData,pStr,strlen(pStr));
+						break;
 					
                     SWITCH_DEF_ERROR(i)
                 }
@@ -1006,11 +1009,13 @@ void pro_cfg::create_user_cfg()
     system(sys_cmd);
 }
 
-void pro_cfg::reset_all()
+void pro_cfg::reset_all(bool deleteCfg)
 {
-    memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
-    create_user_cfg();
-    read_cfg(DEF_CFG_PARAM_PATH);
+    //memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
+    if (deleteCfg)
+	    create_user_cfg();
+
+	read_cfg(DEF_CFG_PARAM_PATH);
 }
 
 
@@ -1050,10 +1055,6 @@ void pro_cfg::update_val(int type, const char *val)
     unsigned int len = 0;
     u32 read_len = read(fd, buf, sizeof(buf));
 
-//    Log.d(TAG, " update_val key [%d]　%s value %s file len %d "
-//                  "strlen buf %d",
-//          type, key[type], val, read_len,strlen(buf));
-
     if (read_len <= 0) {
         close(fd);
         create_user_cfg();
@@ -1077,44 +1078,13 @@ void pro_cfg::update_val(int type, const char *val)
 
             bFound = true;
             switch (type) {
-#if 0
-                case KEY_SAVE_PATH:
-                {
-                u32 val_end_pos;
-//                    int next_type = type + 1;
-//                    pStr = strstr(pStr, key[next_type]);
-                    pStr = strstr(pStr,new_line);
-                    val_end_pos = pStr - buf;
-                    len = (read_len - val_end_pos);
-                    write_len = write(fd, (void *) &buf[val_end_pos], len);
-                    if (write_len != len)
-                    {
-                        Log.w(TAG, "1write pro_cfg mismatch(%d %d)", write_len, len);
-                    }
-                    else
-                    {
-                        u32 file_len = val_start_pos + strlen(val) + write_len;
-//                        printf("write procfg suc  val_end_pos %d "
-//                                      "write_len %d\n", val_end_pos,
-//                              write_len);
-                        //org len less so need ftruncate
-                        if(file_len < read_len)
-                        {
-                            Log.d(TAG,"new file len %d org read_len %d\n",
-                                   file_len,read_len);
-                            ftruncate(fd, file_len);
-                        }
-                    }
-                }
-                    break;
-#endif
                 default:
                     break;
             }
         }
     }
 
-    if (!bFound) {
+    if (!bFound) {	/* 如果没有找到该配置项 */
         snprintf(buf, sizeof(buf), "%s%s%s", key[type], val, new_line);
 
         Log.w(TAG, " %s not found just write val %s", key[type], buf);

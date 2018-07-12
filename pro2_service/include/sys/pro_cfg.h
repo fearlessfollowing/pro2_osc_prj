@@ -1,63 +1,40 @@
-//
-// Created by vans on 16-12-22.
-//
-
 #ifndef PROJECT_PRO_CFG_H
 #define PROJECT_PRO_CFG_H
 #include <common/sp.h>
 #include <sys/ins_types.h>
 
-enum
-{
+enum {
     MODE_3D,
     MODE_PANO,
-    //only for video
-//    MODE_HIGHSPEED,
     MODE_MAX,
 };
 
-//enum
-//{
-//    TYPE_PIC,
-//    TYPE_VID,
-//    TYPE_LIVE,
-//    TYPE_MAX,
-//};
-
-enum
-{
+enum {
     SET_ORG_DEF,
     SET_ORG_RAW,
     SET_ORG_OFF,
     SET_ORG_MAX
 };
 
-enum
-{
+enum {
     SET_PIC_MODE,
     SET_PIC_SAVE,
     SET_PIC_RTS,
     SET_PIC_STICH_RES,
     SET_PIC_MAX,
 };
-//enum
-//{
-//    ORG_PIC_4000X3000,
-//};
 
-typedef enum _res_stich_pic
-{
+typedef enum _res_stich_pic {
 //    STITCH_PIC_OFF,
     //3d:7680*7680, pano:7680*3840
     STITCH_PIC_7680X7680_3840,
     STITCH_PIC_5760X5760_2880,
     STITCH_PIC_3840X3840_1920,
     STITCH_PIC_MAX,
-}RES_STITCH_PIC;
+} RES_STITCH_PIC;
 
 //video start
-enum
-{
+enum {
     SET_VID_MODE,
     SET_VID_SAVE,
     SET_VID_ORG_RES,
@@ -69,16 +46,14 @@ enum
     SET_VID_MAX,
 };
 
-typedef enum _br_video
-{
+typedef enum _br_video {
     BR_30M_REC,
     BR_20M_REC,
     BR_10M_REC,
     BR_VIDEO_MAX,
-}BR_VIDEO;
+} BR_VIDEO;
 
-typedef enum _org_res_video_pano
-{
+typedef enum _org_res_video_pano {
     RES_VIDEO_3840x2160,
     RES_VIDEO_2560x1440,
     RES_VIDEO_1920x1080,
@@ -87,48 +62,33 @@ typedef enum _org_res_video_pano
     RES_VIDEO_2160x1620,
     RES_VIDEO_1920x1440,
     RES_VIDEO_PANO_MAX,
-}ORG_RES_VIDEO_PANO;
+} ORG_RES_VIDEO_PANO;
 
-typedef enum _org_res_video_3D
-{
+typedef enum _org_res_video_3D {
     RES_VIDEO_3200x2400_3D,
     RES_VIDEO_2160x1620_3D,
     RES_VIDEO_1920x1440_3D,
     RES_VIDEO_3D_MAX,
-}ORG_RES_VIDEO_3D;
+} ORG_RES_VIDEO_3D;
 
 // both video and live use same stitch res
-typedef enum _res_stich_video
-{
+typedef enum _res_stich_video {
 //    STITCH_VIDEO_OFF,
     STITCH_VIDEO_3840X3840_1920,
     STITCH_VIDEO_2880X2880_1440,
     STITCH_VIDEO_1920X1920_960,
     STITCH_VIDEO_MAX
-}RES_STITCH_VIDEO;
+} RES_STITCH_VIDEO;
 
-typedef enum _fr_num
-{
+typedef enum _fr_num {
     FR_NTSC_30,
     FR_NTSC_24,
     FR_PAL_25,
-}FR_NUM;
+} FR_NUM;
 
-//for 100fps
-//typedef enum _org_res_high
-//{
-//    RES_HIGH_1920x1440,
-//}RES_HIGH;
-//
-//typedef enum _stich_res_high
-//{
-//    STICH_RES_HIGH_3840x3840,
-//}STICH_RES_HIGH;
-//video end
 
 //live start
-enum
-{
+enum {
     SET_LIVE_MODE,
     SET_LIVE_PROJECT,
     SET_LIVE_HDMI,
@@ -139,28 +99,25 @@ enum
     SET_LIVE_MAX,
 };
 
-typedef enum _br_live_
-{
+typedef enum _br_live_ {
     BR_20M_LIVE,
     BR_10M_LIVE,
     BR_8M,
     BR_5M,
     BR_3M,
     BR_LIVE_MAX
-}BR_LIVE;
+} BR_LIVE;
 
-typedef enum _res_stich_live
-{
+typedef enum _res_stich_live {
 //    STITCH_VIDEO_OFF,
     STITCH_LIVE_3840X3840_1920,
     STITCH_LIVE_2880X2880_1440,
     STITCH_LIVE_1920X1920_960,
     STITCH_LIVE_MAX
-}RES_STITCH_LIVE;
+} RES_STITCH_LIVE;
 // live end
 
-enum
-{
+enum {
     KEY_WIFI_SSID,
     KEY_WIFI_PWD,
 };
@@ -170,7 +127,7 @@ enum {
     KEY_PIC_DEF,
     KEY_VIDEO_DEF,
     KEY_LIVE_DEF,
-    KEY_PAL_NTSC,
+	KEY_PAL_NTSC, //flicker
     KEY_LAN,
     KEY_SPEAKER,
     KEY_SET_LOGO,
@@ -200,6 +157,9 @@ enum {
     KEY_PIC_STI_MODE,
     KEY_PIC_STI_W,
     KEY_PIC_STI_H,
+	KEY_PIC_LEN_PARAM,
+	KEY_PIC_GAMMA,
+    
     //video
     KEY_VID_MODE,
     KEY_VID_SIZE_PER_ACT,
@@ -224,6 +184,9 @@ enum {
     KEY_VID_AUD_CH_LAYOUT,
     KEY_VID_AUD_SR,
     KEY_VID_AUD_BR,
+	KEY_VID_LEN_PARAM,
+	KEY_VID_GAMMA,
+    
     //live
     KEY_LIVE_MODE,
     KEY_LIVE_SIZE_PER_ACT,
@@ -251,6 +214,9 @@ enum {
     KEY_LIVE_AUD_CH_LAYOUT,
     KEY_LIVE_AUD_SR,
     KEY_LIVE_AUD_BR,
+	KEY_LIVE_LEN_PARAM,
+	KEY_LIVE_GAMMA,
+    
     KEY_CFG_MAX,
 };
 
@@ -260,8 +226,7 @@ struct _oled_cur_info_;
 struct _action_info_;
 struct _wifi_config_;
 
-class pro_cfg
-{
+class pro_cfg {
 public:
     explicit pro_cfg();
     ~pro_cfg();
@@ -273,18 +238,13 @@ public:
     void set_cur_lan(int val);
     void update_val(int type, int val);
     void update_val(int type,const char *val);
-//    void set_mode(int type,int val);
-//    void set_org_res(int type,int val);
-//    void set_stich_res(int type,int val);
-//    void set_br(int type, int br);
-//    void set_live_projection(int projection);
-    void set_def_info(int type, int val = -1,sp<struct _action_info_> mActInfo = nullptr);
+
+    void set_def_info(int type, int val = -1, sp<struct _action_info_> mActInfo = nullptr);
     struct _action_info_ * get_def_info(int type);
-    void reset_all();
+    void reset_all(bool deleteCfg = true);
     void read_wifi_cfg(sp<struct _wifi_config_> &mCfg);
     void update_wifi_cfg(sp<struct _wifi_config_> &mCfg);
-//    void get_vid_val(int item,int val);
-//    void get_setting_val(int item,int val);
+
 private:
     void init();
     void deinit();
@@ -298,4 +258,6 @@ private:
 
     sp<struct _oled_cur_info_> mCurInfo;
 };
-#endif //PROJECT_PRO_CFG_H
+
+
+#endif /* PROJECT_PRO_CFG_H */
