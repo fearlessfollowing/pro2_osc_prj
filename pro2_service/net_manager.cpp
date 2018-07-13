@@ -41,6 +41,11 @@ struct ethtool_value {
     __uint32_t data;
 };
 
+enum {
+    GET_IP_STATIC,
+    GET_IP_DHCP,
+    GET_IP_MAX
+};
 
 static sp<NetManager> gSysNetManager = NULL;
 static bool gInitNetManagerThread = false;
@@ -61,6 +66,10 @@ NetDev::NetDev(int iType, int iWkMode, int iState, bool activeFlag, string ifNam
     memset(mCurIpAddr, 0, sizeof(mCurIpAddr));
     memset(mSaveIpAddr, 0, sizeof(mSaveIpAddr));
     memset(mCachedDhcpAddr, 0, sizeof(mCachedDhcpAddr));
+
+    strcpy(mCurIpAddr, "0.0.0.0");
+    strcpy(mSaveIpAddr, "0.0.0.0");
+    strcpy(mCachedDhcpAddr, "0.0.0.0");
 
     Log.d(TAG, "++> constructor net device");
 }
@@ -390,26 +399,6 @@ int EtherNetDev::netdevClose()
 }
 
 
-enum {
-	GET_IP_STATIC,
-	GET_IP_DHCP,
-	GET_IP_MAX
-};
-
-/*
- * 链路发送了改变
- * 对于RJ45: 网线的插入和拔出
- * 插入: 如果之前已经有保存的IP地址(值不为0),直接使用之前保存的IP地址(地址变化,发送消息给UI)
- *		 如果之前没有保存过IP地址:
- *		 	如果是静态IP模式,设置网卡的IP地址(如: 192.168.1.188),并且通知UI显示该IP地址
- *		 	如果是DHCP模式,如果之前已经DHCP过,直接使用之前已经DHCP获得的地址
- * 拔出: 保存之前设置的IP地址,将当前设备IP地址设置为0(如果IP地址发生了变化,发生消息给UI)
- *
- * WiFi:
- * 打开:
- *	AP模式: IP地址是固定的()
- * 关闭:
- */
 int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
 {
 
@@ -428,7 +417,7 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
             Log.d(TAG, "current ip [%s], saved ip [%s]", etherDev->getCurIpAddr(), etherDev->getSaveIpAddr());
 
             /* 只有构造设备时会将mCurIpAddr与mSavedIpAdrr设置为"0" */
-            if (!strcmp(etherDev->getCurIpAddr(), etherDev->getSaveIpAddr())) {
+            if (!strcmp(etherDev->getCurIpAddr(), etherDev->getSaveIpAddr()) && !strcmp(etherDev->getCurIpAddr(), "0.0.0.0")) {
                 if (etherDev->getCurGetIpMode() == GET_IP_STATIC) {    /* Static */
                     etherDev->setCurIpAddr(DEFAULT_ETH0_IP, true);
                 } else {    /* DHCP */
@@ -478,8 +467,9 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
             }
         } else {
             Log.i(TAG, "+++++>>> link not changed(Disconnected), do nothing.");
+            etherDev->setCurIpAddr("0.0.0.0", true);
 			etherDev->postDevInfo2Ui();
-			iPollInterval = 5;
+            iPollInterval = 2;
         }
     }
 
@@ -731,6 +721,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 		case NETM_STARTUP_NETDEV: {		/* 启动网络设备 */
 			
+            Log.d(TAG, "Startup Wifi test ....");
             sp<DEV_IP_INFO> tmpIpInfo = NULL;
             sp<NetDev> tmpNetDev = NULL;
             CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
@@ -738,12 +729,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
             tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
 			if (tmpNetDev) {
 				if (tmpNetDev->getNetDevActiveState() == true) {
-					Log.d(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
+					Log.e(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
 				} else {
 					if (tmpNetDev->netdevOpen() == 0) {
 						tmpNetDev->setNetDevActiveState(true);
 					} else {
-						Log.d(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
+						Log.e(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
 					}
 				}
 			}			
@@ -752,7 +743,8 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 
 		case NETM_CLOSE_NETDEV: {		/* 关闭网络设备 */
-			
+
+            Log.d(TAG, "Stop Wifi test ....");
             sp<DEV_IP_INFO> tmpIpInfo = NULL;
             sp<NetDev> tmpNetDev = NULL;
             CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
@@ -760,12 +752,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
             tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
 			if (tmpNetDev) {
 				if (tmpNetDev->getNetDevActiveState() == false) {
-					Log.d(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
+					Log.e(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
 				} else {
 					if (tmpNetDev->netdevClose() == 0) {
 						tmpNetDev->setNetDevActiveState(false);
 					} else {
-						Log.d(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
+						Log.e(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
 					}
 				}
 			}			
@@ -961,6 +953,15 @@ void NetManager::sendIpInfo2Ui(sp<ARMessage>& msg)
     fifo::getSysTranObj()->sendUiMessage(msg);
 }
 
+
+
+void NetManager::dispatchIp()
+{
+	/*
+	 * ji
+	 */
+
+}
 
 NetManager::NetManager(): mState(NET_MANAGER_STAT_INIT), 
 							  mCurdev(NULL), 

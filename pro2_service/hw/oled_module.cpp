@@ -68,10 +68,8 @@
 // 0x10 -- new  0x14 -- old
 #define CHARGE_PUMP_VAL 			0x10	//0x14//
 
-//#define OLED_I2C_DAT 100
-//#define OLED_I2C_CLK 101
 
-#define TAG ("oled_module")
+#define TAG 	("oled_module")
 #define OLD_OLED
 
 //#define HORIZONAL_ADDRESS_MODE
@@ -539,7 +537,6 @@ void oled_module::ssd1306_init()
     ssd1306_set_off();
     //init from datasheet order
 
-#if 1
     SSD_Set_Display_Clock(0x80);
     SSD_Set_Multiplex_Ratio(0x3F);
     SSD_Set_Display_Offset(0);
@@ -557,52 +554,6 @@ void oled_module::ssd1306_init()
     SSD_Set_Start_Page(0);
     SSD_Set_Start_Column(0);
     SSD_Set_Deactivate_Scroll();
-#else
-
-#ifdef OLD_OLED
-    SSD_Set_Contrast(0xCF);
-//    SSD_Set_Contrast(0x66);
-#else
-    SSD_Set_Contrast(0x99);
-#endif
-
-    SSD_Set_Segment_Remap(1);
-    SSD_Set_Inverse_Display(0);
-    SSD_Set_Multiplex_Ratio(0x3F);
-    SSD_Set_Common_Remap(1);
-    SSD_Set_Display_Offset(0);
-
-    #ifdef OLD_OLED
-    SSD_Set_Display_Clock(0x80);
-    SSD_Set_Precharge_Period(0xF1);
-	#else
-    SSD_Set_Display_Clock(0x70);
-    SSD_Set_Precharge_Period(0x22);
-	#endif
-
-    SSD_Set_Segment_Config(0,1);
-
-    #ifdef OLD_OLED
-    SSD_Set_VCOM_Level(0x30);
-	#else
-    SSD_Set_VCOM_Level(0x3c);
-	#endif
-
-    //enable charge Pump
-    SSD_Set_Charge_Pump(0x18);
-    SSD_Set_Deactivate_Scroll();
-
-    #ifdef HORIZONAL_ADDRESS_MODE
-    SSD_Set_Address_Mode(0);
-	#else
-    SSD_Set_Address_Mode(2);
-	#endif
-
-    SSD_Set_Entire_Display(0);
-    SSD_Set_Start_Column(0);
-    SSD_Set_Start_Line(0);
-    SSD_Set_Start_Page(0);
-#endif
 
     ssd1306_fill(0x00);
     ssd1306_set_on();

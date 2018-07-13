@@ -437,12 +437,7 @@ public:
 
 private:
 
-#if 0
-    explicit oled_handler(const sp<ARMessage> &notify);
-#else
     oled_handler();
-
-#endif
 
     bool start_speed_test();
     bool check_rec_tl();
@@ -452,11 +447,6 @@ private:
     struct _select_info_ * get_select_info();
 
 	bool check_cur_menu_support_key(int iKey);
-
-	
-//    void set_pic_setting(int item,int val, bool bUpdateMenu = false,bool bUpdateDat = true);
-//    void set_video_setting(int item,int val,bool bUpdateMenu = false,bool bUpdateDat = true);
-//    void set_live_setting(int item,int val, bool bUpdateMenu = false,bool bUpdateDat = true);
 
 	void set_mainmenu_item(int item,int icon);
     void disp_calibration_res(int type,int t = -1);
@@ -647,9 +637,7 @@ private:
     void set_light();
     bool check_cam_busy();
     void set_cap_delay(int delay);
-    void init_poll_thread();
-    void start_poll_thread();
-    void stop_poll_thread();
+
 	
 	// void set_disp_control(bool state);
 
@@ -663,10 +651,9 @@ private:
     std::thread th_sound_;
 
 
-    std::thread th_poll_;
 
     bool bExitMsg = false;
-    bool bExitPoll = false;
+
     bool bExitUpdate = false;
     bool bExitLight = false;
     bool bExitSound = false;

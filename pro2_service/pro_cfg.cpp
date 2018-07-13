@@ -199,8 +199,9 @@ int pro_cfg::get_val(u32 key)
 
 void pro_cfg::set_val(u32 key, int val)
 {
-//    Log.d(TAG, "set key %d val %d", key, val);
+    Log.d(TAG, "set key %d val %d", key, val);
     if (check_key_valid(key)) {
+        Log.d(TAG, "key is valid, cur val = %d", mCurInfo->cfg_val[key]);
         if (mCurInfo->cfg_val[key] != val) {
             mCurInfo->cfg_val[key] = val;
             update_val(key, val);

@@ -94,11 +94,7 @@ sp<oled_handler> oled_handler::getSysUiObj(sp<ARMessage> msg)
 **
 **
 *************************************************************************/
-#if 1
 oled_handler::oled_handler(const sp<ARMessage> &notify): mNotify(notify)
-#else
-oled_handler::oled_handler()
-#endif
 {
     init_handler_thread();	/* 初始化消息处理线程 */
 	
@@ -172,18 +168,12 @@ void oled_handler::disp_top_info()
 void oled_handler::init_cfg_select()
 {
     init_menu_select();
-	
-    mProCfg->read_wifi_cfg(mWifiConfig);
-    if (mProCfg->get_val(KEY_WIFI_ON) == 1) {	/* 如果WiFi处于打开状态,开启WiFi */
-        start_wifi();
-    } else {	/* WiFi处于关闭状态 */
-        wifi_stop();		/* 停止WiFi */
-        disp_wifi(false);
 
-        if (get_setting_select(SET_DHCP_MODE) == 0) {
-            switch_dhcp_mode(0);
-        }
-    }
+	if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+		disp_wifi(true);
+	} else {
+		disp_wifi(false);
+	}	
 }
 
 
@@ -763,48 +753,6 @@ sp<ARMessage> oled_handler::obtainMessage(uint32_t what)
     return mHandler->obtainMessage(what);
 }
 
-void oled_handler::start_poll_thread()
-{
-    while (!bExitPoll) {
-        check_net_status();
-        msg_util::sleep_ms(1000);
-    }
-}
-
-void oled_handler::stop_poll_thread()
-{
-    Log.d(TAG, "stop_poll_thread  %d", bExitPoll);
-    if (!bExitPoll) {
-        bExitPoll = true;
-        if (th_poll_.joinable()) {
-            th_poll_.join();
-        } else {
-            Log.e(TAG, " th_poll_ not joinable ");
-        }
-    }
-    Log.d(TAG, "stop_poll_thread  %d over",bExitPoll);
-}
-
-
-#if 0
-
-/*************************************************************************
-** 方法名称: init_poll_thread
-** 方法功能: 创建网络状态检测线程
-** 入口参数: 无
-** 返 回 值: 无 
-**
-**
-*************************************************************************/
-void oled_handler::init_poll_thread()
-{
-    th_poll_ = thread([this]
-                     {
-                         start_poll_thread();
-                     });
-}
-
-#endif
 
 
 void oled_handler::stop_bat_thread()
@@ -1081,12 +1029,9 @@ void oled_handler::disp_sys_info()
     clear_area(0, 16);
     char buf[32];
 
-    if (strlen(mReadSys->sn) <= SN_LEN)
-	{
+    if (strlen(mReadSys->sn) <= SN_LEN) {
         snprintf(buf, sizeof(buf), "SN:%s", mReadSys->sn);
-    } 
-	else 
-	{
+    } else {
         snprintf(buf, sizeof(buf), "SN:%s", (char *)&mReadSys->sn[strlen(mReadSys->sn) - SN_LEN]);
     }
 	
@@ -1791,39 +1736,24 @@ void oled_handler::read_ver_info()
     char file_name[64];
 
 	/* 读取系统的版本文件:  */
-    if (check_path_exist(VER_FULL_PATH)) 
-	{
+    if (check_path_exist(VER_FULL_PATH))  {
         snprintf(file_name, sizeof(file_name), "%s", VER_FULL_PATH);
-    }  
-	else 
-	{
+    } else {
         memset(file_name, 0, sizeof(file_name));
     }
 
-    if (strlen(file_name)  > 0) 
-	{
+    if (strlen(file_name)  > 0)  {
         int fd = open(file_name, O_RDONLY);
         CHECK_NE(fd, -1);
 
         char buf[1024];
-        if (read_line(fd, (void *) buf, sizeof(buf)) > 0) 
-		{
-//            printf("ver len %lu mVerInfo->r_ver %s "
-//                           "buf %s "
-//                           "strlen buf %lu\n",
-//                   strlen(mVerInfo->r_ver),
-//                   mVerInfo->r_ver,buf,
-//                   strlen(buf));
+        if (read_line(fd, (void *) buf, sizeof(buf)) > 0) {
             snprintf(mVerInfo->r_ver, sizeof(mVerInfo->r_ver), "%s", buf);
-        }
-		else 
-		{
+        } else {
             snprintf(mVerInfo->r_ver,sizeof(mVerInfo->r_ver), "%s", "999");
         }
         close(fd);
-    }
-	else 
-	{
+    } else {
         Log.d(TAG, "r not f");
         snprintf(mVerInfo->r_ver, sizeof(mVerInfo->r_ver), "%s", "000");
     }
@@ -1921,17 +1851,6 @@ bool oled_handler::read_sys_info(int type)
 {
     char cmd[1024];
     bool bFound = false;
-
-#if 0
-    snprintf(cmd, sizeof(cmd), "factool get %s > %s", astSysRead[type].key, SYS_TMP);
-	Log.d(TAG, "cmd is %s", cmd);
-	
-    if (exec_sh(cmd) == 0) {
-        bFound = read_sys_info(type, SYS_TMP);
-    } else  {
-        Log.e(TAG,"error cmd %s\n",cmd);
-    }
-#endif
 
 	/*
 	 * 检查/data/下是否存在sn,uuid文件
@@ -2158,6 +2077,7 @@ void oled_handler::tx_softap_config_def()
     }
 }
 
+#if 0
 
 int oled_handler::start_wifi_ap(int disp_main)
 {
@@ -2208,6 +2128,7 @@ int oled_handler::wifi_stop()
     msg_util::sleep_ms(10);
     return ret;
 }
+#endif
 
 void oled_handler::disp_wifi(bool bState, int disp_main)
 {
@@ -2216,16 +2137,13 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
 
     if (bState) {
         set_mainmenu_item(MAINMENU_WIFI, 1);
+		
         if (check_allow_update_top()) {
             disp_icon(ICON_WIFI_OPEN_0_0_16_16);
         }
 		
-        //force wifi on
-        mProCfg->set_val(KEY_WIFI_ON, 1);
-        if (cur_menu == MENU_TOP)
-        {
-            switch (disp_main)
-            {
+        if (cur_menu == MENU_TOP) {
+            switch (disp_main) {
                 case 0:
                     disp_icon(ICON_INDEX_IC_WIFIOPEN_NORMAL24_24);
                     break;
@@ -2237,21 +2155,15 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
                     break;
             }
         }
-    }
-    else
-    {
+    } else {
         set_mainmenu_item(MAINMENU_WIFI, 0);
-        if (check_allow_update_top())
-        {
+		
+        if (check_allow_update_top()) {
             disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
         }
 		
-        //force wifi off
-        mProCfg->set_val(KEY_WIFI_ON,0);
-        if (cur_menu == MENU_TOP)
-        {
-            switch (disp_main)
-            {
+        if (cur_menu == MENU_TOP) {
+            switch (disp_main) {
                 case 0:
                     disp_icon(ICON_INDEX_IC_WIFICLOSE_NORMAL24_24);
                     break;
@@ -2268,19 +2180,37 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
 }
 
 
+
+
 void oled_handler::wifi_action()
 {
-    Log.d(TAG," wifi on %d", mProCfg->get_val(KEY_WIFI_ON));
+    Log.e(TAG, " wifi_action %d", mProCfg->get_val(KEY_WIFI_ON));
+
+    sp<ARMessage> msg;
+    sp<DEV_IP_INFO> tmpInfo;
+
+    tmpInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
+    strcpy(tmpInfo->cDevName, WLAN0_NAME);
+    strcpy(tmpInfo->ipAddr, WLAN0_DEFAULT_IP);
+    tmpInfo->iDevType = DEV_WLAN;
 
     if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+        Log.e(TAG, "set KEY_WIFI_ON -> 0");
         mProCfg->set_val(KEY_WIFI_ON, 0);
-        wifi_stop();
+        msg = (sp<ARMessage>)(new ARMessage(NETM_CLOSE_NETDEV));
         disp_wifi(false, 1);
     } else {
+        msg = (sp<ARMessage>)(new ARMessage(NETM_STARTUP_NETDEV));
+        Log.e(TAG, "set KEY_WIFI_ON -> 1");
         mProCfg->set_val(KEY_WIFI_ON, 1);
-        start_wifi(1);
+        disp_wifi(true, 1);
     }
+
+    msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
+    NetManager::getNetManagerInstance()->postNetMessage(msg);
 }
+
+
 
 
 int oled_handler::get_back_menu(int item)
@@ -2300,15 +2230,11 @@ int oled_handler::get_back_menu(int item)
 
 void oled_handler::set_back_menu(int item,int menu)
 {
-    if (menu == -1)
-    {
-        if (cur_menu == -1)
-        {
+    if (menu == -1) {
+        if (cur_menu == -1) {
             cur_menu = MENU_TOP;
             menu = MENU_TOP;
-        }
-        else
-        {
+        } else {
             Log.e(TAG,"back menu is -1 cur_menu %d\n",cur_menu);
 
             #ifdef ENABLE_ABORT
@@ -2499,20 +2425,17 @@ void oled_handler::update_menu_page()
     disp_sys_setting();
 }
 
-void oled_handler::set_mainmenu_item(int item,int val)
+/*
+ * 设置主菜单页WiFi图标
+ */
+void oled_handler::set_mainmenu_item(int item, int val)
 {
-    switch(item)
-    {
+    switch (item) {
         case MAINMENU_WIFI:
-            //off
-//            Log.d(TAG,"set_mainmenu_item val %d",val);
-            if(val == 0)
-            {
+            if (val == 0) {
                 main_menu[0][item] = ICON_INDEX_IC_WIFICLOSE_NORMAL24_24;
                 main_menu[1][item] = ICON_INDEX_IC_WIFICLOSE_LIGHT24_24;
-            }
-            else
-            {
+            } else {
                 main_menu[0][item] = ICON_INDEX_IC_WIFIOPEN_NORMAL24_24;
                 main_menu[1][item] = ICON_INDEX_IC_WIFIOPEN_LIGHT24_24;
             }
@@ -3741,9 +3664,12 @@ void oled_handler::disp_menu(bool dispBottom)
             aging_times = 0;
             disp_icon(ICON_RESET_IDICATION_128_48128_48);
             break;
+
+#if 0
         case MENU_WIFI_CONNECT:
             disp_wifi_connect();
             break;
+#endif
 
 		/*
 		 * 显示老化
@@ -3755,8 +3681,10 @@ void oled_handler::disp_menu(bool dispBottom)
         case MENU_NOSIE_SAMPLE:
             disp_icon(ICON_SAMPLING_128_48128_48);
             break;
+		
         case MENU_LIVE_REC_TIME:
             break;
+			
         SWITCH_DEF_ERROR(cur_menu);
     }
 
@@ -3769,10 +3697,12 @@ void oled_handler::disp_menu(bool dispBottom)
 }
 
 
+#if 0
 void oled_handler::disp_wifi_connect()
 {
     disp_icon(ICON_WIF_CONNECT_128_64128_64);
 }
+#endif
 
 bool oled_handler::check_dev_exist(int action)
 {
@@ -3950,18 +3880,20 @@ void oled_handler::func_power()
             int val = get_setting_select(item);
             switch (item) {
                 case SET_WIFI_AP:
+
                     val = ((~val) & 0x00000001);
                     // wifi is on need switch
                     if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
-                        mProCfg->set_val(KEY_WIFI_AP, val);
+                        //mProCfg->set_val(KEY_WIFI_AP, val);
                         set_setting_select(item, val);
                         update_menu_sys_setting();
-                        start_wifi(1);
+                        //start_wifi(1);
                     } else {
-                        mProCfg->set_val(KEY_WIFI_AP, val);
+                        //mProCfg->set_val(KEY_WIFI_AP, val);
                         set_setting_select(item, val);
                         update_menu_sys_setting();
                     }
+
                     break;
 					
                 case SET_DHCP_MODE: /* 用于设置eth0的IP地址 */
@@ -6579,11 +6511,8 @@ void oled_handler::deinit()
 	
     set_light_direct(LIGHT_OFF);
     mDevManager = nullptr;
-    //mpNetManager = nullptr;
 
 	mNetManager = nullptr;
-
-    stop_poll_thread();
 
     sendExit();
 

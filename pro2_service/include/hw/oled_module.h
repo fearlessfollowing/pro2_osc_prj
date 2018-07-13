@@ -1,9 +1,6 @@
-//
-// Created by vans on 17-2-22.
-//
-
 #ifndef PROJECT_OLED_MODULE_H
 #define PROJECT_OLED_MODULE_H
+
 #include <sys/ins_types.h>
 #include <common/sp.h>
 

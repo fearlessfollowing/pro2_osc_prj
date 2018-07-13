@@ -237,6 +237,14 @@ public:
     void postNetMessage(sp<ARMessage>& msg, int interval = 0);
     ~NetManager();
 
+
+	/*
+	 * 网络管理器负责管理当前有效的IP地址
+	 * 并根据一定的策略,将IP地址发送给UI线程
+	 */
+	void dispatchIp();
+
+
     void sendIpInfo2Ui(sp<ARMessage>& msg);
 
 private:
