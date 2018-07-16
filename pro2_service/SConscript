@@ -1,0 +1,48 @@
+Import('com_env')
+#######################################################
+# Compile for vold_test
+# Copyright Insta360 @ 2016 - 2025
+#######################################################
+
+import config
+
+src = ['pro_uevent.c']
+src += ['fifo.cpp']
+src += ['oled_handler.cpp']
+src += ['InputManager.cpp']
+src += ['net_manager.cpp']
+src += ['poll_timer.cpp']
+src += ['pro_cfg.cpp']
+src += ['dev_manager.cpp']
+src += ['main.cpp']
+
+src += [config.PRO2_SERVICE + '/util/arlog.c']
+src += [config.PRO2_SERVICE + '/util/ARMessage.cpp']
+src += [config.PRO2_SERVICE + '/util/ARLooper.cpp']
+src += [config.PRO2_SERVICE + '/util/bytes_int_convert.cpp']
+src += [config.PRO2_SERVICE + '/util/util.cpp']
+src += [config.PRO2_SERVICE + '/util/cJSCON.c']
+src += [config.PRO2_SERVICE + '/util/stlog.cpp']
+src += [config.PRO2_SERVICE + '/util/pro_version.cpp']
+
+
+src += [config.PRO2_SERVICE + '/hw/oled_module.cpp']
+src += [config.PRO2_SERVICE + '/hw/oled_light.cpp']
+src += [config.PRO2_SERVICE + '/hw/battery_interface.cpp']
+src += [config.PRO2_SERVICE + '/hw/ins_i2c.cpp']
+src += [config.PRO2_SERVICE + '/hw/ins_gpio.cpp']
+
+src += [config.LIBLOG + '/logd_write.c']
+src += [config.LIBLOG + '/log_event_write.c']
+src += [config.LIBLOG + '/logprint.c']
+src += [config.LIBLOG + '/event_tag_map.c']
+src += [config.LIBLOG + '/log_time.cpp']
+src += [config.LIBCUTILS + '/system_properties.c']
+
+
+com_env['CXXFLAGS'] += ' -I' + config.PRO2_SERVICE + '/include'
+com_env['LINKFLAGS'] += ' -lrt -lpthread '
+pro2_service_obj = com_env.Object(src)
+
+Return('pro2_service_obj')
+

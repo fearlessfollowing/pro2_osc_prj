@@ -55,7 +55,6 @@
 #include "init_parser.h"
 #include "util.h"
 #include "ueventd.h"
-#include "watchdogd.h"
 
 #ifdef HAVE_SELINUX
 struct selabel_handle *sehandle;

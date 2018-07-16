@@ -22,6 +22,8 @@ inline std::string ToString(int a)
     return buf;
 }
 
+
+#if 0
 inline std::string ToString(int64_t a)
 {
     // return std::to_string(a);
@@ -29,6 +31,7 @@ inline std::string ToString(int64_t a)
     snprintf(buf, sizeof(buf), "%" PRId64, a);
     return buf;
 }
+#endif
 
 inline std::string ToString(bool a)
 {
