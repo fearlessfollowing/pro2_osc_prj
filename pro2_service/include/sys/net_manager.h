@@ -270,6 +270,7 @@ private:
     std::mutex mMutex;                      /* 访问网络设备的互斥锁 */
     std::vector<sp<NetDev>> mDevList;       /* 网络设备列表 */
     sp<NetDev> mCurdev;                     /* 当前需要在屏幕上显示IP地址的激活设备 */
+
 };
 
 

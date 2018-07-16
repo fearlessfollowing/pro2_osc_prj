@@ -869,7 +869,7 @@ static const ACTION_INFO mVIDAction[] = {
 	        3200,			/* 3840x2880 -> 3200x2400 */
 	        2400,
 #if 1
-			0,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 	        
 	        {ALL_FR_30,40}
@@ -893,7 +893,7 @@ static const ACTION_INFO mVIDAction[] = {
 			1920,
 			1080,
 #if 1
-			0,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 			
             { ALL_FR_120, 40}
@@ -947,7 +947,7 @@ static const ACTION_INFO mVIDAction[] = {
 	        1920,
 	        1440,
 #if 1
-			0,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 	        
 	        {ALL_FR_30, 25}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
@@ -974,7 +974,7 @@ static const ACTION_INFO mVIDAction[] = {
 			2560,
 			1440,
 #if 1
-			0,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 			
 			{ALL_FR_30, 25}

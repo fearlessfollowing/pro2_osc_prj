@@ -169,11 +169,24 @@ void oled_handler::init_cfg_select()
 {
     init_menu_select();
 
+    sp<ARMessage> msg;
+    sp<DEV_IP_INFO> tmpInfo;
+
+    tmpInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
+    strcpy(tmpInfo->cDevName, WLAN0_NAME);
+    strcpy(tmpInfo->ipAddr, WLAN0_DEFAULT_IP);
+    tmpInfo->iDevType = DEV_WLAN;
+
 	if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+        msg = (sp<ARMessage>)(new ARMessage(NETM_STARTUP_NETDEV));
 		disp_wifi(true);
 	} else {
 		disp_wifi(false);
+        msg = (sp<ARMessage>)(new ARMessage(NETM_CLOSE_NETDEV));
 	}	
+
+    msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
+    NetManager::getNetManagerInstance()->postNetMessage(msg);
 }
 
 

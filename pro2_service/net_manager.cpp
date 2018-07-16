@@ -957,9 +957,21 @@ void NetManager::sendIpInfo2Ui(sp<ARMessage>& msg)
 
 void NetManager::dispatchIp()
 {
-	/*
-	 * ji
-	 */
+    sp<NetDev> tmpDev;
+    /*
+    for (itor = mDevList.begin(); itor != mDevList.end(); itor++) {
+        if ((*itor)->getNetDevActiveState()) {
+            tmpList.push_back(*itor);
+        }
+    }
+    */
+
+    for (uint32_t i = 0; i < mDevList.size(); i++) {
+        tmpDev = mDevList.at(i);
+        if (tmpDev->getNetDevActiveState()) {
+            Log.d(TAG, "dev[%s], ip [%s]", tmpDev->getDevName().c_str(), tmpDev->getCurIpAddr());
+        }
+    }
 
 }
 
