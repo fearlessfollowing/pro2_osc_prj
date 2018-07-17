@@ -884,19 +884,20 @@ static const ACTION_INFO mVIDAction[] = {
         {},
         {}
     },
+    
 	//4K/120F
 	{
-	    MODE_PANO,25,0,
+	    MODE_PANO,25,0,		// 
 		{
 			EN_H264,
 			SAVE_DEF,
 			1920,
-			1080,
+			1440, 		// 1080 -> 1440
 #if 1
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 			
-            { ALL_FR_120, 40}
+            { ALL_FR_120, 80}	// 40 -> 80
         },
         {
 	        EN_H264,
