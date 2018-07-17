@@ -1614,6 +1614,24 @@ class control_center:
             st |= config.STATE_LIVE
         if str_exits(state_str, 'blc_calibration'):
             st |= config.STATE_BLC_CALIBRATE
+        elif str_exits(state_str, 'gyro_calibration'):
+            st |= config.STATE_START_GYRO
+        elif str_exits(state_str, 'calibration'):
+            st |= config.STATE_CALIBRATING 
+        if str_exits(state_str, 'pic_shoot'):
+            st |= config.STATE_TAKE_CAPTURE_IN_PROCESS
+        if str_exits(state_str, 'pic_process'):
+            st |= config.STATE_PIC_STITCHING
+        if str_exits(state_str, 'storage_speed_test'):
+            st |= config.STATE_SPEED_TEST
+        if str_exits(state_str, 'qrscan'):
+            st |= config.STATE_START_QR
+        if str_exits(state_str, 'audio_capture'):
+            st |= config.STATE_NOISE_SAMPLE
+
+        # if str_exits(state_str, 'stitching_box'):
+        #     pass
+
         return st
 
     #"MMDDhhmm[[CC]YY][.ss]"
