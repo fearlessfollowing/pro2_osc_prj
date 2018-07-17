@@ -53,98 +53,98 @@ static const char *wifi_key[] = {
     "wifi_pwd:",
 };
 
-static const char *key[] = {
-    "def_pic:",
-    "def_video:",
-    "def_live:",
-    "flicker:",		//change "pal_ntsc:" to "flicker"
-    "language:",
-    "speaker:",
-    "set_logo:",
-    "light_on:",
-    "dhcp:",
-    "wifi_on:",
-    "fan_on:",
-    "aud_on:",
-    "aud_spatial:",
-    "gyro_on:",
-    "wifi_ap:",
-
-    //pic
-    "pic_mode:",
-    "pic_size_per_act:",
-    "pic_delay:",
-    "pic_org_mime:",
-    "pic_save_org:",
-    "pic_org_w:",
-    "pic_org_h:",
-    "pic_hdr_count:",
-    "pic_min_ev:",
-    "pic_max_ev:",
-    "pic_burst_count:",
-    "pic_sti_mime:",
-    "pic_sti_mode:",
-    "pic_sti_w:",
-    "pic_sti_h:",
-	"pic_len_param:",
-	"pic_gamma:",
-
-    //video
-    "vid_mode:",
-    "vid_size_per_act:",
-    "vid_delay:",
-    "vid_org_mime:",
-    "vid_save_org:",
-    "vid_org_w:",
-    "vid_org_h:",
-    "vid_org_fr:",
-    "vid_org_br:",
-    "vid_log_mode:",
-    "vid_tl:",
-    "vid_sti_mime:",
-    "vid_sti_mode:",
-    "vid_sti_w:",
-    "vid_sti_h:",
-    "vid_sti_fr:",
-    "vid_sti_br:",
-    "vid_aud_gain:",
-    "vid_aud_mime:",
-    "vid_aud_sample_fmt:",
-    "vid_aud_ch_layout:",
-    "vid_aud_sr:",
-    "vid_aud_br:",
-    "vid_len_param:",
-    "vid_gamma:",
-
-    //live
-    "live_mode:",
-    "live_size_per_act:",
-    "live_delay:",
-    "live_org_mime:",
-    "live_save_org:",
-    "live_org_w:",
-    "live_org_h:",
-    "live_org_fr:",
-    "live_org_br:",
-    "live_log_mode:",
-    "live_sti_mime:",
-    "live_sti_mode:",
-    "live_sti_w:",
-    "live_sti_h:",
-    "live_sti_fr:",
-    "live_sti_br:",
-    "live_sti_hdmi_on:",
-    "live_file_save:",
-    "live_sti_url:",
-    "live_sti_format:",
-    "live_aud_gain:",
-    "live_aud_mime:",
-    "live_aud_sample_fmt:",
-    "live_aud_ch_layout:",
-    "live_aud_sr:",
-    "live_aud_br:",
-    "live_len_param:",
-    "live_gamma:",    
+static const char *key[] =
+{
+        "def_pic:",
+        "def_video:",
+        "def_live:",
+        //change "pal_ntsc:" to "flicker"
+        "flicker:",
+        "language:",
+        "speaker:",
+        "set_logo:",
+        "light_on:",
+        "dhcp:",
+        "wifi_on:",
+        "fan_on:",
+        "aud_on:",
+        "aud_spatial:",
+        "gyro_on:",
+        "video_fragment:",
+        "wifi_ap:",
+        //pic
+        "pic_mode:",
+        "pic_size_per_act:",
+        "pic_delay:",
+        "pic_org_mime:",
+        "pic_save_org:",
+        "pic_org_w:",
+        "pic_org_h:",
+        "pic_hdr_count:",
+        "pic_min_ev:",
+        "pic_max_ev:",
+        "pic_burst_count:",
+        "pic_sti_mime:",
+        "pic_sti_mode:",
+        "pic_sti_w:",
+        "pic_sti_h:",
+        "pic_len_param:",
+        "pic_gamma:",
+        //video
+        "vid_mode:",
+        "vid_size_per_act:",
+        "vid_delay:",
+        "vid_org_mime:",
+        "vid_save_org:",
+        "vid_org_w:",
+        "vid_org_h:",
+        "vid_org_fr:",
+        "vid_org_br:",
+        "vid_log_mode:",
+        "vid_tl:",
+        "vid_sti_mime:",
+        "vid_sti_mode:",
+        "vid_sti_w:",
+        "vid_sti_h:",
+        "vid_sti_fr:",
+        "vid_sti_br:",
+        "vid_aud_gain:",
+        "vid_aud_mime:",
+        "vid_aud_sample_fmt:",
+        "vid_aud_ch_layout:",
+        "vid_aud_sr:",
+        "vid_aud_br:",
+        "vid_len_param:",
+        "vid_gamma:",
+        //live
+        "live_mode:",
+        "live_size_per_act:",
+        "live_delay:",
+        "live_org_mime:",
+        "live_save_org:",
+        "live_org_w:",
+        "live_org_h:",
+        "live_org_fr:",
+        "live_org_br:",
+        "live_log_mode:",
+        "live_sti_mime:",
+        "live_sti_mode:",
+        "live_sti_w:",
+        "live_sti_h:",
+        "live_sti_fr:",
+        "live_sti_br:",
+        "live_sti_hdmi_on:",
+        "live_file_save:",
+        "live_sti_url:",
+        "live_sti_format:",
+        "live_aud_gain:",
+        "live_aud_mime:",
+        "live_aud_sample_fmt:",
+        "live_aud_ch_layout:",
+        "live_aud_sr:",
+        "live_aud_br:",
+        "live_len_param:",
+        "live_gamma:",
 };
 
 static void int_to_str_val(int val, char *str, int size)
@@ -264,7 +264,7 @@ void pro_cfg::update_act_info(int iIndex)
                 if (mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.sample_rate == 0) {
                     memcpy(&mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo,&def_aud,sizeof(AUD_INFO));
                 }
-                end = KEY_VID_AUD_BR + 1;
+                end = KEY_LIVE_MODE;
                 break;
             case KEY_LIVE_DEF:
                 Log.d(TAG," mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.sample_rate  %d",
@@ -274,7 +274,7 @@ void pro_cfg::update_act_info(int iIndex)
                     memcpy(&mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo,&def_aud,sizeof(AUD_INFO));
                 }
                 start = KEY_LIVE_MODE;
-                end = KEY_LIVE_AUD_BR + 1;
+                end = KEY_CFG_MAX;
                 break;
             SWITCH_DEF_ERROR(iIndex)
         }
@@ -329,6 +329,19 @@ void pro_cfg::update_act_info(int iIndex)
                 case KEY_PIC_STI_H:
                     int_to_str_val(mCurInfo->mActInfo[KEY_PIC_DEF].stStiInfo.h,val,max);
                     break;
+                case KEY_PIC_LEN_PARAM:
+                    memset(val,0,sizeof(val));
+                    if(strlen(mCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param) > 0)
+                    {
+                        snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param);
+                        Log.d(TAG,"val %s\nmCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param %s ",
+                              val,mCurInfo->mActInfo[KEY_PIC_DEF].stProp.len_param);
+                    }
+                    break;
+                case KEY_PIC_GAMMA:
+                    memset(val,0,sizeof(val));
+                    memcpy(val,mCurInfo->mActInfo[KEY_PIC_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_PIC_DEF].stProp.mGammaData));
+                    break;
                     //video
                 case KEY_VID_MODE:
                     int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].mode,val,max);
@@ -370,7 +383,7 @@ void pro_cfg::update_act_info(int iIndex)
                     int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.stich_mode,val,max);
                     break;
                 case KEY_VID_STI_W:
-                    int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.h,val,max);
+                    int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.w,val,max);
                     break;
                 case KEY_VID_STI_H:
                     int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].stStiInfo.h,val,max);
@@ -398,6 +411,17 @@ void pro_cfg::update_act_info(int iIndex)
                     break;
                 case KEY_VID_AUD_BR:
                     int_to_str_val(mCurInfo->mActInfo[KEY_VIDEO_DEF].stAudInfo.br,val,max);
+                    break;
+                case KEY_VID_LEN_PARAM:
+                    memset(val,0,sizeof(val));
+                    if(strlen(mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.len_param) > 0)
+                    {
+                        snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.len_param);
+                    }
+                    break;
+                case KEY_VID_GAMMA:
+                    memset(val,0,sizeof(val));
+                    memcpy(val,mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_VIDEO_DEF].stProp.mGammaData));
                     break;
                     //live
                 case KEY_LIVE_MODE:
@@ -455,7 +479,9 @@ void pro_cfg::update_act_info(int iIndex)
                     int_to_str_val(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.file_save,val,max);
                     break;
                 case KEY_LIVE_STI_URL:
-                    snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url);
+                    memset(val,0,sizeof(val));
+                    memcpy(val,mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url,
+                           strlen(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url));
                     break;
                 case KEY_LIVE_FORMAT:
                     snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.format);
@@ -478,10 +504,24 @@ void pro_cfg::update_act_info(int iIndex)
                 case KEY_LIVE_AUD_BR:
                     int_to_str_val(mCurInfo->mActInfo[KEY_LIVE_DEF].stAudInfo.br,val,max);
                     break;
+                case KEY_LIVE_LEN_PARAM:
+                    memset(val,0,sizeof(val));
+                    if(strlen(mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.len_param) > 0)
+                    {
+                        snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.len_param);
+                    }
+                    break;
+                case KEY_LIVE_GAMMA:
+                    memset(val,0,sizeof(val));
+                    memcpy(val, mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.mGammaData, strlen(mCurInfo->mActInfo[KEY_LIVE_DEF].stProp.mGammaData));
+                    break;
                 SWITCH_DEF_ERROR(type)
             }
             strcat(write_buf,key[type]);
-            strcat(write_buf,val);
+            if(strlen(val) > 0)
+            {
+                strcat(write_buf,val);
+            }
             strcat(write_buf,new_line);
         }
         pStr = strstr(buf,key[start]);
@@ -680,14 +720,16 @@ void pro_cfg::read_cfg(const char *name)
 {
     int fd = open(name, O_RDWR);
     CHECK_NE(fd, -1);
-	
-    char buf[2048];
+    char buf[4096];
     int max_key = sizeof(key) / sizeof(key[0]);
-
-    while (read_line(fd, (void *) buf, sizeof(buf)) > 0) {
-
-		/* '#'或'//'开头的为注释行 */
-		if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/')) {
+//        Log.d(TAG, " max key %d\n", max_key);
+    memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
+    while (read_line(fd, (void *) buf, sizeof(buf)) > 0)
+    {
+//            Log.d(TAG, "read line len %d\n", iLen);
+        //skip begging from#
+        if (buf[0] == '#' || (buf[0] == '/' && buf[1] == '/'))
+        {
             continue;
         }
 		
@@ -709,6 +751,7 @@ void pro_cfg::read_cfg(const char *name)
                     case KEY_AUD_ON:
                     case KEY_AUD_SPATIAL:
                     case KEY_GYRO_ON:
+                    case KEY_VID_SEG:
                     case KEY_FAN:
                     case KEY_WIFI_AP:
                         mCurInfo->cfg_val[i] = atoi(pStr);
@@ -931,9 +974,8 @@ void pro_cfg::read_cfg(const char *name)
                         break;
 					
                     case KEY_LIVE_STI_URL:
-                        snprintf(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url,
-                                 sizeof(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url),
-                                 "%s",pStr);
+                        memcpy(mCurInfo->mActInfo[KEY_LIVE_DEF].stStiInfo.stStiAct.mStiL.url,
+                                 pStr,strlen(pStr));
                         break;
 						
                     case KEY_LIVE_FORMAT:
@@ -1078,7 +1120,39 @@ void pro_cfg::update_val(int type, const char *val)
             }
 
             bFound = true;
-            switch (type) {
+            switch (type)
+            {
+#if 0
+                case KEY_SAVE_PATH:
+                {
+                u32 val_end_pos;
+//                    int next_type = type + 1;
+//                    pStr = strstr(pStr, key[next_type]);
+                    pStr = strstr(pStr,new_line);
+                    val_end_pos = pStr - buf;
+                    len = (read_len - val_end_pos);
+                    write_len = write(fd, (void *) &buf[val_end_pos], len);
+                    if (write_len != len)
+                    {
+                        Log.w(TAG, "1write pro_cfg mismatch(%d %d)", write_len, len);
+                    }
+                    else
+                    {
+                        u32 file_len = val_start_pos + strlen(val) + write_len;
+//                        printf("write procfg suc  val_end_pos %d "
+//                                      "write_len %d\n", val_end_pos,
+//                              write_len);
+                        //org len less so need ftruncate
+                        if(file_len < read_len)
+                        {
+                            Log.d(TAG,"new file len %d org read_len %d\n",
+                                   file_len,read_len);
+                            ftruncate(fd, file_len);
+                        }
+                    }
+                }
+                    break;
+#endif
                 default:
                     break;
             }

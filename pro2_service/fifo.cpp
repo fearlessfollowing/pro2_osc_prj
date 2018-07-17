@@ -64,7 +64,7 @@ static const char *act_mode[] = {"3d_top_left", "pano"};
 static const char *all_mime[] = {"h264", "h265","jpeg", "raw"};
 static const char *all_map[] = {"flat","cube"};
 //static const char *pic_mime[] = {};
-static const int all_frs[] = {24,25,30,60,120};
+static const int all_frs[] = {24,25,30,60,120,5};
 //static const char *cal_mode[] = {"pano", "3d"};
 //kbits/s
 //static const int all_brs[] = {150000,100000,50000,40000,30000,25000,20000,10000,8000,5000,3000};
@@ -188,6 +188,13 @@ void start_all()
     if(child) \
     {\
         val = child->valueint;\
+    }
+
+#define GET_CJSON_OBJ_ITEM_DOUBLE(child, root, key,val) \
+    child = cJSON_GetObjectItem(root,key); \
+    if(child) \
+    {\
+        val = child->valuedouble;\
     }
 
 static int get_fr_index(int fr)
@@ -730,22 +737,47 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 				/* {"action":ACTION_XX, "parameters": {}} */
                 cJSON_AddItemToObject(root, "parameters", param);
-            } else {
-				/* msg中不含"action_info" */
-				cJSON *param = nullptr;
-                switch (action) {
-                    case ACTION_CALIBRATION: {	/* 校验: {"action": ACTION_CALIBRATION} */
-						#if 0
-						int calibration_mode;
-						CHECK_EQ(msg->find<int>("cal_mode", &calibration_mode), true);
-						param = cJSON_CreateObject();
-						cJSON_AddStringToObject(param, "mode", cal_mode[calibration_mode]);
-						#endif
-						break;
-						
-					}
+            }
+            else
+            {
+                cJSON *param = nullptr;
+                switch (action)
+                {
+                    case ACTION_CUSTOM_PARAM:
+                    {
+                        sp<CAM_PROP> mCamProp;
+                        CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
+                        param = cJSON_CreateObject();
 
-                    case ACTION_SET_OPTION: {	/* 设置选项:  */
+                        Log.d(TAG,"set aud gain %d",mCamProp->audio_gain);
+                        if(mCamProp->audio_gain != -1)
+                        {
+                            cJSON_AddNumberToObject(param, "audio_gain", mCamProp->audio_gain);
+                        }
+                        Log.d(TAG,"len_param len %d",strlen(mCamProp->len_param));
+                        if (strlen(mCamProp->len_param) > 0)
+                        {
+                            cJSON_AddItemToObject(param,"len_param",cJSON_Parse(mCamProp->len_param));
+                        }
+                        Log.d(TAG,"mGammaData len %d",strlen(mCamProp->mGammaData));
+                        if (strlen(mCamProp->mGammaData) > 0)
+                        {
+                            cJSON_AddStringToObject(param,"gamma_param",mCamProp->mGammaData);
+                        }
+                    }
+                        break;
+                    case ACTION_LIVE_ORIGIN:
+                        break;
+                    case ACTION_CALIBRATION:
+                    {
+//                        int calibration_mode;
+//                        CHECK_EQ(msg->find<int>("cal_mode", &calibration_mode), true);
+//                        param = cJSON_CreateObject();
+//                        cJSON_AddStringToObject(param, "mode", cal_mode[calibration_mode]);
+                    }
+                        break;
+                    case ACTION_SET_OPTION:
+                    {
                         int type;
                         CHECK_EQ(msg->find<int>("type", &type), true);
 
@@ -820,18 +852,25 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                                 cJSON_AddNumberToObject(param, "value", logo_on);
 								break;
                             }
-
-							/* {"action": ACTION_SET_OPTION, {"property": "audio_gain", "value": 0/1}} */
-                            case OPTION_SET_AUD_GAIN: {
-                                int aud_gain;
-                                CHECK_EQ(msg->find<int>("aud_gain", &aud_gain), true);
+                                break;
+                            case OPTION_SET_VID_SEG:
+                                int video_fragment;
+                                CHECK_EQ(msg->find<int>("video_fragment", &video_fragment), true);
                                 param = cJSON_CreateObject();
-                                Log.d(TAG,"set aud gain %d",aud_gain);
-                                cJSON_AddStringToObject(param, "property", "audio_gain");
-                                cJSON_AddNumberToObject(param, "value", aud_gain);
-								break;
-                            }
-
+                                cJSON_AddStringToObject(param, "property", "video_fragment");
+                                cJSON_AddNumberToObject(param, "value", video_fragment);
+                                break;
+//                            case OPTION_SET_AUD_GAIN:
+//                            {
+//                                sp<CAM_PROP> mCamProp;
+//                                CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
+//                                param = cJSON_CreateObject();
+//                                Log.d(TAG,"set aud gain %d",
+//                                      mCamProp->audio_gain);
+//                                cJSON_AddStringToObject(param, "property", "audio_gain");
+//                                cJSON_AddNumberToObject(param, "value", mCamProp->audio_gain);
+//                            }
+//                                break;
                             SWITCH_DEF_ERROR(type)
                         }
 						break;
@@ -903,7 +942,10 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         Log.d(TAG, "power off reboot cmd is %d", reboot_cmd);
 						break;
                     }
-
+                        break;
+                    case ACTION_SET_STICH:
+                        Log.d(TAG,"stitch action");
+                        break;
                     default:
                         break;
                 }
@@ -1318,11 +1360,15 @@ void fifo::read_fifo_thread()
                             CHECK_NE(subNode, nullptr);
 							
                             mDispType->type = subNode->valueint;
+                            mDispType->mSysSetting = nullptr;
+                            mDispType->mStichProgress = nullptr;
+                            mDispType->mAct = nullptr;
                             mDispType->control_act = -1;
                             mDispType->tl_count  = -1;
-							
-                            subNode = cJSON_GetObjectItem(root, "content");	/* 获取"content"子节点 */
-                            if (subNode) {
+                            mDispType->qr_type  = -1;
+                            subNode = cJSON_GetObjectItem(root, "content");
+                            if (subNode)
+                            {
                                 int iArraySize = cJSON_GetArraySize(subNode);
                                 int qr_version;
                                 int qr_index = -1;
@@ -1731,21 +1777,19 @@ void fifo::read_fifo_thread()
                                     }
                                     else
                                     {
-                                        mDispType->qr_type = -1;
-                                        mDispType->mAct = nullptr;
                                         mDispType->type = QR_FINISH_UNRECOGNIZE;
                                     }
                                 }
                                 else
                                 {
-                                    mDispType->qr_type = -1;
-                                    mDispType->mAct = nullptr;
                                     mDispType->type = QR_FINISH_UNRECOGNIZE;
                                 }
                             }
-                            else {
-                                subNode = cJSON_GetObjectItem(root, "req");	/* 含有"req"子节点 */
-                                if (subNode) {
+                            else
+                            {
+                                subNode = cJSON_GetObjectItem(root, "req");
+                                if (subNode)
+                                {
                                     Log.d(TAG, "rec req type %d", mDispType->type);
                                     GET_CJSON_OBJ_ITEM_INT(child, subNode, "action", mDispType->qr_type)
 //                                    mDispType->qr_type = child->valueint;
@@ -1797,107 +1841,140 @@ void fifo::read_fifo_thread()
                                                 break;
 												
                                             case ACTION_VIDEO:
-                                                subNode = cJSON_GetObjectItem(org, "framerate");
-                                                if (subNode) {
+//                                                GET_CJSON_OBJ_ITEM_INT(subNode, org, "framerate")
+//                                                Log.d(TAG,"2qr type %d",mDispType->qr_type);
+                                                subNode = cJSON_GetObjectItem(org,"framerate");
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgV.org_fr = get_fr_index(
                                                             subNode->valueint);
                                                 }
-
+//                                                GET_CJSON_OBJ_ITEM_INT(subNode, org, "bitrate")
+//                                                Log.d(TAG,"3qr type %d",mDispType->qr_type);
                                                 subNode = cJSON_GetObjectItem(org,"bitrate");
-                                                if (subNode) {
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgV.org_br = subNode->valueint / 1000;
                                                 }
-
-                                                if (mAI->stOrgInfo.save_org != SAVE_OFF) {
+//                                                Log.d(TAG,"7qr type %d",mDispType->qr_type);
+                                                if (mAI->stOrgInfo.save_org != SAVE_OFF)
+                                                {
                                                     //exactly should divide 8,but actually less,so divide 10
                                                     mAI->size_per_act =
                                                             (mAI->stOrgInfo.stOrgAct.mOrgV.org_br * 6) / 10;
-                                                } else {
+                                                }
+                                                else
+                                                {
                                                     // no br ,seems timelapse
                                                     mAI->size_per_act = 30;
                                                 }
 //                                                Log.d(TAG,"5qr type %d",mDispType->qr_type);
                                                 subNode = cJSON_GetObjectItem(org,"logMode");
-                                                if (subNode) {
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgV.logMode = subNode->valueint;
                                                 }
                                                 break;
 
                                             case ACTION_LIVE:
-                                                subNode = cJSON_GetObjectItem(org, "framerate");
-                                                if (subNode) {
+//                                                GET_CJSON_OBJ_ITEM_INT(subNode, org, "framerate")
+                                                subNode = cJSON_GetObjectItem(org,"framerate");
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgV.org_fr = get_fr_index(
                                                             subNode->valueint);
                                                 }
+//                                                GET_CJSON_OBJ_ITEM_INT(subNode, org, "bitrate")
                                                 subNode = cJSON_GetObjectItem(org,"bitrate");
-                                                if (subNode) {
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgV.org_br = subNode->valueint / 1000;
                                                 }
                                                 subNode = cJSON_GetObjectItem(root,"logMode");
-                                                if (subNode) {
+                                                if(subNode)
+                                                {
                                                     mAI->stOrgInfo.stOrgAct.mOrgL.logMode = subNode->valueint;
                                                 }
                                                 break;
-												
                                             SWITCH_DEF_ERROR(mDispType->qr_type)
                                         }
                                     }
-
-									/* "param"的子节点"stiching" 拼接相关参数 */
                                     cJSON *sti = cJSON_GetObjectItem(child, "stiching");
-                                    if (sti) {
+                                    if (sti)
+                                    {
                                         char sti_mode[32];
-                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "width", mAI->stStiInfo.w)
-                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "height", mAI->stStiInfo.h)
-
-                                        Log.d(TAG,"stStiInfo.sti_res is (%d %d)", mAI->stStiInfo.w, mAI->stStiInfo.h);
-
+                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "width",mAI->stStiInfo.w)
+                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "height",mAI->stStiInfo.h)
+                                        Log.d(TAG,"stStiInfo.sti_res is (%d %d)",
+                                              mAI->stStiInfo.w,mAI->stStiInfo.h);
                                         GET_CJSON_OBJ_ITEM_STR(subNode,sti,"mode",sti_mode,sizeof(sti_mode));
                                         mAI->mode = get_mode_index(sti_mode);
+//                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "mode",mAI->mode)
+//                                        mAI->mode = subNode->valueint;
+//                                        GET_CJSON_OBJ_ITEM_INT(subNode, sti, "mime")
                                         subNode = cJSON_GetObjectItem(sti,"mime");
-                                        if (subNode) {
+                                        if(subNode)
+                                        {
                                             mAI->stStiInfo.mime = get_mime_index(subNode->valuestring);
                                         }
-										
                                         subNode = cJSON_GetObjectItem(sti, "map");
-                                        if (subNode) {
+                                        if (subNode)
+                                        {
                                             mAI->stStiInfo.stich_mode = get_sti_mode(subNode->valuestring);
                                         }
-										
-                                        Log.d(TAG, " mode (%d %d)", mAI->mode, mAI->stStiInfo.stich_mode);
-                                        switch (mDispType->qr_type) {
+                                        Log.d(TAG," mode (%d %d)",
+                                              mAI->mode,
+                                              mAI->stStiInfo.stich_mode);
+                                        switch (mDispType->qr_type)
+                                        {
                                             case ACTION_PIC:
                                                 subNode = cJSON_GetObjectItem(sti, "algorithm");
-                                                if (subNode) {
+                                                if (subNode)
+                                                {
                                                     mAI->stStiInfo.stich_mode = STITCH_OPTICAL_FLOW;
-                                                } else {
+                                                }
+                                                else
+                                                {
                                                     mAI->stStiInfo.stich_mode = STITCH_NORMAL;
                                                 }
-												
                                                 //3d
-                                                if (mAI->mode == 0) {
-                                                    if (mAI->stStiInfo.w >= 7680) {
+                                                if (mAI->mode == 0)
+                                                {
+                                                    if (mAI->stStiInfo.w >= 7680)
+                                                    {
                                                         mAI->size_per_act = 60;
-                                                    } else if (mAI->stStiInfo.w >= 5760) {
+                                                    }
+                                                    else if (mAI->stStiInfo.w >= 5760)
+                                                    {
                                                         mAI->size_per_act = 45;
-                                                    } else {
+                                                    }
+                                                    else
+                                                    {
                                                         mAI->size_per_act = 30;
                                                     }
-                                                } else {
-                                                    if (mAI->stStiInfo.w >= 7680) {
+                                                }
+                                                else
+                                                {
+                                                    if (mAI->stStiInfo.w >= 7680)
+                                                    {
                                                         mAI->size_per_act = 30;
-                                                    } else if (mAI->stStiInfo.w >= 5760) {
+                                                    }
+                                                    else if (mAI->stStiInfo.w >= 5760)
+                                                    {
                                                         mAI->size_per_act = 25;
-                                                    } else {
+                                                    }
+                                                    else
+                                                    {
                                                         mAI->size_per_act = 20;
                                                     }
                                                 }
                                                 break;
-												
                                             case ACTION_VIDEO:
                                                 subNode = cJSON_GetObjectItem(sti, "framerate");
-                                                if (subNode) {
-                                                    mAI->stStiInfo.stStiAct.mStiV.sti_fr = get_fr_index(subNode->valueint);
+                                                if(subNode)
+                                                {
+                                                    mAI->stStiInfo.stStiAct.mStiV.sti_fr = get_fr_index(
+                                                            subNode->valueint);
                                                 }
 
                                                 subNode = cJSON_GetObjectItem(sti, "bitrate");
@@ -1915,8 +1992,10 @@ void fifo::read_fifo_thread()
 												
                                             case ACTION_LIVE:
                                                 subNode = cJSON_GetObjectItem(sti, "framerate");
-                                                if (subNode) {
-                                                    mAI->stStiInfo.stStiAct.mStiL.sti_fr = get_fr_index(subNode->valueint);
+                                                if(subNode)
+                                                {
+                                                    mAI->stStiInfo.stStiAct.mStiL.sti_fr = get_fr_index(
+                                                            subNode->valueint);
                                                 }
                                                 subNode = cJSON_GetObjectItem(sti, "bitrate");
                                                 if (subNode) {
@@ -1968,11 +2047,26 @@ void fifo::read_fifo_thread()
                                     }
 
                                     cJSON *props = cJSON_GetObjectItem(child, "properties");
-                                    if (props) {
+                                    //set as default
+                                    mAI->stProp.audio_gain = 96;
+                                    if(props)
+                                    {
                                         GET_CJSON_OBJ_ITEM_INT(subNode, props, "audio_gain",mAI->stProp.audio_gain);
                                         Log.d(TAG,"aud_gain %d",mAI->stProp.audio_gain);
-                                    } else {
-                                        mAI->stProp.audio_gain = 96;
+//                                        {"aaa_mode":2,"ev_bias":0,"wb":0,"long_shutter":1-60(s),"shutter_value":21,"iso_value","value":7,"brightness","value":87,"saturation","value":156,"sharpness","value":4,"contrast","value":143}
+                                        subNode = cJSON_GetObjectItem(props, "len_param");
+                                        if(subNode)
+                                        {
+                                            Log.d(TAG,"found len param %s",cJSON_Print(subNode));
+                                            snprintf(mAI->stProp.len_param,sizeof(mAI->stProp.len_param),"%s",cJSON_Print(subNode));
+                                        }
+                                        subNode = cJSON_GetObjectItem(props, "gamma_param");
+                                        if(subNode)
+                                        {
+                                            Log.d(TAG,"subNode->valuestring %s",subNode->valuestring);
+                                            memcpy(mAI->stProp.mGammaData,subNode->valuestring,strlen(subNode->valuestring));
+                                            Log.d(TAG,"mAI->stProp.mGammaData %s",mAI->stProp.mGammaData);
+                                        }
                                     }
 									
                                     Log.d(TAG,"tl type size (%d %d %d)",
@@ -2000,34 +2094,96 @@ void fifo::read_fifo_thread()
 										
                                         SWITCH_DEF_ERROR(mDispType->type);
                                     }
-                                } else {
-									/* 没有"req"子节点 */
-                                    subNode = cJSON_GetObjectItem(root, "tl_count");
-                                    if (subNode) {
-                                        mDispType->tl_count = subNode->valueint;
-										Log.d(TAG,"get tl count %d", mDispType->tl_count);
+                                }
+                                else
+                                {
+                                    //{"flicker":0,"speaker":0,"led_on":0,"fan_on":0,"aud_on":0,"aud_spatial":0,"set_logo":0,}};
+                                    subNode = cJSON_GetObjectItem(root, "sys_setting");
+                                    if(subNode)
+                                    {
+                                        mDispType->mSysSetting = sp<SYS_SETTING>(new SYS_SETTING());
+
+                                        memset(mDispType->mSysSetting.get(),-1,sizeof(SYS_SETTING));
+
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"flicker",mDispType->mSysSetting->flicker);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"speaker",mDispType->mSysSetting->speaker);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"led_on",mDispType->mSysSetting->led_on);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"fan_on",mDispType->mSysSetting->fan_on);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"aud_on",mDispType->mSysSetting->aud_on);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"aud_spatial",mDispType->mSysSetting->aud_spatial);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"set_logo",mDispType->mSysSetting->set_logo);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"gyro_on",mDispType->mSysSetting->gyro_on);
+                                        GET_CJSON_OBJ_ITEM_INT(child,subNode,"video_fragment",mDispType->mSysSetting->video_fragment);
+
+                                        Log.d(TAG,"%d %d %d %d %d %d %d %d %d",
+                                              mDispType->mSysSetting->flicker,
+                                              mDispType->mSysSetting->speaker,
+                                              mDispType->mSysSetting->led_on,
+                                              mDispType->mSysSetting->fan_on,
+                                              mDispType->mSysSetting->aud_on,
+                                              mDispType->mSysSetting->aud_spatial,
+                                              mDispType->mSysSetting->set_logo,
+                                              mDispType->mSysSetting->gyro_on,
+                                                mDispType->mSysSetting->video_fragment);
                                     }
-									
-                                    mDispType->qr_type = -1;
-									// mDispType->control_act = -1;
-                                    mDispType->mAct = nullptr;
+                                    else
+                                    {
+
+                                        subNode = cJSON_GetObjectItem(root, "stitch_progress");
+
+                                        if(subNode)
+                                        {
+//                                            {
+//                                                "total_cnt":int,
+//                                                        "successful_cnt":int,
+//                                                        "failing_cnt":int,
+//                                                        "task_over":bool,
+//                                                “runing_task_progress”:double
+//                                        }
+                                            mDispType->mStichProgress = sp<STICH_PROGRESS>(new STICH_PROGRESS());
+                                            //finish
+                                            GET_CJSON_OBJ_ITEM_INT(child,subNode,"task_over",mDispType->mStichProgress->task_over);
+                                            GET_CJSON_OBJ_ITEM_INT(child,subNode,"total_cnt",mDispType->mStichProgress->total_cnt);
+                                            GET_CJSON_OBJ_ITEM_INT(child,subNode,"successful_cnt",mDispType->mStichProgress->successful_cnt);
+                                            GET_CJSON_OBJ_ITEM_INT(child,subNode,"failing_cnt",mDispType->mStichProgress->failing_cnt);
+                                            GET_CJSON_OBJ_ITEM_DOUBLE(child,subNode,"runing_task_progress",mDispType->mStichProgress->runing_task_progress);
+                                        }
+                                        else
+                                        {
+                                            subNode = cJSON_GetObjectItem(root, "tl_count");
+                                            if(subNode)
+                                            {
+                                                mDispType->tl_count = subNode->valueint;
+//                                                   Log.d(TAG,"get tl count %d",
+//                                                      mDispType->tl_count);
+                                            }
+                                        }
+                                    }
                                 }
                             }
-							
-							Log.d(TAG, "mDispType type (%d %d %d)",
-								mDispType->type, mDispType->qr_type, mDispType->control_act);
-
-							/* 发送显示信息给UI线程 */
-							send_disp_str_type(mDispType);
+//                            Log.d(TAG, "mDispType type (%d %d %d)",
+//                                  mDispType->type, mDispType->qr_type,mDispType->control_act);
+                            send_disp_str_type(mDispType);
                         }
                             break;
-
-							
-                        case CMD_OLED_SET_SN: {	/* 设置系统信息:(SN和UUID) */
+                        case CMD_OLED_SET_SN:
+                        {
                             sp<SYS_INFO> mSysInfo = sp<SYS_INFO>(new SYS_INFO());
-                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "sn", mSysInfo->sn, sizeof(mSysInfo->sn));
-                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "uuid", mSysInfo->uuid, sizeof(mSysInfo->uuid));
-                            Log.d(TAG, "CMD_OLED_SET_SN sn %s uuid %s", mSysInfo->sn, mSysInfo->uuid);
+//                            subNode = cJSON_GetObjectItem(root, "sn");
+//                            if (subNode)
+//                            {
+//                                snprintf(mSysInfo->sn, sizeof(mSysInfo->sn), "%s", subNode->valuestring);
+//
+//                            }
+//                            subNode = cJSON_GetObjectItem(root, "uuid");
+//                            if (subNode)
+//                            {
+//                                snprintf(mSysInfo->uuid, sizeof(mSysInfo->uuid), "%s", subNode->valuestring);
+//                            }
+                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"sn",mSysInfo->sn, sizeof(mSysInfo->sn));
+                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"uuid",mSysInfo->uuid, sizeof(mSysInfo->uuid));
+                            Log.d(TAG,"CMD_OLED_SET_SN sn %s uuid %s",
+                                  mSysInfo->sn,mSysInfo->uuid);
                             send_sys_info(mSysInfo);
 							break;
                         }

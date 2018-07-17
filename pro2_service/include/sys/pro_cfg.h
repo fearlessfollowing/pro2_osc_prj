@@ -138,6 +138,7 @@ enum {
     KEY_AUD_ON,
     KEY_AUD_SPATIAL,
     KEY_GYRO_ON,
+    KEY_VID_SEG,
     KEY_WIFI_AP,
 //    KEY_SAVE_PATH,
     //above is int vale
