@@ -64,28 +64,40 @@ typedef enum _type_ {
     START_LOW_BAT_SUC,
     START_LOW_BAT_FAIL,
     LIVE_REC_OVER,
+    SET_SYS_SETTING, //55
+
+    STITCH_PROGRESS,
+
+    START_BLC = 70,
+    STOP_BLC,
 
     START_GYRO = 73,
     START_GYRO_SUC,
     START_GYRO_FAIL ,
     SPEED_TEST_SUC,
     SPEED_TEST_FAIL,
-    SPEED_START,// 78,
+    SPEED_START = 78,// 78,
 
     SYNC_REC_AND_PREVIEW = 80,
+    SYNC_PIC_CAPTURE_AND_PREVIEW,
+    SYNC_PIC_STITCH_AND_PREVIEW,
     SYNC_LIVE_AND_PREVIEW = 90,
     SYNC_LIVE_CONNECT_AND_PREVIEW,// 91,
     //used internal
     START_STA_WIFI_FAIL,// 92,
     STOP_STA_WIFI_FAIL ,// 93,
     START_AP_WIFI_FAIL ,// 94,
-    STOP_AP_WIFI_FAIL ,// 95,
+    STOP_AP_WIFI_FAIL = 95 ,// 95,
+
+
 
     START_AGEING_FAIL = 97,
     START_AGEING = 98,
     START_FORCE_IDLE = 99,// 99,
     RESET_ALL = 100,// 100,
+
 //    WRITE_FOR_BROKEN = 101,
+    RESET_ALL_CFG = 102,
     MAX_TYPE,
 } TYPE;
 
@@ -164,11 +176,18 @@ enum {
     STATE_SPEED_TEST = 0x400000,
     STATE_START_GYRO = 0x800000,
     STATE_NOISE_SAMPLE = 0x1000000,
+    STATE_FORMATING = 0x2000000,
+    STATE_FORMAT_OVER = 0x4000000,
+
+    STATE_BLC_CALIBRATE = 0x10000000,
 //    STATE_CAP_FINISHING = 0x1000000,
 //    STATE_LIVE_FINISHING = 0x2000000,
 //    STATE_REC_FINISHING = 0x4000000,
 //    STATE_CAL_FINISHING = 0x8000000,
 //    STATE_SYS_ERR = 0x8000002
+	STATE_PLAY_SOUND = 0x20000000,
+
+
 };
 
 enum {
@@ -206,6 +225,13 @@ enum
 //    MENU_LOW_PROTECT,
     MENU_NOSIE_SAMPLE,
     MENU_LIVE_REC_TIME,//20
+
+    MENU_STITCH_BOX,
+    MENU_FORMAT,
+    MENU_FORMAT_INDICATION,
+    
+	MENU_SET_PHOTO_DEALY,	/* add by skymixos */
+	
     //messagebox keep at the end
     MENU_DISP_MSG_BOX,
     MENU_MAX,
@@ -258,8 +284,8 @@ enum {
     OPTION_SET_AUD,
     OPTION_GYRO_ON,
     OPTION_SET_LOGO,
-
-    OPTION_SET_AUD_GAIN,
+    OPTION_SET_VID_SEG,
+//    OPTION_SET_AUD_GAIN,
 };
 
 enum {
@@ -278,11 +304,13 @@ enum {
     ACTION_NOISE,
 
     //ACTION_LOW_PROTECT = 19,
+    ACTION_CUSTOM_PARAM = 18,
+    ACTION_LIVE_ORIGIN = 19,
     //force at end 0620
     ACTION_AGEING = 20,
     ACTION_AWB,
 
-
+    ACTION_SET_STICH = 50,
 };
 
 enum {
@@ -351,34 +379,8 @@ enum {
     ALL_FR_30,
     ALL_FR_60,
     ALL_FR_120,
-
+    ALL_FR_5,
     ALL_FR_MAX,
-};
-
-
-enum {
-    OLED_DISP_STR_TYPE,				// 0
-    OLED_DISP_ERR_TYPE,
-    OLED_GET_KEY,
-    OLED_GET_LONG_PRESS_KEY,
-    OLED_DISP_IP,					// 4, display ip
-    OLED_DISP_BATTERY,				// 5
-    //set config wifi same thread as oled wifi key action
-    OLED_CONFIG_WIFI,
-    OLED_SET_SN,
-    OLED_SYNC_INIT_INFO,
- // OLED_CHECK_LIVE_OR_REC,
-    OLED_UPDATE_DEV_INFO,
-    OLED_UPDATE_MID, //10
-    OLED_DISP_BAT_LOW,
-    OLED_UPDATE_CAPTURE_LIGHT,
-    OLED_UPDATE_CAL_LIGHT,
-    OLED_CLEAR_MSG_BOX,
-    OLED_READ_BAT, //15
-    OLED_DISP_LIGHT,
-    //disp oled info at start
-    OLED_DISP_INIT,
-    OLED_EXIT,
 };
 
 
@@ -394,6 +396,66 @@ struct _action_info_;
 struct _wifi_config_;
 struct _err_type_info_;
 struct _cam_prop_;
+
+
+enum {
+    SET_WIFI_AP,		// 1 (25, 16)
+    SET_DHCP_MODE,		// 2 (25, 32)
+    SET_FREQ,			// 3 (25, 48)50 or 60,flicker
+
+    SET_PHOTO_DELAY,	/* 4 (25, 16) 设置拍照延时: 3s,5s,10s,20s,30s,40s,50s,60s */
+    SET_SPEAK_ON,		/* 5 (25, 32) */
+    SET_BOTTOM_LOGO, 	/* 6 (25, 48) */
+
+    SET_LIGHT_ON,		/* 7 (25, 16) */
+    SET_AUD_ON,			/* 8 (25, 32) before spatial aud 170727*/
+    SET_SPATIAL_AUD,	/* 9 (25, 48) */
+
+    SET_GYRO_ON,		/* 10 (25, 16) */
+    //gyro calibration
+    SET_START_GYRO,		/* 11 (25, 32) */
+    SET_FAN_ON, 		/* 12 (25, 48) */
+
+    //sample fan nosie
+    SET_NOISE,			/* 13 (25, 16) */
+    SET_VIDEO_SEGMENT,	/* 14 (25, 32) */
+    SET_STITCH_BOX,		/* 15 (25, 48) */
+
+    //keep at end
+    SET_STORAGE,		/* 16 (25, 16) */
+    SET_INFO, 			/* 17 (25, 32) */
+    SET_RESTORE,		/* 18 (25, 48) */
+
+    SETTING_MAX
+};
+
+
+
+#define PH_DELAY_PATH "/data/etc/ph_delay"
+#define PH_DELAY_TMP_PATH "/data/etc/ph_delay.tmp"
+
+
+enum {
+	SET_PHOTO_DELAY_3S,
+	SET_PHOTO_DELAY_5S,
+	SET_PHOTO_DELAY_10S,
+	SET_PHOTO_DELAY_20S,
+	SET_PHOTO_DELAY_30S,
+	SET_PHOTO_DELAY_40S,
+	SET_PHOTO_DELAY_50S,
+	SET_PHOTO_DELAY_60S,
+	SET_PHOTO_DELAY_MAX,
+};
+
+
+
+typedef struct _setting_items_ {
+    int clear_icons[2];
+    int iSelect[SETTING_MAX];
+    int (*icon_normal)[2];
+    int (*icon_light)[2];
+} SETTING_ITEMS;
+
 
 
 class oled_handler {
@@ -451,6 +513,7 @@ private:
 	void set_mainmenu_item(int item,int icon);
     void disp_calibration_res(int type,int t = -1);
     void disp_sec(int sec,int x,int y);
+    bool isDevExist();
     void disp_menu(bool dispBottom = true); //add dispBottom for menu_pic_info 170804
     void disp_low_protect(bool bStart = false);
     void disp_low_bat();
@@ -467,9 +530,10 @@ private:
     bool check_state_preview();
     bool check_state_equal(int state);
     bool check_state_in(int state);
+    bool check_live();
     void update_menu();
     void update_menu_page();
-    void update_menu_sys_setting(bool bUpdateLast = false);
+    //void update_menu_sys_setting(bool bUpdateLast = false);
     void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
     void disp_scroll();
     void func_back();
@@ -491,6 +555,7 @@ private:
     void disp_org_rts(sp<struct _action_info_> &mAct,int hdmi = -1);
     void send_save_path_change();
     void oled_init_disp();
+    void disable_sys_wifi();
     void init_cfg_select();
 
     void disp_msg_box(int type);
@@ -508,7 +573,12 @@ private:
 //    void disp_pic_setting();
     void disp_live_setting();
     void disp_storage_setting();
-    void disp_sys_setting();
+    void disp_format();
+    void start_format();
+    void reset_devmanager();
+    void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
+    int exec_sh_new(const char *buf);
+    void disp_sys_setting(SETTING_ITEMS* pSetting);
     void disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
     void disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
     void clear_icon(u32 type);
@@ -516,6 +586,9 @@ private:
     void disp_ageing();
     void set_lan(int lan);
     int oled_disp_err(sp<struct _err_type_info_> &mErr);
+    int get_error_back_menu(int force_menu = -1);
+    void set_oled_power(unsigned int on);
+    void set_led_power(unsigned int on);
     int oled_disp_type(int type);
     void disp_sys_err(int type,int back_menu = -1);
     void disp_err_str(int type);
@@ -618,13 +691,16 @@ private:
 
 
     void add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
+    void update_sys_cfg(int item, int val);
+    void set_sys_setting(sp<struct _sys_setting_> &mSysSetting);
+    void disp_stitch_progress(sp<struct _stich_progress_> &mProgress);
     void disp_qr_res(bool high = true);
 
     // action from controller
 //    void disp_control_def(int save_org,int rts,int hdmi);
     void reset_last_info();
     bool is_bat_low();
-    bool check_bat_protect();
+    bool is_bat_charge();
     void set_light(u8 val);
     void set_light_direct(u8 val);
 
@@ -637,6 +713,8 @@ private:
     void set_light();
     bool check_cam_busy();
     void set_cap_delay(int delay);
+
+	void update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast = false);
 
 	
 	// void set_disp_control(bool state);
@@ -669,7 +747,9 @@ private:
     int cur_menu = -1;
     int last_err = -1;
 
-	//option which power key react ,changed by both oled key and ws
+	int set_photo_delay_index = 0;
+	
+//option which power key react ,changed by both oled key and ws
     int cur_option = 0;
 
 	//normally changed by up/down/power key in panel
@@ -728,6 +808,9 @@ private:
     //save path
     int save_path_select = -1;
 
+    bool bFirstDev = true;
+//    char new_path[128];
+//    char test_path[128];
     sp<SYS_INFO> mReadSys;
     sp<struct _ver_info_> mVerInfo;
     sp<struct _wifi_config_> mWifiConfig;
@@ -756,7 +839,8 @@ private:
 	
     bool bLiveSaveOrg = false;
     int pipe_sound[2]; // 0 -- read , 1 -- write
+    // during stiching and not receive stich finish
+    bool bStiching = false;
 
-	
 };
 #endif //PROJECT_OLED_WRAPPER_H

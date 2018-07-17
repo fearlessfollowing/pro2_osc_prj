@@ -90,6 +90,7 @@ static const char *key[] =
         "pic_sti_h:",
         "pic_len_param:",
         "pic_gamma:",
+
         //video
         "vid_mode:",
         "vid_size_per_act:",
@@ -116,6 +117,7 @@ static const char *key[] =
         "vid_aud_br:",
         "vid_len_param:",
         "vid_gamma:",
+
         //live
         "live_mode:",
         "live_size_per_act:",
@@ -278,6 +280,7 @@ void pro_cfg::update_act_info(int iIndex)
                 break;
             SWITCH_DEF_ERROR(iIndex)
         }
+
         memset(write_buf,0,sizeof(write_buf));
         Log.d(TAG,"start is %d end %d KEY_LIVE_AUD_BR %d",start,end, KEY_LIVE_AUD_BR);
         for(int type = start; type < end; type++ )

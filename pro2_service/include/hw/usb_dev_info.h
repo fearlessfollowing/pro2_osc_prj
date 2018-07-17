@@ -9,6 +9,7 @@ typedef struct usb_dev_info {
     //"usb","sd" or "internal"
     char dev_type[8];
     char path[128];
+    char src[256];
     char name[128];
     unsigned long long total;
     unsigned long long avail;

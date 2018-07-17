@@ -131,15 +131,11 @@ typedef struct _disp_type_ {
     int type;			// oled_disp_type
     
     //info according to type
-    int qr_type; 		// pic, vid or live
-    int control_act; 	// control req or save_to_customer
-    int tl_count; 		// timelapse
-    sp<ACTION_INFO> mAct;
-
-#ifdef ENABLE_STICH_BOX	
+    int qr_type; //pic, vid or live
+    int control_act; // control req or save_to_customer
+    int tl_count; //timelapse
     sp<STICH_PROGRESS> mStichProgress;
-#endif
-
+    sp<ACTION_INFO> mAct;
     sp<SYS_SETTING> mSysSetting;
 	
 } DISP_TYPE;

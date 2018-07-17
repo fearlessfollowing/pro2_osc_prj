@@ -332,7 +332,7 @@ void NetDev::postDevInfo2Ui()
     strcpy(pInfo->cDevName, getDevName().c_str());
     strcpy(pInfo->ipAddr, getCurIpAddr());
 
-    sp<ARMessage> msg = (sp<ARMessage>)(new ARMessage(OLED_DISP_IP));
+    sp<ARMessage> msg = (sp<ARMessage>)(new ARMessage(4));
     msg->set<sp<DEV_IP_INFO>>("info", pInfo);
 
     NetManager::getNetManagerInstance()->sendIpInfo2Ui(msg);

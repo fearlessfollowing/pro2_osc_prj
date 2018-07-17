@@ -210,7 +210,7 @@ int InputManager::getKey(u16 code)
 void InputManager::reportEvent(int iKey)
 {	
     if (mHander) {
-		sp<ARMessage> msg = mHander->obtainMessage(OLED_GET_KEY);
+		sp<ARMessage> msg = mHander->obtainMessage(2);
 		msg->set<int>("oled_key", iKey);
 		msg->post();
 
@@ -223,7 +223,7 @@ void InputManager::reportEvent(int iKey)
 void InputManager::reportLongPressEvent(int iKey, int64 iTs)
 {
     if (mHander) {
-		sp<ARMessage> msg = mHander->obtainMessage(OLED_GET_LONG_PRESS_KEY);		
+		sp<ARMessage> msg = mHander->obtainMessage(3);		
 		Log.d(TAG, "last_key_ts is %lld last_down_key %d", iTs, iKey);
 		
 		msg->set<int>("key", iKey);

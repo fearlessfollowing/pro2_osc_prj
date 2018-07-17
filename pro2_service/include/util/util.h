@@ -21,6 +21,12 @@ default: \
     Log.d(TAG,"cancel ab");
 #endif
 
+
+#define ERR_ITEM(item) \
+    Log.e(TAG,"%s:%s:%d error item %d",__FILE__,__FUNCTION__,__LINE__,item);\
+    abort();
+
+
 bool sh_isbig(void);
 int read_line(int fd, void *vptr, int maxlen);
 int exec_sh(const char *str);

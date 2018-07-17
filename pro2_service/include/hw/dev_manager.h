@@ -33,9 +33,11 @@ public:
     ~dev_manager();
     bool start_scan(int action = CHANGE);
     int check_block_mount(char *dev);
+    void resetDev(int count);
+	
 private:
 
-    void dev_change(int action = CHANGE);
+    void dev_change(int action,const int MAX_TIMES);
     bool parseAsciiNetlinkMessage(char *buffer,int size);
     void uevent_detect_thread();
     void init();
@@ -53,6 +55,7 @@ private:
 
     bool bThExit_ = false;
     unsigned int org_dev_count = 0;
+    //std::mutex mMutex;
 
 };
 #endif //PROJECT_DEV_MANAGER_H

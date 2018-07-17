@@ -108,6 +108,7 @@ const u8 fill_dat[] = {0x00, 0xff};
 
 #define SDCARD_TEST_SUC		"/data/etc/.pro_old"
 
+#if 0
 bool check_old_pro()
 {
     bool ret = false;
@@ -122,6 +123,7 @@ bool check_old_pro()
     Log.d(TAG, "check_old_pro (%s %d)", buf, ret);
     return ret;
 }
+#endif
 
 oled_module::oled_module()
 {
@@ -395,15 +397,15 @@ void oled_module::SSD_Set_VCOM_Level(u8 level)
 void oled_module::SSD_Set_Charge_Pump(u8 val)
 {
     ssd1306_write_cmd(SSD_SET_CHARGE_PUMP); // Set VCOM Deselect Level
-    if (check_old_pro())
-    {
+   // if (check_old_pro())
+    //{
         ssd1306_write_cmd(0x14);
-    }
-    else
-    {
+   // }
+   // else
+   // {
         Log.d(TAG, "2charge pump val 0x%x", val);
-        ssd1306_write_cmd(val);
-    }
+   //     ssd1306_write_cmd(val);
+   // }
 }
 
 /*----------------------------------------------------------------------------*/

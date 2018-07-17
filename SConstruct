@@ -16,11 +16,12 @@ Export('config')
 com_env = Environment(
 	CC = config.CC, CCFLAGS = config.CFLAGS,
 	CXX = config.CXX, CXXFLAGS = config.CXXFLAGS,
+	LIBS = config.LINKLIBS,
 	LINKFLAGS = config.LDFLAGS
  	)
 
 com_env.Append(CCCOMSTR='CC <+++ $SOURCES')
-com_env.Append(LINKCOMSTR='Link Target $SOURCES')
+#com_env.Append(LINKCOMSTR='Link Target $SOURCES')
 
 
 #print com_env['CCFLAGS']
@@ -48,8 +49,9 @@ com_env.Program('vold_test', vold_obj)
 ############################ update_app ####################################
 	
 
-############################ logo_service ##################################
-
+############################ bootanimation ##################################
+bootan_obj = SConscript('./bootlogo/SConscript')
+com_env.Program('bootanimation', bootan_obj)
 
 
 ############################ pro2_service ##################################
@@ -57,8 +59,8 @@ com_env.Program('vold_test', vold_obj)
 #pro2_service_env = com_env.Clone()
 
 #Export('pro2_service_env')
-pro2_service_obj = SConscript('./pro2_service/SConscript')
-com_env.Program('pro2service', pro2_service_obj)
+#pro2_service_obj = SConscript('./pro2_service/SConscript')
+#com_env.Program('pro2service', pro2_service_obj)
 
 
 

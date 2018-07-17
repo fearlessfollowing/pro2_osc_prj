@@ -87,10 +87,7 @@ if PLATFORM == 'gcc':
     OBJDUMP = PREFIX + 'objdump'
     OBJCPY = PREFIX + 'objcopy'
 
-    DEVICE = ' -mcpu=arm926ej-s'
     CFLAGS = DEVICE
-    AFLAGS = '-c'+ DEVICE + ' -x assembler-with-cpp'
-    AFLAGS += ' -Iplatform'
     #LFLAGS = DEVICE
     #LFLAGS += ' -Wl,--gc-sections,-cref,-Map=' + MAP_FILE
     #LFLAGS += ' -T ' + LINK_FILE + '.ld'
@@ -107,7 +104,7 @@ if PLATFORM == 'gcc':
 
 elif PLATFORM == 'aarch64':
     # toolchains
-    PREFIX = '/home/book/work/insta360/prebuilts/gcc/aarch64/install/bin/aarch64-unknown-linux-gnu-' 
+    PREFIX = '' 
     CC = PREFIX + 'gcc'
     AS = PREFIX + 'gcc'
     AR = PREFIX + 'ar'
@@ -121,7 +118,7 @@ elif PLATFORM == 'aarch64':
     CXXFLAGS = COM_FLAGS
     CXXFLAGS += ' -std=c++11 -frtti '
     LDFLAGS = ''
-
+    LINKLIBS = ''
     CPATH = ''
     LPATH = ''
 
