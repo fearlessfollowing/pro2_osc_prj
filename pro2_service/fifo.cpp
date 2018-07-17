@@ -33,90 +33,61 @@
 
 #include <system_properties.h>
 
+#include <prop_cfg.h>
 
 using namespace std;
 
-
-typedef struct _res_info_ {
-    int w;
-    int h[2];
-} RES_INFO;
-
-typedef struct _qr_info_ {
-    int qr_size;
-    int org_size;
-    int stich_size;
-    int hdr_size;
-    int burst_size;
-    int timelap_size;
-} QR_INFO;
-
-typedef struct _qr_struct_ {
-    int version;
-    QR_INFO astQRInfo[3];
-} QR_STRUCT;
-
 static QR_STRUCT mQRInfo[] = {
-	100,{{7,4,4,3,1,0},{6,6,5,0,0,1},{6,6,6}}
+	100, {{7,4,4,3,1,0}, {6,6,5,0,0,1}, {6,6,6}}
 };
 
 static const char *act_mode[] = {"3d_top_left", "pano"};
-static const char *all_mime[] = {"h264", "h265","jpeg", "raw"};
-static const char *all_map[] = {"flat","cube"};
-//static const char *pic_mime[] = {};
+static const char *all_mime[] = {"h264", "h265", "jpeg", "raw"};
+static const char *all_map[] = {"flat", "cube"};
+
 static const int all_frs[] = {24,25,30,60,120,5};
 //static const char *cal_mode[] = {"pano", "3d"};
 //kbits/s
 //static const int all_brs[] = {150000,100000,50000,40000,30000,25000,20000,10000,8000,5000,3000};
+
 static sp<fifo> mpFIFO = nullptr;
 static const int qr_array_len = 4;
 
-static const RES_INFO mResInfos[] =
-        {
-                //sti
-                {7680, {7680, 3840}},//0
-                {5760, {5760, 2880}},
-                {4096, {4096, 2048}},
-                {3840, {3840, 1920}},
-                {2880, {2880, 1440}},
-                {1920, {1920, 960}}, //5
-                {1440, {1440, 720}},
-                //org
-                {
-                 4000, {3000, 3000}
-                },
-                {
-                 3840, {2160, 2160}
-                },
-                {
-                 2560, {1440, 1440}
-                },
-                {
-                 1920, {1080, 1080} //10
-                },
-                {
-                 3200, {2400, 2400}
-                },
-                {
-                 2160, {1620, 1620}
-                },
-                {
-                 1920, {1440, 1440}
-                },
-                {1280,{960,960}},
-                {2160,{1080,1080}} //15
-        };
+static const RES_INFO mResInfos[] = {
+	//sti
+	{7680, {7680, 3840}},//0
+	{5760, {5760, 2880}},
+	{4096, {4096, 2048}},
+	{3840, {3840, 1920}},
+	{2880, {2880, 1440}},
+	{1920, {1920, 960}}, //5
+	{1440, {1440, 720}},
+	//org
+	{
+	 4000, {3000, 3000}
+	},
+	{
+	 3840, {2160, 2160}
+	},
+	{
+	 2560, {1440, 1440}
+	},
+	{
+	 1920, {1080, 1080} //10
+	},
+	{
+	 3200, {2400, 2400}
+	},
+	{
+	 2160, {1620, 1620}
+	},
+	{
+	 1920, {1440, 1440}
+	},
+	{1280,{960,960}},
+	{2160,{1080,1080}} //15
+};
 
-//#ifdef __cplusplus
-//extern "C" {  // 即使这是一个C++程序，下列这个函数的实现也要以C约定的风格来搞！
-//#endif
-////int send_usb_event(void *pV)
-////{
-////    return mpFIFO->send_usb_event(pV);
-////}
-//#ifdef __cplusplus
-//}
-//#endif
 
 static int reboot_cmd = -1;
 
@@ -1069,61 +1040,6 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
     }
 	
     if (nullptr != root) {
-        cJSON_Delete(root);
-    }
-}
-
-
-
-void fifo::handle_poll_change(const sp<ARMessage> &msg)
-{
-    char *pSrt = nullptr;
-    cJSON *root = cJSON_CreateObject();
-    CHECK_NE(root, nullptr);
-
-    int what;
-    CHECK_EQ(msg->find<int>("what", &what), true);
-//    Log.d(TAG," handle_poll_change what %d",what);
-    switch (what)
-    {
-//        case poll_timer::UPDATE_BATTERY:
-//        {
-//            int battery_level = 0;
-//            int temp;
-//            bool bCharge = false;
-//            CHECK_EQ(msg->find<int>("battery_level", &battery_level) ,true);
-//            CHECK_EQ(msg->find<int>("temp", &temp) ,true);
-//            CHECK_EQ(msg->find<bool>("battery_charge", &bCharge),true);
-//            cJSON_AddNumberToObject(root, "battery_level", battery_level);
-//            cJSON_AddNumberToObject(root, "battery_charge", bCharge);
-//            pSrt = cJSON_Print(root);
-//            write_fifo(EVENT_BATTERY, pSrt);
-//            Log.d(TAG, "rec UPDATE_BATTERY battery_level %d bCharge %d",battery_level, bCharge);
-//            mOLEDHandle->send_disp_battery(battery_level,bCharge);
-//        }
-        break;
-#if 0
-        case poll_timer::UPDATE_NET:
-        {
-//skip update net to ws
-            sp<net_dev_info> mpDevInfo;
-            CHECK_EQ(msg->find<sp<net_dev_info>>("net_dev_info", &mpDevInfo), true);
-//            Log.d(TAG,"send ip addr 0x%x",mpDevInfo->dev_addr);
-            mOLEDHandle->send_disp_ip((int) mpDevInfo->dev_addr,
-                                      mpDevInfo->dev_type);
-//            Log.d(TAG,"2send ip addr 0x%x",mpDevInfo->dev_addr);
-        }
-            break;
-#endif
-        default:
-            break;
-    }
-    if (nullptr != pSrt)
-    {
-        free(pSrt);
-    }
-    if (nullptr != root)
-    {
         cJSON_Delete(root);
     }
 }
@@ -2180,11 +2096,11 @@ void fifo::read_fifo_thread()
 //                            {
 //                                snprintf(mSysInfo->uuid, sizeof(mSysInfo->uuid), "%s", subNode->valuestring);
 //                            }
-                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"sn",mSysInfo->sn, sizeof(mSysInfo->sn));
-                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"uuid",mSysInfo->uuid, sizeof(mSysInfo->uuid));
-                            Log.d(TAG,"CMD_OLED_SET_SN sn %s uuid %s",
-                                  mSysInfo->sn,mSysInfo->uuid);
-                            send_sys_info(mSysInfo);
+                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"sn", mSysInfo->sn, sizeof(mSysInfo->sn));
+                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"uuid", mSysInfo->uuid, sizeof(mSysInfo->uuid));
+                            Log.d(TAG, "CMD_OLED_SET_SN sn %s uuid %s", mSysInfo->sn, mSysInfo->uuid);
+
+							send_sys_info(mSysInfo);
 							break;
                         }
 

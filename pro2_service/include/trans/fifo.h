@@ -16,10 +16,6 @@ struct _sys_info_;
 struct _sync_init_info_;
 
 
-
-#define  FIFO_FROM_CLIENT	"/home/nvidia/insta360/fifo/fifo_read_client"
-#define  FIFO_TO_CLIENT		"/home/nvidia/insta360/fifo/fifo_write_client"
-
 #define  TAG "fifo"
 
 #define  FIFO_HEAD_LEN (8)
@@ -56,12 +52,10 @@ enum {
     CMD_OLED_SET_SN = 18,
     CMD_CONFIG_WIFI = 19,
     //clear all camera state
+    
     //for kill self
-            CMD_EXIT = 20
+	CMD_EXIT = 20
 };
-
-
-
 
 
 //send to controller
@@ -73,6 +67,27 @@ enum {
     EVENT_SAVE_PATH = 4,
     EVENT_AGEING_TEST = 5,
 };
+
+
+typedef struct _res_info_ {
+    int w;
+    int h[2];
+} RES_INFO;
+
+typedef struct _qr_info_ {
+    int qr_size;
+    int org_size;
+    int stich_size;
+    int hdr_size;
+    int burst_size;
+    int timelap_size;
+} QR_INFO;
+
+typedef struct _qr_struct_ {
+    int version;
+    QR_INFO astQRInfo[3];
+} QR_STRUCT;
+
 
 class fifo {
 public:
@@ -100,6 +115,7 @@ private:
     std::thread th_read_fifo_;
     int write_fd = -1;
     int read_fd = -1;
+	
     void init();
     void deinit();
     int make_fifo();
@@ -108,22 +124,28 @@ private:
 
     sp<ARMessage> notify;
 
-//    void req_sync_state();
-//    void send_dev_manager_scan();
     sp<ARMessage> obtainMessage(uint32_t what);
-    void handle_poll_change(const sp<ARMessage> &msg);
     void handle_oled_notify(const sp<ARMessage> &msg);
-    int get_write_fd();
+
+	int get_write_fd();
     int get_read_fd();
     void close_read_fd();
     void close_write_fd();
+	
     void read_fifo_thread();
+	
     void write_exit_for_read();
-    void write_fifo(int iEvent , char *str = nullptr);
+
+	void write_fifo(int iEvent , char *str = nullptr);
+	
     void send_disp_str_type(sp<struct _disp_type_> &dis_type);
+	
     void send_wifi_config(const char *ssid, const char *pwd,int open = 1);
+
     void send_err_type_code(int type, int code);
+
     void send_power_off();
+	
     void send_sys_info(sp<struct _sys_info_> &mSysInfo);
     void send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
 
@@ -132,7 +154,6 @@ private:
 
 	sp<InputManager> mInputManager;
 	
-//    bool bRFifoStop = false;
     bool bWFifoStop = false;
 
     //msg thread

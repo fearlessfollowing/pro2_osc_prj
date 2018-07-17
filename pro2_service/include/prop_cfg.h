@@ -55,6 +55,12 @@
  */
 #define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
 
+/* 
+ * FIFO路径
+ */
+#define  FIFO_FROM_CLIENT		"/home/nvidia/insta360/fifo/fifo_read_client"
+#define  FIFO_TO_CLIENT			"/home/nvidia/insta360/fifo/fifo_write_client"
+
 
 
 /*
