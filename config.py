@@ -34,6 +34,7 @@ COM_FLAGS = ''
 COM_FLAGS += ' -DHAVE_SYS_UIO_H -DHAVE_PTHREADS -DHAVE_ANDROID_OS '
 COM_FLAGS += ' -I' + SDK_ROOT + 'include '
 COM_FLAGS += ' -I' + SDK_ROOT + 'include/init '
+COM_FLAGS += ' -I' + PRO2_SERVICE + '/include '
 
 #COM_FLAGS += $(EXTRA_INC_PATH)
 

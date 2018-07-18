@@ -734,24 +734,21 @@ int main(int argc, char **argv)
 	 * 此时需要等待系统将磁盘挂载后再往下执行(会出现有设备文件不挂载情况?)
 	 */
 	found = check_update_device_insert();
-	if (found)
-	{	/* 升级设备存在,等待升级挂载之后再进行后续操作 */
+	if (found) {	/* 升级设备存在,等待升级挂载之后再进行后续操作 */
 		
 		Log.d(TAG, "update device node exist, but need confirm it's have mounted...");
 		Log.d(TAG, "device node [%s]\n", dev_node_path);
 
 		/** 等待SD卡挂载成功（挂载操作由systemd-udevd服务完成）*/
 		result = wait_update_dev_mounted(dev_node_path, 5000);
-		if (!result)
-		{
+		if (!result) {
 			Log.e(TAG, "wait timeout, maybe need more time to wait mounted...");
 			goto EXIT;
 		}
 		
 		/** SD卡挂载完成后,检查根目录下是否存在Insta360_Pro_Update.bin */
 		result = search_updatebin_from_rmdev();
-		if (!result)
-		{
+		if (!result) {
 			Log.e(TAG, "update image file not exist, start app now...");
 			goto EXIT;
 		}
@@ -769,24 +766,22 @@ int main(int argc, char **argv)
 		sprintf(upate_check_path, "%s/%s", update_image_root_path, UPDATE_APP_ZIP);
 		u32 bin_file_size = get_file_size(image_path);	/* 得到升级文件的大小 */
 
-		if (!check_free_space(update_image_root_path, (u32)((bin_file_size * 3) >> 20)))
-		{
+
+		if (!check_free_space(update_image_root_path, (u32)((bin_file_size * 3) >> 20))) {
 			Log.e(TAG, "free space is not enough for unzip image");
 			disp_update_error(ERR_SPACE_LIMIT);
 			err_reboot();
 		}
 
 		/* 检查SD卡是否 */
-		if (is_fs_rw(update_image_root_path) == false)
-		{
+		if (is_fs_rw(update_image_root_path) == false) {
 			Log.e(TAG, "readonly fs is checked ...", update_image_root_path);
 			disp_update_error(ERR_RDONLY_DEV);
 			err_reboot();			
 		}
 
         iRet = get_unzip_update_check(update_image_root_path);	/* 提取用于系统更新的应用: update_app */
-        if (iRet == 0)
-        {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */
+        if (iRet == 0) {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */
 			
 			/* 设置属性: "sys.uc_update_app"为true
 		 	 * 让monitor服务启动update_app服务来进行具体的更新操作 
@@ -798,14 +793,10 @@ int main(int argc, char **argv)
 			/* 删除update_app.zip */
 			unlink(upate_check_path);		
 			return 0;
-        }
-        else if (iRet == 2)
-        {	/* 版本低于目标板 */
+        } else if (iRet == 2) {	/* 版本低于目标板 */
 			Log.d(TAG, "image version smaller than board...");
 			goto EXIT;
-		}
-        else
-        {	/* 提取update_app失败,提示错误并重启 */
+		} else {	/* 提取update_app失败,提示错误并重启 */
             Log.e(TAG, "get_update_app fail\n");
 			disp_update_error(ERR_GET_APP);
 			err_reboot();
@@ -825,7 +816,11 @@ EXIT:
 	 */
 	Log.d(TAG, "needn't startup update_app, start app directly...");			
 	arlog_close();	/* 关闭日志 */		
-	property_set(PROP_UC_START_APP, "true");	/* 不需要重启,直接通知init进程启动其他服务 */		
+	property_set(PROP_UC_START_APP, "true");	/* 不需要重启,直接通知init进程启动其他服务 */	
+
+	/* 关闭动画服务 */
+	property_set(PROP_BOOTAN_NAME, "false");
+	
 	return 0;
 }
 

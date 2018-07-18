@@ -6668,6 +6668,7 @@ bool oled_handler::check_allow_update_top()
 }
 
 
+#if 0
 int oled_handler::oled_disp_ip(unsigned int addr)
 {
 //    Log.d(TAG," org adr %u new addr %u",org_addr,addr);
@@ -6686,6 +6687,28 @@ int oled_handler::oled_disp_ip(unsigned int addr)
     }
     return 0;
 }
+#else
+
+int oled_handler::oled_disp_ip(unsigned int addr)
+{
+//    Log.d(TAG," org adr %u new addr %u",org_addr,addr);
+    if (org_addr != addr) {
+        u8 org_ip[32];
+        u8 ip[32];
+
+        int_to_ip(org_addr, org_ip, sizeof(org_ip));
+        int_to_ip(addr, ip, sizeof(ip));
+
+        if (check_allow_update_top()) {
+            mOLEDModule->disp_ip((const u8 *)ip);
+        }
+
+        set_org_addr(addr);
+    }
+    return 0;
+}
+
+#endif
 
 
 

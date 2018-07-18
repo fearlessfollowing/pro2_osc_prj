@@ -175,13 +175,11 @@ struct stMountSlotObj mountObjs[] = {
 static int getfdFromName(char* name)
 {
     int i;
-    for (i = 0; i < MAX_FILES; i++)
-    {
+    for (i = 0; i < MAX_FILES; i++) {
         if (!epoll_files[i])
             continue;
 
-        if (0 == strcmp(name, epoll_files[i]))
-        {
+        if (0 == strcmp(name, epoll_files[i])) {
             return i;
         }
     }
@@ -194,27 +192,18 @@ static int exec_cmd(const char *str)
     int status = system(str);
     int iRet = -1;
 
-    if (-1 == status)
-    {
+    if (-1 == status) {
        Log.e(TAG, "exec_cmd>> system %s error\n", str);
-    }
-    else
-    {
+    } else {
         // printf("exit status value = [0x%x]\n", status);
-        if (WIFEXITED(status))
-        {
-            if (0 == WEXITSTATUS(status))
-            {
+        if (WIFEXITED(status)) {
+            if (0 == WEXITSTATUS(status)) {
                 iRet = 0;
-            }
-            else
-            {
+            } else {
                 Log.e(TAG, "exec_cmd>> %s fail script exit code: %d\n", str, WEXITSTATUS(status));
 				Log.e(TAG, "exec_cmd>> errno = %d, %s\n", errno, strerror(errno));
             }
-        }
-        else
-        {
+        } else {
             Log.e(TAG, "exec_cmd>> exit status %s error  = [%d]\n", str, WEXITSTATUS(status));
         }
     }
@@ -237,48 +226,33 @@ bool isDevNeedMount(const char* deviceName, char* fsType, int iLen)
 	 * 批评成功,查看是否有TYPE字段(如果有说明改设备可以挂载)
 	 */
 	FILE *fp = fopen(BLK_DEV_TMP_FILE, "rb");
-	if (fp)
-	{
-		while ((pLine = fgets(line, sizeof(line), fp)))
-		{
+    if (fp) {
+        while ((pLine = fgets(line, sizeof(line), fp))) {
 			line[strlen(line) - 1] = '\0';	/* 将换行符替换成'\0' */
 
 			pdevNaneEnd = strstr(line, ":");
 			snprintf(devPath, pdevNaneEnd - &line[0] + 1, "%s", line);
 			
-			if (strcmp(devPath, deviceName) != 0)
-			{
+            if (strcmp(devPath, deviceName) != 0) {
 				continue;
-			}
-			else
-			{
+            } else {
 				/* 检查是否有"TYPE"字段 */
 				pFsType = strstr(line, "TYPE=");
-				if (NULL == pFsType)
-				{
+                if (NULL == pFsType) {
 					continue;
-				}
-				else
-				{
-					//if (strstr(line, "PTTYPE=") == NULL)
-					//{
+                } else {
 						/* 获取文件系统类型 */
 						pFsType += strlen("TYPE=") + 1;
-						for (int i = 0; i < iLen; i++)
-						{
-							if (pFsType[i] != '"')
-							{
+                        for (int i = 0; i < iLen; i++) {
+                            if (pFsType[i] != '"') {
 								fsType[i] = pFsType[i];
-							}
-							else
-							{
+                            } else {
 								break;
 							}
 						}
 						needMount = true;
 						break;
 					}
-//				}
 			}
 		}
 
@@ -296,21 +270,16 @@ const char* getDeviceMountPath(const char* devName, int* index)
 	const char* mountPath = NULL;
 	
 	/* 是SD卡还是U盘设备 */
-	if (strstr(devName, "mmc") != NULL)
-	{
-		if (mountObjs[MEDIA_TYPE_SD].hasMounted == false)
-		{
+    if (strstr(devName, "mmc") != NULL) {
+        if (mountObjs[MEDIA_TYPE_SD].hasMounted == false) {
 			mountObjs[MEDIA_TYPE_SD].devNodeName = strdup(devName);
 			mountPath = mountObjs[MEDIA_TYPE_SD].cMountPointPath;
 			*index = 0;
 		}
-	}
-	else if (strstr(devName, "sd") != NULL)
-	{
+    } else if (strstr(devName, "sd") != NULL) {
 		/* Max support 9 usb device now ... */
 		int i = 0;
-		for (i = 0;  i < PROP_MAX_DISK_SLOT_NUM; i++)
-		{
+        for (i = 0;  i < PROP_MAX_DISK_SLOT_NUM; i++) {
 			if (mountObjs[i].iMediaType == MEDIA_TYPE_USB && mountObjs[i].hasMounted == false) {
 				mountObjs[i].devNodeName = strdup(devName);
 				mountPath = mountObjs[i].cMountPointPath;
@@ -354,6 +323,9 @@ static void handleAddAction(const char* deviceName)
 			}
 			#else
 
+            /*
+             * Need to check mount point is clean
+             */
             for (int i = 0; i < 3; i++) {
                 sprintf(mount_cmd, "mount.exfat %s %s", deviceName, mountPath);
 				iRet = exec_cmd(mount_cmd);
@@ -413,8 +385,7 @@ static void handleRmAction(const char* deviceName)
 
 static void handleMonitorAction(int action, const char* deiceName)
 {
-	switch (action)
-	{
+    switch (action) {
 		case ACTION_ADD:
 			handleAddAction(deiceName);
 			break;
@@ -442,8 +413,7 @@ static void scanAndMount()
 
 
 	/* 挂载已经存在的USB和SD卡(目前只支持一类一个设备) */
-	for (u32 i = 0; i < sizeof(default_mount_devices) / sizeof(default_mount_devices[0]); i++)
-	{
+    for (u32 i = 0; i < sizeof(default_mount_devices) / sizeof(default_mount_devices[0]); i++) {
 		handleAddAction(default_mount_devices[i]);
 	}
 
@@ -452,10 +422,8 @@ static void scanAndMount()
 
 static void checkMountPoint()
 {
-	for (int i = 0; i < MEDIA_TYPE_MAX; i++)
-	{
-		if (access(mountObjs[i].cMountPointPath, F_OK) != 0)
-		{
+    for (int i = 0; i < MEDIA_TYPE_MAX; i++) {
+        if (access(mountObjs[i].cMountPointPath, F_OK) != 0) {
 			Log.d(TAG, "mkdir mount point -> [%s]", mountObjs[i].cMountPointPath);
 			mkdir(mountObjs[i].cMountPointPath, 0766);
 		}
@@ -476,8 +444,7 @@ int main(int argc, char** argv)
 	/* 属性及日志系统初始化 */
 	arlog_configure(true, true, VOLD_LOG_PATH, false);    /* 配置日志 */
 
-	if (__system_properties_init())		/* 属性区域初始化 */
-	{
+    if (__system_properties_init()) {   /* 属性区域初始化 */
 		Log.e(TAG, "update_check service exit: __system_properties_init() failed");
 		return -1;
 	}
@@ -506,8 +473,7 @@ int main(int argc, char** argv)
 
 	Log.d(TAG, "Starting watch /dev files changed now ...");
 
-	while (true)
-	{
+    while (true) {
 
 		/* 4.等待事件的带来 */
 		int pollResult = epoll_wait(mEpollFd, mPendingEventItems, EPOLL_COUNT, -1);
@@ -515,17 +481,14 @@ int main(int argc, char** argv)
 		Log.d(TAG, "epoll wait event num = %d\n", pollResult);
 
 		/* 依次处理各个事件 */
-		for (i = 0; i < pollResult; i++)
-		{
+        for (i = 0; i < pollResult; i++) {
 			
 			/* 有文件的变化,如文件的创建/删除 */
-			if (mPendingEventItems[i].data.fd == mINotifyFd)
-			{
+            if (mPendingEventItems[i].data.fd == mINotifyFd) {
 				/* 读取inotify事件，查看是add 文件还是remove文件，add 需要将其添加到epoll中去，remove 需要从epoll中移除 */
 				readCount  = 0;
 				readCount = read(mINotifyFd, inotifyBuf, MAXCOUNT);
-                if (readCount <  sizeof(inotifyEvent))
-                {
+                if (readCount <  sizeof(inotifyEvent)) {
 		            Log.e(TAG, "error inofity event");
 		            return -1;
                 }
@@ -533,10 +496,8 @@ int main(int argc, char** argv)
                 // cur 指针赋值
                 curInotifyEvent = (struct inotify_event*)inotifyBuf;
 
-                while (readCount >= sizeof(inotifyEvent))
-                {
-                	if (curInotifyEvent->len > 0)
-                	{
+                while (readCount >= sizeof(inotifyEvent)) {
+                    if (curInotifyEvent->len > 0) {
                 		/* 生成临时文件.blk_tmp文件 */
                 		usleep(50 * 1000);	/* delay 50ms */
                 		system("blkid > /tmp/.blk_tmp");
@@ -545,13 +506,10 @@ int main(int argc, char** argv)
                 		memset(devPath, 0, sizeof(devPath));
                 		sprintf(devPath, "/dev/%s", curInotifyEvent->name);
 						
-                		if (curInotifyEvent->mask & IN_CREATE)
-                		{
+                        if (curInotifyEvent->mask & IN_CREATE) {
                 			/* 有新设备插入,根据设备文件执行挂载操作 */
                 			handleMonitorAction(ACTION_ADD, devPath);
-                		}
-                		else if (curInotifyEvent->mask & IN_DELETE)
-                		{
+                        } else if (curInotifyEvent->mask & IN_DELETE) {
                 			/* 有设备拔出,执行卸载操作 */
                 			handleMonitorAction(ACTION_REMOVE, devPath);
                 		}
@@ -559,14 +517,11 @@ int main(int argc, char** argv)
                 	curInotifyEvent --;
                 	readCount -= sizeof(inotifyEvent);
                 }
-			}
-			else
-			{	//6. 其他原有的fd发生变化
+            } else {	//6. 其他原有的fd发生变化
 				Log.d(TAG, "file changer------------------");
 				readCount = 0;
 				readCount = read(mPendingEventItems[i].data.fd, epollBuf, MAXCOUNT);
-				if (readCount > 0)
-				{
+                if (readCount > 0) {
 					epollBuf[readCount] = '\0';
 					Log.d(TAG, "file can read, fd: %d, countent:%s",mPendingEventItems[i].data.fd,epollBuf);
 				}

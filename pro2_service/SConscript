@@ -21,7 +21,7 @@ src += [config.PRO2_SERVICE + '/util/ARMessage.cpp']
 src += [config.PRO2_SERVICE + '/util/ARLooper.cpp']
 src += [config.PRO2_SERVICE + '/util/bytes_int_convert.cpp']
 src += [config.PRO2_SERVICE + '/util/util.cpp']
-src += [config.PRO2_SERVICE + '/util/cJSCON.c']
+src += [config.PRO2_SERVICE + '/util/cJSON.c']
 src += [config.PRO2_SERVICE + '/util/stlog.cpp']
 src += [config.PRO2_SERVICE + '/util/pro_version.cpp']
 

@@ -182,31 +182,29 @@ void battery_interface::deinit()
 int battery_interface::is_enough(u16 req)
 {
     int ret = -1;
-    if (check_old_pro()) {
-        ret = 0;
-    } else {
-        u16 val;
-        int good_times = 0;
-        int max_times = 5;
-        for (int i = 0; i < max_times; i++) {
-            if (read_bat_data(&val) == 0) {
-                if (val >= req) {
-                    good_times++;
-                } else {
-                    Log.e(TAG, "bat less level(%d %d)", val, req);
-                }
-            } else {
-                Log.e(TAG, "is_enough read error good_times %d", good_times);
-                break;
-            }
-        }
 
-        if (good_times >= (max_times - 1)) {
-            ret = 0;
+    u16 val;
+    int good_times = 0;
+    int max_times = 5;
+    for (int i = 0; i < max_times; i++) {
+        if (read_bat_data(&val) == 0) {
+            if (val >= req) {
+                good_times++;
+            } else {
+                Log.e(TAG, "bat less level(%d %d)", val, req);
+            }
         } else {
-            Log.e(TAG,"bat less than %d",req);
+            Log.e(TAG, "is_enough read error good_times %d", good_times);
+            break;
         }
     }
+
+    if (good_times >= (max_times - 1)) {
+        ret = 0;
+    } else {
+        Log.e(TAG,"bat less than %d",req);
+    }
+
     return ret;
 }
 

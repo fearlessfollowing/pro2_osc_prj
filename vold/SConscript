@@ -18,7 +18,6 @@ src += [config.LIBCUTILS + '/system_properties.c']
 
 
 com_env['CXXFLAGS'] += ' -I' + config.PRO2_SERVICE + '/include'
-com_env['LINKFLAGS'] += ' -lrt -lpthread '
 vold_obj = com_env.Object(src)
 
 Return('vold_obj')

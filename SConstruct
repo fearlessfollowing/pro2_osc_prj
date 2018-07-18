@@ -16,7 +16,7 @@ Export('config')
 com_env = Environment(
 	CC = config.CC, CCFLAGS = config.CFLAGS,
 	CXX = config.CXX, CXXFLAGS = config.CXXFLAGS,
-	LIBS = config.LINKLIBS,
+	LIBS = ['pthread', 'rt', 'ev'],
 	LINKFLAGS = config.LDFLAGS
  	)
 
@@ -32,14 +32,14 @@ Export('com_env')
 ############################# Monitor ######################################
 monitor_obj = SConscript('./init/SConscript')
 
-MONITOR_EXE = 'monitor'
+MONITOR_EXE = 'out/monitor'
 MONITOR_OBJS = monitor_obj
 com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
 
 
 ############################## VOLD #########################################
 vold_obj = SConscript('./vold/SConscript')
-com_env.Program('vold_test', vold_obj)
+com_env.Program('out/vold_test', vold_obj)
 
 
 
@@ -47,11 +47,14 @@ com_env.Program('vold_test', vold_obj)
 
 
 ############################ update_app ####################################
+update_check_obj = SConscript('./update_check/SConscript')
+com_env.Program('out/update_check', update_check_obj)
+
 	
 
 ############################ bootanimation ##################################
 bootan_obj = SConscript('./bootlogo/SConscript')
-com_env.Program('bootanimation', bootan_obj)
+com_env.Program('out/bootanimation', bootan_obj)
 
 
 ############################ pro2_service ##################################
@@ -59,8 +62,8 @@ com_env.Program('bootanimation', bootan_obj)
 #pro2_service_env = com_env.Clone()
 
 #Export('pro2_service_env')
-#pro2_service_obj = SConscript('./pro2_service/SConscript')
-#com_env.Program('pro2service', pro2_service_obj)
+pro2_service_obj = SConscript('./pro2_service/SConscript')
+com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
 

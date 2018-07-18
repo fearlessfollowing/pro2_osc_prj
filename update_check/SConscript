@@ -14,6 +14,9 @@ src += [config.PRO2_SERVICE + '/hw/oled_module.cpp']
 
 src += [config.PRO2_SERVICE + '/util/arlog.c']
 src += [config.PRO2_SERVICE + '/util/stlog.cpp']
+src += [config.PRO2_SERVICE + '/util/md5.cpp']
+src += [config.PRO2_SERVICE + '/util/update_oled.cpp']
+src += [config.PRO2_SERVICE + '/util/update_util.cpp']
 
 src += [config.LIBLOG + '/logd_write.c']
 src += [config.LIBLOG + '/log_event_write.c']
@@ -24,10 +27,18 @@ src += [config.LIBLOG + '/log_time.cpp']
 src += [config.LIBCUTILS + '/system_properties.c']
 
 
+
+#SOURCES += $(LIBCUTILS)/socket_local_server.c
+#SOURCES += $(LIBCUTILS)/socket_local_client.c
+#SOURCES += $(LIBCUTILS)/klog.c
+#SOURCES += $(LIBCUTILS)/uevent.c
+#SOURCES += $(LIBCUTILS)/system_properties.c
+
+
 com_env['CXXFLAGS'] += ' -I' + config.PRO2_SERVICE + '/include'
 #com_env['LIBS'] += ['rt']
 #com_env['LIBS'] += ['pthread']
-bootan_obj = com_env.Object(src)
+update_check_obj = com_env.Object(src)
 
-Return('bootan_obj')
+Return('update_check_obj')
 

@@ -31,8 +31,13 @@
 #endif
 
 #include <log/stlog.h>
+#include <prop_cfg.h>
+#include <system_properties.h>
 
 
+/*
+ * BootAnimation - 开机启动动画类
+ */
 class BootAnimation {
 public:
 	BootAnimation();
@@ -75,23 +80,65 @@ BootAnimation::~BootAnimation()
 }
 
 
-
-
 void BootAnimation::startBootAnimation()
 {
-	const u8* pret = (const u8 *)"Insta360";
-	mOLEDModule->ssd1306_disp_16_str(pret, 8, 16);
+	const u8* pret = (const u8 *)"Insta360 Pro2";
+    mOLEDModule->ssd1306_disp_16_str(pret, 16, 24);
 }
 
 
+
+/*************************************************************************
+** 方法名称: main
+** 方法功能: 启动动画服务的入口函数
+** 入口参数: 
+**		argc - 参数个数
+**		argv - 参数列表
+** 返 回 值: 成功返回0;失败返回-1
+** 调     用: monitor
+**
+*************************************************************************/
 int main(int argc, char* argv[])
 {
 
+	const char* pBootAn = NULL;
+	
+	/* 
+	 * 加入属性系统
+	 * 当动画服务启动后将属性"sys.bootan"设置为true,
+	 * 当"update_check"服务启动后会将"sys.bootan"设置为false,此时bootan服务将退出
+	 */
+	
+	if (__system_properties_init()) {	/* 属性区域初始化 */
+		fprintf(stderr, "bootan service exit: __system_properties_init() faile\n");
+		return -1;
+	}
+	
 	sp<BootAnimation> gBootAnimation = (sp<BootAnimation>)(new BootAnimation());
-
 	gBootAnimation->startBootAnimation();
+	
+	property_set(PROP_BOOTAN_NAME, "true");
 
-	sleep (2);
+    /* check /etc/resolv.conf */
+    if (access(ETC_RESOLV_PATH, F_OK) != 0) {
+        system("touch /etc/resolv.conf");
+    }
+
+    system("echo nameserver 202.96.128.86 > /etc/resolv.conf");
+    system("echo nameserver 114.114.114.114 >> /etc/resolv.conf");
+    system("echo nameserver 127.0.0.1 >> /etc/resolv.conf");
+
+
+	while (1) {
+		pBootAn = property_get(PROP_BOOTAN_NAME);
+		if (pBootAn != NULL && !strncmp(pBootAn, "false", strlen("false"))) {
+			break;
+		} else {
+			sleep(0.5);
+		}
+	}
+
+	fprintf(stdout, "bootan service exit now ^^___^^^\n");	
 	
 	return 0;
 }
