@@ -326,19 +326,6 @@ int NetDev::processPollEvent(sp<NetDev>& netdev)
 }
 
 
-void NetDev::postDevInfo2Ui()
-{
-    sp<DEV_IP_INFO> pInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
-    strcpy(pInfo->cDevName, getDevName().c_str());
-    strcpy(pInfo->ipAddr, getCurIpAddr());
-
-    sp<ARMessage> msg = (sp<ARMessage>)(new ARMessage(4));
-    msg->set<sp<DEV_IP_INFO>>("info", pInfo);
-
-    NetManager::getNetManagerInstance()->sendIpInfo2Ui(msg);
-}
-
-
 int NetDev::getCurGetIpMode()
 {
 	return iGetIpMode;
@@ -430,17 +417,12 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
             }
             /* 将地址设置到网卡,并将地址发送给UI */
             Log.d(TAG, ">>>> send our ip to UI thread ....");
-            etherDev->postDevInfo2Ui();
 
         } else {	/* Connect -> Disconnect */
             Log.i(TAG, "++++>>> link disconnect");
 
             etherDev->storeCurIp2Saved();
             etherDev->setCurIpAddr("0.0.0.0", true);
-
-            /* 发送0.0.0.0到UI */
-            Log.d(TAG, ">>>> send our ip(0.0.0.0) to UI thread .... ");
-            etherDev->postDevInfo2Ui();
         }
 
         etherDev->setNetdevSavedLink(iCurLinkState);
@@ -463,12 +445,10 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
 				}
 
                 etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy(), false);
-                etherDev->postDevInfo2Ui();
             }
         } else {
             Log.i(TAG, "+++++>>> link not changed(Disconnected), do nothing.");
             etherDev->setCurIpAddr("0.0.0.0", true);
-			etherDev->postDevInfo2Ui();
             iPollInterval = 2;
         }
     }
@@ -481,12 +461,9 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
 /************************************* WiFi Dev ***************************************/
 
 WiFiNetDev::WiFiNetDev(int work_mode, string name, int iMode):NetDev(DEV_WLAN, work_mode, NET_LINK_CONNECT, false, name, iMode)
+																,bLoadDrvier(false)
 {
     Log.d(TAG, "constructor WiFi device");
-	char cmd[512] = {0};
-	
-	sprintf(cmd, "insmod %s", BCMDHD_DRIVER_PATH);
-	system(cmd);	
 }
 
 WiFiNetDev::~WiFiNetDev()
@@ -496,9 +473,21 @@ WiFiNetDev::~WiFiNetDev()
 
 int WiFiNetDev::netdevOpen()
 {
+
+	if (bLoadDrvier == false) {
+		char cmd[512] = {0};
+		
+		sprintf(cmd, "insmod %s", BCMDHD_DRIVER_PATH);
+		system(cmd);	
+
+		bLoadDrvier = true;
+	}
+
 	if (getWiFiWorkMode() == WIFI_WORK_MODE_AP) {
 		system("echo 2 > /sys/module/bcmdhd/parameters/op_mode");	/* 通知固件工作在AP模式 */
-		system("ifconfig wlan0 192.168.43.1");
+
+		setCurIpAddr(WLAN0_DEFAULT_IP, true);
+
 		system("hostapd /etc/hostapd.conf -B");
 	} else {
 		system("echo 0 > /sys/module/bcmdhd/parameters/op_mode");	/* 通知固件工作在STA模式 */
@@ -509,6 +498,9 @@ int WiFiNetDev::netdevOpen()
 int WiFiNetDev::netdevClose()
 {
 	system("killall hostapd");
+
+	setCurIpAddr(OFF_IP, true);
+
 	system("ifconfig wlan0 down");
 	return 0;
 }
@@ -634,6 +626,8 @@ string NetManager::convWhat2Msg(uint32_t what)
     return msg;
 }
 
+#define NETM_DISPATCH_PRIO	0x10		/* 按优先级的顺序显示IP */
+#define NETM_DISPATCH_POLL	0x11		/* 若有多个IP依次显示 */
 
 
 void NetManager::handleMessage(const sp<ARMessage> &msg)
@@ -645,10 +639,6 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 	switch (what) {
 		case NETM_POLL_NET_STATE: {		/* 轮询网络设备的状态 */
-			/* 检查系统中所有处于激活状态的网卡
-			 * 如果链路发生变化
-			 * 如果IP发生变化
-			 */
 			
             if (!mPollMsg) {
                 mPollMsg = msg->dup();
@@ -671,18 +661,20 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
                 iInterval = tmpDev->processPollEvent(tmpDev);
             }
 
+			dispatchIpPolicy(NETM_DISPATCH_PRIO);
+
 			sendNetPollMsg(iInterval);	/* 继续发送轮询消息 */
 			break;
 		}
 	
 
+		/*
+		 * msg.what = NETM_REGISTER_NETDEV
+		 * msg."netdev" = sp<NetDev>
+		 */
 		case NETM_REGISTER_NETDEV: {	/* 注册网络设备 */
 			Log.d(TAG, "NetManager -> register net device...");
 
-			/*
-			 * msg.what = NETM_REGISTER_NETDEV
-			 * msg."netdev" = sp<NetDev>
-			 */
 			sp<NetDev> tmpNet;
             CHECK_EQ(msg->find<sp<NetDev>>("netdev", &tmpNet), true);
 
@@ -703,6 +695,10 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 		}
 
 
+		/*
+		 * msg.what = NETM_REGISTER_NETDEV
+		 * msg."netdev" = sp<NetDev>
+		 */
 		case NETM_UNREGISTER_NETDEV: {	/* 注销网络设备 */
 			
 			Log.d(TAG, "NetManager -> unregister net device...");
@@ -719,6 +715,10 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 		}
 
 
+		/*
+		 * msg.what = NETM_REGISTER_NETDEV
+		 * msg."netdev" = sp<NetDev>
+		 */
 		case NETM_STARTUP_NETDEV: {		/* 启动网络设备 */
 			
             Log.d(TAG, "Startup Wifi test ....");
@@ -804,14 +804,15 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 				tmpDev = mDevList.at(i);
 				Log.d(TAG, "--------------- NetManager List Netdev ------------------");
 				Log.d(TAG, "Name: %s", tmpDev->getDevName().c_str());
-				Log.d(TAG, "IP: %s", tmpDev->getDevName().c_str());
-				Log.d(TAG, "Link: %s", tmpDev->getDevName().c_str());
-				Log.d(TAG, "State: %s", tmpDev->getDevName().c_str());
+				Log.d(TAG, "IP: %s", tmpDev->getCurIpAddr());
+				Log.d(TAG, "Link: %d", tmpDev->getNetdevSavedLink());
+				Log.d(TAG, "Type: %d", tmpDev->getNetDevType());
 				Log.d(TAG, "---------------------------------------------------------");
 			}
 
 			break;
 		}
+
 
 		case NETM_EXIT_LOOP: {
 			Log.d(TAG, "NetManager: netmanager exit loop...");
@@ -825,6 +826,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 			break;
 	}
 }
+
 
 sp<NetDev>& NetManager::getNetDevByType(int iType)
 {
@@ -884,6 +886,7 @@ int NetManager::registerNetdev(sp<NetDev>& netDev)
 {
 	uint32_t i;
 	int ret = 0;
+	
     unique_lock<mutex> lock(mMutex);
     for (i = 0; i < mDevList.size(); i++) {
         if (mDevList.at(i)->getDevName() == netDev->getDevName()) {
@@ -894,7 +897,6 @@ int NetManager::registerNetdev(sp<NetDev>& netDev)
 	if (i >= mDevList.size()) {
 		mDevList.push_back(netDev);
 		Log.d(TAG, "register net device [%s]", netDev->getDevName());
-
 	} else {
 		Log.d(TAG, "net device [%s] have existed", netDev->getDevName());
 		ret = -1;
@@ -918,6 +920,7 @@ void NetManager::unregisterNetDev(sp<NetDev>& netDev)
 
 }
 
+
 int NetManager::getSysNetdevCnt()
 {
     return mDevList.size();
@@ -930,7 +933,7 @@ sp<NetDev>& NetManager::getNetDevByname(const char* devName)
     {
         unique_lock<mutex> lock(mMutex);
         for (i = 0; i < mDevList.size(); i++) {
-            Log.d(TAG, "dev name: %s", mDevList.at(i)->getDevName().c_str());
+            //Log.d(TAG, "dev name: %s", mDevList.at(i)->getDevName().c_str());
             if (!strncmp(mDevList.at(i)->getDevName().c_str(), devName, strlen(devName))) {
                 return mDevList.at(i);
             }
@@ -946,41 +949,95 @@ void NetManager::postNetMessage(sp<ARMessage>& msg, int interval)
 }
 
 
-void NetManager::sendIpInfo2Ui(sp<ARMessage>& msg)
+
+void NetManager::dispatchIpPolicy(int iPolicy)
+{
+    sp<NetDev> tmpEthDev;
+    sp<NetDev> tmpWlanDev;
+
+	const char* pEthIp = NULL;
+	const char* pWlanIp = NULL;
+	bool bUpdate = false;
+
+
+
+	switch (iPolicy) {
+
+	/* 基于优先级的发送IP策略: 
+	 * LAN IP不为0时显示LAN的IP 
+	 * LAN IP为0, WLAN0开启时,显示WLAN0的IP
+	 * 均为0时显示"0.0.0.0"
+	 */
+
+	case NETM_DISPATCH_PRIO: 	/* LAN > WLAN */
+
+	 
+	 	Log.d(TAG, "mLastDispIp ip: [%s]", mLastDispIp);
+		
+		tmpEthDev = getNetDevByname(ETH0_NAME);
+		tmpWlanDev = getNetDevByname(WLAN0_NAME);
+
+		if (tmpEthDev && strcmp(tmpEthDev->getCurIpAddr(), "0.0.0.0")) {
+            Log.d(TAG, "Lan Ip compare....[%s],[%s]", tmpEthDev->getCurIpAddr(), mLastDispIp);
+			if (strcmp(tmpEthDev->getCurIpAddr(), mLastDispIp)) {
+				memset(mLastDispIp, 0, sizeof(mLastDispIp));
+				strcpy(mLastDispIp, tmpEthDev->getCurIpAddr());
+				bUpdate = true;
+			} else {
+				Log.d(TAG, "Lan ip equal mLastDispIp");
+			}
+		} else if (tmpWlanDev && strcmp(tmpWlanDev->getCurIpAddr(), "0.0.0.0")) {
+			if (strcmp(tmpWlanDev->getCurIpAddr(), mLastDispIp)) {
+				memset(mLastDispIp, 0, sizeof(mLastDispIp));
+				strcpy(mLastDispIp, tmpWlanDev->getCurIpAddr());
+				bUpdate = true;
+			}
+		} else {
+			bUpdate = true;
+		}
+
+		break;
+
+	case NETM_DISPATCH_POLL:
+		break;
+
+	default:
+		break;
+		
+	} 
+
+
+	if (bUpdate) {
+		sendIpInfo2Ui();
+	}
+
+}
+
+
+void NetManager::sendIpInfo2Ui()
 {
     /* Get Global UI object */
-    Log.d(TAG, "NetManager: send ip info to ui");
+    Log.d(TAG, "NetManager: send ip(%s) info to ui", mLastDispIp);
+	
+    sp<DEV_IP_INFO> pInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
+    strcpy(pInfo->cDevName, "NetManager");
+    strcpy(pInfo->ipAddr, mLastDispIp);
+
+    sp<ARMessage> msg = (sp<ARMessage>)(new ARMessage(4));
+    msg->set<sp<DEV_IP_INFO>>("info", pInfo);
+	
     fifo::getSysTranObj()->sendUiMessage(msg);
 }
 
 
-
-void NetManager::dispatchIp()
-{
-    sp<NetDev> tmpDev;
-    /*
-    for (itor = mDevList.begin(); itor != mDevList.end(); itor++) {
-        if ((*itor)->getNetDevActiveState()) {
-            tmpList.push_back(*itor);
-        }
-    }
-    */
-
-    for (uint32_t i = 0; i < mDevList.size(); i++) {
-        tmpDev = mDevList.at(i);
-        if (tmpDev->getNetDevActiveState()) {
-            Log.d(TAG, "dev[%s], ip [%s]", tmpDev->getDevName().c_str(), tmpDev->getCurIpAddr());
-        }
-    }
-
-}
-
 NetManager::NetManager(): mState(NET_MANAGER_STAT_INIT), 
-							  mCurdev(NULL), 
                               mPollMsg(NULL),
 							  mExit(false)
 {
     Log.d(TAG, "construct NetManager....");
+
+	memset(mLastDispIp, 0, sizeof(mLastDispIp));
+	strcpy(mLastDispIp, OFF_IP);
 	mDevList.clear();
 }
 

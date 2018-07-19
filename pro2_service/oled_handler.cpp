@@ -1546,10 +1546,6 @@ oled_handler::oled_handler(const sp<ARMessage> &notify):mNotify(notify)
 	
     init();					/* oled_handler内部成员初始化 */
 
-#ifdef USE_OLD_NET
-    init_poll_thread();		/* 初始化网络检测线程(用于检测网络状态的变化) */
-#endif
-
     send_init_disp();		/* 给消息处理线程发送初始化显示消息 */
 }
 
@@ -1587,18 +1583,14 @@ void oled_handler::set_setting_select(int type,int val)
 
 void oled_handler::disp_top_info()
 {
-    unsigned int org_ip = org_addr;
-    if(mProCfg->get_val(KEY_WIFI_ON))
-    {
+	
+    if (mProCfg->get_val(KEY_WIFI_ON)) {
         disp_icon(ICON_WIFI_OPEN_0_0_16_16);
-    }
-    else
-    {
+    } else {
         disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
     }
 
-    set_org_addr(10002);
-    oled_disp_ip(org_ip);
+	uiShowStatusbarIp();
 
     //disp battery icon
     oled_disp_battery();
@@ -1656,6 +1648,11 @@ void oled_handler::oled_init_disp()
     read_ver_info();				/* 读取系统的版本信息 */ 
 	
     init_cfg_select();				/* 根据配置初始化选择项 */
+
+
+	/*
+	 * 显示IP地址
+	 */
 
 	//disp top before check battery 170623 for met enter low power of protect at beginning
     bDispTop = true;				/* 显示顶部标志设置为true */
@@ -2042,21 +2039,8 @@ void oled_handler::init_menu_select()
                 {
                     ERR_ITEM(val)
                 }
-//                switch(val)
-//                {
-//                    case VID_8K_5FPS:
-//                    case VID_CUSTOM:
-//                    case VID_8K_50M_30FPS_PANO_RTS_OFF:
-//                    case VID_6K_50M_30FPS_3D_RTS_OFF:
-//                    case VID_4K_50M_120FPS_PANO_RTS_OFF:
-//                    case VID_4K_20M_60FPS_3D_RTS_OFF:
-//                    case VID_4K_20M_24FPS_3D_50M_24FPS_RTS_ON:
-//                    case VID_4K_20M_24FPS_PANO_50M_30FPS_RTS_ON:
-//                        set_menu_select_info(i,val);
-//                        break;
-//                    SWITCH_DEF_ERROR(val)
-//                }
                 break;
+
             case MENU_LIVE_SET_DEF:
                 val = mProCfg->get_val(KEY_LIVE_DEF);
                 switch(val)
@@ -2186,7 +2170,8 @@ void oled_handler::init_menu_select()
 *************************************************************************/
 void oled_handler::init()
 {
-    Log.d(TAG, "version:%s\n", GIT_SHA1);
+
+	
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
     CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_CUSTOM);
@@ -2200,6 +2185,7 @@ void oled_handler::init()
     mSaveList.clear();
 
     cam_state = STATE_IDLE;
+
     mOLEDModule = sp<oled_module>(new oled_module());
     CHECK_NE(mOLEDModule, nullptr);
 
@@ -2248,6 +2234,9 @@ void oled_handler::init()
 #endif
 
 
+    memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
+    strcpy(mLocalIpAddr, "0.0.0.0");
+
 
     /* NetManager Subsystem Init
      * Eth0
@@ -2282,25 +2271,20 @@ void oled_handler::init()
 
 
 /*
- * 网络状态管理:
- * 启动一个秒钟检测一次的监听线程
+ * 界面没变,IP地址发生变化
+ * IP地址没变,界面发生变化
  */
-
-
-void oled_handler::check_net_status()
+void oled_handler::uiShowStatusbarIp()
 {
-
-#ifdef USE_OLD_NET
-
-    sp<net_dev_info> mpDevInfo = sp<net_dev_info>(new net_dev_info());
-
-	/* 测试发现,IP地址及网络状态没有发生变化,但是不停的在发消息 */
-    if (mpNetManager->check_net_change(mpDevInfo)) {
-		Log.d(TAG, "net device status changed, new ip: %d", mpDevInfo->dev_addr);
-        send_disp_ip((int) mpDevInfo->dev_addr, mpDevInfo->dev_type);
-    }
-#endif
+	Log.e(TAG, "uiShowStatusbarIp --->");
+	if (check_allow_update_top()) {
+		if (!strlen(mLocalIpAddr)) {
+			strcpy(mLocalIpAddr, "0.0.0.0");
+		}
+		mOLEDModule->disp_ip((const u8 *)mLocalIpAddr);
+	}
 }
+
 
 
 sp<ARMessage> oled_handler::obtainMessage(uint32_t what)
@@ -2706,8 +2690,7 @@ bool oled_handler::check_allow_pic()
 bool oled_handler::start_speed_test()
 {
     bool ret = false;
-    if(!check_dev_speed_good(mSaveList.at(save_path_select)->path))
-    {
+    if (!check_dev_speed_good(mSaveList.at(save_path_select)->path)) {
         set_cur_menu(MENU_SPEED_TEST);
         ret = true;
     }
@@ -2821,16 +2804,14 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
     int item = 0;
 
-    switch(option)
-    {
+    switch (option) {
         case ACTION_PIC:
             if (check_dev_exist(option))
             {
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
                 // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
-                if (check_allow_pic())
-                {
+                if (check_allow_pic()) {
                     oled_disp_type(CAPTURE);
                     item = get_menu_select_by_power(MENU_PIC_SET_DEF);
 //                    Log.d(TAG," pic action item is %d",item);
@@ -3595,11 +3576,6 @@ void oled_handler::write_sys_info(sp<SYS_INFO> &mSysInfo)
 #endif
 }
 
-void oled_handler::set_org_addr(unsigned int addr)
-{
-//    Log.d(TAG," set_org_addr 0x%x %d", addr,addr);
-    org_addr = addr;
-}
 
 
 #ifdef ENABLE_WIFI_STA
@@ -3674,58 +3650,7 @@ void oled_handler::tx_softap_config_def()
     }
 }
 
-#if 0
 
-int oled_handler::start_wifi_ap(int disp_main)
-{
-    wifi_stop();
-    //tx_softap_start();
-    disp_wifi(true,disp_main);
-    return 0;
-}
-
-void oled_handler::start_wifi(int disp_main)
-{
-    Log.d(TAG,"start_wifi (%ud %d %d) ",
-          org_addr,
-          get_setting_select(SET_WIFI_AP),cur_menu);
-   if(org_addr != 10000)
-    {
-        oled_disp_ip(0);
-        set_org_addr(10000);
-        if(get_setting_select(SET_WIFI_AP) == 1)
-        {
-            start_wifi_ap(disp_main);
-        } else {
-
-		#ifdef ENABLE_WIFI_STA
-            if (!start_wifi_sta(disp_main)) {
-                if (cur_menu != -1) {
-                    start_qr_func();
-                    //even not connect
-                    disp_wifi(true,-1);
-                } else {
-                    Log.e(TAG,"not start qr while first init force");
-                    //force close 170623
-                    disp_wifi(false, 0);
-                }
-            }
-		#endif
-		
-        }
-    }
-}
-
-
-
-int oled_handler::wifi_stop()
-{
-    int ret = -1;
-
-    msg_util::sleep_ms(10);
-    return ret;
-}
-#endif
 
 void oled_handler::disp_wifi(bool bState, int disp_main)
 {
@@ -5990,6 +5915,7 @@ void oled_handler::disp_wifi_connect()
 //    disp_str((const u8 *)mWifiConfig->ssid,x,y + 16);
 }
 
+
 bool oled_handler::check_dev_exist(int action)
 {
     bool bRet = false;
@@ -6036,31 +5962,6 @@ bool oled_handler::check_dev_exist(int action)
 void oled_handler::power_menu_cal_setting()
 {
     send_option_to_fifo(ACTION_CALIBRATION);
-}
-
-bool oled_handler::switch_dhcp_mode(int iDHCP)
-{
-    bool bRet = false;
-    Log.d(TAG,"iDHCP  is %d mProCfg->get_val(KEY_WIFI_ON)  %d "
-                  "org_addr 0x%x",
-          iDHCP, mProCfg->get_val(KEY_WIFI_ON), org_addr);
-
-	if (/*(mProCfg->get_val(KEY_WIFI_ON) == 0) &&*/ (10001 != org_addr)) {
-        //exec_sh("ifconfig eth0 down");
-        //set_org_addr(10001);
-	
-        if (iDHCP == 0) {	/* 静态地址模式:  默认设置为192.168.1.188 */
-            //system("ifconfig eth0 192.168.1.188 netmask 255.255.255.0 up");
-        } else {	/* DHCP模式 */
-			// disp_icon(ICON_WIFI_CLOSE_0_0_16_16);
-           // exec_sh("ifconfig eth0 down");
-           // exec_sh("killall dhclient");
-            //exec_sh("dhclient eth0");
-        }
-        bRet = true;
-    }
-
-    return bRet;
 }
 
 
@@ -6666,40 +6567,6 @@ bool oled_handler::check_allow_update_top()
 {
     return !is_top_clear(cur_menu);
 }
-
-
-int oled_handler::oled_disp_ip(unsigned int addr)
-{
-//    Log.d(TAG," org adr %u new addr %u",org_addr,addr);
-    if (org_addr != addr) {
-        u8 org_ip[32];
-        u8 ip[32];
-
-        int_to_ip(org_addr, org_ip, sizeof(org_ip));
-        int_to_ip(addr, ip, sizeof(ip));
-
-        if (check_allow_update_top()) {
-            mOLEDModule->disp_ip((const u8 *)ip);
-        }
-
-        set_org_addr(addr);
-    }
-    return 0;
-}
-
-
-
-
-#if 0
-void oled_handler::postUiMessage(sp<ARMessage>& msg, int interval)
-{
-    if (interval < 0)
-        interval = 0;
-
-    msg->setHandler(mHandler);
-    msg->postWithDelayMs(interval);
-}
-#endif
 
 
 
@@ -8619,6 +8486,13 @@ bool oled_handler::check_rec_tl()
 
 
 
+void oled_handler::procUpdateIp(const char* ipAddr)
+{
+	memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
+	strcpy(mLocalIpAddr, ipAddr);
+	uiShowStatusbarIp();
+}
+
 
 /*************************************************************************
 ** 方法名称: handleMessage
@@ -8755,12 +8629,16 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                 }
             }
                 break;
-            case OLED_DISP_IP:
+
+            case OLED_DISP_IP:	/* 更新IP */
             {
-                int ip;
-                CHECK_EQ(msg->find<int>("ip", &ip), true);
-                oled_disp_ip((unsigned int)ip);
-                break;
+				sp<DEV_IP_INFO> tmpIpInfo;
+				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
+				Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
+
+				procUpdateIp(tmpIpInfo->ipAddr);
+			
+               	break;
             }
 
 			/*

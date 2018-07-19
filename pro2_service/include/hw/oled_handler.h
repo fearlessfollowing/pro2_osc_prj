@@ -596,7 +596,7 @@ private:
     void disp_top_info();
     int get_setting_select(int type);
     void set_setting_select(int type,int val);
-    int oled_disp_ip(unsigned int addr);
+
     int oled_disp_battery();
     void clear_area(u8 x,u8 y, u8 w,u8 h);
     void clear_area(u8 x = 0,u8 y = 0);
@@ -722,6 +722,15 @@ private:
     bool switchEtherIpMode(int iMode);
 
 
+	/*
+	 * 显示
+	 */
+	void uiShowStatusbarIp();			/* 显示IP地址 */
+	void procUpdateIp(const char* ipAddr);
+	
+
+
+
 	sp<ARLooper> mLooper;
     sp<ARHandler> mHandler;
     std::thread th_msg_;
@@ -756,11 +765,6 @@ private:
     int org_option = 0;
     sp<pro_cfg> mProCfg;
 	
-    //wlan0 ap addr or net addr
-    //special addr
-
-    unsigned int org_addr = 20000;
-
     //100 -->internal ,others -->external usb or sdcard
     //useful while mDevList.size > 0
 //    unsigned int save_select = SDCARD_SELECT;
@@ -796,11 +800,6 @@ private:
     std::mutex mutexState;
 
 
-//save qr or control def
-//    std::vector<sp<struct _action_info_>> mPicQRList;
-//    std::vector<sp<struct _action_info_>> mVIDQRList;
-//    std::vector<sp<struct _action_info_>> mLiveQRList;
-
     sp<battery_interface> mBatInterface;
     sp<struct _action_info_> mControlAct;
     sp<BAT_INFO> m_bat_info_;
@@ -809,8 +808,8 @@ private:
     int save_path_select = -1;
 
     bool bFirstDev = true;
-//    char new_path[128];
-//    char test_path[128];
+
+
     sp<SYS_INFO> mReadSys;
     sp<struct _ver_info_> mVerInfo;
     sp<struct _wifi_config_> mWifiConfig;
@@ -826,21 +825,18 @@ private:
     int bat_jump_times = 0;
     int64 last_key_ts = 0;
 	
-    //whether need calculate remain 0616
-//    char last_error_str[8];
 
-#if 0
-    sp<net_manager> mpNetManager;
-#else
 	sp<NetManager> mNetManager;
-#endif
 
     sp<dev_manager> mDevManager;
 	
     bool bLiveSaveOrg = false;
     int pipe_sound[2]; // 0 -- read , 1 -- write
+
     // during stiching and not receive stich finish
     bool bStiching = false;
+
+    char mLocalIpAddr[32];        /* UI本地保存的IP地址 */
 
 };
 #endif //PROJECT_OLED_WRAPPER_H

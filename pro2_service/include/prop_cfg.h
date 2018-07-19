@@ -16,6 +16,9 @@
 #define WLAN0_NAME      	"wlan0"
 #define WLAN0_DEFAULT_IP 	"192.168.43.1"
 
+
+#define OFF_IP				"0.0.0.0"
+
 /*
  * Prop system
  */

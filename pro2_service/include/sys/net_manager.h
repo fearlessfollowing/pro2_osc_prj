@@ -64,12 +64,15 @@ enum {
 #define NETM_NETDEV_MAX_COUNT	10
 
 
-#define NET_POLL_INTERVAL 2000
+#define NET_POLL_INTERVAL 	2000
+
+
+#define IP_ADDR_STR_LEN		32
 
 typedef struct stIpInfo {
-    char cDevName[32];      /* 网卡名称 */
-    char ipAddr[32];        /* 网卡的IP地址 */
-    int iDhcp;              /* 获取IP地址模式, 1 = DHCP; 0 = Static */
+    char cDevName[32];      				/* 网卡名称 */
+    char ipAddr[IP_ADDR_STR_LEN];        	/* 网卡的IP地址 */
+    int iDhcp;              				/* 获取IP地址模式, 1 = DHCP; 0 = Static */
     int iDevType;
 } DEV_IP_INFO;
 
@@ -123,10 +126,6 @@ public:
 	std::string& getDevName();
 
 
-
-
-    void postDevInfo2Ui();
-
     void getIpByDhcp();
 
     void flushDhcpAddr();
@@ -159,9 +158,9 @@ private:
 	 */
     bool            mActive;				/* 网卡的状态 */
 
-    char            mCurIpAddr[32];
-    char            mSaveIpAddr[32];
-    char            mCachedDhcpAddr[32];    /* Saved DHCP Ipaddr */
+    char            mCurIpAddr[IP_ADDR_STR_LEN];
+    char            mSaveIpAddr[IP_ADDR_STR_LEN];
+    char            mCachedDhcpAddr[IP_ADDR_STR_LEN];    /* Saved DHCP Ipaddr */
     bool            mHaveCachedDhcp;
 	int 			iGetIpMode; 		/* 1 = DHCP, 0 = Static */
 
@@ -195,6 +194,9 @@ public:
     int netdevClose();
 
     int processPollEvent(sp<NetDev>& netdev);
+
+private:
+	bool	bLoadDrvier;
 
 };
 
@@ -242,10 +244,7 @@ public:
 	 * 网络管理器负责管理当前有效的IP地址
 	 * 并根据一定的策略,将IP地址发送给UI线程
 	 */
-	void dispatchIp();
-
-
-    void sendIpInfo2Ui(sp<ARMessage>& msg);
+	void dispatchIpPolicy(int iPolicy);
 
 private:
 
@@ -253,24 +252,26 @@ private:
 
     bool checkNetDevHaveRegistered(sp<NetDev> &);
 	void removeNetDev(sp<NetDev> &);
-	void processEthernetEvent(sp<NetDev>& etherDev);
+	
+	//void processEthernetEvent(sp<NetDev>& etherDev);
+    void sendIpInfo2Ui();
 
 
 	void sendNetPollMsg(int iPollInterval = 1);
 
-    int mState;
-	bool mExit;
+    int 					mState;
+	bool 					mExit;
 
-	sp<ARLooper> mLooper;
-    sp<ARHandler> mHandler;
+	sp<ARLooper> 			mLooper;
+    sp<ARHandler> 			mHandler;
 
-    sp<ARMessage> mPollMsg;					/* 轮询消息 */
+    sp<ARMessage> 			mPollMsg;						/* 轮询消息 */
 
-    std::thread mThread;                    /* 网络管理器线程 */
-    std::mutex mMutex;                      /* 访问网络设备的互斥锁 */
-    std::vector<sp<NetDev>> mDevList;       /* 网络设备列表 */
-    sp<NetDev> mCurdev;                     /* 当前需要在屏幕上显示IP地址的激活设备 */
+    std::thread 			mThread;                    	/* 网络管理器线程 */
+    std::mutex 				mMutex;                      	/* 访问网络设备的互斥锁 */
+    std::vector<sp<NetDev>> mDevList;       				/* 网络设备列表 */
 
+	char					mLastDispIp[IP_ADDR_STR_LEN]; 	/* 上次派发的IP地址 */
 };
 
 
