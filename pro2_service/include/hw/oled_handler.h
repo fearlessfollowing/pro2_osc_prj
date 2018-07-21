@@ -10,6 +10,9 @@
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
 
+#include <hw/oled_module.h>
+
+
 typedef enum _type_ {
     START_RECING ,// 0,
     START_REC_SUC,
@@ -95,6 +98,11 @@ typedef enum _type_ {
     START_AGEING = 98,
     START_FORCE_IDLE = 99,// 99,
     RESET_ALL = 100,// 100,
+
+
+	START_QUERY_STORAGE = 110,
+	START_QUERY_STORAGE_SUC,
+	START_QUERY_STORAGE_FAIL,
 
 //    WRITE_FOR_BROKEN = 101,
     RESET_ALL_CFG = 102,
@@ -311,6 +319,8 @@ enum {
     ACTION_AWB,
 
     ACTION_SET_STICH = 50,
+	ACTION_QUERY_STORAGE = 200,
+	
 };
 
 enum {
@@ -467,6 +477,7 @@ public:
         UPDATE_BAT,
         UPDATE_DEV,
         FACTORY_AGEING,
+		UPDATE_STORAGE,
     };
 
     void postUiMessage(sp<ARMessage>& msg);
@@ -716,10 +727,16 @@ private:
 
 	void update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast = false);
 
+
+	void dispIconByLoc(const ICON_INFO* pInfo);
+
 	
 	// void set_disp_control(bool state);
 
     bool switchEtherIpMode(int iMode);
+
+    void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
+
 
 
 	/*

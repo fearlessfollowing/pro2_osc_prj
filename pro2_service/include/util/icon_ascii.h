@@ -2,15 +2,6 @@
 #define PRO_SERVICE_ICON_ASCII_H_H
 #include <sys/ins_types.h>
 
-typedef struct _icon_info_ {
-    const u8 x;
-    const u8 y;
-    const u8 w;
-    const u8 h;
-    //not used yet
-    const u32 size;
-    const u8 *dat;
-} ICON_INFO;
 
 //_E means highlight
 enum

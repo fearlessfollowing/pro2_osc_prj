@@ -39,8 +39,9 @@ _state = config._STATE
 _param = config.PARAM
 KEY_ID = 'id'
 MOUNT_ROOT = '/mnt/media_rw'
-#ms
-POLL_TO = 10000
+
+# 连接超时的值 - 10s
+POLL_TO = 30000
 
 #to to reset camerad process
 FIFO_TO = 30
@@ -73,6 +74,8 @@ ACTION_AGEING = 20
 
 ACTION_AWB = 21
 
+
+ACTION_QUERY_STORAGE = 200
 
 
 ACTION_SET_STICH = 50
@@ -234,6 +237,8 @@ class control_center:
             config._SET_SN:self.set_sn,
             config._START_SHELL:self.start_shell,
 
+            config._QUERY_GPS_STATE: self.queryGpsState,
+
             # config._START_SINGLE_PIC:self.start_single_pic,
             # config._START_SINGLE_PREVIEW: self.start_single_preview,
 
@@ -276,7 +281,7 @@ class control_center:
                 ACTION_CUSTOM_PARAM:self.camera_oled_custom_param,
                 ACTION_SET_STICH:self.camera_oled_set_stitch,
                 ACTION_AWB:                 self.camera_old_factory_awb,
-
+                ACTION_QUERY_STORAGE: self.camera_oled_query_storage,
 
             }
         )
@@ -445,6 +450,13 @@ class control_center:
         #Info('start_ageing_test result {}'.format(read_info))
 
 
+
+    def camera_oled_query_storage(self):
+        Info('>>>>camera_oled_query_storage')
+        info = self.write_and_read(self.get_req(config._QUERY_STORAGE), True)
+        Info('resut info is {}'.format(info))
+        
+        pass
 
 
     def camera_get_result(self,req):
@@ -706,6 +718,15 @@ class control_center:
             return True
         else:
             return False
+
+
+
+
+    def queryStorage(self):
+        Info('queryStorage a')
+        info = self.write_and_read(self.get_req(config._QUERY_STORAGE), True)
+        Info('queryStorage result {}'.format(info))        
+
 
     # def check_bat_protect(self):
     #     return osc_state_handle.check_bat_protect()
@@ -1043,6 +1064,8 @@ class control_center:
         self.test_path = None
         self.has_sync_time = False
 
+        self.syncWriteReadSem = Semaphore()
+
         self.url_list = {config.PREVIEW_URL: None, config.RECORD_URL: None, config.LIVE_URL: None}
         osc_state_handle.start()
         #keep in the end of init 0616 for recing msg from pro_service after fifo create
@@ -1263,16 +1286,19 @@ class control_center:
     def get_media_name(self,name):
         pass
 
+    # 暂时添加同步锁操作
     def write_and_read(self,req,from_oled = False):
+        self.syncWriteReadSem.acquire()
         try:
             name = req[_name]
             # Info('write_and_read req {}'.format(req))
             read_seq = self.write_req(req, self.get_write_fd())
+            
             #write fifo suc
             ret = self.read_response(read_seq,self.get_read_fd())
             if ret[_state] == config.DONE:
-                #some cmd doesn't need done operation
-                if check_dic_key_exist(self.camera_cmd_done,name):
+                #some cmd doesn't need done operationc
+                if check_dic_key_exist(self.camera_cmd_done, name):
                     #send err is False, so rec or live is sent from http controller -- old
                     # add old = from_oled to judge whether http req from controlled or oled 171204
                     if name in (config._START_LIVE,config._START_RECORD,config._CALIBTRATE_BLC):
@@ -1331,6 +1357,9 @@ class control_center:
             Err('unknown write_and_read e {}'.format(str(e)))
             ret = cmd_exception(error_dic('write_and_read', str(e)), req)
             self.reset_all()
+
+       
+        self.syncWriteReadSem.release()
         return ret
 
     def write_req_reset(self, req, write_fd):
@@ -1348,6 +1377,7 @@ class control_center:
     def write_req(self, req, write_fd):
         content = json.dumps(req)
         content_len = len(content)
+        
         #Print('write_req {}'.format(req))
         if content_len > (MAX_FIFO_LEN - config.HEADER_LEN):
             header = int_to_bytes(self._write_seq) + int_to_bytes(content_len)
@@ -1376,7 +1406,7 @@ class control_center:
         res = fifo_wrapper.read_fifo(read_fd,config.HEADER_LEN,FIFO_TO)
         if len(res) != config.HEADER_LEN:
             Info('read response header mismatch len(res) {} config.HEADER_LEN {}'.format(len(res),config.HEADER_LEN))
-        seq = bytes_to_int(res,0)
+        seq = bytes_to_int(res, 0)
 
         while read_seq != seq:
             Err('readback seq {} but read seq {} self._read_fd {}'.format(seq, read_seq, read_fd))
@@ -1865,6 +1895,11 @@ class control_center:
         else:
             Info('set custom no _param')
         return cmd_done(req[_name])
+
+    def queryGpsState(self, req):
+        Info('queryGpsState {}'.format(req))
+        info = self.write_and_read(self.get_req(self, config._QUERY_GPS_STATE))
+        return info
 
     # {"flicker": 1, "speaker": 1, "led_on": 1, "fan_on": 1, "aud_on": 1, "aud_spatial": 1, "set_logo": 1, "gyro_on": 1,"video_fragment",1,
     #  "reset_all": 0}
@@ -3585,7 +3620,7 @@ class control_center:
             Err('start_change_save_path exception {}'.format(str(e)))
         # Info('start_change_save_path new')
 
-    def handle_oled_key(self,content):
+    def handle_oled_key(self, content):
         # Info('handle_oled_key start')
         self.acquire_sem_camera()
         try:
@@ -3593,7 +3628,7 @@ class control_center:
             action = content['action']
             Info('handle_oled_key action {}'.format(action))
             if check_dic_key_exist(self.oled_func,action):
-                if check_dic_key_exist(content,_param):
+                if check_dic_key_exist(content, _param):
                     res = self.oled_func[action](content[_param])
                 else:
                     res = self.oled_func[action]()

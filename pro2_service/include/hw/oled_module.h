@@ -14,6 +14,18 @@
 #define DAT_FORMAT "0x%x"
 #endif
 
+typedef struct _icon_info_ {
+    const u8 x;
+    const u8 y;
+    const u8 w;
+    const u8 h;
+    //not used yet
+    const u32 size;
+    const u8 *dat;
+} ICON_INFO;
+
+
+
 class ins_i2c;
 struct _char_info_;
 struct _icon_info_;

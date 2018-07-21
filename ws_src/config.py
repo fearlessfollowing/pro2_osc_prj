@@ -40,6 +40,14 @@ _STOP_CONTINUOUS_SHOT = 'camera._stopContinusShoot'
 _START_PREVIEW = 'camera._startPreview'
 _STOP_PREVIEW = 'camera._stopPreview'
 
+
+_QUERY_GPS_STATE = 'camera._queryGpsStatus'
+
+_QUERY_STORAGE = 'camera._queryStorage'
+
+
+
+
 # _START_COMPOSE_VIDEO = 'camera._startComposeVideo'
 # _STOP_COMPOSE_VIDEO = 'camera._stopComposeVideo'
 # _START_COMPOSE_PIC = 'camera._ComposePicture'
@@ -108,6 +116,8 @@ _NOISE_FINISH ='camera._capture_audio_finish_'
 
 _GPS_NOTIFY = 'camera._gps_state_'
 _SND_NOTIFY = 'camera._snd_state_'
+
+
 
 _STITCH_NOTIFY = 'stitcher.task_stats_'
 
@@ -473,6 +483,9 @@ START_FORCE_IDLE = 99
 RESET_ALL = 100
 WRITE_FOR_BROKEN = 101
 RESET_ALL_CFG = 102
+
+
+
 
 HTTP_ASYNC=True
 

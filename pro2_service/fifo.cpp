@@ -485,6 +485,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 	 	 * msg.action_info = sp<ACTION_INFO>	[optional]
 	 	 * {"action":[0/9], "action_info": }
 	 	 */
+	 	 
         case oled_handler::OLED_KEY: {
             int action;
             sp<ACTION_INFO> mActInfo;
@@ -896,13 +897,11 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         break;
 
 
-		case ACTION_AWB:
-						
-			param = cJSON_CreateObject();
-			cJSON_AddStringToObject(param, "name", "camera._calibrationAwb");
-
-
-			break;
+					case ACTION_AWB:
+									
+						param = cJSON_CreateObject();
+						cJSON_AddStringToObject(param, "name", "camera._calibrationAwb");
+						break;
 
 
 					/* {"action": ACTION_POWER_OFF} */
@@ -914,6 +913,12 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 						break;
                     }
                         break;
+
+					case ACTION_QUERY_STORAGE: {
+						Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUERY_STORAGE");
+						break;
+					}
+						
                     case ACTION_SET_STICH:
                         Log.d(TAG,"stitch action");
                         break;
@@ -931,7 +936,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 			
             write_fifo(EVENT_OLED_KEY, pSrt);
         }
-            break;
+			break;
 
 
 		/* 
@@ -984,6 +989,15 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
         }
 
 
+
+		/* 查询各个存储卡的信息 */
+		case oled_handler::UPDATE_STORAGE: {
+			Log.d(TAG, ">>>>>>>>>>>>>> fifo recv UPDATE_STORAGE");
+			//write_fifo(EVENT_QUERY_STORAGE);	/* 直接发送 */
+			break;
+		}
+
+
 		/* 
 		 * msg.what = UPDATE_DEV
 		 * msg.dev_list = vector<sp<USB_DEV_INFO>>
@@ -1030,6 +1044,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
             }
 			break;
         }
+
 
         default:
             break;

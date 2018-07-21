@@ -301,6 +301,7 @@ static void handleAddAction(const char* deviceName)
 	bool needMounted = false;
 	char fsType[64] = {0};
 	char mount_cmd[512] = {0};
+    char clear_path[512] = {0};
 	const char* mountPath = NULL;
 	int iIndex = 0;
 	char cDiskNum[32] = {0};
@@ -327,7 +328,9 @@ static void handleAddAction(const char* deviceName)
              * Need to check mount point is clean
              */
             for (int i = 0; i < 3; i++) {
-                sprintf(mount_cmd, "mount.exfat %s %s", deviceName, mountPath);
+                sprintf(clear_path, "%s/*", mountPath);
+                system(clear_path);
+                sprintf(mount_cmd, "mount %s %s", deviceName, mountPath);
 				iRet = exec_cmd(mount_cmd);
                 if (iRet) {
 					Log.e(TAG, "mount device[%s] failed, reason [%s]", deviceName, strerror(errno));

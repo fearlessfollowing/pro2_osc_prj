@@ -39,6 +39,8 @@
 
 #include <trans/fifo.h>
 
+#include <icon/pic_mode_select.h>
+
 using namespace std;
 #define TAG "oled_handler"
 
@@ -225,8 +227,42 @@ enum
     PIC_DEF_MAX,
 };
 
-enum
-{
+
+
+/* 6+1
+ * 录像 - 
+ */
+enum {
+	VID_8K_30FPS_3D,
+	VID_8K_60FPS,
+	VID_8K_30FPS,
+	VID_8K_5FPS_STREETVIEW,
+	VID_6K_60FPS_3D,
+	VID_6K_30FPS_3D,
+	VID_4K_120FPS_3D,
+	VID_4K_60FPS_3D,
+	VID_4K_30FPS_3D,
+	VID_4K_60FPS_RTS,
+	VID_4K_30FPS_RTS,
+	VID_4K_30FPS_3D_RTS,
+	VID_2_5K_60FPS_3D_RTS,
+	VID_AERIAL,
+};
+
+
+/*
+ * 6+1
+ * 直播
+ */
+enum {
+	LIVE_4K_30FPS,
+	LIVE_4K_30FPS_3D,
+	LIVE_4K_30FPS_HDMI,
+	LIVE_4K_30FPS_3D_HDMI
+};
+
+
+enum {
     //video
     VID_8K_50M_30FPS_PANO_RTS_OFF,
 #ifdef GOOGLE_8K_5F
@@ -242,8 +278,7 @@ enum
     VID_DEF_MAX,
 };
 
-enum
-{
+enum {
     //live
 #ifdef LIVE_ORG
     LIVE_ORIGIN,
@@ -398,8 +433,8 @@ typedef struct _area_info_
 
 static const AREA_INFO storage_area[] =
 {
-        {25,16,103,16},
-        {25,32,103,16}
+	{25,16,103,16},
+	{25,32,103,16}
 };
 
 typedef struct _rec_info_
@@ -571,7 +606,7 @@ static MENU_INFO mMenuInfos[] = {
 	}, //5
     {	/* MENU_PIC_SET_DEF */
     	MENU_PIC_INFO,
-		{-1, 0, 0, PIC_DEF_MAX, PIC_DEF_MAX, 1},
+		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
 	},
     {	/* MENU_VIDEO_SET_DEF */
@@ -699,8 +734,7 @@ static int main_icons[][MAINMENU_MAX] = {
 };
 
 
-static SETTING_ITEMS mSettingItems =
-{
+static SETTING_ITEMS mSettingItems = {
     {ICON_SET_ETHERNET_DHCP_NORMAL_25_32_96_16,
      ICON_SET_FREQUENCY_50HZ_NORMAL_25_48_96_16},
     {0},
@@ -708,18 +742,6 @@ static SETTING_ITEMS mSettingItems =
     setting_icon_lights
 };
 
-
-#if 0
-SET_PHOTO_DELAY_3S,
-SET_PHOTO_DELAY_5S,
-SET_PHOTO_DELAY_10S,
-SET_PHOTO_DELAY_20S,
-SET_PHOTO_DELAY_30S,
-SET_PHOTO_DELAY_40S,
-SET_PHOTO_DELAY_50S,
-SET_PHOTO_DELAY_60S,
-
-#endif
 
 static int photodelay_icon_lights[SET_PHOTO_DELAY_MAX][2] =
 {
@@ -760,7 +782,6 @@ static int photodelay_icon_normal[SET_PHOTO_DELAY_MAX][2] =
 
 
 
-
 static SETTING_ITEMS mSetPhotoDelays = {
     {ICON_SET_ETHERNET_DHCP_NORMAL_25_32_96_16,
      ICON_SET_FREQUENCY_50HZ_NORMAL_25_48_96_16},
@@ -771,68 +792,26 @@ static SETTING_ITEMS mSetPhotoDelays = {
 
 
 static const char *dev_type[SET_STORAGE_MAX] = {"sd","usb"};
-//static const int storage_none_icon[][SET_STORAGE_MAX] =
-//{
-//        {
-//                STORAGE_SD_NONE_NORMAL_2516_103X16,
-//                STORAGE_USB_NONE_NORMAL_2532_103X16,
-//        },
-//        {
-//                STORAGE_USB_NONE_NORMAL_2532_103X16,
-//                STORAGE_USB_NONE_LIGHT_2532_103X16
-//        }
-//};
 
-static int main_menu[][MAINMENU_MAX] =
-        {{ICON_INDEX_CAMERA_NORMAL24_24,
-                 ICON_INDEX_VIDEO_NORMAL24_24,
-                 ICON_INDEX_LIVE_NORMAL24_24,
-                 ICON_INDEX_IC_WIFICLOSE_NORMAL24_24,
-                 ICON_CALIBRATION_NORMAL_24_2424_24,
-                 ICON_INDEX_SET_NORMAL24_24,
-         },
-         {ICON_INDEX_CAMERA_LIGHT_12_16_24_24,
-                 ICON_INDEX_VIDEO_LIGHT_52_16_24_24,
-                 ICON_INDEX_LIVE_LIGHT_92_16_24_24,
-                 ICON_INDEX_IC_WIFICLOSE_LIGHT24_24,
-                 ICON_CALIBRATION_HIGH_24_2424_24,
-                 ICON_INDEX_SET_LIGHT_52_40_24_24,
-         }
-        };
-
-static const int pic_def_setting_menu[][PIC_DEF_MAX] =
-{
-        {
-//#ifndef ONLY_PIC_FLOW
-//                ICON_CAMERA_INFO01_NORMAL_0_48_78_1678_16,
-//#endif
-                ICON_CAMERA_INFO02_NORMAL_0_48_78_1678_16,
-                ICON_CAMERA_INFO04_NORMAL_0_48_78_1678_16,
-                ICON_CAMERA_INFO03_NORMAL_0_48_78_1678_16,
-                ICON_CAMERA_INFO05_NORMAL_0_48_78_1678_16,
-#ifdef OPEN_HDR_RTS
-                ICON_CAMERA_INFO05_NORMAL_0_48_78_1678_16,
-#endif
-                ICON_CAMERA_INFO06_NORMAL_0_48_78_1678_16,
-                ICON_CINFO_RAW_NORMAL_0_48_78_1678_16,
-                ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
-        },
-        {
-//#ifndef ONLY_PIC_FLOW
-//                ICON_CAMERA_INFO01_LIGHT_0_48_78_1678_16,
-//#endif
-                ICON_CAMERA_INFO02_LIGHT_0_48_78_1678_16,
-                ICON_CAMERA_INFO04_LIGHT_0_48_78_1678_16,
-                ICON_CAMERA_INFO03_LIGHT_0_48_78_1678_16,
-                ICON_CAMERA_INFO05_LIGHT_0_48_78_1678_16,
-#ifdef OPEN_HDR_RTS
-                ICON_CAMERA_INFO05_LIGHT_0_48_78_1678_16,
-#endif
-                ICON_CAMERA_INFO06_LIGHT_0_48_78_1678_16,
-                ICON_CINFO_RAW_LIGHT_0_48_78_1678_16,
-                ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16
-        }
+static int main_menu[][MAINMENU_MAX] = {
+	{
+		ICON_INDEX_CAMERA_NORMAL24_24,
+		ICON_INDEX_VIDEO_NORMAL24_24,
+		ICON_INDEX_LIVE_NORMAL24_24,
+		ICON_INDEX_IC_WIFICLOSE_NORMAL24_24,
+		ICON_CALIBRATION_NORMAL_24_2424_24,
+		ICON_INDEX_SET_NORMAL24_24,
+	},
+	{
+		ICON_INDEX_CAMERA_LIGHT_12_16_24_24,
+		ICON_INDEX_VIDEO_LIGHT_52_16_24_24,
+		ICON_INDEX_LIVE_LIGHT_92_16_24_24,
+		ICON_INDEX_IC_WIFICLOSE_LIGHT24_24,
+		ICON_CALIBRATION_HIGH_24_2424_24,
+		ICON_INDEX_SET_LIGHT_52_40_24_24,
+	}
 };
+
 
 static const int vid_def_setting_menu[][VID_DEF_MAX] =
 {
@@ -866,6 +845,8 @@ static const int vid_def_setting_menu[][VID_DEF_MAX] =
         }
 };
 
+
+
 static const int live_def_setting_menu[][LIVE_DEF_MAX] =
         {
                 {
@@ -892,162 +873,6 @@ static const int live_def_setting_menu[][LIVE_DEF_MAX] =
                         ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16,
                 }
         };
-
-
-
-static ACTION_INFO mPICAction[]=
-{
-        {
-                MODE_3D,
-                60,
-                5,
-                {
-                        EN_JPEG,
-                        SAVE_DEF,
-                        4000,
-                        3000,0,
-                        {}
-                },
-                {
-                        EN_JPEG,
-                        STITCH_OPTICAL_FLOW,
-                        7680,
-                        7680,
-                        {},
-                }
-        },
-        {
-                MODE_PANO,
-                30,
-                5,
-                {
-                        EN_JPEG,
-                        SAVE_DEF,
-                        4000,
-                        3000,0,
-                        {}
-                },
-                {
-                        EN_JPEG,
-                        STITCH_OPTICAL_FLOW,
-                        7680,
-                        3840,
-                        {}
-                }
-        },
-        {
-                MODE_PANO,
-                30,
-                5,
-                {
-                        EN_JPEG,
-                        SAVE_DEF,
-                        4000,
-                        3000,0,
-                        {}
-
-        },
-        {
-			EN_JPEG,
-			// STITCH_NORMAL,
-			STITCH_OFF,
-			7680,
-			3840,
-			{}
-        }
-    },
-    
-#ifdef OPEN_HDR_RTS
-	//HDR&rts
-	{
-	    MODE_PANO,
-	    80,//pano
-	    5,
-	    {
-	        EN_JPEG,
-	        SAVE_DEF,
-	        4000,
-	        3000,
-			0,		// test
-	        
-	        {1,3,-64,64,0}
-        },
-        {
-	        EN_JPEG,
-	        STITCH_NORMAL,
-	        7680,
-	        3840,
-	        {}
-        }
-    },
-#endif
-	//HDR
-	{
-	    MODE_PANO,
-	    70,//pano
-	    5,
-	    {
-	        EN_JPEG,
-	        SAVE_DEF,
-	        4000,
-	        3000,
-			0,		// test
-	        
-	        {3,-32,32,0}
-	    },
-        {
-			EN_JPEG,
-			STITCH_OFF,
-			7680,
-			3840,
-			{}
-        }
-    },
-	//BURST
-	{
-		MODE_PANO,
-		165,
-		5,
-		{
-			EN_JPEG,
-			SAVE_DEF,
-			4000,
-			3000,
-			0,		// test
-			
-			{0,0,0,10}
-		},
-		{
-			EN_JPEG,
-			STITCH_OFF,
-			7680,
-			3840,
-			{}
-		}
-    },
-	//RAW
-	{
-		MODE_3D,
-		144,
-		5,
-		{
-			EN_RAW,
-			SAVE_RAW,
-			4000,
-			3000,
-			0,		// test
-			
-			{},
-		},
-		{
-			EN_RAW,
-			STITCH_OFF,
-			7680,
-			7680,
-			{}
-		}
-    },
-};
 
 
 static const ACTION_INFO mVIDAction[] = {
@@ -2009,26 +1834,20 @@ void oled_handler::init_menu_select()
             case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
                 val = mProCfg->get_val(KEY_PIC_DEF);
 //                Log.d(TAG,"pic set def %d", val);
-                switch(val)
+                switch (val)
                 {
-                    case PIC_CUSTOM:
-//                    case PIC_8K_3D_SAVE:
-                    case PIC_8K_PANO_SAVE:
-                    case PIC_8K_3D_SAVE_OF:
-                        //optical flow stich
-                    case PIC_8K_PANO_SAVE_OF:
-#ifdef OPEN_HDR_RTS
-                    case PIC_HDR_RTS:
-#endif
-                    case PIC_HDR:
-                    case PIC_BURST:
-                    case PIC_RAW:
+                    case PIC_ALL_CUSTOM:
+                    case PIC_ALL_8K_3D_OF:
+                    case PIC_ALL_8K_OF:
+                    case PIC_ALL_8K:
+                    case PIC_ALL_BURST:
                         set_menu_select_info(i,val);
                         break;
                         //user define
                     SWITCH_DEF_ERROR(val)
                 }
                 break;
+				
             case MENU_VIDEO_SET_DEF:
                 val = mProCfg->get_val(KEY_VIDEO_DEF);
                 if (val >= 0 && val < VID_DEF_MAX)
@@ -2805,18 +2624,18 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
     int item = 0;
 
     switch (option) {
-        case ACTION_PIC:
-            if (check_dev_exist(option))
-            {
+        case ACTION_PIC:	/* 拍照动作 */
+            if (check_dev_exist(option)) {
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
+				
                 // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
                 if (check_allow_pic()) {
                     oled_disp_type(CAPTURE);
                     item = get_menu_select_by_power(MENU_PIC_SET_DEF);
 //                    Log.d(TAG," pic action item is %d",item);
-                    switch(item)
-                    {
+
+                    switch (item) {
 //                        case PIC_8K_3D_SAVE:
                         case PIC_8K_PANO_SAVE:
                         case PIC_8K_3D_SAVE_OF:
@@ -2833,31 +2652,25 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
 							
                         case PIC_CUSTOM:
                             memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_PIC_DEF), sizeof(ACTION_INFO));
-                            if (strlen(mActionInfo->stProp.len_param) > 0 || strlen(mActionInfo->stProp.mGammaData) > 0)
-                            {
+                            if (strlen(mActionInfo->stProp.len_param) > 0 || strlen(mActionInfo->stProp.mGammaData) > 0) {
                                 mProCfg->get_def_info(KEY_PIC_DEF)->stProp.audio_gain = -1;
-                                send_option_to_fifo(ACTION_CUSTOM_PARAM,0,&mProCfg->get_def_info(KEY_PIC_DEF)->stProp);
+                                send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_PIC_DEF)->stProp);
                             }
                             break;
 							
                         SWITCH_DEF_ERROR(item);
                     }
                     msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-                }
-                else
-                {
+                } else {
                     bAllow = false;
                 }
-            }
-            else
-            {
+            } else {
                 bAllow = false;
             }
             break;
 			
         case ACTION_VIDEO:
-            if( check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING)))
-            {
+            if ( check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
 //                Log.d(TAG,"stop rec ");
                 oled_disp_type(STOP_RECING);
             }
@@ -2984,12 +2797,9 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
             }
             break;
         case ACTION_PREVIEW:
-            if(check_state_preview() || check_state_equal(STATE_IDLE))
-            {
+            if (check_state_preview() || check_state_equal(STATE_IDLE)) {
 //                bAllow = true;
-            }
-            else
-            {
+            } else {
                 ERR_MENU_STATE(cur_menu,cam_state);
                 bAllow = false;
             }
@@ -3166,23 +2976,26 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
 			
 		case ACTION_AWB:		
 			set_light_direct(FRONT_GREEN);
+			break;			
+
+		case ACTION_QUERY_STORAGE:
 			break;
+			
         SWITCH_DEF_ERROR(option)
     }
-	
-	
 
-//    Log.d(TAG,"oled option %d bAllow %d",option,bAllow);
-    if(bAllow)
-    {
+
+	if (bAllow) {
         msg->set<int>("what", OLED_KEY);
         msg->set<int>("action", option);
 
         msg->post();
-        //fifo::getSysTranObj()->postTranMessage(msg);
     }
+	
     return bAllow;
 }
+
+
 
 void oled_handler::postUiMessage(sp<ARMessage>& msg)
 {
@@ -3831,30 +3644,25 @@ void oled_handler::func_back()
     {
         rm_state(STATE_FORMAT_OVER);
         set_cur_menu_from_exit();
-    }
-    else
-    {
-        switch (cam_state)
-        {
+    } else {
+        switch (cam_state) {
             //force back directly while state idle 17.06.08
             case STATE_IDLE:
                 set_cur_menu_from_exit();
                 break;
+			
             case STATE_PREVIEW:
-                switch (cur_menu)
-                {
+                switch (cur_menu) {
                     case MENU_PIC_INFO:
                     case MENU_VIDEO_INFO:
                     case MENU_LIVE_INFO:
-                        if(send_option_to_fifo(ACTION_PREVIEW))
-                        {
+                        if (send_option_to_fifo(ACTION_PREVIEW)) {
                             oled_disp_type(STOP_PREVIEWING);
-                        }
-                        else
-                        {
-                            Log.e(TAG,"stop preview fail");
+                        } else {
+                            Log.e(TAG, "stop preview fail");
                         }
                         break;
+						
                      //preview state sent from http req while calibrating ,qr scan,gyro_start
                     case MENU_CALIBRATION:
                     case MENU_QR_SCAN:
@@ -3965,6 +3773,23 @@ void oled_handler::update_menu_disp(const int *icon_light,const int *icon_normal
     }
     disp_icon(icon_light[get_menu_select_by_power(cur_menu)]);
 }
+
+void oled_handler::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal)
+{
+    SELECT_INFO * mSelect = get_select_info();
+    int last_select = get_last_select();
+	
+    if (icon_normal != nullptr) {
+        //sometimes force last_select to -1 to avoid update last select
+        if (last_select != -1) {
+            dispIconByLoc(&icon_normal[last_select + mSelect->cur_page * mSelect->page_max]);
+        }
+    }
+    dispIconByLoc(&icon_light[get_menu_select_by_power(cur_menu)]);
+
+}
+
+
 
 void oled_handler::update_menu_page()
 {
@@ -4327,21 +4152,24 @@ void oled_handler::update_menu()
 			
         case MENU_PIC_SET_DEF:
 //            Log.d(TAG," pic set def item is %d", item);
-            mProCfg->set_def_info(KEY_PIC_DEF,item);
-            update_menu_disp(pic_def_setting_menu[1]);
-            if(item < PIC_CUSTOM)
-            {
+            mProCfg->set_def_info(KEY_PIC_DEF, item);
+
+			//update_menu_disp(pic_def_setting_menu[1]);
+
+			update_menu_disp(picAllCardMenuItems[1]);
+
+			
+            if (item < PIC_ALL_CUSTOM) {
                 disp_org_rts((int)(mPICAction[item].stOrgInfo.save_org != SAVE_OFF),
                              (int)(mPICAction[item].stStiInfo.stich_mode != STITCH_OFF));
-            }
-            else
-            {
+            } else {
                 disp_qr_res();
                 disp_org_rts((int)(mProCfg->get_def_info(KEY_PIC_DEF)->stOrgInfo.save_org != SAVE_OFF),
                              (int)(mProCfg->get_def_info(KEY_PIC_DEF)->stStiInfo.stich_mode != STITCH_OFF));
             }
             update_bottom_space();
             break;
+			
         case MENU_VIDEO_SET_DEF:
 //            Log.d(TAG," vid set def item is %d", item);
             mProCfg->set_def_info(KEY_VIDEO_DEF,item);
@@ -4500,21 +4328,16 @@ void oled_handler::caculate_rest_info(u64 size)
         size_M -= AVAIL_SUBSTRACT;;
         int item = 0;
         Log.d(TAG," curmenu %d item %d",cur_menu,item);
-        switch(cur_menu)
-        {
+        switch (cur_menu) {
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF:
-                if(mControlAct != nullptr)
-                {
+                if (mControlAct != nullptr) {
                     mRemainInfo->remain_pic_num = size_M/mControlAct->size_per_act;
                     Log.d(TAG,"0remain(%d %d)",
                           size_M,mRemainInfo->remain_pic_num);
-                }
-                else
-                {
+                } else {
                     item = get_menu_select_by_power(MENU_PIC_SET_DEF);
-                    switch(item)
-                    {
+                    switch (item) {
 //                          case PIC_8K_3D_SAVE:
                         case PIC_8K_PANO_SAVE:
                             //optical flow stich
@@ -5237,25 +5060,24 @@ void oled_handler::disp_cam_param(int higlight)
 {
     int item;
     int icon = -1;
+	ICON_INFO* pIconInfo = NULL;
+	
 //    Log.d(TAG,"disp_cam_param high %d cur_menu %d bDispControl %d",
 //          higlight,cur_menu);
     {
         INFO_MENU_STATE(cur_menu,cam_state)
-        switch (cur_menu)
-        {
+        switch (cur_menu) {
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF:
-                if(mControlAct != nullptr)
-                {
+                if (mControlAct != nullptr) {
                     disp_org_rts(mControlAct);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
-                }
-                else
-                {
+                } else {
                     item = get_menu_select_by_power(MENU_PIC_SET_DEF);
 //                    Log.d(TAG, "pic def item %d", item);
-                    switch (item)
-                    {
+                    switch (item) {
+
+#if 0						
 //                        case PIC_8K_3D_SAVE:
                         case PIC_8K_PANO_SAVE:
                             //optical flow stich
@@ -5267,14 +5089,29 @@ void oled_handler::disp_cam_param(int higlight)
                         case PIC_HDR:
                         case PIC_BURST:
                         case PIC_RAW:
-                            icon = pic_def_setting_menu[higlight][item];
+#else
+						case PIC_ALL_8K_3D_OF:
+						case PIC_ALL_8K_OF:
+						case PIC_ALL_8K:	
+					#ifdef ENABLE_SETTING_AEB	
+						case PIC_ALL_AEB_3579:
+					#endif
+						case PIC_ALL_BURST:
+
+#endif
+                            //icon = pic_def_setting_menu[higlight][item];
+							pIconInfo = &picAllCardMenuItems[higlight][item];
+							
                             disp_org_rts((int) (mPICAction[item].stOrgInfo.save_org != SAVE_OFF),
                                          (int) (mPICAction[item].stStiInfo.stich_mode != STITCH_OFF));
                             break;
+							
                             //user define
-                        case PIC_CUSTOM:
-                            icon = pic_def_setting_menu[higlight][item];
-                            disp_org_rts((int) (mProCfg->get_def_info(KEY_PIC_DEF)->stOrgInfo.save_org != SAVE_OFF),
+                        case PIC_ALL_CUSTOM:
+                            //icon = pic_def_setting_menu[higlight][item];
+							pIconInfo = &picAllCardMenuItems[higlight][item];
+
+							disp_org_rts((int) (mProCfg->get_def_info(KEY_PIC_DEF)->stOrgInfo.save_org != SAVE_OFF),
                                          (int) (mProCfg->get_def_info(KEY_PIC_DEF)->stStiInfo.stich_mode !=
                                                 STITCH_OFF));
                             break;
@@ -5283,21 +5120,17 @@ void oled_handler::disp_cam_param(int higlight)
 //                    Log.d(TAG, "2pic def item %d", item);
                 }
                 break;
+				
             case MENU_VIDEO_INFO:
             case MENU_VIDEO_SET_DEF:
                 Log.d(TAG,"tl_count is %d", tl_count);
-                if(tl_count != -1)
-                {
+                if (tl_count != -1) {
                     disp_org_rts(0,0);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
-                }
-                else if(mControlAct != nullptr)
-                {
+                } else if (mControlAct != nullptr) {
                     disp_org_rts(mControlAct);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
-                }
-                else
-                {
+                } else {
                     item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
 //                    Log.d(TAG, "video def item %d", item);
                     if(item >= 0 && item < VID_CUSTOM)
@@ -5316,39 +5149,17 @@ void oled_handler::disp_cam_param(int higlight)
                     {
                         ERR_ITEM(item);
                     }
-//                    switch (item)
-//                    {
-//                        case VID_8K_50M_30FPS_PANO_RTS_OFF:
-//                        case VID_6K_50M_30FPS_3D_RTS_OFF:
-//                        case VID_4K_50M_120FPS_PANO_RTS_OFF:
-//                        case VID_4K_20M_60FPS_3D_RTS_OFF:
-//                        case VID_4K_20M_24FPS_3D_50M_24FPS_RTS_ON:
-//                        case VID_4K_20M_24FPS_PANO_50M_30FPS_RTS_ON:
-//                            icon = vid_def_setting_menu[higlight][item];
-//                            disp_org_rts((int) (mVIDAction[item].stOrgInfo.save_org != SAVE_OFF),
-//                                         (int) (mVIDAction[item].stStiInfo.stich_mode != STITCH_OFF));
-//                            break;
-//                        case VID_CUSTOM:
-//                            icon = vid_def_setting_menu[higlight][item];
-//                            disp_org_rts((int) (mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.save_org != SAVE_OFF),
-//                                         (int) (mProCfg->get_def_info(KEY_VIDEO_DEF)->stStiInfo.stich_mode != STITCH_OFF));
-//
-//                            break;
-//                        SWITCH_DEF_ERROR(item)
-//                    }
                 }
                 break;
+				
             case MENU_LIVE_INFO:
             case MENU_LIVE_SET_DEF:
-                if(mControlAct != nullptr)
-                {
+                if (mControlAct != nullptr) {
                     disp_org_rts((int)(mControlAct->stOrgInfo.save_org != SAVE_OFF),
                                 0/* mControlAct->stStiInfo.stStiAct.mStiL.file_save*/,(int)
                             (mControlAct->stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON));
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
-                }
-                else
-                {
+                } else {
                     item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
 //                    Log.d(TAG, "live def item %d", item);
                     switch (item)
@@ -5378,14 +5189,19 @@ void oled_handler::disp_cam_param(int higlight)
                 break;
             SWITCH_DEF_ERROR(cur_menu)
         }
-        if (icon != -1)
-        {
+		
+        if (icon != -1) {
 //            Log.d(TAG, "disp icon %d ICON_CAMERA_INFO01_NORMAL_0_48_78_1678_16 %d",
 //                  icon, ICON_CAMERA_INFO01_NORMAL_0_48_78_1678_16);
             disp_icon(icon);
         }
+
+		if (pIconInfo) {
+			dispIconByLoc(pIconInfo);
+		}		
     }
 }
+
 
 void oled_handler::disp_sec(int sec,int x,int y)
 {
@@ -5532,61 +5348,49 @@ bool oled_handler::isDevExist()
 void oled_handler::disp_menu(bool dispBottom)
 {
 //    Log.d(TAG,"disp_menu is %d", cur_menu);
-    switch (cur_menu)
-    {
+    switch (cur_menu) {
         case MENU_TOP:
             disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][get_select()]);
             break;
+		
         case MENU_PIC_INFO:
+			//clear_area(0, 16);
             disp_icon(ICON_CAMERA_ICON_0_16_20_32);
+
 //            Log.d(TAG,"pic cam_state 0x%x",cam_state);
-            Log.d(TAG,"disp_bottom_info %d",dispBottom);
-            if(dispBottom)
-            {
+            Log.d(TAG, "disp_bottom_info %d", dispBottom);
+
+            if (dispBottom) {
                 disp_bottom_info();
             }
-            if(check_state_preview())
-            {
+			
+            if (check_state_preview()) {
                 disp_ready_icon();
-            }
-            else if(check_state_equal(STATE_START_PREVIEWING) ||
-                    check_state_in(STATE_STOP_PREVIEWING))
-            {
+            } else if (check_state_equal(STATE_START_PREVIEWING) || check_state_in(STATE_STOP_PREVIEWING)) {
                 disp_waiting();
-            }
-            else if(check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS))
-            {
-                if (cap_delay == 0)
-                {
+            } else if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
+                if (cap_delay == 0) {
                     disp_shooting();
-                }
-                else
-                {
+                } else {
                     //waiting for next update_light msg
                     clear_ready();
                 }
-            }
-            else if (check_state_in(STATE_PIC_STITCHING))
-            {
+            } else if (check_state_in(STATE_PIC_STITCHING)) {
                 disp_processing();
-            }
-            else
-            {
+            } else {
                 Log.d(TAG,"pic menu error state 0x%x",cam_state);
-                if(check_state_equal(STATE_IDLE))
-                {
+                if (check_state_equal(STATE_IDLE)) {
                     func_back();
                 }
             }
             break;
+			
         case MENU_VIDEO_INFO:
             disp_icon(ICON_VIDEO_ICON_0_16_20_32);
             disp_bottom_info();
-            if(check_state_preview())
-            {
+            if (check_state_preview()) {
                 disp_ready_icon();
-            }
-            else if(check_state_equal(STATE_START_PREVIEWING) ||
+            } else if (check_state_equal(STATE_START_PREVIEWING) ||
                     (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING))
             {
                 disp_waiting();
@@ -5675,11 +5479,13 @@ void oled_handler::disp_menu(bool dispBottom)
             disp_icon(ICON_SET_IC_DEFAULT_25_48_0_1625_48);
             disp_sys_setting(&mSettingItems);
             break;
+			
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
             disp_cam_param(1);
             break;
+		
         case MENU_QR_SCAN:
             clear_area();
 //                reset_last_info();
@@ -5920,18 +5726,14 @@ bool oled_handler::check_dev_exist(int action)
 {
     bool bRet = false;
     Log.d(TAG,"check_dev_exist (%d %d)",mSaveList.size(),save_path_select);
-    if(!check_save_path_none())
-    {
-        switch(action)
-        {
+
+    if (!check_save_path_none()) {
+        switch (action) {
 //            case ACTION_CALIBRATION:
             case ACTION_PIC:
-                if (mRemainInfo->remain_pic_num > 0)
-                {
+                if (mRemainInfo->remain_pic_num > 0) {
                     bRet = true;
-                }
-                else
-                {
+                } else {
                     //disp full
                     Log.e(TAG,"pic dev full");
                     disp_msg_box(DISP_DISK_FULL);
@@ -5939,12 +5741,9 @@ bool oled_handler::check_dev_exist(int action)
                 break;
 				
             case ACTION_VIDEO:
-                if(mRemainInfo->remain_hour > 0  || mRemainInfo->remain_min > 0 || mRemainInfo->remain_sec > 0)
-                {
+                if (mRemainInfo->remain_hour > 0  || mRemainInfo->remain_min > 0 || mRemainInfo->remain_sec > 0) {
                     bRet = true;
-                }
-                else
-                {
+                } else {
                     //disp full
                     Log.e(TAG,"video dev full");
                     disp_msg_box(DISP_DISK_FULL);
@@ -5992,6 +5791,8 @@ bool oled_handler::switchEtherIpMode(int iMode)
 }
 
 
+
+
 /*************************************************************************
 ** 方法名称: func_power
 ** 方法功能: POWER/OK键按下的处理
@@ -5999,7 +5800,8 @@ bool oled_handler::switchEtherIpMode(int iMode)
 **		无
 ** 返 回 值: 无
 ** 调     用: 
-**
+** 
+{"name":"camera._queryStorage"}
 *************************************************************************/
 void oled_handler::func_power()
 {
@@ -6010,8 +5812,19 @@ void oled_handler::func_power()
         case MENU_TOP:	/* 顶层菜单 */
             switch (get_select()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC:	/* 选择的是"拍照"项 */
+
+					/* 对于新版版: 发送"启动预览"后,需要查询当前卡的状态
+			 		 * 6 + 1, 6, 1
+			 		 */
                     if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求 */
-                        oled_disp_type(START_PREVIEWING);
+						
+                        oled_disp_type(START_PREVIEWING);	
+
+						/* 通过查询系统存储系统来决定存储策略 */
+
+						/* 
+						 * TODO: update storage status(default 6+1)
+						 */
                         set_cur_menu(MENU_PIC_INFO);	/* 设置并显示当前菜单 */
                     } else {
                         Log.d(TAG, "pic preview fail?");
@@ -6753,19 +6566,21 @@ void oled_handler::update_by_controller(int action)
 void oled_handler::add_state(int state)
 {
     cam_state |= state;
-    switch(state)
-    {
+	
+    switch (state) {
         case STATE_STOP_RECORDING:
             disp_saving();
             break;
+		
         case STATE_START_PREVIEWING:
         case STATE_STOP_PREVIEWING:
         case STATE_START_RECORDING:
 //        case STATE_STOP_RECORDING:
         case STATE_START_LIVING:
         case STATE_STOP_LIVING:
-            disp_waiting();
+            disp_waiting();		/* 屏幕中间显示"..." */
             break;
+		
         case STATE_TAKE_CAPTURE_IN_PROCESS:
         case STATE_PIC_STITCHING:
             //force pic menu to make bottom info updated ,if req from http
@@ -6808,37 +6623,40 @@ void oled_handler::add_state(int state)
             disp_connecting();
 //            set_cur_menu(MENU_LIVE_INFO);
             break;
+
         case STATE_PREVIEW:
-            INFO_MENU_STATE(cur_menu,cam_state);
-            rm_state(STATE_START_PREVIEWING|STATE_STOP_PREVIEWING);
-            if(!(check_live() || check_state_in(STATE_RECORD)))
-            {
-                switch(cur_menu)
-                {
+            INFO_MENU_STATE(cur_menu, cam_state);
+            rm_state(STATE_START_PREVIEWING | STATE_STOP_PREVIEWING);
+            if (!(check_live() || check_state_in(STATE_RECORD))) {
+                switch (cur_menu) {
                     case MENU_PIC_INFO:
                     case MENU_VIDEO_INFO:
                         disp_ready_icon();
                         break;
+					
                     case MENU_LIVE_INFO:
                         disp_live_ready();
                         break;
+					
                     case MENU_CALIBRATION:
                     case MENU_QR_SCAN:
                     case MENU_GYRO_START:
                     case MENU_SPEED_TEST:
                     case MENU_NOSIE_SAMPLE:
                         //do nothing while menu calibration
-                        Log.e(TAG,"add preview but do nothing while menu %d",cur_menu);
+                        Log.e(TAG, "add preview but do nothing while menu %d", cur_menu);
                         break;
+					
                         //state preview with req sync state
                     default:
-                        Log.d(TAG,"STATE_PREVIEW default cur_menu %d",
-                              cur_menu);
+                        Log.d(TAG, "STATE_PREVIEW default cur_menu %d", cur_menu);
                         set_cur_menu(MENU_PIC_INFO);
                         break;
                 }
             }
             break;
+
+			
         case STATE_CALIBRATING:
 //            Log.d(TAG,"state clibration cur_menu %d",cur_menu);
 //            if(cur_menu != MENU_CALIBRATION)
@@ -7389,8 +7207,7 @@ int oled_handler::oled_disp_type(int type)
           type,cur_menu,cam_state);
 
     rm_state(STATE_FORMAT_OVER);
-    switch(type)
-    {
+    switch (type) {
         case START_AGEING_FAIL:
             INFO_MENU_STATE(cur_menu,cam_state)
             minus_cam_state(STATE_RECORD);
@@ -7484,19 +7301,15 @@ int oled_handler::oled_disp_type(int type)
 		 * 停止录像成功
 		 */
         case STOP_REC_SUC:
-            if(check_state_in(STATE_RECORD))
-            {
+            if (check_state_in(STATE_RECORD)) {
                 tl_count = -1;
                 minus_cam_state(STATE_RECORD | STATE_STOP_RECORDING);
 //              play_sound(SND_STOP);
                 mControlAct = nullptr;
                 //fix select for changed by controller or timelapse
-                if (cur_menu == MENU_VIDEO_INFO)
-                {
+                if (cur_menu == MENU_VIDEO_INFO)  {
                     disp_bottom_info();
-                }
-                else
-                {
+                } else {
                     Log.e(TAG, "error cur_menu %d ", cur_menu);
                 }
 
@@ -7506,9 +7319,9 @@ int oled_handler::oled_disp_type(int type)
 				#endif
             }
             break;
+			
         case STOP_REC_FAIL:
-            if(check_state_in(STATE_RECORD))
-            {
+            if (check_state_in(STATE_RECORD)) {
                 tl_count = -1;
                 rm_state(STATE_STOP_RECORDING | STATE_RECORD);
                 disp_sys_err(type);
@@ -7516,43 +7329,37 @@ int oled_handler::oled_disp_type(int type)
             break;
 			
         case CAPTURE:
-            if (check_allow_pic())
-            {
-                if (mControlAct != nullptr)
-                {
+            if (check_allow_pic()) {
+                if (mControlAct != nullptr) {
                 	Log.d(TAG, "+++++++++++++++>>>> CAPTURE mControlAct != nullptr");
                     set_cap_delay(mControlAct->delay);
-                }
-                else
-                {
+                } else {
                     int item = get_menu_select_by_power(MENU_PIC_SET_DEF);
-                  Log.d(TAG, "+++++++++++++++ CAPTURE def item %d", item);
-                    switch (item)
-                    {
-//                        case PIC_8K_3D_SAVE:
-                        case PIC_8K_PANO_SAVE:
-                            //optical flow stich
-                        case PIC_8K_3D_SAVE_OF:
-                        case PIC_8K_PANO_SAVE_OF:
-#ifdef OPEN_HDR_RTS
-                        case PIC_HDR_RTS:
-#endif
-                        case PIC_HDR:
-                        case PIC_BURST:
-                        case PIC_RAW:
-							Log.d(TAG, ">>>>>>>>>>> delay val = %d", mPICAction[item].delay);
+                  	Log.d(TAG, "+++++++++++++++ CAPTURE def item %d", item);
+                    switch (item) {
 						
+
+						case PIC_ALL_8K_3D_OF:
+						case PIC_ALL_8K_OF:
+						case PIC_ALL_8K:
+					#ifdef ENABLE_SETTING_AEB	
+						case PIC_ALL_AEB_3579:
+					#endif
+						case PIC_ALL_BURST:							
+
+							Log.d(TAG, ">>>>>>>>>>> delay val = %d", mPICAction[item].delay);						
                             set_cap_delay(mPICAction[item].delay);
                             break;
 						
                             //user define
-                        case PIC_CUSTOM:
+                        case PIC_ALL_CUSTOM:
                             set_cap_delay(mProCfg->get_def_info(KEY_PIC_DEF)->delay);
                             break;
 						
                         SWITCH_DEF_ERROR(item)
                     }
                 }
+				
                 add_state(STATE_TAKE_CAPTURE_IN_PROCESS);
 				add_state(STATE_PLAY_SOUND);	/* 添加播放声音状态 */
 
@@ -7564,10 +7371,10 @@ int oled_handler::oled_disp_type(int type)
                 send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ, SND_1S_T + set_photo_delay_index);
             }
             break;
+
 			
         case CAPTURE_SUC:
-            if(check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING))
-            {
+            if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
                 //disp capture suc
                 minus_cam_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
 //                Log.w(TAG,"CAPTURE_SUC cur_menu %d", cur_menu);
@@ -7607,27 +7414,6 @@ int oled_handler::oled_disp_type(int type)
             }
             break;
 			
-#if 0
-        case COMPOSE_PIC:
-            set_cam_state(cam_state | STATE_COMPOSE_IN_PROCESS);
-            //disp composing pic
-            break;
-        case COMPOSE_VIDEO:
-            set_cam_state(cam_state | STATE_COMPOSE_IN_PROCESS);
-            //disp composing video
-            break;
-//no compose yet
-        case COMPOSE_PIC_FAIL:
-        case COMPOSE_PIC_SUC:
-            set_cam_state(cam_state & ~STATE_COMPOSE_IN_PROCESS);
-            Log.d(TAG,"compose pic over cam_state 0x%x\n",cam_state);
-            break;
-        case COMPOSE_VIDEO_FAIL:
-        case COMPOSE_VIDEO_SUC:
-            set_cam_state(cam_state & ~STATE_COMPOSE_IN_PROCESS);
-            Log.d(TAG,"compose video over cam cam_state 0x%x\n",cam_state);
-            break;
-#endif
         case STRAT_LIVING:
             add_state(STATE_START_LIVING);
             break;
@@ -7664,6 +7450,7 @@ int oled_handler::oled_disp_type(int type)
         case STOP_LIVING:
             add_state(STATE_STOP_LIVING);
             break;
+		
         case STOP_LIVE_SUC:
             if(check_live())
             {
@@ -7707,6 +7494,7 @@ int oled_handler::oled_disp_type(int type)
         case RESET_ALL:
             oled_reset_disp(RESET_ALL);
             break;
+		
         case RESET_ALL_CFG:
             disp_icon(ICON_RESET_SUC_128_48128_48);
             msg_util::sleep_ms(500);
@@ -7722,19 +7510,26 @@ int oled_handler::oled_disp_type(int type)
                 func_back();
             }
             break;
+			
         case START_PREVIEWING:
             add_state(STATE_START_PREVIEWING);
             break;
-		
+
+		/* 启动预览成功后,发送获取存储容量 */
         case START_PREVIEW_SUC:
-            if (!check_state_in(STATE_PREVIEW))
-            {
-                add_state(STATE_PREVIEW);
+            if (!check_state_in(STATE_PREVIEW)) {
+				
+				/* 发送获取卡容量请求 */
+				send_option_to_fifo(ACTION_QUERY_STORAGE);
+
+				add_state(STATE_PREVIEW);
             }
             break;
+
+
 			
         case START_PREVIEW_FAIL:
-            Log.d(TAG,"START_PREVIEW_FAIL cur_menu %d cam state %d",cur_menu,cam_state);
+            Log.d(TAG, "START_PREVIEW_FAIL cur_menu %d cam state %d", cur_menu, cam_state);
             rm_state(STATE_START_PREVIEWING);
             disp_sys_err(type, MENU_TOP);
             break;
@@ -7744,15 +7539,13 @@ int oled_handler::oled_disp_type(int type)
             break;
 		
         case STOP_PREVIEW_SUC:
-            if (check_state_in(STATE_PREVIEW))
-            {
+            if (check_state_in(STATE_PREVIEW)) {
                 minus_cam_state(STATE_PREVIEW | STATE_STOP_PREVIEWING);
             }
             break;
 			
         case STOP_PREVIEW_FAIL:
-            Log.d(TAG,"STOP_PREVIEW_FAIL fail cur_menu %d %d",
-                  cur_menu,cam_state);
+            Log.d(TAG, "STOP_PREVIEW_FAIL fail cur_menu %d %d", cur_menu, cam_state);
             rm_state(STATE_STOP_PREVIEWING | STATE_PREVIEW);
             disp_sys_err(type);
             break;
@@ -7760,16 +7553,14 @@ int oled_handler::oled_disp_type(int type)
         case START_CALIBRATIONING:
             Log.d(TAG,"cap delay %d cur_menu %d",cap_delay,cur_menu);
             send_update_light(MENU_CALIBRATION,STATE_CALIBRATING,INTERVAL_1HZ);
-            if (cur_menu != MENU_CALIBRATION)
-            {
+            if (cur_menu != MENU_CALIBRATION) {
                 set_cur_menu(MENU_CALIBRATION);
             }
             add_state(STATE_CALIBRATING);
             break;
 			
         case CALIBRATION_SUC:
-            if (check_state_in(STATE_CALIBRATING))
-            {
+            if (check_state_in(STATE_CALIBRATING)) {
                 disp_calibration_res(0);
                 msg_util::sleep_ms(1000);
                 minus_cam_state(STATE_CALIBRATING);
@@ -7782,19 +7573,19 @@ int oled_handler::oled_disp_type(int type)
             break;
 			
         case SYNC_REC_AND_PREVIEW:
-            if (!check_state_in(STATE_RECORD))
-            {
+            if (!check_state_in(STATE_RECORD)) {
                 cam_state = STATE_PREVIEW;
                 add_state(STATE_RECORD);
+			
                 //disp video menu before add state_record
                 set_cur_menu(MENU_VIDEO_INFO);
                 Log.d(TAG," set_update_mid a");
                 set_update_mid();
             }
             break;
+			
         case SYNC_PIC_CAPTURE_AND_PREVIEW:
-            if(!check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS))
-            {
+            if (!check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
                 Log.d(TAG," SYNC_PIC_CAPTURE_AND_PREVIEW");
                 INFO_MENU_STATE(cur_menu,cam_state);
                 cam_state = STATE_PREVIEW;
@@ -7804,11 +7595,11 @@ int oled_handler::oled_disp_type(int type)
                 send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ);
             }
             break;
+			
         case SYNC_PIC_STITCH_AND_PREVIEW:
-            if(!check_state_in(STATE_PIC_STITCHING))
-            {
-                Log.d(TAG," SYNC_PIC_CAPTURE_AND_PREVIEW");
-                INFO_MENU_STATE(cur_menu,cam_state);
+            if (!check_state_in(STATE_PIC_STITCHING)) {
+                Log.d(TAG, " SYNC_PIC_CAPTURE_AND_PREVIEW");
+                INFO_MENU_STATE(cur_menu, cam_state);
                 cam_state = STATE_PREVIEW;
                 add_state(STATE_PIC_STITCHING);
                 //disp video menu before add state_record
@@ -7816,11 +7607,12 @@ int oled_handler::oled_disp_type(int type)
                 send_update_light(MENU_PIC_INFO, STATE_PIC_STITCHING, INTERVAL_5HZ);
             }
             break;
+			
         case SYNC_LIVE_AND_PREVIEW:
             Log.d(TAG,"SYNC_LIVE_AND_PREVIEW for state 0x%x",cam_state);
-            //not sync in state_live and state_live_connecting
-            if(!check_state_in(STATE_LIVE))
-            {
+
+			// not sync in state_live and state_live_connecting
+            if (!check_state_in(STATE_LIVE)) {
                 //must before add live_state for keeping state live_connecting avoiding recalculate time 170804
                 set_update_mid();
                 cam_state = STATE_PREVIEW;
@@ -7829,29 +7621,30 @@ int oled_handler::oled_disp_type(int type)
                 Log.d(TAG," set_update_mid b");
             }
             break;
+			
         case SYNC_LIVE_CONNECT_AND_PREVIEW:
-            if(!check_state_in(STATE_LIVE_CONNECTING))
-            {
+            if (!check_state_in(STATE_LIVE_CONNECTING)) {
                 cam_state = STATE_PREVIEW;
                 add_state(STATE_LIVE_CONNECTING);
                 set_cur_menu(MENU_LIVE_INFO);
             }
             break;
+			
         case START_QRING:
             add_state(STATE_START_QRING);
             break;
+		
         case START_QR_SUC:
-            if(!check_state_in(STATE_START_QR))
-            {
+            if (!check_state_in(STATE_START_QR)) {
                 add_state(STATE_START_QR);
             }
             break;
 			
         case START_QR_FAIL:
             rm_state(STATE_START_QRING);
-            Log.d(TAG,"cur menu %d back menu %d",
-                  cur_menu,get_back_menu(cur_menu));
-            disp_sys_err(type,get_back_menu(cur_menu));
+            Log.d(TAG, "cur menu %d back menu %d",
+                  cur_menu, get_back_menu(cur_menu));
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
 			
         case STOP_QRING:
@@ -7890,15 +7683,7 @@ int oled_handler::oled_disp_type(int type)
         case CALIBRATION_ORG_SUC:
             Log.d(TAG,"rec calibration org suc");
             break;
-        //disp low battery and will power off,but if insert electric adapter ,will retrieve back
-//        case LOW_BAT_SUC:
-//            Log.d(TAG,"low bat suc");
-//            finish_low_bat();
-//            break;
-//        case LOW_BAT_FAIL:
-//            Log.d(TAG,"low bat fail");
-//            finish_low_bat();
-//            break;
+
         case SET_SYS_SETTING:
         case SET_CUS_PARAM:
         case STITCH_PROGRESS:
@@ -7906,14 +7691,11 @@ int oled_handler::oled_disp_type(int type)
             break;
 		
         case TIMELPASE_COUNT:
-            INFO_MENU_STATE(cur_menu,cam_state)
-            Log.d(TAG,"tl_count %d",tl_count);
-            if(!check_state_in(STATE_RECORD))
-            {
+            INFO_MENU_STATE(cur_menu, cam_state)
+            Log.d(TAG, "tl_count %d", tl_count);
+            if (!check_state_in(STATE_RECORD)) {
                 Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x",cam_state);
-            }
-            else
-            {
+            } else {
                 disp_tl_count(tl_count);
             }
             break;
@@ -8026,6 +7808,12 @@ void oled_handler::disp_icon(u32 type)
 {
     mOLEDModule->disp_icon(type);
 }
+
+void oled_handler::dispIconByLoc(const ICON_INFO* pInfo)
+{
+    mOLEDModule->disp_icon(pInfo);
+}
+
 
 void oled_handler::disp_ageing()
 {

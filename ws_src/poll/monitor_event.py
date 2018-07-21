@@ -23,6 +23,9 @@ EVENT_DEV_NOTIFY = 3
 EVENT_SAVE_PATH = 4
 EVENT_AGEING_TEST = 5
 
+# 查询存储卡信息
+EVENT_QUERY_STORAGE = 6
+
 
 
 #write to pro service
@@ -250,6 +253,10 @@ class monitor_fifo_read(threading.Thread):
     def handle_ageing_test(self, content):
         self.control_obj.start_ageing_test(content);
 
+
+    def handle_query_storage(self, content):
+        self.control_obj.queryStorage();
+
     def run(self):
         self.func = OrderedDict({
             # EVENT_USB:            self.handle_usb_event,
@@ -259,7 +266,9 @@ class monitor_fifo_read(threading.Thread):
             EVENT_DEV_NOTIFY:       self.handle_dev_notify,
             EVENT_SAVE_PATH:        self.handle_save_path,
             EVENT_AGEING_TEST:      self.handle_ageing_test,
+            EVENT_QUERY_STORAGE:    self.handle_query_storage,
         })
+        
 
         while self._exit is False:
             try:

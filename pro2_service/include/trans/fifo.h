@@ -66,6 +66,7 @@ enum {
     EVENT_DEV_NOTIFY = 3,
     EVENT_SAVE_PATH = 4,
     EVENT_AGEING_TEST = 5,
+    EVENT_QUERY_STORAGE = 6,
 };
 
 

@@ -153,7 +153,7 @@ void oled_module::init()
 
     ssd1306_init();
 
-    CHECK_EQ(ICON_MAX, sizeof(oled_icons)/sizeof(oled_icons[0]));
+//    CHECK_EQ(ICON_MAX, sizeof(oled_icons)/sizeof(oled_icons[0]));
 }
 
 void oled_module::deinit()
@@ -884,7 +884,7 @@ void oled_module::disp_icon(const u32 icon_type)
 void oled_module::disp_icon(const struct _icon_info_ *pstTmp)
 {
 //    Log.d(TAG,"disp len %d",pstTmp->size);
-    ssd1306_disp_icon(pstTmp->dat,pstTmp->x,pstTmp->y,pstTmp->w,pstTmp->h);
+    ssd1306_disp_icon(pstTmp->dat, pstTmp->x, pstTmp->y, pstTmp->w, pstTmp->h);
 }
 
 void oled_module::disp_ip(const u8 *ip)
