@@ -1,13 +1,48 @@
-#include <sys/StorageManager.h>
+#include <future>
+#include <vector>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <common/include_common.h>
 
+#include <util/ARHandler.h>
+#include <util/ARMessage.h>
+
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <net/if.h>
+#include <sys/socket.h>
+
+#include <sys/ioctl.h>
+
+#include <sys/net_manager.h>
+#include <util/bytes_int_convert.h>
+#include <string>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <prop_cfg.h>
+
+#include <trans/fifo.h>
+
+#include <sys/StorageManager.h>
 
 using namespace std;
 
 #define MIN_STORAGE_LEFT_SIZE	(1024 * 1024 * 1024)
 
 
+#define TAG "StorageManager"
+
 static sp<StorageManager> gSysStorageManager = NULL;
-static sp<mutex> gSysStorageMutex = NULL;
+static std::mutex gSysStorageMutex;
+
+static const char *dev_type[SET_STORAGE_MAX] = {"sd", "usb"};
 
 
 enum {
@@ -19,7 +54,7 @@ enum {
 
 sp<StorageManager> StorageManager::getSystemStorageManagerInstance()
 {
-    unique_lock<mutex> lock(gSysStorageManager);
+    unique_lock<mutex> lock(gSysStorageMutex);
     if (gSysStorageManager != NULL) {
         return gSysStorageManager;
     } else {
@@ -69,7 +104,7 @@ bool StorageManager::queryCurStorageState()
 
 bool StorageManager::queryLocalStorageState()
 {
-	sp<Volum> tmpVol;
+	sp<Volume> tmpVol;
 	
 	if (mLocalStorageList.size() == 0) {
 		return false;
@@ -89,13 +124,13 @@ bool StorageManager::queryLocalStorageState()
 bool StorageManager::queryRemoteStorageState()
 {
 
-	sp<ARMessage> tmpMsg;
+	sp<ARMessage> tmpMsg = (sp<ARMessage>)(new ARMessage(MSG_GET_OLED_KEY));
 
 	/* 清除远端的存储设备列表 */
 	mRemoteStorageList.clear();
 
-	tmpMsg.what = MSG_GET_OLED_KEY;
-	msg->set<int>("what", ACTION_QUERY_STORAGE);
+	//tmpMsg->what = MSG_GET_OLED_KEY;
+	tmpMsg->set<int>("what", ACTION_QUERY_STORAGE);
 
 	/* 发送异步消息给Camerad,并在此处等待 */
 	fifo::getSysTranObj()->postTranMessage(tmpMsg, 0);
@@ -147,9 +182,167 @@ void StorageManager::updateStorageDevice(int iAction, sp<Volume>& pVol)
 }
 
 
+int StorageManager::getDevTypeIndex(char *type)
+{
+    int storage_index;
+    if (strcmp(type, dev_type[SET_STORAGE_SD]) == 0) {
+        storage_index = SET_STORAGE_SD;
+    } else if (strcmp(type, dev_type[SET_STORAGE_USB]) == 0) {
+        storage_index = SET_STORAGE_USB;
+    } else {
+        Log.e(TAG, "error dev type %s ", type);
+    }
+    return storage_index;
+}
+
+
+void StorageManager::updateNativeStorageDevList(std::vector<sp<Volume>> & mDevList, )
+{
+	int dev_change_type;
+	
+		// 0 -- add, 1 -- remove, -1 -- do nothing
+	int bAdd = CHANGE;
+	bool bDispBox = false;
+	bool bChange = true;
+		
+	if (bFirstDev) {	/* 第一次发送 */
+			
+		bFirstDev = false;
+		mLocalStorageList.clear();
+		
+		switch (mDevList.size()) {
+			case 0:
+				mSavePathIndex = -1;
+				break;
+				
+			case 1: {
+				sp<Volume> dev = sp<Volume>(new Volume());
+				memcpy(dev.get(), mDevList.at(0).get(), sizeof(Volume));
+				mLocalStorageList.push_back(dev);
+				mSavePathIndex = 0;
+				break;
+			}
+					
+				
+			case 2:
+				for (u32 i = 0; i < mDevList.size(); i++) {
+					sp<Volume> dev = sp<Volume>(new Volume());
+					memcpy(dev.get(), mDevList.at(i).get(), sizeof(Volume));
+					if (getDevTypeIndex(mDevList.at(i)->dev_type) == SET_STORAGE_USB) {
+						mSavePathIndex = i;
+					}
+					mLocalStorageList.push_back(dev);
+				}
+				break;
+					
+			default:
+				Log.d(TAG, "strange bFirstDev mList.size() is %d", mDevList.size());
+				break;
+		}
+		send_save_path_change();	/* 将当前选中的存储路径发送给Camerad */
+	} else {
+		Log.d(TAG, " new save list is %d , org save list %d", mDevList.size(), mLocalStorageList.size());
+		if (mDevList.size() == 0) {
+			bAdd = REMOVE;
+			mSavePathIndex = -1;
+		
+			if (mLocalStorageList.size() == 0) {
+				Log.d(TAG, "strange save list size (%d %d)", mDevList.size(), mLocalStorageList.size());
+				mLocalStorageList.clear();
+				//send_save_path_change();
+				bChange = false;
+			} else {
+				dev_change_type = getDevTypeIndex(mLocalStorageList.at(0)->dev_type);
+				mLocalStorageList.clear();
+				bDispBox = true;
+			}
+		} else {
+			if (mDevList.size() < mLocalStorageList.size()) {
+				//remove
+				bAdd = REMOVE;
+				switch (mDevList.size()) {
+					case 1:
+						if (getDevTypeIndex(mDevList.at(0)->dev_type) == SET_STORAGE_SD) {
+							dev_change_type = SET_STORAGE_USB;
+							mSavePathIndex = 0;
+						} else {
+							dev_change_type = SET_STORAGE_SD;
+							bChange = false;
+						}
+						mLocalStorageList.clear();
+						mLocalStorageList.push_back(mDevList.at(0));
+						bDispBox = true;
+						break;
+
+					default:
+						Log.d(TAG,"2strange save list size (%d %d)", mDevList.size(), mLocalStorageList.size());
+						break;
+				}
+			} else if (mDevList.size() > mLocalStorageList.size()) {	//add
+				bAdd = ADD;
+				if (mLocalStorageList.size() == 0) {
+					dev_change_type = getDevTypeIndex(mDevList.at(0)->dev_type);
+					sp<Volume> dev = sp<Volume>(new Volume());
+					memcpy(dev.get(), mDevList.at(0).get(), sizeof(Volume));
+					mSavePathIndex = 0;
+					mLocalStorageList.push_back(dev);
+					bDispBox = true;
+				} else {
+					switch (mDevList.size()) {
+						case 2:
+							dev_change_type = getDevTypeIndex(mLocalStorageList.at(0)->dev_type);
+							if (dev_change_type == SET_STORAGE_USB) {
+								// new insert is sd
+								dev_change_type = SET_STORAGE_SD;
+							} else {
+								// new insert is usb
+								dev_change_type = SET_STORAGE_USB;
+							}
+							
+							mLocalStorageList.clear();
+							for (unsigned int i = 0; i < mDevList.size(); i++) {
+								sp<Volume> dev = sp<Volume>(new Volume());
+								memcpy(dev.get(), mDevList.at(i).get(), sizeof(Volume));
+								if (dev_change_type == SET_STORAGE_USB && getDevTypeIndex(mDevList.at(i)->dev_type) == SET_STORAGE_USB) {
+									mSavePathIndex = i;
+									bChange = true;
+								}
+								mLocalStorageList.push_back(dev);
+							}
+							bDispBox = true;
+							break;
+
+						default:
+							Log.d(TAG, "3strange save list size (%d %d)", mDevList.size(), mLocalStorageList.size());
+							break;
+					}
+				}
+			} else {
+				Log.d(TAG, "5strange save list size (%d %d)", mDevList.size(), mLocalStorageList.size());
+			}
+		}
+	
+		if (mLocalStorageList.size() == 0 ) {
+			if (mSavePathIndex != -1) {
+				mSavePathIndex = -1;
+			}
+		} else if (mSavePathIndex >= (int)mLocalStorageList.size()) {
+			mSavePathIndex = mLocalStorageList.size() - 1;
+			Log.e(TAG, "force path select %d ", mSavePathIndex);
+		}
+		
+		if (bDispBox) {
+			disp_dev_msg_box(bAdd, dev_change_type, bChange);
+		}
+	}
+}
+
+
+
+
 int StorageManager::getCurStorageMode()
 {
-
+	return 0;
 }
 
 

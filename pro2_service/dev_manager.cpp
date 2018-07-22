@@ -14,30 +14,31 @@
 #include <util/util.h>
 #include <errno.h>
 
+#include <sys/StorageManager.h>
+
 using namespace std;
 #define TAG	"dev_manager"
 
 #define UEVENT_MSG_LEN  (1024)
 #define UEVENT_SOCK_LEN (64*1024)
 
-struct net_link_info
-{
+
+struct net_link_info {
     ~net_link_info()
     {
-        if(dev_path != nullptr)
-        {
+        if (dev_path != nullptr) {
             free(dev_path);
         }
-        if(sub_system != nullptr)
-        {
+		
+        if (sub_system != nullptr) {
             free(sub_system);
         }
-        if(dev_name != nullptr)
-        {
+		
+        if (dev_name != nullptr) {
             free(dev_name);
         }
-        if(dev_type != nullptr)
-        {
+		
+        if (dev_type != nullptr) {
             free(dev_type);
         }
     }
@@ -77,8 +78,6 @@ static const char *mount_src[] = {
     "/dev/mmcblk1",
     "/dev/sd",
 };
-
-
 
 
 /*************************************************************************
@@ -127,8 +126,6 @@ void dev_manager::init()
     start_detect_thread();	/* 创建检测线程 */
 }
 
-
-
 void dev_manager::handle_block_event(sp<struct net_link_info> &mLink)
 {
     dev_change(mLink->action, 20);
@@ -171,7 +168,6 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
                     return false;
                 }
             }
-//            mPath = strdup(p+1);
             first = 0;
         } else {
             const char* a;
@@ -198,8 +194,7 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
                 mLink->dev_name = strdup(a);
             } else if ((a = PRO_HAS_CONST_PREFIX(s, end, "DEVTYPE=")) != NULL) {
                 mLink->dev_type = strdup(a);
-                if(strcmp(mLink->dev_type,"disk") == 0)
-                {
+                if (strcmp(mLink->dev_type, "disk") == 0) {
                     bBlockDisk = true;
                     break;
                 }
@@ -207,32 +202,14 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
             else if ((a = PRO_HAS_CONST_PREFIX(s, end, "SEQNUM=")) != NULL) {
                 mLink->seq_num = atoi(a);
             }
-//            else if (param_idx < NL_PARAMS_MAX) {
-//                mParams[param_idx++] = strdup(s);
-//            }
         }
         s += strlen(s) + 1;
     }
-    if(bBlockDisk)
-    {
-        // 1 -- ram , 7 --loop,253 -- none usb/sdcard
-//        if(checkDevValid(mLink))
-        {
-//            char test_buf[8192];
-//            memset(test_buf,0,sizeof(test_buf));
-//            memcpy(test_buf,buffer,size);
-//            for (int i = 0; i < size; i++)
-//                if (test_buf[i] == '\0')
-//                    test_buf[i] = ' ';
-//
-//            Log.d(TAG,"%s\n", test_buf);
 
-            Log.d(TAG,"rec block action (%d %d)\n",
-                  mLink->action,mLink->major);
-            handle_block_event(mLink);
-            Log.d(TAG,"rec block action %d over\n",
-                  mLink->action);
-        }
+    if (bBlockDisk) {
+		Log.d(TAG, "DevManager: recv block action (%d %d)\n", mLink->action, mLink->major);
+		handle_block_event(mLink);
+		Log.d(TAG, "DevManager: recv block action %d over\n", mLink->action);
     }
     return true;
 }
@@ -287,28 +264,36 @@ void dev_manager::start_detect_thread()
 }
 
 
-void dev_manager::send_notify_msg(std::vector<sp<USB_DEV_INFO>> &dev_list)
+
+/*************************************************************************
+** 方法名称: send_notify_msg
+** 方法功能: 给上层发送当前的存储设备列表
+** 入口参数: 
+**		dev_list - 存储列表容器引用
+** 返 回 值: 无
+** 调     用: 
+**
+*************************************************************************/
+void dev_manager::send_notify_msg(std::vector<sp<Volume>> &dev_list)
 {
     sp<ARMessage> msg = mNotify->dup();
-    msg->set<vector<sp<USB_DEV_INFO>>>("dev_list", dev_list);
+    msg->set<vector<sp<Volume>>>("dev_list", dev_list);
     msg->post();
 }
 
-void dev_manager::dev_change(int action,const int MAX_TIMES)
+void dev_manager::dev_change(int action, const int MAX_TIMES)
 {
     int iTimes = 0;
 
-    while(iTimes++ < MAX_TIMES)
-    {
-        if(start_scan(action))
-        {
+    while (iTimes++ < MAX_TIMES) {
+        if (start_scan(action)) {
             break;
         }
         msg_util::sleep_ms(1000);
     }
-    if(iTimes >= MAX_TIMES)
-    {
-        Log.e(TAG,"handle action %s fail", (action== ADD)? "add": ((action == REMOVE)?"remove":"change"));
+
+    if (iTimes >= MAX_TIMES) {
+        Log.e(TAG, "handle action %s fail", (action== ADD)? "add": ((action == REMOVE)?"remove":"change"));
     }
 }
 
@@ -322,20 +307,14 @@ void dev_manager::resetDev(int count)
 int dev_manager::check_block_mount(char *dev)
 {
     int mount_type = -1;
-    for(u32 i = 0; i < sizeof(mount_src)/sizeof(mount_src[0]); i++)
-    {
-        if(strstr(dev,mount_src[i]) == dev)
-        {
-            if( strstr(dev,"mmcblk")  || strstr(dev,":179,")  )
-            {
+    for (u32 i = 0; i < sizeof(mount_src)/sizeof(mount_src[0]); i++) {
+        if (strstr(dev, mount_src[i]) == dev) {
+			
+            if (strstr(dev, "mmcblk")  || strstr(dev, ":179,")) {
                 mount_type = SET_STORAGE_SD;
-            }
-            else
-            {
+            } else {
                 mount_type = SET_STORAGE_USB;
             }
-//            Log.d(TAG,"dev name %s"
-//                    " mount_type %d\n",dev,mount_type);
             break;
         }
     }
@@ -345,112 +324,100 @@ int dev_manager::check_block_mount(char *dev)
 
 bool dev_manager::start_scan(int action)
 {
-//    unique_lock<mutex> lock(mMutex);
-    int fd = open("/proc/mounts",O_RDONLY);
     bool bHandle = false;
-    vector <sp<USB_DEV_INFO>> mDevList;
-
+	
+    int fd = open("/proc/mounts", O_RDONLY);	/* 打开"/proc/mounts"文件 */
+	
+    vector <sp<Volume>> mDevList;
     mDevList.clear();
-    if(fd > 0)
-    {
+
+    if (fd > 0) {	/* 打开文件成功 */
+		
         int type;
         char buf[1024];
         char *delim = (char *)" ";
 
         memset(buf, 0, sizeof(buf));
-        while (read_line(fd, buf, sizeof(buf)) > 0)
-        {
-            char *p = strtok(buf, delim);
-            if (p != nullptr)
-            {
-                type = check_block_mount(p);
-                if (type != -1)
-                {
-                    sp<USB_DEV_INFO> mDevInfo = sp<USB_DEV_INFO>(new USB_DEV_INFO());
+		
+        while (read_line(fd, buf, sizeof(buf)) > 0) {	/* 依次读取一行数据 */
+
+			char *p = strtok(buf, delim);
+            if (p != nullptr) {
+				
+                type = check_block_mount(p);	/* 检查设备文件名是否合法"/dev/mmcblk1*"或"/dev/sdX" */
+                if (type != -1) {
+					
+                    sp<Volume> mDevInfo = sp<Volume>(new Volume());
 
                     snprintf(mDevInfo->src, sizeof(mDevInfo->src), "%s", p);
-                    if (type == SET_STORAGE_SD)
-                    {
+                    if (type == SET_STORAGE_SD) {
                         snprintf(mDevInfo->dev_type, sizeof(mDevInfo->dev_type), "%s", "sd");
                         snprintf(mDevInfo->name, sizeof(mDevInfo->name), "%s", "sd1");
-                    }
-                    else
-                    {
+                    } else {
                         snprintf(mDevInfo->dev_type, sizeof(mDevInfo->dev_type), "%s", "usb");
                         snprintf(mDevInfo->name, sizeof(mDevInfo->name), "%s", "usb");
                     }
-                    p = strtok(NULL, delim);
-                    if (p)
-                    {
+					
+                    p = strtok(NULL, delim);	/* 得到设备的挂载路径 */
+                    if (p) {
                         snprintf(mDevInfo->path, sizeof(mDevInfo->path), "%s", p);
+                    } else {
+                        Log.d(TAG, "no mount path?\n");
                     }
-                    else
-                    {
-                        Log.d(TAG,"no mount path?\n");
-                    }
-                    if(access(mDevInfo->path,F_OK) == -1)
-                    {
-                        Log.e(TAG," mount path %s not access",mDevInfo->path);
-                    }
-                    else
-                    {
-//                        Log.e(TAG," mount path %s",mDevInfo->path);
-                        mDevList.push_back(mDevInfo);
+					
+                    if (access(mDevInfo->path, F_OK) == -1) {	/* 访问该路径是否存在 */
+                        Log.e(TAG," mount path %s not access", mDevInfo->path);
+                    } else {
+                        mDevList.push_back(mDevInfo);	/* 将该设备推入mDevList临时列表中 */
                     }
                 }
             }
             memset(buf, 0, sizeof(buf));
         }
-//        Log.d(TAG,"mDevList.size() %lu "
-//                       "org_dev_count %d action %d\n",
-//              mDevList.size(),
-//              org_dev_count, action);
-        switch (action)
-        {
-            case ADD:
-                if (mDevList.size() > org_dev_count)
-                {
+
+        switch (action) {	/* 判断发起此次扫描的原因 */
+            case ADD:		/* 有设备插入 */
+                if (mDevList.size() > org_dev_count) {
                     bHandle = true;
                 }
                 break;
-            case REMOVE:
-                if (mDevList.size() < org_dev_count)
-                {
+				
+            case REMOVE:	/* 有设备移除 */
+                if (mDevList.size() < org_dev_count) {
                     bHandle = true;
                 }
                 break;
+				
             case CHANGE:
                 bHandle = true;
                 break;
+			
             default:
                 break;
         }
         close(fd);
     }
-    Log.d(TAG,"start_scan action %d "
+	
+    Log.d(TAG, "start_scan action %d "
                   " bHandle %d mDevList size %d"
                   " org_dev_count %d\n",
           action,bHandle,mDevList.size(),org_dev_count);
-    if(bHandle)
-    {
-        send_notify_msg(mDevList);
-        org_dev_count = mDevList.size();
-    }
-    else
-    {
+
+    if (bHandle) {	/* 需要处理,上报 */
+        send_notify_msg(mDevList);			/* 将新的设备列表发给UI */
+        org_dev_count = mDevList.size();	/* 更新当前系统中存在的存储设备个数 */
+    } else {
         // handle specail that insert/remove sd and usb at same time 0803
-        switch (action)
-        {
+        switch (action) {
             case ADD:
-                if (mDevList.size() == 2)
-                {
+                if (mDevList.size() == 2) {
                     Log.d(TAG,"force add handle");
                     bHandle = true;
                 }
                 break;
+				
             case REMOVE:
-                if (mDevList.size() == 0)
-                {
+                if (mDevList.size() == 0) {
                     Log.d(TAG,"force remove handle");
                     bHandle = true;
                 }

@@ -1,19 +1,16 @@
-//
-// Created by vans on 16-12-23.
-//
-
 #ifndef PROJECT_DEV_MANAGER_H
 #define PROJECT_DEV_MANAGER_H
 #include <thread>
 #include <vector>
 #include <common/sp.h>
-#include <hw/usb_dev_info.h>
+
+#include <sys/StorageManager.h>
+
 
 struct net_link_info;
 class ARMessage;
 
-enum
-{
+enum {
     SET_STORAGE_SD,
     SET_STORAGE_USB,
     SET_STORAGE_MAX
@@ -46,16 +43,16 @@ private:
     void stop_detect_thread();
     void handle_block_event(sp<struct net_link_info> &mLink);
 
-    void send_notify_msg(std::vector<sp<USB_DEV_INFO>> &dev_list);
-//    void add_internal_info(std::vector <sp<USB_DEV_INFO>> &mList);
+    void send_notify_msg(std::vector<sp<Volume>> &dev_list);
+	
     std::thread th_detect_;
+
     sp<ARMessage> mNotify;
 
     int mCtrlPipe[2];
 
     bool bThExit_ = false;
     unsigned int org_dev_count = 0;
-    //std::mutex mMutex;
 
 };
 #endif //PROJECT_DEV_MANAGER_H

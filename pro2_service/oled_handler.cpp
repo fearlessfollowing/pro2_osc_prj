@@ -41,6 +41,7 @@
 
 #include <icon/pic_mode_select.h>
 
+
 using namespace std;
 #define TAG "oled_handler"
 
@@ -791,7 +792,7 @@ static SETTING_ITEMS mSetPhotoDelays = {
 };
 
 
-static const char *dev_type[SET_STORAGE_MAX] = {"sd","usb"};
+static const char *dev_type[SET_STORAGE_MAX] = {"sd", "usb"};
 
 static int main_menu[][MAINMENU_MAX] = {
 	{
@@ -1993,7 +1994,7 @@ void oled_handler::init()
 	
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
-    CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_CUSTOM);
+    CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
     CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
     CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
@@ -2001,16 +2002,15 @@ void oled_handler::init()
     CHECK_EQ(sizeof(setting_icon_normal) / sizeof(setting_icon_normal[0]), SETTING_MAX);
     CHECK_EQ(sizeof(setting_icon_lights) / sizeof(setting_icon_lights[0]), SETTING_MAX);
 
-    mSaveList.clear();
+    mLocalStorageList.clear();
 
     cam_state = STATE_IDLE;
 
-	/* OLED对象 */
+	/* OLED对象： 显示系统 */
     mOLEDModule = sp<oled_module>(new oled_module());
     CHECK_NE(mOLEDModule, nullptr);
 
-
-    //move ahead avoiding scan dev finished before oled disp
+	/* 设备管理器: 监听设备的动态插拔 */
     sp<ARMessage> dev_notify = obtainMessage(OLED_UPDATE_DEV_INFO);
     mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
     CHECK_NE(mDevManager, nullptr);
@@ -2523,7 +2523,7 @@ bool oled_handler::check_allow_pic()
 bool oled_handler::start_speed_test()
 {
     bool ret = false;
-    if (!check_dev_speed_good(mSaveList.at(save_path_select)->path)) {
+    if (!check_dev_speed_good(mLocalStorageList.at(mSavePathIndex)->path)) {
         set_cur_menu(MENU_SPEED_TEST);
         ret = true;
     }
@@ -2584,7 +2584,7 @@ bool oled_handler::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *
                     char disp[32];
                     if (mAct->size_per_act > 0) {
                         if (get_save_path_avail()) {
-                            int size_M = (int)(mSaveList.at(save_path_select)->avail >> 20);
+                            int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->avail >> 20);
                             if (size_M > AVAIL_SUBSTRACT) {
                                 size_M -= AVAIL_SUBSTRACT;
 
@@ -2839,14 +2839,14 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
         case ACTION_SPEED_TEST:
             if(check_save_path_none())
             {
-                Log.e(TAG,"action speed test save_path_select -1");
+                Log.e(TAG,"action speed test mSavePathIndex -1");
                 bAllow = false;
             }
             else
             {
                 if(!check_state_in(STATE_SPEED_TEST))
                 {
-                    msg->set<char *>("path", mSaveList.at(save_path_select)->path);
+                    msg->set<char *>("path", mLocalStorageList.at(mSavePathIndex)->path);
                     oled_disp_type(SPEED_START);
                 }
                 else
@@ -3018,15 +3018,16 @@ void oled_handler::send_save_path_change()
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 	
     if (!check_save_path_none()) {
-        snprintf(mSavePath->path,sizeof(mSavePath->path),"%s",
-                 mSaveList.at(save_path_select)->path);
+        snprintf(mSavePath->path,sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->path);
     } else {
-        snprintf(mSavePath->path,sizeof(mSavePath->path),"%s", NONE_PATH);
+        snprintf(mSavePath->path,sizeof(mSavePath->path), "%s", NONE_PATH);
     }
 	
     msg->set<sp<SAVE_PATH>>("save_path", mSavePath);
     msg->post();
 }
+
+
 
 void oled_handler::send_delay_msg(int msg_id, int delay)
 {
@@ -3053,13 +3054,12 @@ void oled_handler::send_clear_msg_box(int delay)
 }
 
 
-void oled_handler::send_update_dev_list(std::vector<sp<USB_DEV_INFO>> &mList)
+void oled_handler::send_update_dev_list(std::vector<sp<Volume>> &mList)
 {
     sp<ARMessage> msg = mNotify->dup();
 
-    //update battery in oled
     msg->set<int>("what", UPDATE_DEV);
-    msg->set<std::vector<sp<USB_DEV_INFO>>>("dev_list", mList);
+    msg->set<std::vector<sp<Volume>>>("dev_list", mList);
     msg->post();
 }
 
@@ -3069,26 +3069,6 @@ const u8* oled_handler::get_disp_str(int str_index)
     Log.d(TAG,"333 get disp str[%d] %s\n",str_index,str);
     return str;
 }
-
-
-
-//sta
-
-#ifdef ENABLE_WIFI_STA
-void oled_handler::wifi_config(sp<WIFI_CONFIG> &config)
-{
-    if (strlen(config->ssid) > 0 /*&& strlen(config->pwd) > 0*/) {
-        oled_disp_type(QR_FINISH_CORRECT);
-        memcpy(mWifiConfig.get(), config.get(), sizeof(WIFI_CONFIG));
-        mProCfg->update_wifi_cfg(mWifiConfig);
-
-        mProCfg->set_val(KEY_WIFI_ON,1);
-        start_wifi_sta(1);
-    } else {
-        oled_disp_type(QR_FINISH_ERROR);
-    }
-}
-#endif
 
 
 
@@ -4206,17 +4186,17 @@ void oled_handler::get_storage_info()
     memset(total_space,0,sizeof(total_space));
     memset(used_space,0,sizeof(used_space));
 
-//    Log.d(TAG,"get total mSaveList.size() %d", mSaveList.size());
-    for(u32 i = 0; i < mSaveList.size(); i++)
+//    Log.d(TAG,"get total mLocalStorageList.size() %d", mLocalStorageList.size());
+    for(u32 i = 0; i < mLocalStorageList.size(); i++)
     {
         struct statfs diskInfo;
         u64 totalsize = 0;
         u64 used_size = 0;
-        storage_index = get_dev_type_index(mSaveList.at(i)->dev_type);
+        storage_index = get_dev_type_index(mLocalStorageList.at(i)->dev_type);
 
-        if (access(mSaveList.at(i)->path, F_OK) != -1)
+        if (access(mLocalStorageList.at(i)->path, F_OK) != -1)
         {
-            statfs(mSaveList.at(i)->path, &diskInfo);
+            statfs(mLocalStorageList.at(i)->path, &diskInfo);
             u64 blocksize = diskInfo.f_bsize;    //每个block里包含的字节数
             totalsize = blocksize * diskInfo.f_blocks;   //总的字节数，f_blocks为block的数目
 //            used_size = (diskInfo.f_blocks - diskInfo.f_bavail) * blocksize;   //可用空间大小
@@ -4231,11 +4211,11 @@ void oled_handler::get_storage_info()
                                  used_space[storage_index],
                                  sizeof(used_space[storage_index]));
 
-            Log.d(TAG," used %s total %s path %s",used_space[storage_index],total_space[storage_index],mSaveList.at(i)->path);
+            Log.d(TAG," used %s total %s path %s",used_space[storage_index],total_space[storage_index],mLocalStorageList.at(i)->path);
         }
         else
         {
-            Log.d(TAG, "%s not access", mSaveList.at(i)->path);
+            Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
         }
     }
 }
@@ -4250,36 +4230,36 @@ bool oled_handler::get_save_path_avail()
         for( i = 0; i < times; i++)
         {
             struct statfs diskInfo;
-            if (access(mSaveList.at(save_path_select)->path, F_OK) != -1)
+            if (access(mLocalStorageList.at(mSavePathIndex)->path, F_OK) != -1)
             {
-                statfs(mSaveList.at(save_path_select)->path, &diskInfo);
+                statfs(mLocalStorageList.at(mSavePathIndex)->path, &diskInfo);
 
                 /*
                  * 老化模式下为了能让时间尽可能长,虚拟出足够长的录像时间
                  */
 				#ifdef ENABLE_AGEING_MODE
-                mSaveList.at(save_path_select)->avail = 0x10000000000;
+                mLocalStorageList.at(mSavePathIndex)->avail = 0x10000000000;
 				#else
-                mSaveList.at(save_path_select)->avail = diskInfo.f_bavail *diskInfo.f_bsize;
+                mLocalStorageList.at(mSavePathIndex)->avail = diskInfo.f_bavail *diskInfo.f_bsize;
 				#endif
 				
                 Log.d(TAG, "remain ( %s %llu)\n",
-                      mSaveList.at(save_path_select)->path,
-                      mSaveList.at(save_path_select)->avail);
+                      mLocalStorageList.at(mSavePathIndex)->path,
+                      mLocalStorageList.at(mSavePathIndex)->avail);
                 break;
             }
             else
             {
                 Log.d(TAG,"fail to access(%d) %s",i,
-                      mSaveList.at(save_path_select)->path);
+                      mLocalStorageList.at(mSavePathIndex)->path);
                 msg_util::sleep_ms(10);
             }
         }
         if( i == times )
         {
             Log.d(TAG,"still fail to access %s",
-                  mSaveList.at(save_path_select)->path);
-            mSaveList.at(save_path_select)->avail = 0;
+                  mLocalStorageList.at(mSavePathIndex)->path);
+            mLocalStorageList.at(mSavePathIndex)->avail = 0;
         }
         ret = true;
     }
@@ -4290,7 +4270,7 @@ bool oled_handler::get_save_path_avail()
 void oled_handler::get_save_path_remain()
 {
     if (get_save_path_avail()) {
-        caculate_rest_info(mSaveList.at(save_path_select)->avail);
+        caculate_rest_info(mLocalStorageList.at(mSavePathIndex)->avail);
     }
 }
 
@@ -4413,8 +4393,7 @@ bool oled_handler::check_save_path_none()
 {
     bool bRet = false;
 	
-//    Log.d(TAG,"save_path_select is %d",save_path_select);
-    if (save_path_select == -1) {
+    if (mSavePathIndex == -1) {
         bRet = true;
     }
     return bRet;
@@ -4424,9 +4403,9 @@ bool oled_handler::check_save_path_usb()
 {
     bool bRet = false;
 	
-    Log.d(TAG,"save_path_select is %d",save_path_select);
+    Log.d(TAG,"mSavePathIndex is %d",mSavePathIndex);
 	
-    if (save_path_select != -1 && (get_dev_type_index(mSaveList.at(save_path_select)->dev_type) == SET_STORAGE_USB)) {
+    if (mSavePathIndex != -1 && (get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type) == SET_STORAGE_USB)) {
         bRet = true;
     } else {
         disp_msg_box(DISP_LIVE_REC_USB);
@@ -4567,7 +4546,7 @@ void oled_handler::disp_sys_setting(SETTING_ITEMS* pSetting)
 
 void oled_handler::reset_devmanager()
 {
-    Log.d(TAG,"reset_devmanager mSaveList.size() %d",mSaveList.size());
+    Log.d(TAG,"reset_devmanager mLocalStorageList.size() %d",mLocalStorageList.size());
     bFirstDev = true;
     mDevManager->resetDev(0);
     exec_sh("pkill vold");
@@ -4721,11 +4700,11 @@ void oled_handler::start_format()
     {
         case SET_STORAGE_SD:
             disp_icon(ICON_SDCARD_FORMATTING128_48);
-            for(u32 i = 0; i < mSaveList.size(); i++)
+            for(u32 i = 0; i < mLocalStorageList.size(); i++)
             {
-                if(get_dev_type_index(mSaveList.at(i)->dev_type) == SET_STORAGE_SD)
+                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_SD)
                 {
-                    format(mSaveList.at(i)->src,mSaveList.at(i)->path,ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
+                    format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
                     bFound = true;
                     break;
                 }
@@ -4733,12 +4712,12 @@ void oled_handler::start_format()
             break;
         case SET_STORAGE_USB:
             disp_icon(ICON_USBHARDDRIVE_FORMATTING128_48);
-            for(u32 i = 0; i < mSaveList.size(); i++)
+            for(u32 i = 0; i < mLocalStorageList.size(); i++)
             {
-                if(get_dev_type_index(mSaveList.at(i)->dev_type) == SET_STORAGE_USB)
+                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_USB)
                 {
                     bFound = true;
-                    format(mSaveList.at(i)->src,mSaveList.at(i)->path,
+                    format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,
                            ICON_FORMAT_REPLACE_NEW_USB_128_48128_48,
                            ICON_USBDARDDRIVE_FORMATTED_FAILED128_48,ICON_USBHARDDRIVE_FORMATTED_SUCCESS128_48);
                     break;
@@ -5183,9 +5162,9 @@ bool oled_handler::isDevExist()
 {
     int item = get_menu_select_by_power(MENU_STORAGE);
     bool bFound = false;
-    for(u32 i = 0;i < mSaveList.size(); i++)
+    for(u32 i = 0;i < mLocalStorageList.size(); i++)
     {
-        if(get_dev_type_index(mSaveList.at(i)->dev_type) == item)
+        if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == item)
         {
             bFound = true;
             break;
@@ -5441,10 +5420,10 @@ void oled_handler::disp_menu(bool dispBottom)
             break;
         case MENU_SPEED_TEST:
         {
-//                Log.d(TAG,"save_path_select is %d",save_path_select);
+//                Log.d(TAG,"mSavePathIndex is %d",mSavePathIndex);
             if(!check_save_path_none())
             {
-                int dev_index = get_dev_type_index(mSaveList.at(save_path_select)->dev_type);
+                int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
                 if(check_state_in(STATE_SPEED_TEST))
                 {
                     switch(dev_index)
@@ -5456,7 +5435,7 @@ void oled_handler::disp_menu(bool dispBottom)
                             disp_icon(ICON_SPEEDTEST04128_64);
                             break;
                         default:
-                            Log.d(TAG,"STATE_SPEED_TEST save_path_select is -1");
+                            Log.d(TAG,"STATE_SPEED_TEST mSavePathIndex is -1");
 #ifdef ENABLE_ABORT
                             abort();
 #else
@@ -5476,7 +5455,7 @@ void oled_handler::disp_menu(bool dispBottom)
                             disp_icon(ICON_SPEEDTEST02128_64);
                             break;
                         default:
-                            Log.d(TAG,"save_path_select is -1");
+                            Log.d(TAG,"mSavePathIndex is -1");
 //                        abort();
                             disp_icon(ICON_SPEEDTEST01128_64);
                             break;
@@ -5576,7 +5555,7 @@ void oled_handler::disp_wifi_connect()
 bool oled_handler::check_dev_exist(int action)
 {
     bool bRet = false;
-    Log.d(TAG,"check_dev_exist (%d %d)",mSaveList.size(),save_path_select);
+    Log.d(TAG,"check_dev_exist (%d %d)",mLocalStorageList.size(),mSavePathIndex);
 
     if (!check_save_path_none()) {
         switch (action) {
@@ -5883,7 +5862,7 @@ void oled_handler::func_power()
                     val = ((~val) & 0x00000001);
                     mProCfg->set_val(KEY_VID_SEG, val);
                     set_setting_select(item, val);
-                    if(val == 0)
+                    if (val == 0)
                     {
                         disp_msg_box(DISP_VID_SEGMENT);
                     }
@@ -6418,6 +6397,10 @@ void oled_handler::add_state(int state)
     cam_state |= state;
 	
     switch (state) {
+		
+		case STATE_QUERY_STORAGE:
+			break;
+	
         case STATE_STOP_RECORDING:
             disp_saving();
             break;
@@ -6848,6 +6831,7 @@ void oled_handler::set_light()
     if (!check_cam_busy() && (cur_menu != MENU_SYS_ERR) && (cur_menu != MENU_LOW_BAT)) {
         set_light(front_light);
     }
+	
     return;
 }
 
@@ -7010,12 +6994,9 @@ int oled_handler::oled_disp_err(sp<struct _err_type_info_> &mErr)
 
 void oled_handler::set_led_power(unsigned int on)
 {
-    if (on == 1)
-    {
+    if (on == 1) {
         set_light();
-    }
-    else
-    {
+    } else {
         set_light_direct(LIGHT_OFF);
     }
 }
@@ -7040,6 +7021,32 @@ void oled_handler::set_oled_power(unsigned int on)
 }
 
 #define STR(cmd)	#cmd
+
+
+
+bool oled_handler::queryCurStorageState()
+{
+	sp<Volume> tmpVol;
+	
+	if (mLocalStorageList.size() == 0) {
+		return false;
+	} else {	
+		for (u32 i = 0; i < mLocalStorageList.size(); i++) {
+			tmpVol = mLocalStorageList.at(i);
+			Log.d(TAG, "Local device [%s], remain size [%ld]M", tmpVol->name, tmpVol->avail);
+			if (tmpVol->avail < mMinStorageSpce) {
+				mMinStorageSpce = tmpVol->avail;
+			}
+		}
+		
+		add_state(STATE_QUERY_STORAGE);
+
+		send_option_to_fifo(ACTION_QUERY_STORAGE);
+		return true;		
+	}
+}
+
+
 
 
 //all disp is at bottom
@@ -7343,14 +7350,27 @@ int oled_handler::oled_disp_type(int type)
         case START_PREVIEW_SUC:		/* 启动预览成功 */
             if (!check_state_in(STATE_PREVIEW)) {
 
+				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS, ENTER QUERY STORAGE STATE");
+
+#if 0
 				/* 查询状态 */							
-				bool bStore = StorageManager::getSystemStorageManagerInstance()->queryCurStorageState();
-				if (bStore) {					
+				bool bStore = queryCurStorageState();
+				if (bStore) {		
+					Log.d(TAG, ">>>> queryCurStorageState return true, we can take pic, vido, live now...");
 					add_state(STATE_PREVIEW); /* 添加"STATE_PREVIEW"后会显示"READY"字样 */
 				} else {
 					/* 显示无存储设备 */
-					
+					Log.d(TAG, ">>>> queryCurStorageState return false, baddly...");					
+
+					rm_state(STATE_START_PREVIEWING | STATE_STOP_PREVIEWING);
+
+					/* 底部和右下角显示"No SD Card"和"None" */					
+					disp_icon(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);
 				}
+#else
+				
+				add_state(STATE_PREVIEW); /* 添加"STATE_PREVIEW"后会显示"READY"字样 */
+#endif
 
             }
             break;
@@ -7677,32 +7697,21 @@ void oled_handler::disp_ageing()
 int oled_handler::get_dev_type_index(char *type)
 {
     int storage_index;
-    if(strcmp(type,dev_type[SET_STORAGE_SD]) == 0)
-    {
+    if (strcmp(type, dev_type[SET_STORAGE_SD]) == 0) {
         storage_index = SET_STORAGE_SD;
-    }
-    else if(strcmp(type,dev_type[SET_STORAGE_USB]) == 0)
-    {
+    } else if (strcmp(type, dev_type[SET_STORAGE_USB]) == 0) {
         storage_index = SET_STORAGE_USB;
-    }
-    else
-    {
-        Log.e(TAG,"error dev type %s ", type);
-#ifdef ENABLE_ABORT
-        abort();
-#else
-        storage_index = SET_STORAGE_SD;
-#endif
+    } else {
+        Log.e(TAG, "error dev type %s ", type);
     }
     return storage_index;
 }
 
 void oled_handler::disp_dev_msg_box(int bAdd, int type, bool bChange)
 {
-    Log.d(TAG,"bAdd %d type %d",
-          bAdd, type);
-    if(bChange)
-    {
+    Log.d(TAG, "bAdd %d type %d", bAdd, type);
+
+    if (bChange) {
         send_save_path_change();
     } 
 
@@ -7732,7 +7741,7 @@ void oled_handler::disp_dev_msg_box(int bAdd, int type, bool bChange)
 }
 
 
-void oled_handler::set_mdev_list(std::vector <sp<USB_DEV_INFO>> &mList)
+void oled_handler::set_mdev_list(std::vector <sp<Volume>> &mList)
 {
     int dev_change_type;
 
@@ -7740,170 +7749,140 @@ void oled_handler::set_mdev_list(std::vector <sp<USB_DEV_INFO>> &mList)
     int bAdd = CHANGE;
     bool bDispBox = false;
     bool bChange = true;
-    if (bFirstDev) {
+	
+    if (bFirstDev) {	/* 第一次发送 */
 		
         bFirstDev = false;
-        mSaveList.clear();
+        mLocalStorageList.clear();
+	
         switch (mList.size()) {
             case 0:
-                save_path_select = -1;
-                break;
-            case 1:
-            {
-                sp<USB_DEV_INFO> dev = sp<USB_DEV_INFO>(new USB_DEV_INFO());
-                memcpy(dev.get(),mList.at(0).get(), sizeof(USB_DEV_INFO));
-//                snprintf(new_path, sizeof(new_path),"%s",mList.at(0)->path);
-                mSaveList.push_back(dev);
-                save_path_select = 0;
-            }
+                mSavePathIndex = -1;
                 break;
 			
+            case 1: {
+                sp<Volume> dev = sp<Volume>(new Volume());
+                memcpy(dev.get(), mList.at(0).get(), sizeof(Volume));
+                mLocalStorageList.push_back(dev);
+                mSavePathIndex = 0;
+				break;
+            }
+                
+			
             case 2:
-                for(u32 i = 0; i < mList.size(); i++)
-                {
-                    sp<USB_DEV_INFO> dev = sp<USB_DEV_INFO>(new USB_DEV_INFO());
-                    memcpy(dev.get(),mList.at(i).get(),sizeof(USB_DEV_INFO));
-                    if(get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB)
-                    {
-//                        snprintf(new_path, sizeof(new_path),"%s",mList.at(i)->path);
-                        save_path_select = i;
+                for (u32 i = 0; i < mList.size(); i++) {
+                    sp<Volume> dev = sp<Volume>(new Volume());
+                    memcpy(dev.get(), mList.at(i).get(), sizeof(Volume));
+                    if (get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB) {
+                        mSavePathIndex = i;
                     }
-                    mSaveList.push_back(dev);
+                    mLocalStorageList.push_back(dev);
                 }
                 break;
 				
             default:
-                Log.d(TAG,"strange bFirstDev mList.size() is %d",mList.size());
+                Log.d(TAG, "strange bFirstDev mList.size() is %d", mList.size());
                 break;
         }
-        send_save_path_change();
-    }
-    else
-    {
-        Log.d(TAG, " new save list is %d , org save list %d",
-              mList.size() ,mSaveList.size());
-        if (mList.size() == 0)
-        {
+        send_save_path_change();	/* 将当前选中的存储路径发送给Camerad */
+    } else {
+        Log.d(TAG, " new save list is %d , org save list %d", mList.size(), mLocalStorageList.size());
+        if (mList.size() == 0) {
             bAdd = REMOVE;
-            save_path_select = -1;
-            if (mSaveList.size() == 0) {
-                Log.d(TAG,"strange save list size (%d %d)",mList.size(),mSaveList.size());
-                mSaveList.clear();
+            mSavePathIndex = -1;
+            if (mLocalStorageList.size() == 0) {
+                Log.d(TAG,"strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
+                mLocalStorageList.clear();
                 send_save_path_change();
                 bChange = false;
             } else {
-                dev_change_type = get_dev_type_index(mSaveList.at(0)->dev_type);
-                mSaveList.clear();
+                dev_change_type = get_dev_type_index(mLocalStorageList.at(0)->dev_type);
+                mLocalStorageList.clear();
                 bDispBox = true;
             }
-        }
-        else
-        {
-            if (mList.size() < mSaveList.size())
-            {
+        } else {
+            if (mList.size() < mLocalStorageList.size()) {
                 //remove
                 bAdd = REMOVE;
-                switch(mList.size())
-                {
+                switch (mList.size()) {
                     case 1:
-                        if (get_dev_type_index(mList.at(0)->dev_type) == SET_STORAGE_SD)
-                        {
+                        if (get_dev_type_index(mList.at(0)->dev_type) == SET_STORAGE_SD) {
                             dev_change_type = SET_STORAGE_USB;
-                            save_path_select = 0;
-                        }
-                        else
-                        {
+                            mSavePathIndex = 0;
+                        } else {
                             dev_change_type = SET_STORAGE_SD;
                             bChange = false;
                         }
-                        mSaveList.clear();
-                        mSaveList.push_back(mList.at(0));
+                        mLocalStorageList.clear();
+                        mLocalStorageList.push_back(mList.at(0));
                         bDispBox = true;
                         break;
 
                     default:
-                        Log.d(TAG,"2strange save list size (%d %d)",mList.size(),mSaveList.size());
+                        Log.d(TAG,"2strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
                         break;
                 }
-            }
-            //add
-            else if (mList.size() > mSaveList.size())
-            {
+            } else if (mList.size() > mLocalStorageList.size()) {	//add
                 bAdd = ADD;
-                if (mSaveList.size() == 0)
-                {
+                if (mLocalStorageList.size() == 0) {
                     dev_change_type = get_dev_type_index(mList.at(0)->dev_type);
-                    sp<USB_DEV_INFO> dev = sp<USB_DEV_INFO>(new USB_DEV_INFO());
-                    memcpy(dev.get(), mList.at(0).get(), sizeof(USB_DEV_INFO));
+                    sp<Volume> dev = sp<Volume>(new Volume());
+                    memcpy(dev.get(), mList.at(0).get(), sizeof(Volume));
 //                    snprintf(new_path, sizeof(new_path), "%s", mList.at(0)->path);
-                    save_path_select = 0;
-                    mSaveList.push_back(dev);
+                    mSavePathIndex = 0;
+                    mLocalStorageList.push_back(dev);
                     bDispBox = true;
-                }
-                else
-                {
+                } else {
 //old is usb
 //                    CHECK_EQ(mList.size(), 2);
-                    switch(mList.size())
-                    {
+                    switch (mList.size()) {
                         case 2:
-                            dev_change_type = get_dev_type_index(mSaveList.at(0)->dev_type);
-                            if (dev_change_type == SET_STORAGE_USB)
-                            {
+                            dev_change_type = get_dev_type_index(mLocalStorageList.at(0)->dev_type);
+                            if (dev_change_type == SET_STORAGE_USB) {
                                 // new insert is sd
                                 dev_change_type = SET_STORAGE_SD;
-                            }
-                            else
-                            {
+                            } else {
                                 // new insert is usb
                                 dev_change_type = SET_STORAGE_USB;
                             }
-                            mSaveList.clear();
-                            for (unsigned int i = 0; i < mList.size(); i++)
-                            {
-                                sp<USB_DEV_INFO> dev = sp<USB_DEV_INFO>(new USB_DEV_INFO());
-                                memcpy(dev.get(),
-                                       mList.at(i).get(),
-                                       sizeof(USB_DEV_INFO));
-                                if(dev_change_type == SET_STORAGE_USB && get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB)
-                                {
-//                            snprintf(new_path, sizeof(new_path), "%s",
-//                                 mList.at(i)->path);
-                                    save_path_select = i;
+							
+                            mLocalStorageList.clear();
+                            for (unsigned int i = 0; i < mList.size(); i++) {
+                                sp<Volume> dev = sp<Volume>(new Volume());
+                                memcpy(dev.get(), mList.at(i).get(), sizeof(Volume));
+                                if (dev_change_type == SET_STORAGE_USB && get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB) {
+                                    mSavePathIndex = i;
                                     bChange = true;
                                 }
-                                mSaveList.push_back(dev);
+                                mLocalStorageList.push_back(dev);
                             }
                             bDispBox = true;
                             break;
+
                         default:
-                            Log.d(TAG, "3strange save list size (%d %d)",mList.size(),mSaveList.size());
+                            Log.d(TAG, "3strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
                             break;
                     }
                 }
             } else {
-                Log.d(TAG, "5strange save list size (%d %d)", mList.size(), mSaveList.size());
+                Log.d(TAG, "5strange save list size (%d %d)", mList.size(), mLocalStorageList.size());
             }
         }
 
-        if (mSaveList.size() == 0 ) {
-            if (save_path_select != -1) {
-                Log.e(TAG,"force path select -1");
-                save_path_select = -1;
+        if (mLocalStorageList.size() == 0 ) {
+            if (mSavePathIndex != -1) {
+                mSavePathIndex = -1;
             }
-        } else if (save_path_select >= (int)mSaveList.size()) {
-            save_path_select = mSaveList.size() - 1;
-            Log.e(TAG,"force path select %d ",save_path_select);
+        } else if (mSavePathIndex >= (int)mLocalStorageList.size()) {
+            mSavePathIndex = mLocalStorageList.size() - 1;
+            Log.e(TAG,"force path select %d ",mSavePathIndex);
         }
 		
         if (bDispBox) {
             disp_dev_msg_box(bAdd, dev_change_type, bChange);
         }
     }
-//    Log.d(TAG,"bChange %d save_path_select %d mSaveList.size() %d",
-//          bChange,save_path_select,mSaveList.size());
 }
-
 
 
 bool oled_handler::decrease_rest_time()
@@ -8087,7 +8066,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
 	
-//    Log.d(TAG,"what %d",what);
+
     if (OLED_EXIT == what) {
         exitAll();
     } else {
@@ -8097,11 +8076,9 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                     unique_lock<mutex> lock(mutexState);
                     sp<DISP_TYPE> disp_type;
                     CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
-                    Log.d(TAG,"OLED_DISP_STR_TYPE (%d %d %d %d 0x%x)",
-                          disp_type->qr_type,
-                          disp_type->type,
-                          disp_type->tl_count,
-                          cur_menu,cam_state);
+					
+                    Log.d(TAG, "OLED_DISP_STR_TYPE (%d %d %d %d 0x%x)",
+                          disp_type->qr_type, disp_type->type, disp_type->tl_count, cur_menu, cam_state);
 
                     switch (cur_menu) {
                         case MENU_DISP_MSG_BOX:
@@ -8247,8 +8224,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 显示初始化
 			 */
-            case OLED_DISP_INIT:	/* 1.初始化显示消息 */
-            {
+            case OLED_DISP_INIT: {	/* 1.初始化显示消息 */
                 oled_init_disp();	/* 初始化显示 */
                 send_option_to_fifo(ACTION_REQ_SYNC);	/* 发送请求同步消息 */
                 break;
@@ -8256,15 +8232,16 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 
 
 			/*
-			 * 更新存储设备列表(来自Netlink)
+			 * 更新存储设备列表(消息来自DevManager线程)
 			 */
             case OLED_UPDATE_DEV_INFO: {
-                vector<sp<USB_DEV_INFO>> mList;
-                CHECK_EQ(msg->find<vector<sp<USB_DEV_INFO>>>("dev_list", &mList), true);
-                set_mdev_list(mList);
+                vector<sp<Volume>> mList;
+                CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mList), true);
+
+				set_mdev_list(mList);	/* 更新存储管理器的存储设备列表 */
 				
                 // make send dev_list after sent save for update_bottom while current is pic ,vid menu
-                send_update_dev_list(mList);
+                send_update_dev_list(mList);	/* 给Http发送更新设备列表消息 */
                 break;
             }
 
@@ -8536,8 +8513,7 @@ bool oled_handler::check_battery_change(bool bUpload)
 
 
     bool bUpdate = mBatInterface->read_bat_update(m_bat_info_);
-	
-	Log.d(TAG,"mBatInterface isSuc %d", mBatInterface->isSuc());
+		
     if (bUpdate || bUpload) {
 		
         oled_disp_battery();	/* 显示电池及电量信息 */
@@ -8553,8 +8529,8 @@ bool oled_handler::check_battery_change(bool bUpload)
         msg->set<sp<BAT_INFO>>("bat_info", info);
         msg->post();
     }
-    if(is_bat_low())
-    {
+
+    if (is_bat_low()) {
 #ifdef OPEN_BAT_LOW
         if(cur_menu != MENU_LOW_BAT)
         {

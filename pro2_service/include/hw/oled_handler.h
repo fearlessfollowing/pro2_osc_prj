@@ -4,14 +4,13 @@
 #include <thread>
 #include <vector>
 #include <common/sp.h>
-#include <hw/usb_dev_info.h>
 #include <hw/battery_interface.h>
 #include <sys/net_manager.h>
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
 
 #include <hw/oled_module.h>
-
+#include <sys/StorageManager.h>
 
 typedef enum _type_ {
     START_RECING ,// 0,
@@ -505,7 +504,7 @@ public:
     void send_get_key(int key);
     void send_long_press_key(int key,int64 ts);
     void send_init_disp();
-    void send_update_dev_list(std::vector<sp<USB_DEV_INFO>> &mList);
+    void send_update_dev_list(std::vector<sp<Volume>> &mList);
     void send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
 
     sp<ARMessage> obtainMessage(uint32_t what);
@@ -672,7 +671,7 @@ private:
     void sendExit();
     void exitAll();
     void set_org_addr(unsigned int addr);
-    void set_mdev_list(std::vector<sp<USB_DEV_INFO>> &mList);
+    void set_mdev_list(std::vector<sp<Volume>> &mList);
 
     void sys_reboot(int cmd = REBOOT_SHUTDOWN);
 
@@ -750,6 +749,10 @@ private:
 	void procUpdateIp(const char* ipAddr);
 	
 
+	/*
+	 * 存储管理器
+	 */
+	bool queryCurStorageState();
 
 
 	sp<ARLooper> mLooper;
@@ -786,12 +789,8 @@ private:
     int org_option = 0;
     sp<pro_cfg> mProCfg;
 	
-    //100 -->internal ,others -->external usb or sdcard
-    //useful while mDevList.size > 0
-//    unsigned int save_select = SDCARD_SELECT;
-//    char save_path[128] = {0x00};
 	// dev_type : 1 -- usb , 2 -- sd1 (3 --sd2 if exists)
-    std::vector<sp<USB_DEV_INFO>> mSaveList;
+    std::vector<sp<Volume>> mSaveList;
 
 	// int save_select;
     sp<oled_module> mOLEDModule;
@@ -804,15 +803,8 @@ private:
     sp<struct _rec_info_> mRecInfo;
     sp<oled_light> mOLEDLight;
 
-    // 0 - 3
-//    int last_org_rts = -1;
-//    bool bDispMidLive = false;
-//    char dev_input[128];
-//    bool bDispControl = false;
     int cap_delay = 0;
 	
-//    u8 last_front_light = 0;
-//    u8 last_back_light = 0;
 
     u8 last_light = 0;
     u8 fli_light = 0;
@@ -824,13 +816,8 @@ private:
     sp<battery_interface> mBatInterface;
     sp<struct _action_info_> mControlAct;
     sp<BAT_INFO> m_bat_info_;
+
 	
-    //save path
-    int save_path_select = -1;
-
-    bool bFirstDev = true;
-
-
     sp<SYS_INFO> mReadSys;
     sp<struct _ver_info_> mVerInfo;
     sp<struct _wifi_config_> mWifiConfig;
@@ -858,6 +845,26 @@ private:
     bool bStiching = false;
 
     char mLocalIpAddr[32];        /* UI本地保存的IP地址 */
+
+
+	/*
+	 * 存储管理部分
+	 */
+
+	u32 	mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
+
+	u32		mCanTakePicNum;							/* 可拍照的张数 */
+	u32		mCanTakeVidTime;						/* 可录像的时长(秒数) */
+	u32		mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
+	std::vector<sp<Volume>> mRemoteStorageList;		/* 存储列表 */
+
+	std::mutex				mLocaLDevLock;
+	std::vector<sp<Volume>> mLocalStorageList;		/* 存储列表 */
+
+	bool	bFirstDev = true;
+	int		mSavePathIndex = -1;
+
+
 
 };
 #endif //PROJECT_OLED_WRAPPER_H

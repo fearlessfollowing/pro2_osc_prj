@@ -720,8 +720,7 @@ int main(int argc, char **argv)
 	 * prop: "ro.delay_uc_time"
 	 */
 	pUcDelayStr = property_get("ro.delay_uc_time");	
-	if (pUcDelayStr != NULL)
-	{
+	if (pUcDelayStr != NULL) {
 		iDelay = atol(pUcDelayStr);
 		if (iDelay < 0 || iDelay > 20)
 			iDelay = 0;
@@ -801,9 +800,7 @@ int main(int argc, char **argv)
 			disp_update_error(ERR_GET_APP);
 			err_reboot();
         }		
-	}
-	else
-	{
+	} else {
 		Log.d(TAG, "update device not insert yet....");
 	}
 

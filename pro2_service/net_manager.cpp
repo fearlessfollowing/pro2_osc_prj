@@ -630,6 +630,10 @@ string NetManager::convWhat2Msg(uint32_t what)
 #define NETM_DISPATCH_POLL	0x11		/* 若有多个IP依次显示 */
 
 
+/*
+ * 启动WiFi需要除了发消息,还需要启动是否成功
+ */
+
 void NetManager::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
@@ -993,6 +997,9 @@ void NetManager::dispatchIpPolicy(int iPolicy)
 				bUpdate = true;
 			}
 		} else {
+		
+			memset(mLastDispIp, 0, sizeof(mLastDispIp));
+			strcpy(mLastDispIp, "0.0.0.0");
 			bUpdate = true;
 		}
 

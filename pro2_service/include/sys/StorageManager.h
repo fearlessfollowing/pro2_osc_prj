@@ -1,6 +1,12 @@
 #ifndef _STORAGE_MANAGER_H_
 #define _STORAGE_MANAGER_H_
 
+#include <sys/ins_types.h>
+#include <mutex>
+#include <mutex>
+#include <common/sp.h>
+
+#if 0
 /*
  * 存储策略
  */
@@ -66,9 +72,12 @@ enum {
 	4K_30FPS_3D_HDMI,
 	CUSTOMER,
 };
+#endif
+
 
 #define VOLUME_NAME_MAX 32
 
+#if 0
 /*
  * 对应存储卡
  */
@@ -79,6 +88,19 @@ typedef struct stVol {
 	u64  mLeftSize;					/* 剩余空间大小(单位MB) */
 	char mName[VOLUME_NAME_MAX];	/* 对于本地存储设备可以用设备名来唯一标识(/dev/sdX) */
 } Volume;
+
+#endif
+
+typedef struct stVol {
+    //"usb","sd" or "internal"
+    char 	dev_type[8];
+    char 	path[128];
+    char 	src[256];
+    char 	name[128];
+    u64 	total;
+    u64 	avail;
+} Volume;
+
 
 
 enum {
@@ -106,6 +128,12 @@ public:
 	 * 如果大卡小卡都存在,返回true,并更新存储容量
 	 */
 	bool queryCurStorageState();
+	
+	void updateStorageDevice(int iAction, sp<Volume>& pVol);
+
+	void updateNativeStorageDevList(std::vector<sp<Volume>> & mDevList);
+	
+	u64 getMinLefSpace();
 
 	
 	~StorageManager();
@@ -115,6 +143,12 @@ private:
 	StorageManager();
 
 	bool	queryLocalStorageState();
+	bool 	queryRemoteStorageState();
+
+
+	int		getDevTypeIndex(char *type);
+
+
 	
 	int getCurStorageMode();						/* 获取当前的存储模式: 6+1, 6, 1 */
 
@@ -130,7 +164,9 @@ private:
 
 	std::mutex				mLocaLDevLock;
 	std::vector<sp<Volume>> mLocalStorageList;		/* 存储列表 */
-	
+
+	bool	bFirstDev = true;
+	int		mSavePathIndex = -1;
 };
 
 

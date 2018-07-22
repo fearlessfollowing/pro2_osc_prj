@@ -13,6 +13,7 @@ src += ['InputManager.cpp']
 src += ['net_manager.cpp']
 src += ['poll_timer.cpp']
 src += ['pro_cfg.cpp']
+#src += ['StorageManager.cpp']
 src += ['dev_manager.cpp']
 src += ['main.cpp']
 

@@ -33,6 +33,8 @@
 
 #include <system_properties.h>
 
+#include <sys/StorageManager.h>
+
 #include <prop_cfg.h>
 
 using namespace std;
@@ -274,9 +276,6 @@ void fifo::init()
     //set in the end
     notify = obtainMessage(MSG_GET_OLED_KEY);
 
-	/* 构造存储管理器对象 */
-	StorageManager::getSystemStorageManagerInstance();
-
     mOLEDHandle = (sp<oled_handler>)(new oled_handler(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
@@ -460,6 +459,97 @@ void fifo::write_fifo(int iEvent, char *str)
 }
 
 
+
+const char* getActionStr(int iAction)
+{
+	const char* pRet = NULL;
+	
+	switch (iAction) {
+	case ACTION_REQ_SYNC:
+		pRet = "ACTION_REQ_SYNC";
+		break;
+
+	case ACTION_PIC:
+		pRet = "ACTION_PIC";
+		break;
+
+	case ACTION_VIDEO:
+		pRet = "ACTION_VIDEO";
+		break;
+
+	case ACTION_LIVE:
+		pRet = "ACTION_LIVE";
+		break;
+	
+	case ACTION_PREVIEW:
+		pRet = "ACTION_PREVIEW";
+		break;
+
+	case ACTION_CALIBRATION:
+		pRet = "ACTION_PREVIEW";
+		break;
+		
+	case ACTION_QR:
+		pRet = "ACTION_QR";
+		break;
+
+	case ACTION_SET_OPTION:
+		pRet = "ACTION_SET_OPTION";
+		break;
+		
+	case ACTION_LOW_BAT:
+		pRet = "ACTION_LOW_BAT";
+		break;
+
+	case ACTION_SPEED_TEST:
+		pRet = "ACTION_SPEED_TEST";
+		break;
+
+	case ACTION_POWER_OFF:
+		pRet = "ACTION_POWER_OFF";
+		break;
+		
+	case ACTION_GYRO:
+		pRet = "ACTION_GYRO";
+		break;
+		
+	case ACTION_NOISE:
+		pRet = "ACTION_NOISE";
+		break;
+
+	case ACTION_CUSTOM_PARAM:
+		pRet = "ACTION_CUSTOM_PARAM";
+		break;
+
+	case ACTION_LIVE_ORIGIN:
+		pRet = "ACTION_LIVE_ORIGIN";
+		break;
+		
+		//force at end 0620
+	case ACTION_AGEING:
+		pRet = "ACTION_AGEING";
+		break;
+	
+	case ACTION_AWB:
+		pRet = "ACTION_AWB";
+		break;
+		
+	case ACTION_SET_STICH:
+		pRet = "ACTION_SET_STICH";
+		break;
+		
+	case ACTION_QUERY_STORAGE:
+		pRet = "ACTION_QUERY_STORAGE";
+		break;
+		
+	default:
+		pRet = "Unkown ACTION";
+		break;
+
+	}
+	return pRet;
+}
+
 static char save_path[512] = {0};
 
 
@@ -496,7 +586,8 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
             CHECK_EQ(msg->find<int>("action", &action), true);
 
 			/* {"action": [0/9]} */
-			Log.d(TAG, " rec oled action %d", action);
+			Log.d(TAG, "FIFO RECV OLED ACTION [%s]", getActionStr(action));
+			
             cJSON_AddNumberToObject(root, "action", action);
 
 			/* 查看msg的"action_info" */
@@ -935,8 +1026,6 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 }
             }
             pSrt = cJSON_Print(root);
-
-			Log.d(TAG, "oled key req> %s", pSrt);
 			
             write_fifo(EVENT_OLED_KEY, pSrt);
         }
@@ -1004,13 +1093,13 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 		/* 
 		 * msg.what = UPDATE_DEV
-		 * msg.dev_list = vector<sp<USB_DEV_INFO>>
+		 * msg.dev_list = vector<sp<Volume>>
 		 * {"dev_list": {{"dev_type": "sd/usb", "path": "/mnt/sdcard", "name": "sd1"}, {"dev_type": "sd/usb", "path": "/mnt/sdcard", "name": "sd1"}}}
 		 */
 		
         case oled_handler::UPDATE_DEV: {		/* 新的存储设备插入 */
-            vector<sp<USB_DEV_INFO>> mDevList;
-            CHECK_EQ(msg->find<vector<sp<USB_DEV_INFO>>>("dev_list", &mDevList), true);
+            vector<sp<Volume>> mDevList;
+            CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mDevList), true);
 
 			Log.d(TAG, "update dev %d", mDevList.size());
 
@@ -1091,8 +1180,9 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
             mLooper->quit();
             close_write_fd();
         } else {
-			Log.d(TAG," what is %d", what);
+
             switch (what) {
+
 		#if 0
 			case MSG_POLL_TIMER:
 				handle_poll_change(msg);
@@ -1128,6 +1218,7 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 				mOLEDHandle->send_disp_str(disp_type);
 				break;
 			}
+			
 
 			/* OSC -> FIFO -> UI 
 			 * 通知UI显示指定的错误
@@ -1216,6 +1307,43 @@ void fifo::init_thread()
 }
 
 
+const char* getRecvCmdType(int iType)
+{
+	const char* pRet = NULL;
+	
+	switch (iType) {
+	case CMD_OLED_DISP_TYPE:
+		pRet = "CMD_OLED_DISP_TYPE";
+		break;
+
+	case CMD_OLED_SYNC_INIT:
+		pRet = "CMD_OLED_SYNC_INIT";
+		break;
+
+	case CMD_OLED_DISP_TYPE_ERR:
+		pRet = "CMD_OLED_DISP_TYPE_ERR";
+		break;
+
+	case CMD_OLED_SET_SN:
+		pRet = "CMD_OLED_SET_SN";
+		break;
+
+	case CMD_CONFIG_WIFI:
+		pRet = "CMD_CONFIG_WIFI";
+		break;
+
+	case CMD_EXIT:
+		pRet = "CMD_EXIT";
+		break;
+
+	default:
+		pRet = "Unkown Cmd recv";
+		break;
+	}
+
+	return pRet;
+}
+
 
 /*************************************************************************
 ** 方法名称: read_fifo_thread
@@ -1237,9 +1365,9 @@ void fifo::read_fifo_thread()
 		/* 首先读取8字节的头部 */
         int len = read(read_fd, buf, FIFO_HEAD_LEN);
         if (len != FIFO_HEAD_LEN) {	/* 头部读取错误 */
-            Log.w(TAG, "2read fifo head mismatch(%d %d)", len, FIFO_HEAD_LEN);
+            Log.w(TAG, "ReadFifoThread: read fifo head mismatch(rec[%d] act[%d])", len, FIFO_HEAD_LEN);
             if (++error_times >= 3) {
-                Log.e(TAG, "read fifo broken?");
+                Log.e(TAG, ">> read fifo broken?");
                 close_read_fd();
             }
         } else {
@@ -1278,11 +1406,10 @@ void fifo::read_fifo_thread()
                     cJSON *root = cJSON_Parse(&buf[FIFO_HEAD_LEN]);
                     cJSON *subNode = 0;
                     if (!root) {	/* 解析出错 */
-                        Log.e(TAG, "cJSON parse string error, func(%s), line(%d)",
-                              __FILE__,
-                              __LINE__);
+                        Log.e(TAG, "cJSON parse string error, func(%s), line(%d)", __FILE__, __LINE__);
                     }
-                    Log.d(TAG, "msg_what %d fifo test %s", msg_what, &buf[FIFO_HEAD_LEN]);
+					
+                    Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), &buf[FIFO_HEAD_LEN]);
 
 					/* 根据消息的类型做出处理 */
                     switch (msg_what) {
@@ -1302,8 +1429,7 @@ void fifo::read_fifo_thread()
                             mDispType->tl_count  = -1;
                             mDispType->qr_type  = -1;
                             subNode = cJSON_GetObjectItem(root, "content");
-                            if (subNode)
-                            {
+                            if (subNode) {
                                 int iArraySize = cJSON_GetArraySize(subNode);
                                 int qr_version;
                                 int qr_index = -1;
