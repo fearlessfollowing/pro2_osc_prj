@@ -265,23 +265,27 @@ fifo::~fifo()
 
 void fifo::init()
 {
-    CHECK_EQ(sizeof(mResInfos)/sizeof(mResInfos[0]),RES_MAX);
-    CHECK_EQ(sizeof(all_frs)/sizeof(all_frs[0]),ALL_FR_MAX);
+    CHECK_EQ(sizeof(mResInfos)/sizeof(mResInfos[0]), RES_MAX);
+    CHECK_EQ(sizeof(all_frs)/sizeof(all_frs[0]), ALL_FR_MAX);
+	
     make_fifo();
     init_thread();
 
     //set in the end
     notify = obtainMessage(MSG_GET_OLED_KEY);
 
+	/* 构造存储管理器对象 */
+	StorageManager::getSystemStorageManagerInstance();
+
     mOLEDHandle = (sp<oled_handler>)(new oled_handler(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
 	mInputManager = sp<InputManager>(new InputManager(mOLEDHandle));
     CHECK_NE(mInputManager, nullptr);
+
 	
     //keep at end 0617 to rec fifo from python
-    th_read_fifo_ = thread([this] {
-                              read_fifo_thread(); });
+    th_read_fifo_ = thread([this] { read_fifo_thread(); });
 
     Log.d(TAG, "fifo::init() ... OK");
 }
@@ -2097,6 +2101,7 @@ void fifo::read_fifo_thread()
                             send_disp_str_type(mDispType);
                         }
                             break;
+						
                         case CMD_OLED_SET_SN:
                         {
                             sp<SYS_INFO> mSysInfo = sp<SYS_INFO>(new SYS_INFO());
@@ -2174,6 +2179,9 @@ void fifo::read_fifo_thread()
 							break;
                         }
 
+						/*
+						 * 等待查询信息,
+						 */
                         default:
                             break;
                     }

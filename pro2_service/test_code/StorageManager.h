@@ -74,9 +74,13 @@ enum {
 class StorageManager {
 public:
 
+	sp<StorageManager> StorageManager::getSystemStorageManagerInstance()
 
-
+	/* 1.查询小卡的状态 */
+	
 private:
+	/*  */
+
 
 };
 

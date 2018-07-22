@@ -100,7 +100,7 @@ typedef enum _type_ {
     RESET_ALL = 100,// 100,
 
 
-	START_QUERY_STORAGE = 110,
+	START_QUERY_STORAGE = 110,	/*  */
 	START_QUERY_STORAGE_SUC,
 	START_QUERY_STORAGE_FAIL,
 
@@ -157,24 +157,28 @@ typedef struct _save_path_ {
 
 //state logical coding is different from ws for no preview in oled key menu
 enum {
-    STATE_IDLE = 0x00,
-    STATE_RECORD = 0x01,
-    STATE_TAKE_CAPTURE_IN_PROCESS = 0x02,
+    STATE_IDLE = 0x00,								/* 空间状态 */
+    STATE_RECORD = 0x01,							/* 录像状态 */
+    STATE_TAKE_CAPTURE_IN_PROCESS = 0x02,			/* 拍照正在处理状态 */
     STATE_COMPOSE_IN_PROCESS = 0x04,
+    
     //nothing to matter with preview state in oled action
-    STATE_PREVIEW = 0x08,
-    STATE_LIVE = 0x10,
-    STATE_PIC_STITCHING = 0x20,
+    STATE_PREVIEW = 0x08,							/* 预览状态 */
+    STATE_LIVE = 0x10,								/* 直播状态 */
+    STATE_PIC_STITCHING = 0x20,						/* 图片拼接状态 */
     
    //state just for camera
-    STATE_START_RECORDING = 0x40,
-    STATE_STOP_RECORDING = 0x80,
-    STATE_START_LIVING = 0x100,
-    STATE_STOP_LIVING = 0x200,
-    STATE_CALIBRATING = 0x1000,
-    STATE_START_PREVIEWING = 0x2000,
-    STATE_STOP_PREVIEWING = 0x4000,
-    STATE_START_QR = 0x8000,
+    STATE_START_RECORDING = 0x40,					/* 正在启动录像状态 */
+    STATE_STOP_RECORDING = 0x80,					/* 正在停止录像状态 */
+    STATE_START_LIVING = 0x100,						/* 正在启动直播状态 */
+    STATE_STOP_LIVING = 0x200,						/* 正在停止直播状态 */
+
+	STATE_QUERY_STORAGE = 0x400,					/* 查询容量状态 */
+	
+    STATE_CALIBRATING = 0x1000,						/* 正在校验状态 */
+    STATE_START_PREVIEWING = 0x2000,				/* 正在启动预览状态 */
+    STATE_STOP_PREVIEWING = 0x4000,					/* 正在停止预览状态 */
+    STATE_START_QR = 0x8000,						/* 启动QR */
     STATE_RESTORE_ALL = 0x10000,
     STATE_STOP_QRING = 0x20000,
     STATE_START_QRING = 0x40000,
