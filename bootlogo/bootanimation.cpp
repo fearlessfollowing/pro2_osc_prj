@@ -34,8 +34,7 @@
 #include <prop_cfg.h>
 #include <system_properties.h>
 
-
-#include <util/icon_ascii.h>
+#include <hw/MenuUI.h>
 
 
 const u8 bootLogo[] = {

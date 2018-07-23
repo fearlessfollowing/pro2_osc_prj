@@ -328,7 +328,7 @@ static void handleAddAction(const char* deviceName)
              * Need to check mount point is clean
              */
             for (int i = 0; i < 3; i++) {
-                sprintf(clear_path, "%s/*", mountPath);
+                sprintf(clear_path, "rm -rf %s/*", mountPath);
                 system(clear_path);
                 sprintf(mount_cmd, "mount %s %s", deviceName, mountPath);
 				iRet = exec_cmd(mount_cmd);

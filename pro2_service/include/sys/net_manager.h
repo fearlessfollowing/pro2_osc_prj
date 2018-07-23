@@ -60,6 +60,8 @@ enum {
 #define NETM_SET_NETDEV_IP		0x105		/* 设置设备的IP地址 */
 #define NETM_LIST_NETDEV		0x106		/* 列出所有注册的网络设备 */
 #define NETM_POLL_NET_STATE		0x107
+#define NETM_CONFIG_WIFI_AP		0x108		/* 配置WIFI的热点参数 */
+
 
 #define NETM_NETDEV_MAX_COUNT	10
 
@@ -77,6 +79,22 @@ typedef struct stIpInfo {
 } DEV_IP_INFO;
 
 
+
+/*
+ * AP参数配置
+ */
+typedef struct stWifiConfig {
+	char cApName[32];			/* 热点的名称,不超过32个字符: 格式如"Insta360-Pro2-XXXX" */
+	char cPasswd[32];			/* 热点的密码,最大支持32个字符/数字 */
+	char cInterface[32];
+	int  iApMode;				/* WIFI的工作模式: abgn */
+	int  iApChannel;			/* 使用的物理信道 */
+	int  iAuthMode;				/* 加密认证模式 */
+
+} WifiConfig;
+
+
+
 class NetDev {
 public:
 
@@ -88,6 +106,7 @@ public:
     virtual int netdevClose();
 
     virtual int processPollEvent(sp<NetDev>& netdev);
+
 
 	/* 获取/设置保存的链路状态 */
     int getNetdevSavedLink();
@@ -108,6 +127,7 @@ public:
 
 	/* 将当前有效的网卡地址保存起来 */
     void storeCurIp2Saved();
+	
 	/* 将保存起来有效的网卡地址恢复到mCurIpAddr及硬件中 */
     void resumeSavedIp2CurAndPhy(bool bUpPhy);
 
@@ -187,13 +207,14 @@ public:
     WiFiNetDev(int iWorkMode, std::string ifName, int iMode);
     ~WiFiNetDev();
 
-    /* Open WiFi Net Device */
-    int netdevOpen();
-
-    /* Close WiFi Net Device */
-    int netdevClose();
+    int netdevOpen();			/* 打开WIFI设备 */
+    int netdevClose();			/* 关闭WIFI设备 */
 
     int processPollEvent(sp<NetDev>& netdev);
+
+	/* 设置热点的名称及密码 */
+
+
 
 private:
 	bool	bLoadDrvier;

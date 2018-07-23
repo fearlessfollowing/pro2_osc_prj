@@ -16,14 +16,14 @@
 #define _INPUT_MANAGER_H_
 
 #include <sys/ins_types.h>
-#include <hw/oled_handler.h>
+#include <hw/MenuUI.h>
 #include <common/sp.h>
 
 
 class InputManager {
 
 public:
-    InputManager(const sp<oled_handler> &handler);
+    InputManager(const sp<MenuUI> &handler);
     virtual ~InputManager() {}
 	
 	/* 
@@ -60,7 +60,7 @@ private:
 	void reportEvent(int iKey);
 	void reportLongPressEvent(int iKey, int64 iTs);
 	
-	sp<oled_handler> mHander;		/* 得到消息后,通过hander投递消息 */
+	sp<MenuUI> mHander;		/* 得到消息后,通过hander投递消息 */
     std::thread loopThread;			/* 循环线程 */
 };
 

@@ -15,12 +15,13 @@
 #endif
 
 typedef struct _icon_info_ {
-    const u8 x;
-    const u8 y;
-    const u8 w;
-    const u8 h;
-    //not used yet
-    const u32 size;
+    u8 x;
+    u8 y;
+    u8 w;
+    u8 h;
+
+	//not used yet
+    u32 size;
     const u8 *dat;
 } ICON_INFO;
 

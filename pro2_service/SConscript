@@ -8,12 +8,11 @@ import config
 
 src = ['pro_uevent.c']
 src += ['fifo.cpp']
-src += ['oled_handler.cpp']
+src += ['MenuUI.cpp']
 src += ['InputManager.cpp']
 src += ['net_manager.cpp']
 src += ['poll_timer.cpp']
 src += ['pro_cfg.cpp']
-#src += ['StorageManager.cpp']
 src += ['dev_manager.cpp']
 src += ['main.cpp']
 

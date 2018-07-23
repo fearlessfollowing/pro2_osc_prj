@@ -57,6 +57,12 @@ bootan_obj = SConscript('./bootlogo/SConscript')
 com_env.Program('out/bootanimation', bootan_obj)
 
 
+############################ power_manager ##################################
+
+power_obj = SConscript('./pro2_service/power/SConscript')
+com_env.Program('./out/power_manager', power_obj)
+
+
 ############################ pro2_service ##################################
 
 #pro2_service_env = com_env.Clone()

@@ -40,9 +40,14 @@ void oled_light::init()
 {
     mI2CLight = sp<ins_i2c>(new ins_i2c(0, 0x77, true));
 
+	/* 开机的启动脚本中负责将 0x6, 0x7设置为0(所有引脚设置为输出) */
+	
+#if 0
 	/* 设置所有的i2c-gpio为输出 */
     mI2CLight->i2c_write_byte(0x06, 0x00);
     mI2CLight->i2c_write_byte(0x07, 0x00);
+#endif
+
 }
 
 

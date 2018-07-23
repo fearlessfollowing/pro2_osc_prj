@@ -49,7 +49,7 @@ enum {
 
 
 
-InputManager::InputManager(const sp<oled_handler> &handler): mHander(handler)
+InputManager::InputManager(const sp<MenuUI> &handler): mHander(handler)
 {
 	/* 构造一个线程对象 */
     if (!haveInstance) {

@@ -24,7 +24,7 @@
 #include <common/common.h>
 #include <util/cJSON.h>
 #include <util/bytes_int_convert.h>
-#include <hw/oled_handler.h>
+#include <hw/MenuUI.h>
 
 
 #include <sys/action_info.h>
@@ -580,7 +580,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 	 	 * {"action":[0/9], "action_info": }
 	 	 */
 	 	 
-        case oled_handler::OLED_KEY: {
+        case MenuUI::OLED_KEY: {
             int action;
             sp<ACTION_INFO> mActInfo;
             CHECK_EQ(msg->find<int>("action", &action), true);
@@ -1037,7 +1037,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		 * msg.save_path = sp<SAVE_PATH>
 		 * {"path": "/media/nvidia/xxxxxxx"}
 		 */
-        case oled_handler::SAVE_PATH_CHANGE: {	/* 存储路径发生变化 */
+        case MenuUI::SAVE_PATH_CHANGE: {	/* 存储路径发生变化 */
             sp<SAVE_PATH> mSavePath;
             CHECK_EQ(msg->find<sp<SAVE_PATH>>("save_path", &mSavePath), true);
 #if 0
@@ -1065,7 +1065,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		 * msg.bat_info = sp<BAT_INFO>
 		 * {"battery_level": 100, "battery_charge": 0/1, "int_tmp": 20, "tmp":20}
 		 */
-        case oled_handler::UPDATE_BAT: {		/* 电池状态更新 */
+        case MenuUI::UPDATE_BAT: {		/* 电池状态更新 */
             sp<BAT_INFO> mBatInfo;
             CHECK_EQ(msg->find<sp<BAT_INFO>>("bat_info", &mBatInfo), true);
 
@@ -1084,7 +1084,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 
 		/* 查询各个存储卡的信息 */
-		case oled_handler::UPDATE_STORAGE: {
+		case MenuUI::UPDATE_STORAGE: {
 			Log.d(TAG, ">>>>>>>>>>>>>> fifo recv UPDATE_STORAGE");
 			//write_fifo(EVENT_QUERY_STORAGE);	/* 直接发送 */
 			break;
@@ -1097,7 +1097,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		 * {"dev_list": {{"dev_type": "sd/usb", "path": "/mnt/sdcard", "name": "sd1"}, {"dev_type": "sd/usb", "path": "/mnt/sdcard", "name": "sd1"}}}
 		 */
 		
-        case oled_handler::UPDATE_DEV: {		/* 新的存储设备插入 */
+        case MenuUI::UPDATE_DEV: {		/* 新的存储设备插入 */
             vector<sp<Volume>> mDevList;
             CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mDevList), true);
 

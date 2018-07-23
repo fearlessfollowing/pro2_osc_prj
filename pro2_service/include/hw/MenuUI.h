@@ -8,9 +8,10 @@
 #include <sys/net_manager.h>
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
-
 #include <hw/oled_module.h>
 #include <sys/StorageManager.h>
+#include <sys/action_info.h>
+
 
 typedef enum _type_ {
     START_RECING ,// 0,
@@ -154,6 +155,7 @@ typedef struct _save_path_ {
 //    sp<REMAIN_INFO> mRemain;
 } SAVE_PATH;
 
+
 //state logical coding is different from ws for no preview in oled key menu
 enum {
     STATE_IDLE = 0x00,								/* 空间状态 */
@@ -203,16 +205,15 @@ enum {
 
 enum {
 
-    OLED_KEY_UP	= 0x101,
-    OLED_KEY_DOWN = 0x102,
-    OLED_KEY_BACK = 0x104,
-    OLED_KEY_SETTING = 0x103,
-    OLED_KEY_POWER = 0x100,
+    OLED_KEY_UP			= 0x101,
+    OLED_KEY_DOWN 		= 0x102,
+    OLED_KEY_BACK 		= 0x104,
+    OLED_KEY_SETTING 	= 0x103,
+    OLED_KEY_POWER 		= 0x100,
     OLED_KEY_MAX,
 };
 
-enum
-{
+enum {
     MENU_TOP ,
     MENU_PIC_INFO,
     MENU_VIDEO_INFO,
@@ -470,6 +471,21 @@ typedef struct _setting_items_ {
 } SETTING_ITEMS;
 
 
+#define SETTING_ITEM_NAME_MAX 	32
+#define SETIING_ITEM_ICON_NUM	10
+
+/*
+ * 设置项 
+ */
+typedef struct stSetItem {
+	char 		cName[SETTING_ITEM_NAME_MAX];		/* 设置项的名称 */
+	int			iItemMaxVal;						/* 设置项可取的最大值 */
+	int  		iCurVal;							/* 当前的值,(根据当前值来选择对应的图标) */
+	bool		bHaveSubMenu;						/* 是否含有子菜单 */
+	void 		(*pSetItemProc)(struct stSetItem*);	/* 菜单项的处理函数(当选中并按确认时被调用) */
+	ICON_INFO 	stIcon[SETIING_ITEM_ICON_NUM];
+} SettingItem;
+
 
 class MenuUI {
 public:
@@ -550,7 +566,6 @@ private:
     //void update_menu_sys_setting(bool bUpdateLast = false);
     void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
     void disp_scroll();
-    void power_menu_cal_setting();
     void set_back_menu(int item,int menu);
     int get_back_menu(int item);
     void select_up();
@@ -613,7 +628,7 @@ private:
     void wifi_action();
     void disp_wifi(bool bState, int disp_main = -1);
     int wifi_stop();
-    void tx_softap_config_def();
+
     int start_wifi_ap(int disp_main = -1);
     void start_wifi(int disp_main = -1);
     bool start_wifi_sta(int disp_main = -1);
@@ -727,6 +742,8 @@ private:
 
 	void dispIconByLoc(const ICON_INFO* pInfo);
 
+
+	void setGyroCalcDelay(int iDelay);
 	
 	// void set_disp_control(bool state);
 
@@ -735,11 +752,18 @@ private:
     void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
 
 
+	void handleGyroCalcEvent();
 
 	/*
-	 * 按键事件处理
+	 * 消息处理
 	 */
-	void handleKeyMsg(int iKey);	/* 按键消息处理 */
+	void handleKeyMsg(int iKey);				/* 按键消息处理 */
+	void handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type);
+	void handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
+	void handleLongKeyMsg(int key, int64 ts);
+	void handleDispLightMsg(int menu, int state, int interval);
+	
+	
 
 	void procBackKeyEvent();
 	void procPowerKeyEvent();
@@ -841,6 +865,9 @@ private:
 	sp<NetManager> mNetManager;
 
     sp<dev_manager> mDevManager;
+
+
+	int	mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
 	
     bool bLiveSaveOrg = false;
     int pipe_sound[2]; // 0 -- read , 1 -- write

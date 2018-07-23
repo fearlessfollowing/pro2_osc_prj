@@ -24,8 +24,6 @@
 #include <common/check.h>
 #include <update/update_util.h>
 #include <update/dbg_util.h>
-#include <update/update_oled.h>
-#include <util/icon_ascii.h>
 #include <log/arlog.h>
 #include <system_properties.h>
 #include <unistd.h>
@@ -52,6 +50,7 @@ int main(int argc ,char *argv[])
 
     debug_version_info();
     registerSig(default_signal_handler);
+	
     signal(SIGPIPE, pipe_signal_handler);
 
     arlog_configure(true, true, PRO2_SERVICE_LOG_PATH, false);

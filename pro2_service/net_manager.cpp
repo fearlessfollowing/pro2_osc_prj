@@ -1,3 +1,20 @@
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: net_manager.cpp
+** 功能描述: 网络管理器
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V2.0
+** 日     期: 2016年12月1日
+** 修改记录:
+** V1.0			Wans			2016-12-01		创建文件
+** V2.0			Skymixos		2018-06-05		添加注释
+******************************************************************************************************/
+
+
 #include <future>
 #include <vector>
 #include <fcntl.h>
@@ -421,7 +438,7 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
         } else {	/* Connect -> Disconnect */
             Log.i(TAG, "++++>>> link disconnect");
 
-            etherDev->storeCurIp2Saved();
+            //etherDev->storeCurIp2Saved();
             etherDev->setCurIpAddr("0.0.0.0", true);
         }
 
@@ -797,6 +814,42 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 					tmpNetDev->setCurGetIpMode(GET_IP_DHCP);
 				}
             }
+			break;
+		}
+
+
+		case NETM_CONFIG_WIFI_AP: {	/* 配置WIFI的AP参数 */
+
+			sp<WifiConfig> tmpConfig = NULL;
+            CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_arg", &tmpConfig), true);
+
+#define WIFI_TMP_AP_CONFIG_FILE	"/etc/.wifi_ap.conf"
+
+            Log.d(TAG, "Ap arg name[%s], passwd[%s], mode =%d, channel = %d",
+					tmpConfig->cApName,			
+					tmpConfig->cPasswd,
+					tmpConfig->iApMode,
+					tmpConfig->iApChannel,
+					tmpConfig->iAuthMode
+					);
+
+			/* 创建配置文件 */
+			FILE* iWifiFile = open(WIFI_TMP_AP_CONFIG_FILE, "w+");
+			if (iWifiFile == NULL) {
+				Log.e(TAG, "NetManager: create wifi config file [%s] failed...", WIFI_TMP_AP_CONFIG_FILE);
+			} else {
+				fprintf(iWifiFile, "%s\n", "ctrl_interface=/var/run/hostapd");
+				fprintf(iWifiFile, "interface=%s\n", "wlan0");			
+				fprintf(iWifiFile, "ssid=%s\n", "Insta360-Pro2-001");
+				fprintf(iWifiFile, "hw_mode=%s\n", "g");
+				fprintf(iWifiFile, "channel=%s\n", "6");
+
+				fprintf(iWifiFile, "wpa=%s\n", "g");
+				fprintf(iWifiFile, "wpa_passphrase=%s\n", "6");
+				fprintf(iWifiFile, "wpa_key_mgmt=%s\n", "6");
+
+				fclose(iWifiFile);
+			}
 			break;
 		}
 

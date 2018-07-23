@@ -151,7 +151,7 @@ private:
     void send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
 
 
-    sp<oled_handler> mOLEDHandle;
+    sp<MenuUI> mOLEDHandle;
 
 	sp<InputManager> mInputManager;
 	
