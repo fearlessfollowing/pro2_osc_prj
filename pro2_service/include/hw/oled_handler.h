@@ -471,7 +471,7 @@ typedef struct _setting_items_ {
 
 
 
-class oled_handler {
+class MenuUI {
 public:
 
     enum {
@@ -485,10 +485,10 @@ public:
 
     void postUiMessage(sp<ARMessage>& msg);
 
-    //static sp<oled_handler> getSysUiObj(sp<ARMessage> msg = nullptr);
+    //static sp<MenuUI> getSysUiObj(sp<ARMessage> msg = nullptr);
 
-    explicit oled_handler(const sp<ARMessage> &notify);
-    ~oled_handler();
+    explicit MenuUI(const sp<ARMessage> &notify);
+    ~MenuUI();
     void handleMessage(const sp<ARMessage> &msg);
 	
     void send_disp_str(sp<struct _disp_type_> &sp_disp);
@@ -513,7 +513,7 @@ public:
 
 private:
 
-    oled_handler();
+    MenuUI();
 
     bool start_speed_test();
     bool check_rec_tl();
@@ -550,11 +550,6 @@ private:
     //void update_menu_sys_setting(bool bUpdateLast = false);
     void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
     void disp_scroll();
-    void func_back();
-    void func_power();
-    void func_up();
-    void func_down();
-    void func_setting();
     void power_menu_cal_setting();
     void set_back_menu(int item,int menu);
     int get_back_menu(int item);
@@ -664,7 +659,6 @@ private:
     void handle_top_menu_power_key();
     void send_oled_power_action();
 	
-    void handle_oled_key(int iKey);
     void exit_sys_err();
     void handle_wifi_action(int key);
     void handle_setting_action(int key);
@@ -743,6 +737,18 @@ private:
 
 
 	/*
+	 * 按键事件处理
+	 */
+	void handleKeyMsg(int iKey);	/* 按键消息处理 */
+
+	void procBackKeyEvent();
+	void procPowerKeyEvent();
+	void procUpKeyEvent();
+	void procDownKeyEvent();
+	void procSettingKeyEvent();
+
+
+	/*
 	 * 显示
 	 */
 	void uiShowStatusbarIp();			/* 显示IP地址 */
@@ -772,11 +778,9 @@ private:
     bool bSendUpdate = false;
     bool bSendUpdateMid = false;
     sp<ARMessage> mNotify;
+	
     int cam_state = 0;
 
-    // 0 or 1?
-//    int sdcard_state = 0;
-    // top ,wifi ,or setting
     int cur_menu = -1;
     int last_err = -1;
 

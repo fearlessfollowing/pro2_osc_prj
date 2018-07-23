@@ -43,7 +43,7 @@
 
 
 using namespace std;
-#define TAG "oled_handler"
+#define TAG "MenuUI"
 
 
 //#define USE_OLD_NET
@@ -1264,7 +1264,7 @@ static SYS_ERROR mSysErr[] =
 
 class oled_arhandler : public ARHandler {
 public:
-    oled_arhandler(oled_handler *source): mHandler(source) {
+    oled_arhandler(MenuUI *source): mHandler(source) {
     }
 
     virtual ~oled_arhandler() override {
@@ -1275,7 +1275,7 @@ public:
     }
 	
 private:
-    oled_handler *mHandler;
+    MenuUI *mHandler;
 };
 
 
@@ -1366,17 +1366,17 @@ static void update_takepic_delay(int index)
 }
 
 
-oled_handler::oled_handler(const sp<ARMessage> &notify):mNotify(notify)
+MenuUI::MenuUI(const sp<ARMessage> &notify):mNotify(notify)
 {
     init_handler_thread();	/* 初始化消息处理线程 */
 	
-    init();					/* oled_handler内部成员初始化 */
+    init();					/* MenuUI内部成员初始化 */
 
     send_init_disp();		/* 给消息处理线程发送初始化显示消息 */
 }
 
 
-oled_handler::~oled_handler()
+MenuUI::~MenuUI()
 {
     deinit();
 }
@@ -1387,27 +1387,27 @@ oled_handler::~oled_handler()
 ** 方法功能: 发送初始化显示消息
 ** 入口参数: 无
 ** 返 回 值: 无 
-** 调     用: oled_handler
+** 调     用: MenuUI
 **
 *************************************************************************/
-void oled_handler::send_init_disp()
+void MenuUI::send_init_disp()
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_INIT);
     msg->post();
 }
 
 
-int oled_handler::get_setting_select(int type)
+int MenuUI::get_setting_select(int type)
 {
     return mSettingItems.iSelect[type];
 }
 
-void oled_handler::set_setting_select(int type,int val)
+void MenuUI::set_setting_select(int type,int val)
 {
     mSettingItems.iSelect[type] = val;
 }
 
-void oled_handler::disp_top_info()
+void MenuUI::disp_top_info()
 {
 	
     if (mProCfg->get_val(KEY_WIFI_ON)) {
@@ -1432,7 +1432,7 @@ void oled_handler::disp_top_info()
 ** 调     用: oled_init_disp
 **
 *************************************************************************/
-void oled_handler::init_cfg_select()
+void MenuUI::init_cfg_select()
 {
     init_menu_select();
 
@@ -1467,7 +1467,7 @@ void oled_handler::init_cfg_select()
 ** 调     用: handleMessage
 **
 *************************************************************************/
-void oled_handler::oled_init_disp()
+void MenuUI::oled_init_disp()
 {
     read_sn();						/* 获取系统序列号 */
     read_uuid();					/* 读取设备的UUID */
@@ -1488,23 +1488,22 @@ void oled_handler::oled_init_disp()
 }
 
 
-void oled_handler::start_qr_func()
+void MenuUI::start_qr_func()
 {
     send_option_to_fifo(ACTION_QR);
 }
 
 
-void oled_handler::exit_qr_func()
+void MenuUI::exit_qr_func()
 {
     send_option_to_fifo(ACTION_QR);
 }
 
 
-void oled_handler::send_update_light(int menu, int state, int interval, bool bLight, int sound_id)
+void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, int sound_id)
 {
 	Log.d(TAG,"send_update_light　(%d %d %d %d %d sound_id %d) ", bSendUpdate, menu,state,interval,get_setting_select(SET_SPEAK_ON),sound_id);
-    if (sound_id != -1 && get_setting_select(SET_SPEAK_ON) == 1)
-    {
+    if (sound_id != -1 && get_setting_select(SET_SPEAK_ON) == 1) {
         flick_light();
         play_sound(sound_id);
 	
@@ -1526,7 +1525,7 @@ void oled_handler::send_update_light(int menu, int state, int interval, bool bLi
 
 
 
-void oled_handler::write_p(int *p, int val)
+void MenuUI::write_p(int *p, int val)
 {
     char c = (char)val;
     int  rc;
@@ -1539,40 +1538,34 @@ void oled_handler::write_p(int *p, int val)
 
 
 
-void oled_handler::play_sound(u32 type)
+void MenuUI::play_sound(u32 type)
 {
 #ifdef ENABLE_SOUND
 
 	Log.d(TAG, "play_sound type = %d", type);
 
-    if (get_setting_select(SET_SPEAK_ON) == 1)
-    {
-        if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0]))
-        {
+    if (get_setting_select(SET_SPEAK_ON) == 1) {
+        if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
             char cmd[1024];
             snprintf(cmd,sizeof(cmd),"tinyplay %s -D 1 &", sound_str[type]);
             //Log.d(TAG,"cmd is %s", cmd);
             exec_sh(cmd);
-	}
-        else
-        {
+		} else {
             Log.d(TAG,"sound type %d exceed \n",type);
-#ifdef ENABLE_ABORT
+			#ifdef ENABLE_ABORT
             //abort();
-#endif
-        }
+			#endif
+		}
     }
 #endif
 }
 
 
-void oled_handler::sound_thread()
+void MenuUI::sound_thread()
 {
 #ifdef ENABLE_SOUND
-    while(!bExitSound)
-    {
-        if(get_setting_select(SET_SPEAK_ON) == 1)
-        {
+    while (!bExitSound) {
+        if (get_setting_select(SET_SPEAK_ON) == 1) {
 
         }
         msg_util::sleep_ms(INTERVAL_1HZ);
@@ -1581,13 +1574,13 @@ void oled_handler::sound_thread()
 }
 
 
-void oled_handler::init_sound_thread()
+void MenuUI::init_sound_thread()
 {
     th_sound_ = thread([this] { sound_thread(); });
 }
 
 
-void oled_handler::select_up()
+void MenuUI::select_up()
 {
     bool bUpdatePage = false;
 
@@ -1604,18 +1597,18 @@ void oled_handler::select_up()
     mSelect->last_select = mSelect->select;
 
 #ifdef DEBUG_INPUT_KEY	
-    Log.d(TAG,"cur_menu %d select_up select %d mSelect->last_select %d "
+    Log.d(TAG, "cur_menu %d select_up select %d mSelect->last_select %d "
                   "mSelect->page_num %d mSelect->cur_page %d "
-                  "mSelect->page_max %d mSelect->total %d",cur_menu,
-          mSelect->select,mSelect->last_select,mSelect->page_num,
-          mSelect->cur_page,mSelect->page_max,mSelect->total);
+                  "mSelect->page_max %d mSelect->total %d", cur_menu,
+          mSelect->select ,mSelect->last_select, mSelect->page_num,
+          mSelect->cur_page, mSelect->page_max, mSelect->total);
 #endif
 
     mSelect->select--;
 
 #ifdef DEBUG_INPUT_KEY	
-    Log.d(TAG,"select %d total %d mSelect->page_num %d",
-          mSelect->select,mSelect->total,mSelect->page_num);
+    Log.d(TAG, "select %d total %d mSelect->page_num %d",
+          mSelect->select, mSelect->total, mSelect->page_num);
 #endif
 
     if (mSelect->select < 0) {
@@ -1636,8 +1629,8 @@ void oled_handler::select_up()
     Log.d(TAG," select_up select %d mSelect->last_select %d "
                   "mSelect->page_num %d mSelect->cur_page %d "
                   "mSelect->page_max %d mSelect->total %d over",
-          mSelect->select,mSelect->last_select,mSelect->page_num,
-          mSelect->cur_page,mSelect->page_max,mSelect->total);
+          mSelect->select, mSelect->last_select, mSelect->page_num,
+          mSelect->cur_page, mSelect->page_max, mSelect->total);
 #endif
 
     if (bUpdatePage) {
@@ -1649,9 +1642,10 @@ void oled_handler::select_up()
 
 
 
-void oled_handler::select_down()
+void MenuUI::select_down()
 {
     bool bUpdatePage = false;
+	
     SELECT_INFO * mSelect = get_select_info();
     CHECK_NE(mSelect, nullptr);
 
@@ -1659,13 +1653,13 @@ void oled_handler::select_down()
 	Log.d(TAG," select_down select %d mSelect->last_select %d "
                   "mSelect->page_num %d mSelect->cur_page %d "
                   "mSelect->page_max %d mSelect->total %d",
-          mSelect->select,mSelect->last_select,mSelect->page_num,
-          mSelect->cur_page,mSelect->page_max,mSelect->total);
+          mSelect->select, mSelect->last_select, mSelect->page_num,
+          mSelect->cur_page, mSelect->page_max, mSelect->total);
 #endif
 
     mSelect->last_select = mSelect->select;
     mSelect->select++;
-    if (mSelect->select + ( mSelect->cur_page * mSelect->page_max )>= mSelect->total) {
+    if (mSelect->select + (mSelect->cur_page * mSelect->page_max ) >= mSelect->total) {
         mSelect->select = 0;
         if (mSelect->page_num > 1) {
             mSelect->cur_page = 0;
@@ -1703,7 +1697,7 @@ void oled_handler::select_down()
 **
 **
 *************************************************************************/
-void oled_handler::init_handler_thread()
+void MenuUI::init_handler_thread()
 {
     std::promise<bool> pr;
     std::future<bool> reply = pr.get_future();
@@ -1718,17 +1712,18 @@ void oled_handler::init_handler_thread()
     CHECK_EQ(reply.get(), true);
 }
 
-void oled_handler::set_lan(int lan)
+
+void MenuUI::set_lan(int lan)
 {
     mProCfg->set_val(KEY_LAN, lan);
     update_disp_func(lan);
 }
 
-void oled_handler::update_disp_func(int lan)
+void MenuUI::update_disp_func(int lan)
 {
 }
 
-int oled_handler::get_menu_select_by_power(int menu)
+int MenuUI::get_menu_select_by_power(int menu)
 {
     int val = mMenuInfos[menu].mSelectInfo.select +
             mMenuInfos[menu].mSelectInfo.cur_page * mMenuInfos[menu].mSelectInfo.page_max;
@@ -1745,7 +1740,7 @@ int oled_handler::get_menu_select_by_power(int menu)
 ** 调     用: init_menu_select
 **
 *************************************************************************/
-void oled_handler::set_menu_select_info(int menu, int iSelect)
+void MenuUI::set_menu_select_info(int menu, int iSelect)
 {
     mMenuInfos[menu].mSelectInfo.cur_page = iSelect / mMenuInfos[menu].mSelectInfo.page_max;
     mMenuInfos[menu].mSelectInfo.select = iSelect % mMenuInfos[menu].mSelectInfo.page_max;
@@ -1826,7 +1821,7 @@ void set_photodelay_select(int index)
 
 
 
-void oled_handler::init_menu_select()
+void MenuUI::init_menu_select()
 {
     int val;
 
@@ -1835,8 +1830,7 @@ void oled_handler::init_menu_select()
             case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
                 val = mProCfg->get_val(KEY_PIC_DEF);
 //                Log.d(TAG,"pic set def %d", val);
-                switch (val)
-                {
+                switch (val) {
                     case PIC_ALL_CUSTOM:
                     case PIC_ALL_8K_3D_OF:
                     case PIC_ALL_8K_OF:
@@ -1851,20 +1845,16 @@ void oled_handler::init_menu_select()
 				
             case MENU_VIDEO_SET_DEF:
                 val = mProCfg->get_val(KEY_VIDEO_DEF);
-                if (val >= 0 && val < VID_DEF_MAX)
-                {
+                if (val >= 0 && val < VID_DEF_MAX) {
                     set_menu_select_info(i,val);
-                }
-                else
-                {
+                } else {
                     ERR_ITEM(val)
                 }
                 break;
 
             case MENU_LIVE_SET_DEF:
                 val = mProCfg->get_val(KEY_LIVE_DEF);
-                switch(val)
-                {
+                switch (val)  {
 #ifdef LIVE_ORG
                     case LIVE_ORIGIN:
 #endif
@@ -1887,14 +1877,13 @@ void oled_handler::init_menu_select()
 
 
 	/* 初始化菜单时,读取系统配置值 */
-    for (int i = 0; i < SETTING_MAX; i++)
-    {
-        switch(i)
-        {
+    for (int i = 0; i < SETTING_MAX; i++) {
+        switch (i) {
             case SET_WIFI_AP:
                 val = mProCfg->get_val(KEY_WIFI_AP);
                 set_setting_select(i,val);
                 break;
+				
             case SET_DHCP_MODE:
                 val = mProCfg->get_val(KEY_DHCP);
                 set_setting_select(i,val);
@@ -1918,8 +1907,7 @@ void oled_handler::init_menu_select()
 				set_photo_delay_index = get_phdelay_index();
 				set_photodelay_select(set_photo_delay_index);		/* 根据索引值来选中合适的图标 */
 				update_takepic_delay(set_photo_delay_index);		/* 更新拍照时的延时值 */
-				Log.d(TAG, "init_menu_select: init set_photo_delay_index [%d]", set_photo_delay_index);
-				
+				Log.d(TAG, "init_menu_select: init set_photo_delay_index [%d]", set_photo_delay_index);				
 				break;
 
 				
@@ -1927,43 +1915,50 @@ void oled_handler::init_menu_select()
                 val = mProCfg->get_val(KEY_SPEAKER);
                 set_setting_select(i,val);
                 break;
+				
             case SET_BOTTOM_LOGO:
                 val = mProCfg->get_val(KEY_SET_LOGO);
                 set_setting_select(i,val);
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_LOGO);
                 break;
+				
             case SET_LIGHT_ON:	/* 开机时根据配置,来决定是否开机后关闭前灯 */
                 val = mProCfg->get_val(KEY_LIGHT_ON);
                 set_setting_select(i,val);
                 //off the light 170802
-                if (val == 0)
-                {
+                if (val == 0) {
                     set_light_direct(LIGHT_OFF);
                 }
                 break;
+				
             case SET_AUD_ON:
                 val = mProCfg->get_val(KEY_AUD_ON);
                 set_setting_select(i,val);
                 break;
+				
             case SET_SPATIAL_AUD:
                 val = mProCfg->get_val(KEY_AUD_SPATIAL);
                 set_setting_select(i,val);
                 break;
+				
             case SET_GYRO_ON:
                 val = mProCfg->get_val(KEY_GYRO_ON);
                 set_setting_select(i,val);
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_GYRO_ON);
                 break;
+				
             case SET_FAN_ON:
                 val = mProCfg->get_val(KEY_FAN);
                 set_setting_select(i,val);
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_FAN);
                 break;
+				
             case SET_VIDEO_SEGMENT:
                 val = mProCfg->get_val(KEY_VID_SEG);
                 set_setting_select(i,val);
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
                 break;
+				
             case SET_STORAGE:
             case SET_RESTORE:
             case SET_INFO:
@@ -1971,6 +1966,7 @@ void oled_handler::init_menu_select()
             case SET_NOISE:
             case SET_STITCH_BOX:
                 break;
+			
             SWITCH_DEF_ERROR(i);
         }
     }
@@ -1988,7 +1984,7 @@ void oled_handler::init_menu_select()
 **
 **
 *************************************************************************/
-void oled_handler::init()
+void MenuUI::init()
 {
 
 	
@@ -2095,7 +2091,7 @@ void oled_handler::init()
  * 界面没变,IP地址发生变化
  * IP地址没变,界面发生变化
  */
-void oled_handler::uiShowStatusbarIp()
+void MenuUI::uiShowStatusbarIp()
 {
 	Log.e(TAG, "uiShowStatusbarIp --->");
 	if (check_allow_update_top()) {
@@ -2108,14 +2104,14 @@ void oled_handler::uiShowStatusbarIp()
 
 
 
-sp<ARMessage> oled_handler::obtainMessage(uint32_t what)
+sp<ARMessage> MenuUI::obtainMessage(uint32_t what)
 {
     return mHandler->obtainMessage(what);
 }
 
 
 
-void oled_handler::stop_bat_thread()
+void MenuUI::stop_bat_thread()
 {
 #if 0
     Log.d(TAG, "sendExit bExitBat %d", bExitBat);
@@ -2131,7 +2127,7 @@ void oled_handler::stop_bat_thread()
 #endif
 }
 
-void oled_handler::sendExit()
+void MenuUI::sendExit()
 {
     Log.d(TAG, "sendExit");
 
@@ -2148,35 +2144,35 @@ void oled_handler::sendExit()
 }
 
 
-void oled_handler::send_disp_str(sp<DISP_TYPE> &sp_disp)
+void MenuUI::send_disp_str(sp<DISP_TYPE> &sp_disp)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_STR_TYPE);
     msg->set<sp<DISP_TYPE>>("disp_type", sp_disp);
     msg->post();
 }
 
-void oled_handler::send_disp_err(sp<struct _err_type_info_> &mErrInfo)
+void MenuUI::send_disp_err(sp<struct _err_type_info_> &mErrInfo)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_ERR_TYPE);
     msg->set<sp<ERR_TYPE_INFO>>("err_type_info", mErrInfo);
     msg->post();
 }
 
-void oled_handler::send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo)
+void MenuUI::send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 {
     sp<ARMessage> msg = obtainMessage(OLED_SYNC_INIT_INFO);
     msg->set<sp<SYNC_INIT_INFO>>("sync_info", mSyncInfo);
     msg->post();
 }
 
-void oled_handler::send_get_key(int key)
+void MenuUI::send_get_key(int key)
 {
     sp<ARMessage> msg = obtainMessage(OLED_GET_KEY);
     msg->set<int>("oled_key", key);
     msg->post();
 }
 
-void oled_handler::send_long_press_key(int key,int64 ts)
+void MenuUI::send_long_press_key(int key,int64 ts)
 {
     sp<ARMessage> msg = obtainMessage(OLED_GET_LONG_PRESS_KEY);
     msg->set<int>("key", key);
@@ -2184,14 +2180,14 @@ void oled_handler::send_long_press_key(int key,int64 ts)
     msg->postWithDelayMs(LONG_PRESS_MSEC);
 }
 
-void oled_handler::send_disp_ip(int ip, int net_type)
+void MenuUI::send_disp_ip(int ip, int net_type)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_IP);
     msg->set<int>("ip", ip);
     msg->post();
 }
 
-void oled_handler::send_disp_battery(int battery, bool charge)
+void MenuUI::send_disp_battery(int battery, bool charge)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_BATTERY);
     msg->set<int>("battery", battery);
@@ -2199,21 +2195,21 @@ void oled_handler::send_disp_battery(int battery, bool charge)
     msg->post();
 }
 
-void oled_handler::send_wifi_config(sp<WIFI_CONFIG> &mConfig)
+void MenuUI::send_wifi_config(sp<WIFI_CONFIG> &mConfig)
 {
     sp<ARMessage> msg = obtainMessage(OLED_CONFIG_WIFI);
     msg->set<sp<WIFI_CONFIG>>("wifi_config",mConfig);
     msg->post();
 }
 
-void oled_handler::send_sys_info(sp<SYS_INFO> &mSysInfo)
+void MenuUI::send_sys_info(sp<SYS_INFO> &mSysInfo)
 {
     sp<ARMessage> msg = obtainMessage(OLED_SET_SN);
     msg->set<sp<SYS_INFO>>("sys_info",mSysInfo);
     msg->post();
 }
 
-void oled_handler::send_update_mid_msg(int interval)
+void MenuUI::send_update_mid_msg(int interval)
 {
     if (!bSendUpdateMid) {
         bSendUpdateMid = true;
@@ -2223,7 +2219,7 @@ void oled_handler::send_update_mid_msg(int interval)
     }
 }
 
-void oled_handler::set_update_mid()
+void MenuUI::set_update_mid()
 {
     send_update_mid_msg(INTERVAL_1HZ);
 	
@@ -2238,7 +2234,7 @@ void oled_handler::set_update_mid()
     }
 }
 
-int oled_handler::oled_reset_disp(int type)
+int MenuUI::oled_reset_disp(int type)
 {
     //reset to original
 //    reset_last_info();
@@ -2257,7 +2253,7 @@ int oled_handler::oled_reset_disp(int type)
 }
 
 
-void oled_handler::set_cur_menu_from_exit()
+void MenuUI::set_cur_menu_from_exit()
 {
     int old_menu = cur_menu;
     int new_menu = get_back_menu(cur_menu);
@@ -2317,7 +2313,7 @@ void oled_handler::set_cur_menu_from_exit()
 ** 调     用: 
 **
 *************************************************************************/
-void oled_handler::set_cur_menu(int menu, int back_menu)
+void MenuUI::set_cur_menu(int menu, int back_menu)
 {
     bool bDispBottom = true; //add 170804 for menu_pic_info not recalculate for pic num MENU_TOP
 
@@ -2340,12 +2336,12 @@ void oled_handler::set_cur_menu(int menu, int back_menu)
 
 
 
-void oled_handler::restore_all()
+void MenuUI::restore_all()
 {
     add_state(STATE_RESTORE_ALL);
 }
 
-void oled_handler::update_sys_info()
+void MenuUI::update_sys_info()
 {
     SELECT_INFO * mSelect = get_select_info();
 
@@ -2380,7 +2376,7 @@ void oled_handler::update_sys_info()
 
 
 
-void oled_handler::disp_sys_info()
+void MenuUI::disp_sys_info()
 {
     int col = 0; //25
 
@@ -2404,7 +2400,7 @@ void oled_handler::disp_sys_info()
 /*
  * disp_msg_box - 显示消息框
  */
-void oled_handler::disp_msg_box(int type)
+void MenuUI::disp_msg_box(int type)
 {
     if (cur_menu == -1) {
         Log.e(TAG,"disp msg box before pro_service finish\n");
@@ -2504,7 +2500,7 @@ void oled_handler::disp_msg_box(int type)
 
 
 
-bool oled_handler::check_allow_pic()
+bool MenuUI::check_allow_pic()
 {
     bool bRet = false;
 //    Log.d(TAG,"check_allow_pic cam_state is 0x%x\n", cam_state);
@@ -2520,7 +2516,7 @@ bool oled_handler::check_allow_pic()
     return bRet;
 }
 
-bool oled_handler::start_speed_test()
+bool MenuUI::start_speed_test()
 {
     bool ret = false;
     if (!check_dev_speed_good(mLocalStorageList.at(mSavePathIndex)->path)) {
@@ -2530,7 +2526,7 @@ bool oled_handler::start_speed_test()
     return ret;
 }
 
-void oled_handler::fix_live_save_per_act(struct _action_info_ *mAct)
+void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 {
     if(mAct->stOrgInfo.save_org != SAVE_OFF)
     {
@@ -2550,7 +2546,7 @@ void oled_handler::fix_live_save_per_act(struct _action_info_ *mAct)
     }
 }
 
-bool oled_handler::check_live_save(ACTION_INFO *mAct)
+bool MenuUI::check_live_save(ACTION_INFO *mAct)
 {
     bool ret = false;
     if(mAct->stOrgInfo.save_org != SAVE_OFF ||
@@ -2565,7 +2561,7 @@ bool oled_handler::check_live_save(ACTION_INFO *mAct)
     return ret;
 }
 
-bool oled_handler::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
+bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
 {
     bool bAllow = false;
 	
@@ -2630,7 +2626,7 @@ bool oled_handler::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *
 
 
 //cmd -- for power off or set option
-bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
+bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 {
     bool bAllow = true;
     sp<ARMessage> msg = mNotify->dup();
@@ -2986,7 +2982,7 @@ bool oled_handler::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * ps
 
 
 
-void oled_handler::postUiMessage(sp<ARMessage>& msg)
+void MenuUI::postUiMessage(sp<ARMessage>& msg)
 {
     msg->setHandler(mHandler);
     msg->post();
@@ -2995,7 +2991,7 @@ void oled_handler::postUiMessage(sp<ARMessage>& msg)
 /*
  * send_save_path_change - 设备的存储路径发生改变
  */
-void oled_handler::send_save_path_change()
+void MenuUI::send_save_path_change()
 {
 //    Log.d(TAG,"new save path %s cur_menu %d",new_path,cur_menu);
     switch (cur_menu) {
@@ -3029,32 +3025,32 @@ void oled_handler::send_save_path_change()
 
 
 
-void oled_handler::send_delay_msg(int msg_id, int delay)
+void MenuUI::send_delay_msg(int msg_id, int delay)
 {
     sp<ARMessage> msg = obtainMessage(msg_id);
     msg->postWithDelayMs(delay);
 }
 
-void oled_handler::send_bat_low()
+void MenuUI::send_bat_low()
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_BAT_LOW);
     msg->post();
 }
 
-void oled_handler::send_read_bat()
+void MenuUI::send_read_bat()
 {
     sp<ARMessage> msg = obtainMessage(OLED_READ_BAT);
     msg->post();
 }
 
-void oled_handler::send_clear_msg_box(int delay)
+void MenuUI::send_clear_msg_box(int delay)
 {
     sp<ARMessage> msg = obtainMessage(OLED_CLEAR_MSG_BOX);
     msg->postWithDelayMs(delay);
 }
 
 
-void oled_handler::send_update_dev_list(std::vector<sp<Volume>> &mList)
+void MenuUI::send_update_dev_list(std::vector<sp<Volume>> &mList)
 {
     sp<ARMessage> msg = mNotify->dup();
 
@@ -3063,7 +3059,7 @@ void oled_handler::send_update_dev_list(std::vector<sp<Volume>> &mList)
     msg->post();
 }
 
-const u8* oled_handler::get_disp_str(int str_index)
+const u8* MenuUI::get_disp_str(int str_index)
 {
     const u8 *str = mProCfg->get_str(str_index);
     Log.d(TAG,"333 get disp str[%d] %s\n",str_index,str);
@@ -3080,7 +3076,7 @@ const u8* oled_handler::get_disp_str(int str_index)
 ** 调     用: oled_init_disp
 **
 *************************************************************************/
-void oled_handler::read_ver_info()
+void MenuUI::read_ver_info()
 {
     char file_name[64];
 
@@ -3127,7 +3123,7 @@ void oled_handler::read_ver_info()
 ** 调     用: oled_init_disp
 **
 *************************************************************************/
-void oled_handler::read_sn()
+void MenuUI::read_sn()
 {
     read_sys_info(SYS_KEY_SN);
 }
@@ -3141,13 +3137,13 @@ void oled_handler::read_sn()
 ** 调     用: oled_init_disp
 **
 *************************************************************************/
-void oled_handler::read_uuid()
+void MenuUI::read_uuid()
 {
     read_sys_info(SYS_KEY_UUID);
 }
 
 
-bool oled_handler::read_sys_info(int type, const char *name)
+bool MenuUI::read_sys_info(int type, const char *name)
 {
     bool ret = false;
 	
@@ -3196,7 +3192,7 @@ bool oled_handler::read_sys_info(int type, const char *name)
 ** 调     用: 
 **
 *************************************************************************/
-bool oled_handler::read_sys_info(int type)
+bool MenuUI::read_sys_info(int type)
 {
     char cmd[1024];
     bool bFound = false;
@@ -3239,7 +3235,7 @@ bool oled_handler::read_sys_info(int type)
 ** 调     用: handleMessage
 **
 *************************************************************************/
-void oled_handler::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
+void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 {
     int state = mSyncInfo->state;
 
@@ -3310,7 +3306,7 @@ void oled_handler::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 	
 }
 
-void oled_handler::write_sys_info(sp<SYS_INFO> &mSysInfo)
+void MenuUI::write_sys_info(sp<SYS_INFO> &mSysInfo)
 {
     //open to allow write once in future
 //    if(check_path_exist(sys_file_name))
@@ -3359,7 +3355,7 @@ void oled_handler::write_sys_info(sp<SYS_INFO> &mSysInfo)
 
 
 #ifdef ENABLE_WIFI_STA
-bool oled_handler::start_wifi_sta(int disp_main)
+bool MenuUI::start_wifi_sta(int disp_main)
 {
     bool ret = false;
 
@@ -3409,7 +3405,7 @@ bool oled_handler::start_wifi_sta(int disp_main)
 #endif
 
 
-void oled_handler::tx_softap_config_def()
+void MenuUI::tx_softap_config_def()
 {
     char pwd[128];
 
@@ -3432,7 +3428,7 @@ void oled_handler::tx_softap_config_def()
 
 
 
-void oled_handler::disp_wifi(bool bState, int disp_main)
+void MenuUI::disp_wifi(bool bState, int disp_main)
 {
     Log.d(TAG, "disp wifi bState %d disp_main %d",
           bState, disp_main);
@@ -3484,7 +3480,7 @@ void oled_handler::disp_wifi(bool bState, int disp_main)
 
 
 
-void oled_handler::wifi_action()
+void MenuUI::wifi_action()
 {
     Log.e(TAG, " wifi_action %d", mProCfg->get_val(KEY_WIFI_ON));
 
@@ -3515,7 +3511,7 @@ void oled_handler::wifi_action()
 
 
 
-int oled_handler::get_back_menu(int item)
+int MenuUI::get_back_menu(int item)
 {
     if (item >= 0 && (item < MENU_MAX))
     {
@@ -3532,7 +3528,7 @@ int oled_handler::get_back_menu(int item)
     }
 }
 
-void oled_handler::set_back_menu(int item,int menu)
+void MenuUI::set_back_menu(int item,int menu)
 {
     if(menu == -1)
     {
@@ -3583,21 +3579,21 @@ void oled_handler::set_back_menu(int item,int menu)
     }
 }
 
-void oled_handler::reset_last_info()
+void MenuUI::reset_last_info()
 {
     tl_count = -1;
 }
 
-void oled_handler::func_back()
+
+void MenuUI::procBackKeyEvent()
 {
     INFO_MENU_STATE(cur_menu, cam_state)
 		
     if (cur_menu == MENU_SYS_ERR ||
-            cur_menu == MENU_DISP_MSG_BOX ||
-            cur_menu == MENU_LOW_BAT ||
-            cur_menu == MENU_LIVE_REC_TIME ||
-            cur_menu == MENU_SET_PHOTO_DEALY /* || cur_menu == MENU_LOW_PROTECT*/)	/* add by skymixos */
-    {
+		cur_menu == MENU_DISP_MSG_BOX ||
+		cur_menu == MENU_LOW_BAT ||
+		cur_menu == MENU_LIVE_REC_TIME ||
+		cur_menu == MENU_SET_PHOTO_DEALY /* || cur_menu == MENU_LOW_PROTECT*/)  {	/* add by skymixos */
         set_cur_menu_from_exit();
     } else if (cur_menu == MENU_STITCH_BOX) {
         if (!bStiching) {
@@ -3608,6 +3604,7 @@ void oled_handler::func_back()
         rm_state(STATE_FORMAT_OVER);
         set_cur_menu_from_exit();
     } else {
+		
         switch (cam_state) {
             //force back directly while state idle 17.06.08
             case STATE_IDLE:
@@ -3626,13 +3623,14 @@ void oled_handler::func_back()
                         }
                         break;
 						
-                     //preview state sent from http req while calibrating ,qr scan,gyro_start
+                     // preview state sent from http req while calibrating ,qr scan,gyro_start
                     case MENU_CALIBRATION:
                     case MENU_QR_SCAN:
                     case MENU_GYRO_START:
                     case MENU_NOSIE_SAMPLE:
                         set_cur_menu(MENU_PIC_INFO);
                         break;
+					
                     case MENU_PIC_SET_DEF:
                     case MENU_VIDEO_SET_DEF:
                     case MENU_LIVE_SET_DEF:
@@ -3640,64 +3638,46 @@ void oled_handler::func_back()
                     case MENU_WIFI_CONNECT:
                         set_cur_menu_from_exit();
                         break;
+					
                     default:
                         break;
                 }
                 break;
+				
             default:
-                switch (cur_menu)
-                {
+                switch (cur_menu) {
                     case MENU_QR_SCAN:
                         exit_qr_func();
                         break;
+					
                     default:
-                        Log.d(TAG, "strange enter (%d 0x%x)",
-                              cur_menu, cam_state);
-                        if (check_live())
-                        {
-                            if (cur_menu != MENU_LIVE_INFO)
-                            {
+                        Log.d(TAG, "strange enter (%d 0x%x)", cur_menu, cam_state);
+                        if (check_live()) {
+                            if (cur_menu != MENU_LIVE_INFO) {
                                 set_cur_menu(MENU_LIVE_INFO);
                             }
-                        }
-                        else if (check_state_in(STATE_RECORD))
-                        {
-                            if (cur_menu != MENU_VIDEO_INFO)
-                            {
+                        } else if (check_state_in(STATE_RECORD)) {
+                            if (cur_menu != MENU_VIDEO_INFO) {
                                 set_cur_menu(MENU_VIDEO_INFO);
                             }
-                        }
-                        else if (check_state_in(STATE_CALIBRATING))
-                        {
-                            if (cur_menu != MENU_CALIBRATION)
-                            {
+                        } else if (check_state_in(STATE_CALIBRATING)) {
+                            if (cur_menu != MENU_CALIBRATION) {
                                 set_cur_menu(MENU_CALIBRATION);
                             }
-                        }
-                        else if (check_state_in(STATE_SPEED_TEST))
-                        {
-                            if (cur_menu != MENU_SPEED_TEST)
-                            {
+                        } else if (check_state_in(STATE_SPEED_TEST)) {
+                            if (cur_menu != MENU_SPEED_TEST) {
                                 set_cur_menu(MENU_SPEED_TEST);
                             }
-                        }
-                        else if (check_state_in(STATE_START_GYRO))
-                        {
-                            if (cur_menu != MENU_GYRO_START)
-                            {
+                        } else if (check_state_in(STATE_START_GYRO)) {
+                            if (cur_menu != MENU_GYRO_START) {
                                 set_cur_menu(MENU_GYRO_START);
                             }
-                        }
-                        else if (check_state_in(STATE_NOISE_SAMPLE))
-                        {
-                            if (cur_menu != MENU_NOSIE_SAMPLE)
-                            {
+                        } else if (check_state_in(STATE_NOISE_SAMPLE)) {
+                            if (cur_menu != MENU_NOSIE_SAMPLE) {
                                 set_cur_menu(MENU_NOSIE_SAMPLE);
                             }
-                        }
-                        else
-                        {
-                            ERR_MENU_STATE(cur_menu,cam_state)
+                        } else {
+                            ERR_MENU_STATE(cur_menu, cam_state)
                         }
                         break;
                 }
@@ -3706,19 +3686,19 @@ void oled_handler::func_back()
     }
 }
 
-void oled_handler::disp_scroll()
+void MenuUI::disp_scroll()
 {
 
 }
 
-//void oled_handler::clear_bottom()
+//void MenuUI::clear_bottom()
 //{
 //    Log.d(TAG,"clear_bottom");
 //    mOLEDModule->clear_area(0,48,128,16);
 //    Log.d(TAG,"clear_bottom over");
 //}
 
-void oled_handler::update_menu_disp(const int *icon_light,const int *icon_normal)
+void MenuUI::update_menu_disp(const int *icon_light,const int *icon_normal)
 {
     SELECT_INFO * mSelect = get_select_info();
     int last_select = get_last_select();
@@ -3737,7 +3717,7 @@ void oled_handler::update_menu_disp(const int *icon_light,const int *icon_normal
     disp_icon(icon_light[get_menu_select_by_power(cur_menu)]);
 }
 
-void oled_handler::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal)
+void MenuUI::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal)
 {
     SELECT_INFO * mSelect = get_select_info();
     int last_select = get_last_select();
@@ -3754,7 +3734,7 @@ void oled_handler::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO 
 
 
 
-void oled_handler::update_menu_page()
+void MenuUI::update_menu_page()
 {
     // CHECK_EQ(cur_menu,MENU_SYS_SETTING);
     if (cur_menu == MENU_SYS_SETTING)
@@ -3768,7 +3748,7 @@ void oled_handler::update_menu_page()
 	}
 }
 
-void oled_handler::set_mainmenu_item(int item,int val)
+void MenuUI::set_mainmenu_item(int item,int val)
 {
     switch(item)
     {
@@ -3789,7 +3769,7 @@ void oled_handler::set_mainmenu_item(int item,int val)
     }
 }
 
-void oled_handler::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
+void MenuUI::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
 {
     int last_select = get_last_select();
     int cur= get_menu_select_by_power(cur_menu);
@@ -3809,7 +3789,7 @@ void oled_handler::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdate
     disp_icon(pSetting->icon_light[cur][get_setting_select(cur)]);
 }
 
-void oled_handler::update_sys_cfg(int item, int val)
+void MenuUI::update_sys_cfg(int item, int val)
 {
     val = val&0x00000001;
     Log.d(TAG," update_sys_cfg item %d val %d",item,val);
@@ -3873,7 +3853,7 @@ void oled_handler::update_sys_cfg(int item, int val)
     }
 }
 
-void oled_handler::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
+void MenuUI::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 {
     Log.d(TAG,"%s %d %d %d %d %f",
           __FUNCTION__,
@@ -3883,19 +3863,16 @@ void oled_handler::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
           mProgress->task_over,
           mProgress->runing_task_progress);
 
-    if(cur_menu == MENU_STITCH_BOX)
-    {
+    if (cur_menu == MENU_STITCH_BOX) {
         char buf[32];
         int x ;
         int y;
         y = 24;
-        if(mProgress->task_over)
-        {
+        if (mProgress->task_over) {
             bStiching = false;
             disp_icon(ICON_STITCHING_SUCCESS129_48);
             x = 17;
-            if(mProgress->successful_cnt > 999)
-            {
+            if (mProgress->successful_cnt > 999) {
                 x -= 6;
             }
             snprintf(buf,sizeof(buf),"%d",mProgress->successful_cnt);
@@ -3903,15 +3880,12 @@ void oled_handler::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 
             x = 24;
             y += 16;
-            if(mProgress->failing_cnt > 999)
-            {
+            if (mProgress->failing_cnt > 999) {
                 x -= 6;
             }
             snprintf(buf,sizeof(buf),"%d",mProgress->failing_cnt);
             disp_str((const u8 *)buf,x,y);
-        }
-        else
-        {
+        } else {
             disp_icon(ICON_STITCHING_SCHEDULE129_48);
             x = 65;
             snprintf(buf,sizeof(buf),"%d/%d",(mProgress->successful_cnt + mProgress->failing_cnt + 1),mProgress->total_cnt);
@@ -3933,7 +3907,7 @@ void oled_handler::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 }
 
 
-void oled_handler::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
+void MenuUI::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
 {
     CHECK_NE(mSysSetting,nullptr);
 
@@ -3993,7 +3967,9 @@ void oled_handler::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
     }
 }
 
-void oled_handler::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
+
+
+void MenuUI::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
 {
     CHECK_NE(type,-1);
     CHECK_NE(mAdd,nullptr);
@@ -4087,23 +4063,16 @@ void oled_handler::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
             set_menu_select_info(menu, max);
         }
     }
-//    Log.d(TAG," mMenuInfos[%d].mSelectInfo.page_max %d select %d cur_menu %d",
-//          menu, mMenuInfos[menu].mSelectInfo.page_max,
-//          mMenuInfos[menu].mSelectInfo.select, cur_menu);
-//    if(cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_VIDEO_SET_DEF)
-//    {
-//        // add for timelapse
-//        check_rec_tl();
-//    }
 }
 
-void oled_handler::update_menu()
+void MenuUI::update_menu()
 {
     int item = get_menu_select_by_power(cur_menu);
     switch (cur_menu) {
         case MENU_TOP:
             update_menu_disp(main_menu[1], main_menu[0]);
             break;
+		
         case MENU_SYS_SETTING:
             update_menu_sys_setting(&mSettingItems, true);
             break;
@@ -4136,50 +4105,47 @@ void oled_handler::update_menu()
 //            Log.d(TAG," vid set def item is %d", item);
             mProCfg->set_def_info(KEY_VIDEO_DEF,item);
             update_menu_disp(vid_def_setting_menu[1]);
-            if(item < VID_CUSTOM)
-            {
+            if (item < VID_CUSTOM) {
                 disp_org_rts((int)(mVIDAction[item].stOrgInfo.save_org != SAVE_OFF),
                              (int)(mVIDAction[item].stStiInfo.stich_mode != STITCH_OFF));
-            }
-            else
-            {
+            } else {
                 disp_org_rts((int)(mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.save_org != SAVE_OFF),
                              (int)(mProCfg->get_def_info(KEY_VIDEO_DEF)->stStiInfo.stich_mode != STITCH_OFF));
             }
-           update_bottom_space();
+           	update_bottom_space();
             break;
+			
         case MENU_LIVE_SET_DEF:
             mProCfg->set_def_info(KEY_LIVE_DEF,item);
             update_menu_disp(live_def_setting_menu[1]);
-            if(item < LIVE_CUSTOM)
-            {
+            if (item < LIVE_CUSTOM) {
                 disp_org_rts((int)(mLiveAction[item].stOrgInfo.save_org != SAVE_OFF),0,
                              (int)(mLiveAction[item].stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON));
-            }
-            else
-            {
+            } else {
                 disp_org_rts((int)(mProCfg->get_def_info(KEY_LIVE_DEF)->stOrgInfo.save_org != SAVE_OFF),
                              /*mProCfg->get_def_info(KEY_LIVE_DEF)->stStiInfo.stStiAct.mStiL.file_save,*/0,
                              (int)(mProCfg->get_def_info(KEY_LIVE_DEF)->stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON));
             }
             disp_live_ready();
             break;
+			
         case MENU_SYS_DEV_INFO:
 //            update_sys_info();
             break;
+
         case MENU_STORAGE:
             disp_storage_setting();
             break;
+		
         case MENU_FORMAT:
             disp_format();
             break;
+		
         SWITCH_DEF_ERROR(cur_menu)
     }
-//    Log.d(TAG,"get_last_select() %d get_select() %d cur_menu %d over",
-//          get_last_select(), get_select(),cur_menu);
 }
 
-void oled_handler::get_storage_info()
+void MenuUI::get_storage_info()
 {
     int storage_index;
 
@@ -4220,7 +4186,7 @@ void oled_handler::get_storage_info()
     }
 }
 
-bool oled_handler::get_save_path_avail()
+bool MenuUI::get_save_path_avail()
 {
     bool ret = false;
     if (!check_save_path_none())
@@ -4267,7 +4233,7 @@ bool oled_handler::get_save_path_avail()
     return ret;
 }
 
-void oled_handler::get_save_path_remain()
+void MenuUI::get_save_path_remain()
 {
     if (get_save_path_avail()) {
         caculate_rest_info(mLocalStorageList.at(mSavePathIndex)->avail);
@@ -4284,7 +4250,7 @@ void oled_handler::get_save_path_remain()
 ** 调     用: get_save_path_remain
 **
 *********************************************************************************************/
-void oled_handler::caculate_rest_info(u64 size)
+void MenuUI::caculate_rest_info(u64 size)
 {
     INFO_MENU_STATE(cur_menu, cam_state);
     int size_M = (int)(size >> 20);
@@ -4377,7 +4343,7 @@ void oled_handler::caculate_rest_info(u64 size)
     }
 }
 
-void oled_handler::convert_space_to_str(u64 size, char *str, int len)
+void MenuUI::convert_space_to_str(u64 size, char *str, int len)
 {
     double size_b = (double)size;
     double info_G = (size_b/1024/1024/1024);
@@ -4389,7 +4355,7 @@ void oled_handler::convert_space_to_str(u64 size, char *str, int len)
     }
 }
 
-bool oled_handler::check_save_path_none()
+bool MenuUI::check_save_path_none()
 {
     bool bRet = false;
 	
@@ -4399,7 +4365,7 @@ bool oled_handler::check_save_path_none()
     return bRet;
 }
 
-bool oled_handler::check_save_path_usb()
+bool MenuUI::check_save_path_usb()
 {
     bool bRet = false;
 	
@@ -4415,7 +4381,7 @@ bool oled_handler::check_save_path_usb()
 
 
 
-void oled_handler::disp_bottom_space()
+void MenuUI::disp_bottom_space()
 {
     if (!check_save_path_none()) {	/* 存储设备存在 */
         char disk_info[16];
@@ -4490,25 +4456,25 @@ void oled_handler::disp_bottom_space()
 	
 }
 
-void oled_handler::update_bottom_space()
+void MenuUI::update_bottom_space()
 {
     get_save_path_remain();
     disp_bottom_space();
 }
 
-void oled_handler::disp_bottom_info(bool high)
+void MenuUI::disp_bottom_info(bool high)
 {
     disp_cam_param(0);
     update_bottom_space();
 }
 
-struct _select_info_ * oled_handler::get_select_info()
+struct _select_info_ * MenuUI::get_select_info()
 {
     return (SELECT_INFO *)&(mMenuInfos[cur_menu].mSelectInfo);
 }
 
 
-void oled_handler::disp_sys_setting(SETTING_ITEMS* pSetting)
+void MenuUI::disp_sys_setting(SETTING_ITEMS* pSetting)
 {
     SELECT_INFO * mSelect = get_select_info();
     int start = mSelect->cur_page * mSelect->page_max;
@@ -4544,7 +4510,7 @@ void oled_handler::disp_sys_setting(SETTING_ITEMS* pSetting)
 }
 
 
-void oled_handler::reset_devmanager()
+void MenuUI::reset_devmanager()
 {
     Log.d(TAG,"reset_devmanager mLocalStorageList.size() %d",mLocalStorageList.size());
     bFirstDev = true;
@@ -4554,7 +4520,7 @@ void oled_handler::reset_devmanager()
     Log.d(TAG,"reset_devmanager suc");
 }
 
-int oled_handler::exec_sh_new(const char *buf)
+int MenuUI::exec_sh_new(const char *buf)
 {
     return exec_sh(buf);
 }
@@ -4563,7 +4529,7 @@ int oled_handler::exec_sh_new(const char *buf)
 //- 格式化ext4: mke2fs -t ext4 /dev/block/mmcblk1p1
 //- Trim废弃block: fstrim /dev/block/mmcblk1p1
 //mountufsd ${partition} ${path} -o uid=1023,gid=1023,fmask=0700,dmask=0700,force
-void oled_handler::format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon)
+void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon)
 {
     char buf[1024];
     int err_trim = 0;
@@ -4693,7 +4659,7 @@ ERROR:
     msg_util::sleep_ms(3000);
 }
 
-void oled_handler::start_format()
+void MenuUI::start_format()
 {
     bool bFound = false;
     switch(get_menu_select_by_power(MENU_STORAGE))
@@ -4743,7 +4709,7 @@ void oled_handler::start_format()
 //    set_cur_menu(MENU_FORMAT);
 }
 
-void oled_handler::disp_format()
+void MenuUI::disp_format()
 {
     //force clear STATE_FORMAT_OVER
     rm_state(STATE_FORMAT_OVER);
@@ -4764,7 +4730,7 @@ void oled_handler::disp_format()
 #endif
 }
 
-void oled_handler::disp_storage_setting()
+void MenuUI::disp_storage_setting()
 {
     char dev_space[128];
     rm_state(STATE_FORMAT_OVER);
@@ -4803,14 +4769,14 @@ void oled_handler::disp_storage_setting()
     }
 }
 
-void oled_handler::disp_org_rts(sp<struct _action_info_> &mAct,int hdmi)
+void MenuUI::disp_org_rts(sp<struct _action_info_> &mAct,int hdmi)
 {
     disp_org_rts((int) (mAct->stOrgInfo.save_org != SAVE_OFF),
                  (int) (mAct->stStiInfo.stich_mode != STITCH_OFF),hdmi);
 }
 
 
-void oled_handler::disp_org_rts(int org,int rts,int hdmi)
+void MenuUI::disp_org_rts(int org,int rts,int hdmi)
 {
     int new_org_rts = 0;
 
@@ -4873,7 +4839,7 @@ void oled_handler::disp_org_rts(int org,int rts,int hdmi)
 //    Log.d(TAG,"disp_org_rts org %d rts %d hdmi %d",org,rts,hdmi);
 }
 
-void oled_handler::disp_qr_res(bool high)
+void MenuUI::disp_qr_res(bool high)
 {
     if (high) {
         disp_icon(ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16);
@@ -4884,7 +4850,7 @@ void oled_handler::disp_qr_res(bool high)
 
 
 // highlight : 0 -- normal 1 -- high
-void oled_handler::disp_cam_param(int higlight)
+void MenuUI::disp_cam_param(int higlight)
 {
     int item;
     int icon = -1;
@@ -5031,7 +4997,7 @@ void oled_handler::disp_cam_param(int higlight)
 }
 
 
-void oled_handler::disp_sec(int sec,int x,int y)
+void MenuUI::disp_sec(int sec,int x,int y)
 {
     char buf[32];
 
@@ -5039,7 +5005,7 @@ void oled_handler::disp_sec(int sec,int x,int y)
     disp_str((const u8 *)buf,x,y);
 }
 
-void oled_handler::disp_calibration_res(int type, int t)
+void MenuUI::disp_calibration_res(int type, int t)
 {
     Log.d(TAG, " disp_calibration_res type %d", type);
     switch (type) {
@@ -5077,7 +5043,7 @@ void oled_handler::disp_calibration_res(int type, int t)
 //    }
 }
 
-bool oled_handler::is_top_clear(int menu)
+bool MenuUI::is_top_clear(int menu)
 {
     bool ret= false;
     switch (menu) {
@@ -5097,7 +5063,7 @@ bool oled_handler::is_top_clear(int menu)
     return ret;
 }
 
-void oled_handler::disp_low_protect(bool bStart)
+void MenuUI::disp_low_protect(bool bStart)
 {
     clear_area();
     if(bStart)
@@ -5110,14 +5076,14 @@ void oled_handler::disp_low_protect(bool bStart)
     }
 }
 
-void oled_handler::disp_low_bat()
+void MenuUI::disp_low_bat()
 {
     clear_area();
     disp_str((const u8 *)"Low Battery ",8,16);
     set_light_direct(BACK_RED|FRONT_RED);
 }
 
-void oled_handler::func_low_protect()
+void MenuUI::func_low_protect()
 {
 #if 0
     int times = 10;
@@ -5158,7 +5124,7 @@ void oled_handler::func_low_protect()
 #endif
 }
 
-bool oled_handler::isDevExist()
+bool MenuUI::isDevExist()
 {
     int item = get_menu_select_by_power(MENU_STORAGE);
     bool bFound = false;
@@ -5174,7 +5140,7 @@ bool oled_handler::isDevExist()
     return bFound;
 }
 
-void oled_handler::disp_menu(bool dispBottom)
+void MenuUI::disp_menu(bool dispBottom)
 {
 	Log.d(TAG, "disp_menu is %d", cur_menu);
     switch (cur_menu) {
@@ -5542,7 +5508,7 @@ void oled_handler::disp_menu(bool dispBottom)
     }
 }
 
-void oled_handler::disp_wifi_connect()
+void MenuUI::disp_wifi_connect()
 {
     disp_icon(ICON_WIF_CONNECT_128_64128_64);
 //    int x = 8;
@@ -5552,7 +5518,7 @@ void oled_handler::disp_wifi_connect()
 }
 
 
-bool oled_handler::check_dev_exist(int action)
+bool MenuUI::check_dev_exist(int action)
 {
     bool bRet = false;
     Log.d(TAG,"check_dev_exist (%d %d)",mLocalStorageList.size(),mSavePathIndex);
@@ -5588,14 +5554,14 @@ bool oled_handler::check_dev_exist(int action)
     return bRet;
 }
 
-void oled_handler::power_menu_cal_setting()
+void MenuUI::power_menu_cal_setting()
 {
     send_option_to_fifo(ACTION_CALIBRATION);
 }
 
 
 
-bool oled_handler::switchEtherIpMode(int iMode)
+bool MenuUI::switchEtherIpMode(int iMode)
 {
     sp<ARMessage> msg;
     sp<DEV_IP_INFO> tmpInfo;
@@ -5633,7 +5599,7 @@ bool oled_handler::switchEtherIpMode(int iMode)
 ** 
 {"name":"camera._queryStorage"}
 *************************************************************************/
-void oled_handler::func_power()
+void MenuUI::procPowerKeyEvent()
 {
 	Log.d(TAG, "cur_menu %d select %d\n", cur_menu, get_select());
 
@@ -5709,8 +5675,7 @@ void oled_handler::func_power()
             break;
 
 		/* add by skymixos */
-		case MENU_SET_PHOTO_DEALY:
-		{
+		case MENU_SET_PHOTO_DEALY: {
             set_photo_delay_index = get_menu_select_by_power(cur_menu);
 			
 			Log.d(TAG, ">>>>>> get photo delay index [%d]", set_photo_delay_index);
@@ -5731,12 +5696,10 @@ void oled_handler::func_power()
 
 		}
 			
-        case MENU_SYS_SETTING:
-        {
+        case MENU_SYS_SETTING: {
             int item = get_menu_select_by_power(cur_menu);
             int val = get_setting_select(item);
-            switch (item)
-            {
+            switch (item) {
                 case SET_WIFI_AP:
                     val = ((~val) & 0x00000001);
                     // wifi is on need switch
@@ -5969,79 +5932,17 @@ void oled_handler::func_power()
 }
 
 
-int oled_handler::get_select()
+int MenuUI::get_select()
 {
     return mMenuInfos[cur_menu].mSelectInfo.select;
 }
 
-int oled_handler::get_last_select()
+int MenuUI::get_last_select()
 {
     return mMenuInfos[cur_menu].mSelectInfo.last_select;
 }
 
 
-void oled_handler::func_setting()
-{
-//    Log.d(TAG," func_setting cur_menu %d cam_state %d",
-//              cur_menu, cam_state);
-    switch(cur_menu)
-    {
-        case MENU_TOP:
-            if(get_select() == MAINMENU_WIFI)
-            {
-                Log.d(TAG,"wif state %d ap %d",
-                      mProCfg->get_val(KEY_WIFI_ON),
-                      get_setting_select(SET_WIFI_AP));
-                if(/*mProCfg->get_val(KEY_WIFI_ON) == 0 &&*/ get_setting_select(SET_WIFI_AP) == 0)
-                {
-                    start_qr_func();
-                }
-            }
-            else
-            {
-                set_cur_menu(MENU_SYS_SETTING);
-            }
-            break;
-        case MENU_PIC_INFO:
-        case MENU_VIDEO_INFO:
-        case MENU_LIVE_INFO:
-        case MENU_PIC_SET_DEF:
-        case MENU_VIDEO_SET_DEF:
-        case MENU_LIVE_SET_DEF:
-            if(check_state_preview())
-            {
-                start_qr_func();
-            }
-            break;
-        case MENU_SYS_DEV_INFO:
-#ifdef ENABLE_ADB_OFF
-            if(++adb_root_times >= MAX_ADB_TIMES)
-            {
-                set_root();
-            }
-#endif
-            break;
-        case MENU_RESET_INDICATION:
-            Log.d(TAG,"aging_times %d state 0x%x",aging_times,cam_state);
-            if(check_state_equal(STATE_IDLE))
-            {
-                if(aging_times >= 5)
-                {
-                    send_option_to_fifo(ACTION_AGEING);
-                }
-            }
-            break;
-        default:
-            break;
-    }
-}
-
-
-
-/* SKYMIXOS
- * 1. 检查到SD卡存在并且里面有factory.json文件时,设置当前菜单为MENU_AGEING
- * 
- */
 
 /*************************************************************************
 ** 方法名称: func_up
@@ -6052,7 +5953,67 @@ void oled_handler::func_setting()
 ** 调     用: 
 **
 *************************************************************************/
-void oled_handler::func_up()
+void MenuUI::procSettingKeyEvent()
+{
+//    Log.d(TAG," func_setting cur_menu %d cam_state %d", cur_menu, cam_state);
+
+    switch (cur_menu) {
+        case MENU_TOP:	/* 如果当前处于主界面 */
+            if (get_select() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
+                Log.d(TAG, "wif state %d ap %d", mProCfg->get_val(KEY_WIFI_ON), get_setting_select(SET_WIFI_AP));
+                if (/*mProCfg->get_val(KEY_WIFI_ON) == 0 &&*/ get_setting_select(SET_WIFI_AP) == 0) {
+                    start_qr_func();
+                }
+            } else {	/* 主界面直接按"设置"键,将跳到设置菜单 */
+                set_cur_menu(MENU_SYS_SETTING);
+            }
+            break;
+			
+        case MENU_PIC_INFO:
+        case MENU_VIDEO_INFO:
+        case MENU_LIVE_INFO:
+        case MENU_PIC_SET_DEF:
+        case MENU_VIDEO_SET_DEF:
+        case MENU_LIVE_SET_DEF:
+            if (check_state_preview()) {
+                start_qr_func();
+            }
+            break;
+			
+        case MENU_SYS_DEV_INFO:
+		#ifdef ENABLE_ADB_OFF
+            if (++adb_root_times >= MAX_ADB_TIMES) {
+                set_root();
+            }
+		#endif
+            break;
+		
+        case MENU_RESET_INDICATION:
+            Log.d(TAG, "aging_times %d state 0x%x", aging_times, cam_state);
+            if (check_state_equal(STATE_IDLE)) {
+                if (aging_times >= 5) {
+                    send_option_to_fifo(ACTION_AGEING);
+                }
+            }
+            break;
+			
+        default:
+            break;
+    }
+}
+
+
+
+/*************************************************************************
+** 方法名称: func_up
+** 方法功能: 按键事件处理
+** 入口参数: 
+**		iKey - 键值
+** 返 回 值: 无 
+** 调     用: 
+**
+*************************************************************************/
+void MenuUI::procUpKeyEvent()
 {
     switch (cur_menu) {
     case MENU_RESET_INDICATION:		/* 如果当前的菜单为MENU_RESET_INDICATION */
@@ -6079,7 +6040,7 @@ void oled_handler::func_up()
 ** 调     用: handle_oled_key
 **
 *************************************************************************/
-void oled_handler::func_down()
+void MenuUI::procDownKeyEvent()
 {
     switch (cur_menu) {	/* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
     case MENU_PIC_INFO:
@@ -6108,7 +6069,7 @@ void oled_handler::func_down()
 
 
 
-void oled_handler::exit_sys_err()
+void MenuUI::exit_sys_err()
 {
     if(cur_menu == MENU_SYS_ERR ||
             ((MENU_LOW_BAT == cur_menu) && check_state_equal(STATE_IDLE)))
@@ -6129,7 +6090,7 @@ void oled_handler::exit_sys_err()
 }
 
 
-bool oled_handler::check_cur_menu_support_key(int iKey)
+bool MenuUI::check_cur_menu_support_key(int iKey)
 {
 	for (int i = 0; i < OLED_KEY_MAX; i++) {
 		if (mMenuInfos[cur_menu].mSupportkeys[i] == iKey)
@@ -6149,7 +6110,7 @@ bool oled_handler::check_cur_menu_support_key(int iKey)
 ** 调     用: 
 **
 *************************************************************************/
-void oled_handler::handle_oled_key(int iKey)
+void MenuUI::handleKeyMsg(int iKey)
 {
     if (cur_menu == -1) {
         Log.d(TAG,"pro_service not finish yet");
@@ -6163,27 +6124,27 @@ void oled_handler::handle_oled_key(int iKey)
         switch (iKey) {
         case OLED_KEY_UP:		/* "UP"键的处理 */
         case 0x73:
-            func_up();
+            procUpKeyEvent();
             break;
 		
         case OLED_KEY_DOWN:		/* "DOWN"键的处理 */
         case 0x72:
-            func_down();
+            procDownKeyEvent();
             break;
 		
         case OLED_KEY_BACK:		/* "BACK"键的处理 */
         case 0x66:
-            func_back();
+            procBackKeyEvent();
             break;
 		
         case OLED_KEY_SETTING:	/* "Setting"键的处理 */
         case 0x160:
-            func_setting();
+            procSettingKeyEvent();
             break;
 		
         case OLED_KEY_POWER:	/* "POWER"键的处理 */
         case 0x74:
-            func_power();
+            procPowerKeyEvent();
             break;
 		
         default:
@@ -6196,24 +6157,24 @@ void oled_handler::handle_oled_key(int iKey)
 
 
 
-void oled_handler::clear_area(u8 x,u8 y,u8 w,u8 h)
+void MenuUI::clear_area(u8 x,u8 y,u8 w,u8 h)
 {
     mOLEDModule->clear_area(x,y,w,h);
 }
 
-void oled_handler::clear_area(u8 x, u8 y)
+void MenuUI::clear_area(u8 x, u8 y)
 {
     mOLEDModule->clear_area(x,y);
 }
 
-bool oled_handler::check_allow_update_top()
+bool MenuUI::check_allow_update_top()
 {
     return !is_top_clear(cur_menu);
 }
 
 
 
-int oled_handler::oled_disp_battery()
+int MenuUI::oled_disp_battery()
 {
 
 #ifdef DEBUG_BATTERY
@@ -6264,27 +6225,27 @@ int oled_handler::oled_disp_battery()
     return 0;
 }
 
-void oled_handler::disp_waiting()
+void MenuUI::disp_waiting()
 {
     disp_icon(ICON_CAMERA_WAITING_2016_76X32);
 }
 
-void oled_handler::disp_connecting()
+void MenuUI::disp_connecting()
 {
     disp_icon(ICON_LIVE_RECONNECTING_76_32_20_1676_32);
 }
 
-void oled_handler::disp_saving()
+void MenuUI::disp_saving()
 {
     disp_icon(ICON_CAMERA_SAVING_2016_76X32);
 }
 
-void oled_handler::clear_ready()
+void MenuUI::clear_ready()
 {
     clear_icon(ICON_CAMERA_READY_20_16_76_32);
 }
 
-void oled_handler::disp_live_ready()
+void MenuUI::disp_live_ready()
 {
     bool bReady = true;
     int item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
@@ -6323,7 +6284,7 @@ void oled_handler::disp_live_ready()
     }
 }
 
-void oled_handler::disp_ready_icon(bool bDispReady)
+void MenuUI::disp_ready_icon(bool bDispReady)
 {
 	/* 调用存储管理器来判断显示图标 */
     if (!check_save_path_none()) {
@@ -6334,7 +6295,7 @@ void oled_handler::disp_ready_icon(bool bDispReady)
 }
 
 
-void oled_handler::disp_shooting()
+void MenuUI::disp_shooting()
 {
 //    if(!check_save_path_none())
 //    {
@@ -6344,23 +6305,23 @@ void oled_handler::disp_shooting()
     set_light(fli_light);
 }
 
-void oled_handler::disp_processing()
+void MenuUI::disp_processing()
 {
     disp_icon(ICON_PROCESS_76_3276_32);
     send_update_light(MENU_PIC_INFO, STATE_PIC_STITCHING, INTERVAL_5HZ);
 }
 
-bool oled_handler::check_state_preview()
+bool MenuUI::check_state_preview()
 {
     return check_state_equal(STATE_PREVIEW);
 }
 
-bool oled_handler::check_state_equal(int state)
+bool MenuUI::check_state_equal(int state)
 {
     return (cam_state == state);
 }
 
-bool oled_handler::check_state_in(int state)
+bool MenuUI::check_state_in(int state)
 {
     bool bRet = false;
     if((cam_state&state) == state)
@@ -6370,12 +6331,12 @@ bool oled_handler::check_state_in(int state)
     return bRet;
 }
 
-bool oled_handler::check_live()
+bool MenuUI::check_live()
 {
     return (check_state_in(STATE_LIVE) || check_state_in(STATE_LIVE_CONNECTING));
 }
 
-void oled_handler::update_by_controller(int action)
+void MenuUI::update_by_controller(int action)
 {
 //    switch(action)
 //    {
@@ -6392,7 +6353,7 @@ void oled_handler::update_by_controller(int action)
 //    }
 }
 
-void oled_handler::add_state(int state)
+void MenuUI::add_state(int state)
 {
     cam_state |= state;
 	
@@ -6548,20 +6509,21 @@ void oled_handler::add_state(int state)
 			
         SWITCH_DEF_ERROR(state)
     }
+	
 }
 
-void oled_handler::rm_state(int state)
+void MenuUI::rm_state(int state)
 {
     cam_state &= ~state;
 }
 
-void oled_handler::set_tl_count(int count)
+void MenuUI::set_tl_count(int count)
 {
 //    Log.d(TAG,"set tl count %d",count);
     tl_count = count;
 }
 
-void oled_handler::disp_tl_count(int count)
+void MenuUI::disp_tl_count(int count)
 {
     if(count < 0)
     {
@@ -6598,7 +6560,7 @@ void oled_handler::disp_tl_count(int count)
     }
 }
 
-void oled_handler::minus_cam_state(int state)
+void MenuUI::minus_cam_state(int state)
 {
     rm_state(state);
     set_cap_delay(0);
@@ -6651,7 +6613,7 @@ void oled_handler::minus_cam_state(int state)
 
 
 
-void oled_handler::disp_err_code(int code,int back_menu)
+void MenuUI::disp_err_code(int code,int back_menu)
 {
     bool bFound = false;
     char err_code[128];
@@ -6712,7 +6674,7 @@ void oled_handler::disp_err_code(int code,int back_menu)
           code,back_menu,cur_menu,bFound,cam_state);
 }
 
-void oled_handler::disp_err_str(int type)
+void MenuUI::disp_err_str(int type)
 {
     for (u32 i = 0; i < sizeof(mSysErr)/sizeof(mSysErr[0]); i++) {
         if (type == mSysErr[i].type) {
@@ -6722,7 +6684,7 @@ void oled_handler::disp_err_str(int type)
     }
 }
 
-void oled_handler::disp_sys_err(int type, int back_menu)
+void MenuUI::disp_sys_err(int type, int back_menu)
 {
     Log.d(TAG, "disp_sys_err cur menu %d"
                   " state 0x%x back_menu %d type %d",
@@ -6755,7 +6717,7 @@ void oled_handler::disp_sys_err(int type, int back_menu)
 ** 调     用: set_light
 **
 *************************************************************************/
-void oled_handler::set_flick_light()
+void MenuUI::set_flick_light()
 {
 #ifdef ENABLE_LIGHT
     if(get_setting_select(SET_LIGHT_ON) == 1)
@@ -6791,7 +6753,7 @@ void oled_handler::set_flick_light()
 #endif
 }
 
-bool oled_handler::check_cam_busy()
+bool MenuUI::check_cam_busy()
 {
     bool bRet = false;
     //busy state with light flick
@@ -6812,7 +6774,7 @@ bool oled_handler::check_cam_busy()
     return bRet;
 }
 
-void oled_handler::set_light()
+void MenuUI::set_light()
 {
     if (mBatInterface->isSuc()) {	/* 电池存在,根据电池的电量来设置前灯的显示状态:   */
         if (m_bat_info_->battery_level < 10) {			/* 电量小于10%显示红色 */
@@ -6835,7 +6797,7 @@ void oled_handler::set_light()
     return;
 }
 
-int oled_handler::get_error_back_menu(int force_menu)
+int MenuUI::get_error_back_menu(int force_menu)
 {
     int back_menu = MENU_TOP;
     if(check_state_equal(STATE_IDLE))
@@ -6890,7 +6852,7 @@ int oled_handler::get_error_back_menu(int force_menu)
     return back_menu;
 }
 
-int oled_handler::oled_disp_err(sp<struct _err_type_info_> &mErr)
+int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
 {
     int type = mErr->type;
     int err_code = mErr->err_code;
@@ -6992,7 +6954,7 @@ int oled_handler::oled_disp_err(sp<struct _err_type_info_> &mErr)
     return 0;
 }
 
-void oled_handler::set_led_power(unsigned int on)
+void MenuUI::set_led_power(unsigned int on)
 {
     if (on == 1) {
         set_light();
@@ -7001,7 +6963,7 @@ void oled_handler::set_led_power(unsigned int on)
     }
 }
 
-void oled_handler::set_oled_power(unsigned int on)
+void MenuUI::set_oled_power(unsigned int on)
 {
     int GPIP_PX3 = 187;
 
@@ -7024,7 +6986,7 @@ void oled_handler::set_oled_power(unsigned int on)
 
 
 
-bool oled_handler::queryCurStorageState()
+bool MenuUI::queryCurStorageState()
 {
 	sp<Volume> tmpVol;
 	
@@ -7050,7 +7012,7 @@ bool oled_handler::queryCurStorageState()
 
 
 //all disp is at bottom
-int oled_handler::oled_disp_type(int type)
+int MenuUI::oled_disp_type(int type)
 {
     Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, STR(cur_menu), cam_state);
 
@@ -7657,44 +7619,44 @@ int oled_handler::oled_disp_type(int type)
 ** 调     用: handleMessage
 **
 *************************************************************************/
-void oled_handler::exitAll()
+void MenuUI::exitAll()
 {
     mLooper->quit();
 }
 
-void oled_handler::disp_str_fill(const u8 *str, const u8 x, const u8 y, bool high)
+void MenuUI::disp_str_fill(const u8 *str, const u8 x, const u8 y, bool high)
 {
     mOLEDModule->ssd1306_disp_16_str_fill(str,x,y,high);
 }
 
-void oled_handler::disp_str(const u8 *str,const u8 x,const u8 y, bool high,int width)
+void MenuUI::disp_str(const u8 *str,const u8 x,const u8 y, bool high,int width)
 {
     mOLEDModule->ssd1306_disp_16_str(str,x,y,high,width);
 }
 
-void oled_handler::clear_icon(u32 type)
+void MenuUI::clear_icon(u32 type)
 {
     mOLEDModule->clear_icon(type);
 }
 
-void oled_handler::disp_icon(u32 type)
+void MenuUI::disp_icon(u32 type)
 {
     mOLEDModule->disp_icon(type);
 }
 
-void oled_handler::dispIconByLoc(const ICON_INFO* pInfo)
+void MenuUI::dispIconByLoc(const ICON_INFO* pInfo)
 {
     mOLEDModule->disp_icon(pInfo);
 }
 
 
-void oled_handler::disp_ageing()
+void MenuUI::disp_ageing()
 {
     clear_area();
     disp_str((const u8 *)"Ageing...",8,16);
 }
 
-int oled_handler::get_dev_type_index(char *type)
+int MenuUI::get_dev_type_index(char *type)
 {
     int storage_index;
     if (strcmp(type, dev_type[SET_STORAGE_SD]) == 0) {
@@ -7707,7 +7669,7 @@ int oled_handler::get_dev_type_index(char *type)
     return storage_index;
 }
 
-void oled_handler::disp_dev_msg_box(int bAdd, int type, bool bChange)
+void MenuUI::disp_dev_msg_box(int bAdd, int type, bool bChange)
 {
     Log.d(TAG, "bAdd %d type %d", bAdd, type);
 
@@ -7741,7 +7703,7 @@ void oled_handler::disp_dev_msg_box(int bAdd, int type, bool bChange)
 }
 
 
-void oled_handler::set_mdev_list(std::vector <sp<Volume>> &mList)
+void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
 {
     int dev_change_type;
 
@@ -7885,7 +7847,7 @@ void oled_handler::set_mdev_list(std::vector <sp<Volume>> &mList)
 }
 
 
-bool oled_handler::decrease_rest_time()
+bool MenuUI::decrease_rest_time()
 {
     bool bRet = true;
     mRemainInfo->remain_sec -= 1;
@@ -7907,7 +7869,7 @@ bool oled_handler::decrease_rest_time()
     return bRet;
 }
 
-void oled_handler::increase_rec_time()
+void MenuUI::increase_rec_time()
 {
     mRecInfo->rec_sec += 1;
     if (mRecInfo->rec_sec >= 60) {
@@ -7920,7 +7882,7 @@ void oled_handler::increase_rec_time()
     }
 }
 
-void oled_handler::flick_light()
+void MenuUI::flick_light()
 {
 	Log.d(TAG, "last_light 0x%x fli_light 0x%x", last_light, fli_light);
 	
@@ -7931,7 +7893,7 @@ void oled_handler::flick_light()
     }
 }
 
-void oled_handler::flick_low_bat_lig()
+void MenuUI::flick_low_bat_lig()
 {
 //    if(last_back_light != BACK_RED)
 //    {
@@ -7947,7 +7909,7 @@ void oled_handler::flick_low_bat_lig()
 /*
  * disp_mid - 显示已经录像的时间(时分秒)
  */
-void oled_handler::disp_mid()
+void MenuUI::disp_mid()
 {
     char disp[32];
     snprintf(disp, sizeof(disp), "%02d:%02d:%02d",
@@ -7958,7 +7920,7 @@ void oled_handler::disp_mid()
     }
 }
 
-bool oled_handler::is_bat_low()
+bool MenuUI::is_bat_low()
 {
     bool ret = false;
     if (mBatInterface->isSuc() && !m_bat_info_->bCharge && m_bat_info_->battery_level <= BAT_LOW_VAL) {
@@ -7968,12 +7930,12 @@ bool oled_handler::is_bat_low()
 }
 
 
-void oled_handler::func_low_bat()
+void MenuUI::func_low_bat()
 {
     send_option_to_fifo(ACTION_LOW_BAT,REBOOT_SHUTDOWN);
 }
 
-void oled_handler::set_light_direct(u8 val)
+void MenuUI::set_light_direct(u8 val)
 {
 //    Log.d(TAG,"last_light 0x%x val 0x%x",last_light,val);
     if(last_light != val)
@@ -7983,7 +7945,7 @@ void oled_handler::set_light_direct(u8 val)
     }
 }
 
-void oled_handler::set_light(u8 val)
+void MenuUI::set_light(u8 val)
 {
 #ifdef ENABLE_LIGHT
 //    Log.d(TAG,"set_light (0x%x  0x%x  0x%x 0x%x %d)",
@@ -7996,7 +7958,7 @@ void oled_handler::set_light(u8 val)
 #endif
 }
 
-bool oled_handler::check_rec_tl()
+bool MenuUI::check_rec_tl()
 {
     bool ret = false;
     if(mControlAct != nullptr)
@@ -8046,11 +8008,155 @@ bool oled_handler::check_rec_tl()
 
 
 
-void oled_handler::procUpdateIp(const char* ipAddr)
+void MenuUI::procUpdateIp(const char* ipAddr)
 {
 	memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
 	strcpy(mLocalIpAddr, ipAddr);
 	uiShowStatusbarIp();
+}
+
+
+void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
+{
+	switch (cur_menu) {
+		case MENU_DISP_MSG_BOX:
+		case MENU_SPEED_TEST:
+			procBackKeyEvent();
+			break;
+		#if 0
+		case MENU_LOW_BAT:
+		if (!(disp_type->type == START_LOW_BAT_SUC || START_LOW_BAT_FAIL == disp_type->type || disp_type->type == RESET_ALL || disp_type->type == START_FORCE_IDLE)) {
+		  Log.d(TAG,"MENU_LOW_BAT not allow (0x%x %d)",cam_state,disp_type->type);
+		  return;
+		}
+		#endif
+		
+		default:
+			// get http req before getting low bat protect in flask 170922
+			if (check_state_in(STATE_LOW_BAT)) {				
+				Log.d(TAG, "STATE_LOW_BAT not allow (0x%x %d)", cam_state, disp_type->type);
+			} else if(disp_type->type != RESET_ALL) {
+				exit_sys_err();
+			}
+			break;
+	}
+
+	//add param from controller or qr scan
+	if (disp_type->qr_type != -1) {
+		CHECK_NE(disp_type->mAct,nullptr);
+		add_qr_res(disp_type->qr_type, disp_type->mAct,
+				   disp_type->control_act);
+	} else if (disp_type->tl_count != -1) {
+		set_tl_count(disp_type->tl_count);
+	} else if (disp_type->mSysSetting != nullptr) {
+		set_sys_setting(disp_type->mSysSetting);
+	} else if (disp_type->mStichProgress != nullptr) {
+		disp_stitch_progress(disp_type->mStichProgress);
+	} else {
+		Log.d(TAG, "nothing");
+	}
+	oled_disp_type(disp_type->type);
+
+}
+
+void MenuUI::handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo)
+{
+	switch (cur_menu) {
+		case MENU_DISP_MSG_BOX:
+		case MENU_SPEED_TEST:
+			procBackKeyEvent();
+			break;
+		
+		default:
+			if (mErrInfo->type != RESET_ALL) {
+				exit_sys_err();
+			}
+			break;
+	}
+	oled_disp_err(mErrInfo);
+
+}
+
+
+void MenuUI::handleLongKeyMsg(int key, int64 ts)
+{
+	if (ts == last_key_ts && last_down_key == key) {
+		Log.d(TAG," long press key 0x%x",key);
+		if (key == OLED_KEY_POWER) {
+			sys_reboot();
+		}
+	}
+}
+
+
+void MenuUI::handleDispLightMsg(int menu, int state, int interval)
+{
+	// Log.d(TAG," (%d %d	%d %d)", menu, state, interval, cap_delay);
+	bSendUpdate = false;
+
+	unique_lock<mutex> lock(mutexState);
+	switch (menu) {
+		case MENU_PIC_INFO:
+			if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
+				if (check_state_in(STATE_PLAY_SOUND)) {
+					/* 播放声音,去除STATE_PLAY_SOUND状态 */
+					rm_state(STATE_PLAY_SOUND);
+					Log.d(TAG, "MENU_PIC_INFO remove STATE_PLAY_SOUND state, play index: %d", SND_3S_T + set_photo_delay_index);
+					//play_sound(SND_3S_T + set_photo_delay_index);
+					play_sound(get_cap_to_sound_index(cap_delay));
+				}
+						
+				if (cap_delay == 0) {
+					if (menu == cur_menu) {
+						disp_shooting();
+					}
+				} else {
+					if (menu == cur_menu) {
+						disp_sec(cap_delay, 52, 24);	/* 显示倒计时的时间 */
+					}
+#ifdef ENABLE_SOUND
+					/* 倒计时时根据当前cap_delay的值,只在	CAPTURE中播放一次, fix bug1147 */
+					send_update_light(menu, state, INTERVAL_1HZ, true);
+#endif
+				}
+				cap_delay--;
+			} else if (check_state_in(STATE_PIC_STITCHING)) {
+				send_update_light(menu, state, INTERVAL_5HZ, true);
+			} else {
+				Log.d(TAG, "update pic light error state 0x%x", cam_state);
+				set_light();
+			}
+			break;
+					
+		case MENU_CALIBRATION:
+			Log.d(TAG, "cap_delay is %d", cap_delay);
+			if ((cam_state & STATE_CALIBRATING) == STATE_CALIBRATING) {
+				if (cap_delay <= 0) {
+					send_update_light(menu, state, INTERVAL_5HZ, true);
+					if (cap_delay == 0) {
+						if (cur_menu == menu) {
+							disp_calibration_res(2);
+						}
+					}
+				} else {
+#ifdef ENABLE_SOUND
+					send_update_light(menu, state, INTERVAL_1HZ, true, SND_ONE_T);
+#endif
+					if (cur_menu == menu) {
+						disp_calibration_res(3, cap_delay);
+					}
+				}
+				cap_delay--;
+			} else {
+					Log.d(TAG,"update calibration light error state 0x%x",cam_state);
+					set_light();
+			}
+			break;
+					
+		default:
+			break;
+	}
+
 }
 
 
@@ -8062,7 +8168,7 @@ void oled_handler::procUpdateIp(const char* ipAddr)
 ** 调     用: 消息处理线程
 **
 *************************************************************************/
-void oled_handler::handleMessage(const sp<ARMessage> &msg)
+void MenuUI::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
 	
@@ -8078,101 +8184,39 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                     CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
 					
                     Log.d(TAG, "OLED_DISP_STR_TYPE (%d %d %d %d 0x%x)",
-                          disp_type->qr_type, disp_type->type, disp_type->tl_count, cur_menu, cam_state);
-
-                    switch (cur_menu) {
-                        case MENU_DISP_MSG_BOX:
-                        case MENU_SPEED_TEST:
-                            func_back();
-                            break;
-//                        case MENU_LOW_BAT:
-//                            if(!(disp_type->type == START_LOW_BAT_SUC || START_LOW_BAT_FAIL == disp_type->type || disp_type->type == RESET_ALL || disp_type->type == START_FORCE_IDLE))
-//                            {
-//                                Log.d(TAG,"MENU_LOW_BAT not allow (0x%x %d)",cam_state,disp_type->type);
-//                                return;
-//                            }
-                        default:
-                            // get http req before getting low bat protect in flask 170922
-                            if (check_state_in(STATE_LOW_BAT)) {
-								
-                                Log.d(TAG, "STATE_LOW_BAT not allow (0x%x %d)", cam_state, disp_type->type);
-                            } else if(disp_type->type != RESET_ALL) {
-                                exit_sys_err();
-                            }
-                            break;
-                    }
+								disp_type->qr_type, 
+								disp_type->type, 
+								disp_type->tl_count, 
+								cur_menu, 
+								cam_state);
 					
-                    //add param from controller or qr scan
-                    if(disp_type->qr_type != -1)
-                    {
-                        CHECK_NE(disp_type->mAct,nullptr);
-                        add_qr_res(disp_type->qr_type, disp_type->mAct,
-                                   disp_type->control_act);
-                    }
-                    else if (disp_type->tl_count != -1)
-                    {
-                        set_tl_count(disp_type->tl_count);
-                    }
-                    else if (disp_type->mSysSetting != nullptr)
-                    {
-                        set_sys_setting(disp_type->mSysSetting);
-                    }
-                    else if (disp_type->mStichProgress != nullptr)
-                    {
-                        disp_stitch_progress(disp_type->mStichProgress);
-                    }
-                    else
-                    {
-                        Log.d(TAG,"nothing");
-                    }
-                    oled_disp_type(disp_type->type);
+					handleDispStrTypeMsg(disp_type);
                 }
+				break;
             }
-			
-                break;
-			
-            case OLED_DISP_ERR_TYPE:
-            {
+					
+            case OLED_DISP_ERR_TYPE: {
                 unique_lock<mutex> lock(mutexState);
                 sp<ERR_TYPE_INFO> mErrInfo;
                 CHECK_EQ(msg->find<sp<ERR_TYPE_INFO>>("err_type_info", &mErrInfo),true);
-
-                switch (cur_menu) {
-                    case MENU_DISP_MSG_BOX:
-                    case MENU_SPEED_TEST:
-                        func_back();
-                        break;
-					
-                    default:
-                        if (mErrInfo->type != RESET_ALL) {
-                            exit_sys_err();
-                        }
-                        break;
-                }
-                oled_disp_err(mErrInfo);
+				handleDispErrMsg(mErrInfo);
+				break;
             }
-               break;
+               
 			
-            case OLED_GET_KEY: {
+            case OLED_GET_KEY: {	/* 短按键消息处理 */
                 int key = -1;
                 CHECK_EQ(msg->find<int>("oled_key", &key), true);
-                handle_oled_key(key);
+                handleKeyMsg(key);
 				break;
             }
                 
-            case OLED_GET_LONG_PRESS_KEY: {
+            case OLED_GET_LONG_PRESS_KEY: {	/* 长按键消息处理 */
                 int key;
                 int64 ts;
                 CHECK_EQ(msg->find<int>("key", &key), true);
                 CHECK_EQ(msg->find<int64>("ts", &ts), true);
-                {
-                    if (ts == last_key_ts && last_down_key == key) {
-                        Log.d(TAG," long press key 0x%x",key);
-                        if (key == OLED_KEY_POWER) {
-                            sys_reboot();
-                        }
-                    }
-                }
+				handleLongKeyMsg(key, ts);
 				 break;
             }
                
@@ -8200,8 +8244,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 写SN (UI-CORE处理)
 			 */
-            case OLED_SET_SN:	/* 设置SN */
-            {
+            case OLED_SET_SN: {	/* 设置SN */
                 sp<SYS_INFO> mSysInfo;
                 CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
                 write_sys_info(mSysInfo);
@@ -8211,8 +8254,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 同步初始化
 			 */
-            case OLED_SYNC_INIT_INFO:	/* 同步初始化信息(来自control_center) */
-            {
+            case OLED_SYNC_INIT_INFO: {	/* 同步初始化信息(来自control_center) */
                 //exit if needed
                 exit_sys_err();
                 sp<SYNC_INIT_INFO> mSyncInfo;
@@ -8249,8 +8291,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 更新显示时间(只有在录像,直播的UI)
 			 */
-            case OLED_UPDATE_MID:
-            {
+            case OLED_UPDATE_MID: {
                 bSendUpdateMid = false;
                 unique_lock<mutex> lock(mutexState);
 				
@@ -8285,7 +8326,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                     Log.d(TAG,"cancel send msg　in state STATE_LIVE_CONNECTING");
                     set_light();
                 } else {
-                    ERR_MENU_STATE(cur_menu,cam_state);
+                    ERR_MENU_STATE(cur_menu, cam_state);
                     set_light();
                 }
             }
@@ -8318,106 +8359,19 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
                 CHECK_EQ(msg->find<int>("menu", &menu), true);
                 CHECK_EQ(msg->find<int>("interval", &interval), true);
                 CHECK_EQ(msg->find<int>("state", &state), true);
-//				Log.d(TAG," (%d %d  %d %d)", menu,state,interval,  cap_delay);
-                bSendUpdate = false;
-
-				{
-                    unique_lock<mutex> lock(mutexState);
-                    {
-                        switch (menu)
-                        {
-                            case MENU_PIC_INFO:
-                                if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS))
-                                {
-                                	if (check_state_in(STATE_PLAY_SOUND))
-                                	{
-						/* 播放声音,去除STATE_PLAY_SOUND状态 */
-						rm_state(STATE_PLAY_SOUND);
-						Log.d(TAG, "MENU_PIC_INFO remove STATE_PLAY_SOUND state, play index: %d", SND_3S_T + set_photo_delay_index);
-						//play_sound(SND_3S_T + set_photo_delay_index);
-						play_sound(get_cap_to_sound_index(cap_delay));
-					}
-									
-                                    if (cap_delay == 0)
-                                    {
-                                        if (menu == cur_menu)
-                                        {
-                                            disp_shooting();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (menu == cur_menu)
-                                        {
-                                            disp_sec(cap_delay, 52, 24);	/* 显示倒计时的时间 */
-                                        }
-#ifdef ENABLE_SOUND
-										/* 倒计时时根据当前cap_delay的值,只在	CAPTURE中播放一次, fix bug1147 */
-                                        send_update_light(menu, state, INTERVAL_1HZ, true);
-#endif
-                                    }
-                                    cap_delay--;
-                                }
-                                else if (check_state_in(STATE_PIC_STITCHING))
-                                {
-                                    send_update_light(menu, state, INTERVAL_5HZ, true);
-                                }
-                                else
-                                {
-                                    Log.d(TAG,"update pic light error state 0x%x",cam_state);
-                                    set_light();
-                                }
-                                break;
-								
-                            case MENU_CALIBRATION:
-                                Log.d(TAG,"cap_delay is %d",cap_delay);
-                                if ((cam_state & STATE_CALIBRATING) == STATE_CALIBRATING)
-                                {
-                                    if (cap_delay <= 0)
-                                    {
-                                        send_update_light(menu, state, INTERVAL_5HZ, true);
-                                        if (cap_delay == 0)
-                                        {
-                                            if (cur_menu == menu)
-                                            {
-                                                disp_calibration_res(2);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-#ifdef ENABLE_SOUND
-                                        send_update_light(menu, state, INTERVAL_1HZ, true, SND_ONE_T);
-#endif
-                                        if (cur_menu == menu)
-                                        {
-                                            disp_calibration_res(3, cap_delay);
-                                        }
-                                    }
-                                    cap_delay--;
-                                }
-                                else
-                                {
-                                    Log.d(TAG,"update calibration light error state 0x%x",cam_state);
-                                    set_light();
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
+				handleDispLightMsg(menu, interval, state);
+				break;
             }
-                break;
+                
 			
             case OLED_CLEAR_MSG_BOX: /* 清除消息框 */
                 if (cur_menu == MENU_DISP_MSG_BOX) {
-                    //back from msg box quickly
-                    func_back();
+                    procBackKeyEvent();
                 } else {
                     Log.d(TAG, "other cur_menu %d", cur_menu);
                 }
                 break;
+				
             SWITCH_DEF_ERROR(what)
         }
     }
@@ -8434,7 +8388,7 @@ void oled_handler::handleMessage(const sp<ARMessage> &msg)
 ** 调     用: handleMessage
 **
 *************************************************************************/
-void oled_handler::sys_reboot(int cmd)
+void MenuUI::sys_reboot(int cmd)
 {
     switch (cmd) {
         case REBOOT_NORMAL:
@@ -8450,19 +8404,17 @@ void oled_handler::sys_reboot(int cmd)
 }
 
 
-void oled_handler::set_cap_delay(int delay)
+void MenuUI::set_cap_delay(int delay)
 {
     Log.d(TAG, ">>>>>>>>>>> set_cap_delay %d", delay);
     cap_delay = delay;
 }
 
-bool oled_handler::check_live_save_org()
+bool MenuUI::check_live_save_org()
 {
     bool ret = false;
-    if(check_live())
-    {
-        if(mControlAct != nullptr)
-        {
+    if (check_live()) {
+        if (mControlAct != nullptr) {
 //            Log.d(TAG, "check_live_save_org mControlAct->stOrgInfo.save_org is %d",
 //                  mControlAct->stOrgInfo.save_org);
 //            if (mControlAct->stOrgInfo.save_org != SAVE_OFF)
@@ -8470,17 +8422,14 @@ bool oled_handler::check_live_save_org()
 //                ret = true;
 //            }
             ret = check_live_save(mControlAct.get());
-        }
-        else
-        {
+        } else {
             int item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
-            Log.d(TAG,"check_live_save_org %d",
-                  item);
-            switch(item)
-            {
+            Log.d(TAG, "check_live_save_org %d", item);
+            switch (item) {
                 case VID_ARIAL:
                     ret = true;
                     break;
+				
                 case LIVE_CUSTOM:
 //                    Log.d(TAG, "check_live_save_org mProCfg->get_def_info(KEY_LIVE_DEF)->stOrgInfo.save_org  is %d",
 //                          mProCfg->get_def_info(KEY_LIVE_DEF)->stOrgInfo.save_org);
@@ -8490,6 +8439,7 @@ bool oled_handler::check_live_save_org()
 //                    }
                     ret = check_live_save(mProCfg->get_def_info(KEY_LIVE_DEF));
                     break;
+				
                 default:
                     break;
             }
@@ -8508,7 +8458,7 @@ bool oled_handler::check_live_save_org()
 ** 调     用: 
 **
 *************************************************************************/
-bool oled_handler::check_battery_change(bool bUpload)
+bool MenuUI::check_battery_change(bool bUpload)
 {
 
 
@@ -8532,11 +8482,9 @@ bool oled_handler::check_battery_change(bool bUpload)
 
     if (is_bat_low()) {
 #ifdef OPEN_BAT_LOW
-        if(cur_menu != MENU_LOW_BAT)
-        {
-            Log.d(TAG,"bat low menu %d state 0x%x bStiching %d",cur_menu,cam_state,bStiching);
-            if(check_state_in(STATE_RECORD) || check_live_save_org() || bStiching)
-            {
+        if (cur_menu != MENU_LOW_BAT) {
+            Log.d(TAG, "bat low menu %d state 0x%x bStiching %d", cur_menu, cam_state, bStiching);
+            if (check_state_in(STATE_RECORD) || check_live_save_org() || bStiching) {
                 set_cur_menu(MENU_LOW_BAT,MENU_TOP);
                 add_state(STATE_LOW_BAT);
                 func_low_bat();
@@ -8550,17 +8498,17 @@ bool oled_handler::check_battery_change(bool bUpload)
     return bUpdate;
 }
 
-int oled_handler::get_battery_charging(bool *bCharge)
+int MenuUI::get_battery_charging(bool *bCharge)
 {
     return mBatInterface->read_charge(bCharge);
 }
 
-int oled_handler::read_tmp(double *int_tmp, double *tmp)
+int MenuUI::read_tmp(double *int_tmp, double *tmp)
 {
     return mBatInterface->read_tmp(int_tmp,tmp);
 }
 
-void oled_handler::deinit()
+void MenuUI::deinit()
 {
     Log.d(TAG, "deinit\n");
 	

@@ -276,7 +276,7 @@ void fifo::init()
     //set in the end
     notify = obtainMessage(MSG_GET_OLED_KEY);
 
-    mOLEDHandle = (sp<oled_handler>)(new oled_handler(notify)); //oled_handler::getSysUiObj(notify);
+    mOLEDHandle = (sp<MenuUI>)(new MenuUI(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
 	mInputManager = sp<InputManager>(new InputManager(mOLEDHandle));
