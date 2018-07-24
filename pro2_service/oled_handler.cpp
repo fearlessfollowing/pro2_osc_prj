@@ -185,7 +185,7 @@ typedef struct _ver_info_
 
 #define SYS_TMP "/home/nvidia/insta360/etc/sys_tmp"
 
-#define GOOGLE_8K_5F
+//#define GOOGLE_8K_5F
 
 
 const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";

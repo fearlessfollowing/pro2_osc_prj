@@ -47,6 +47,7 @@ COM_FLAGS += ' -DDEBUG_OLED '
 # enable inputmanager debug
 #COMFLAGS += ' -DDEBUG_INPUT_MANAGER'
 
+COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
 COM_FLAGS += ' -DDEBUG_BATTERY '
 

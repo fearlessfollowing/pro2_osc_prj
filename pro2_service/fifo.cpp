@@ -369,7 +369,7 @@ void fifo::send_err_type_code(int type, int code)
 
 void fifo::send_wifi_config(const char *ssid, const char *pwd, int open)
 {
-    Log.d(TAG,"send wifi config");
+    Log.d(TAG, "send wifi config");
     sp<WIFI_CONFIG> mConfig = sp<WIFI_CONFIG>(new WIFI_CONFIG());
     sp<ARMessage> msg = obtainMessage(MSG_SET_WIFI_CONFIG);
     snprintf(mConfig->ssid, sizeof(mConfig->ssid), "%s", ssid);
@@ -378,6 +378,8 @@ void fifo::send_wifi_config(const char *ssid, const char *pwd, int open)
     msg->set<sp<WIFI_CONFIG>>("wifi_config", mConfig);
     msg->post();
 }
+
+
 
 
 void fifo::send_power_off()
@@ -644,16 +646,15 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgV.org_fr]));
                         cJSON_AddNumberToObject(org, "bitrate", mActInfo->stOrgInfo.stOrgAct.mOrgV.org_br * 1000);
                         Log.d(TAG,"vid mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-                        if (mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int != 0)
-                        {
+                        if (mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int != 0) {
                             cJSON *tim_lap = cJSON_CreateObject();
                             cJSON_AddTrueToObject(tim_lap, "enable");
                             cJSON_AddNumberToObject(tim_lap, "interval",
                                                     mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
                             cJSON_AddItemToObject(param, "timelapse", tim_lap);
                         }
-                        if(mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode == 1)
-                        {
+						
+                        if (mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode == 1) {
                             cJSON_AddNumberToObject(org, "logMode", mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode);
                         }
                         break;
@@ -661,8 +662,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
                         cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgL.org_fr]));
                         cJSON_AddNumberToObject(org, "bitrate", mActInfo->stOrgInfo.stOrgAct.mOrgL.org_br * 1000);
-                        if(mActInfo->stOrgInfo.stOrgAct.mOrgL.logMode == 1)
-                        {
+                        if (mActInfo->stOrgInfo.stOrgAct.mOrgL.logMode == 1) {
                             cJSON_AddNumberToObject(org, "logMode", mActInfo->stOrgInfo.stOrgAct.mOrgL.logMode);
                         }
                         break;
@@ -805,38 +805,35 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 				/* {"action":ACTION_XX, "parameters": {}} */
                 cJSON_AddItemToObject(root, "parameters", param);
             }
-            else
-            {
+            else {
                 cJSON *param = nullptr;
-                switch (action)
-                {
-                    case ACTION_CUSTOM_PARAM:
-                    {
+                switch (action) {
+                    case ACTION_CUSTOM_PARAM: {
                         sp<CAM_PROP> mCamProp;
                         CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
                         param = cJSON_CreateObject();
 
                         Log.d(TAG,"set aud gain %d",mCamProp->audio_gain);
-                        if(mCamProp->audio_gain != -1)
-                        {
+                        if (mCamProp->audio_gain != -1) {
                             cJSON_AddNumberToObject(param, "audio_gain", mCamProp->audio_gain);
                         }
+						
                         Log.d(TAG,"len_param len %d",strlen(mCamProp->len_param));
-                        if (strlen(mCamProp->len_param) > 0)
-                        {
+                        if (strlen(mCamProp->len_param) > 0) {
                             cJSON_AddItemToObject(param,"len_param",cJSON_Parse(mCamProp->len_param));
                         }
+						
                         Log.d(TAG,"mGammaData len %d",strlen(mCamProp->mGammaData));
-                        if (strlen(mCamProp->mGammaData) > 0)
-                        {
+                        if (strlen(mCamProp->mGammaData) > 0) {
                             cJSON_AddStringToObject(param,"gamma_param",mCamProp->mGammaData);
                         }
                     }
                         break;
+					
                     case ACTION_LIVE_ORIGIN:
                         break;
-                    case ACTION_CALIBRATION:
-                    {
+						
+                    case ACTION_CALIBRATION: {
 //                        int calibration_mode;
 //                        CHECK_EQ(msg->find<int>("cal_mode", &calibration_mode), true);
 //                        param = cJSON_CreateObject();
@@ -1245,9 +1242,11 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 			 */
 	        case MSG_SET_WIFI_CONFIG: {
 	            Log.d(TAG,"MSG_SET_WIFI_CONFIG");
+				#if 0
 	            sp<WIFI_CONFIG> mConfig;
 	            CHECK_EQ(msg->find<sp<WIFI_CONFIG>>("wifi_config", &mConfig), true);
 	            mOLEDHandle->send_wifi_config(mConfig);
+				#endif
 	            break;
 	        }
 
@@ -2295,13 +2294,15 @@ void fifo::read_fifo_thread()
                         }
 
                         case CMD_CONFIG_WIFI: {		/* 发送WiFi的配置信息: SSID和密码 */
+							#if 0
                             char ssid[128];
                             char pwd[64];
 						
-                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"ssid",ssid, sizeof(ssid));
-                            GET_CJSON_OBJ_ITEM_STR(subNode,root,"pwd",pwd, sizeof(pwd));
-                            Log.d(TAG, "ssid %s pwd %s %d", ssid, pwd,strlen(pwd));
+                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "ssid", ssid, sizeof(ssid));
+                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "pwd", pwd, sizeof(pwd));
+                            Log.d(TAG, "ssid %s pwd %s %d", ssid, pwd, strlen(pwd));
                             send_wifi_config(ssid, pwd);
+							#endif
 							break;
                         }
 

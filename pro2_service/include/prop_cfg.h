@@ -9,19 +9,32 @@
 #define PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_
 
 
-#define ETH0_NAME       	"eth0"
-#define DEFAULT_ETH0_IP 	"192.168.1.188"
+#define WIFI_TMP_AP_CONFIG_FILE				"home/nvidia/insta360/etc/.wifi_ap.conf"
 
 
-#define WLAN0_NAME      	"wlan0"
-#define WLAN0_DEFAULT_IP 	"192.168.43.1"
+#define ETH0_NAME       					"eth0"
+#define DEFAULT_ETH0_IP 					"192.168.1.188"
 
 
-#define OFF_IP				"0.0.0.0"
+#define WLAN0_NAME      					"wlan0"
+#define WLAN0_DEFAULT_IP 					"192.168.43.1"
+#define DEFAULT_WIFI_AP_SSID				"Insta360-Pro2-Test"
+#define DEFAULT_WIFI_AP_MODE				"g"
+#define DEFAULT_WIFI_AP_CHANNEL				"6"
+#define DEFAULT_WIFI_AP_CHANNEL_NUM_BG		6
+#define DEFAULT_WIFI_AP_CHANNEL_NUM_AN		13
+
+#define OFF_IP								"0.0.0.0"
 
 /*
  * Prop system
  */
+#define PROP_SYS_AP_SSID			"sys.wifi_ssid"
+#define PROP_SYS_AP_PESUDO_SN		"sys.wifi_pesu_sn"
+#define PROP_SYS_AP_PASSWD			"sys.wifi_passwd"
+#define PROP_SYS_AP_MODE			"sys.wifi_mode"
+#define PROP_SYS_AP_CHANNEL			"sys.wifi_channel"
+
 #define PROP_SYS_FIRM_VER 			"sys.firm_ver"			/*  */
 #define PROP_SYS_IMAGE_VER 			"sys.img_ver"
 #define PROP_UC_START_UPDATE 		"sys.uc_update_app"
@@ -62,6 +75,9 @@
  * WIFI固件路径
  */
 #define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
+
+#define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand"
+
 
 /* 
  * FIFO路径

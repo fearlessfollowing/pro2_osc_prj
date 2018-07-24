@@ -52,6 +52,17 @@ enum {
     NET_MANAGER_STAT_MAX
 };
 
+
+enum {
+	WIFI_HW_MODE_AUTO,
+	WIFI_HW_MODE_A,
+	WIFI_HW_MODE_B,
+	WIFI_HW_MODE_G,
+	WIFI_HW_MODE_N,
+	WIFI_HW_MODE_MAX
+};
+
+
 #define NETM_EXIT_LOOP 			0x100		/* 退出消息循环 */
 #define NETM_REGISTER_NETDEV 	0x101		/* 注册网络设备 */
 #define NETM_UNREGISTER_NETDEV	0x102		/* 注销网络设备 */
@@ -70,6 +81,7 @@ enum {
 
 
 #define IP_ADDR_STR_LEN		32
+#define DEFAULT_NAME_LEN	32
 
 typedef struct stIpInfo {
     char cDevName[32];      				/* 网卡名称 */
@@ -78,6 +90,15 @@ typedef struct stIpInfo {
     int iDevType;
 } DEV_IP_INFO;
 
+/*
+ * 加密认证模式
+ */
+enum {
+	AUTH_OPEN,
+	AUTH_WEP,
+	AUTH_WPA2,
+	AUTH_MAX
+};
 
 
 /*

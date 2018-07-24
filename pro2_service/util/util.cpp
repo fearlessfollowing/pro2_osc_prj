@@ -104,9 +104,11 @@ int move_cmd(const char *src,const char *dest)
     return exec_sh(cmd);
 }
 
-#define ENABLE_SPEED_TEST
+//#define ENABLE_SPEED_TEST
 #define SDCARD_TEST_SUC "/.pro_suc"
 //#define SDCARD_TEST_FAIL "/pro_test_fail"
+
+
 
 bool check_dev_speed_good(const char *path)
 {
@@ -144,6 +146,7 @@ bool check_dev_speed_good(const char *path)
 //    }
 //    return ret;
 //}
+
 
 int ins_rm_file(const char *name)
 {

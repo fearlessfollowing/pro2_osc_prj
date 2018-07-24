@@ -111,16 +111,17 @@ enum
     DISP_USB_CONNECTED,
 };
 
-enum
-{
+enum {
     OLED_DISP_STR_TYPE,//0
     OLED_DISP_ERR_TYPE,
     OLED_GET_KEY,
     OLED_GET_LONG_PRESS_KEY,
     OLED_DISP_IP,
     OLED_DISP_BATTERY,//5
+    
     //set config wifi same thread as oled wifi key action
-    OLED_CONFIG_WIFI,
+    UI_CONFIG_WIFI,		/* 配置WIFI参数 */
+
     OLED_SET_SN,
     OLED_SYNC_INIT_INFO,
 //    OLED_CHECK_LIVE_OR_REC,
@@ -177,7 +178,7 @@ typedef struct _ver_info_ {
 
 #define SYS_TMP "/home/nvidia/insta360/etc/sys_tmp"
 
-#define GOOGLE_8K_5F
+//#define GOOGLE_8K_5F
 
 
 const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
@@ -871,6 +872,21 @@ static const int live_def_setting_menu[][LIVE_DEF_MAX] =
         };
 
 
+#if 0
+typedef struct _action_info_ {
+    int mode;
+    // pic size or rec M/s
+    int size_per_act;
+    int delay;
+    ORG_INFO stOrgInfo;
+    STI_INFO stStiInfo;
+    CAM_PROP stProp;
+    AUD_INFO stAudInfo;
+    // 0 -- normal 1 -- cube ,2 optical flow
+} ACTION_INFO;
+
+#endif
+
 static const ACTION_INFO mVIDAction[] = {
 	//8k/30F
 	{
@@ -979,7 +995,7 @@ static const ACTION_INFO mVIDAction[] = {
 		{}
 	},
 	
-    //4K/24F/3D(org &rts)
+    //4K/30F/3D(org &rts)
     {
 		MODE_3D,
 		20,
@@ -987,13 +1003,13 @@ static const ACTION_INFO mVIDAction[] = {
 		{
 	        EN_H264,
 	        SAVE_DEF,
-	        1920,
-	        1440,
+	        3200,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
+	        2440,
 #if 1
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 	        
-	        {ALL_FR_30, 25}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
+	        {ALL_FR_30, 60}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
         },
 		{
 			EN_H264,
@@ -1014,13 +1030,13 @@ static const ACTION_INFO mVIDAction[] = {
 		{
 			EN_H264,
 			SAVE_DEF,
-			2560,
-			1440,
+			3840,			/* 根据肖神的提示修改: 4K|PANO 3200x2400@30fps    60M 2018年7月24日 */
+			2160,
 #if 1
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 			
-			{ALL_FR_30, 25}
+			{ALL_FR_30, 60}
         },
 		{
 			EN_H264,
@@ -2104,7 +2120,6 @@ void MenuUI::init_menu_select()
 void MenuUI::init()
 {
 
-	
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
     CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
@@ -2168,6 +2183,41 @@ void MenuUI::init()
 #endif
 
 
+#ifdef ENABLE_PESUDO_SN
+
+	char tmpName[32] = {0};
+	if (access(WIFI_RAND_NUM_CFG, F_OK)) {
+		srand(time(NULL));
+
+		int iRandNum = rand();
+		Log.d(TAG, "rand num %d", iRandNum);
+
+		sprintf(tmpName, "%5d", iRandNum);
+
+		FILE* fp = fopen(WIFI_RAND_NUM_CFG, "w+");
+		if (fp) {
+			fprintf(fp, "%s", tmpName);
+			fclose(fp);
+			Log.d(TAG, "generated rand num and save[%s] ok", WIFI_RAND_NUM_CFG);
+		}
+	} else {
+		FILE* fp = fopen(WIFI_RAND_NUM_CFG, "r");
+		if (fp) {
+			fgets(tmpName, 6, fp);
+			Log.d(TAG, "get rand num [%s]", tmpName);
+			fclose(fp);
+		} else {
+			Log.e(TAG, "open [%s] failed", WIFI_RAND_NUM_CFG);
+			strcpy(tmpName, "Test");
+		}
+	}
+
+	property_set(PROP_SYS_AP_PESUDO_SN, tmpName);
+	Log.d(TAG, "get pesudo sn [%s]", property_get(PROP_SYS_AP_PESUDO_SN));
+	
+#endif
+
+
     memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
     strcpy(mLocalIpAddr, "0.0.0.0");
 
@@ -2199,6 +2249,40 @@ void MenuUI::init()
 
     sp<ARMessage> listMsg = obtainMessage(NETM_LIST_NETDEV);
     mNetManager->postNetMessage(listMsg);
+
+#ifdef  ENABLE_PESUDO_SN
+	if (!mHaveConfigSSID) {
+
+		char tmpName[32] = {0};	
+		const char* pRandSn = NULL;
+
+		pRandSn = property_get(PROP_SYS_AP_PESUDO_SN);
+		if (pRandSn == NULL) {
+			pRandSn = "Test";
+		}
+
+		sp<WifiConfig> wifiConfig = (sp<WifiConfig>)(new WifiConfig());
+
+
+		snprintf(wifiConfig->cApName, 32, "%s-%s", "Insta360-Pro2", pRandSn);
+		strcpy(wifiConfig->cPasswd, "none");
+		strcpy(wifiConfig->cInterface, WLAN0_NAME);
+		wifiConfig->iApMode = WIFI_HW_MODE_G;
+		wifiConfig->iApChannel = DEFAULT_WIFI_AP_CHANNEL_NUM_BG;
+		wifiConfig->iAuthMode = AUTH_WPA2;			/* 加密认证模式 */
+
+		Log.d(TAG, "SSID[%s], Passwd[%s], Inter[%s], Mode[%d], Channel[%d], Auth[%d]",
+								wifiConfig->cApName,
+								wifiConfig->cPasswd,
+								wifiConfig->cInterface,
+								wifiConfig->iApMode,
+								wifiConfig->iApChannel,
+								wifiConfig->iAuthMode);
+
+		handleorSetWifiConfig(wifiConfig);
+		mHaveConfigSSID = true;
+	}
+#endif
 
 
 }
@@ -2312,12 +2396,13 @@ void MenuUI::send_disp_battery(int battery, bool charge)
     msg->post();
 }
 
-void MenuUI::send_wifi_config(sp<WIFI_CONFIG> &mConfig)
+void MenuUI::sendWifiConfig(sp<WifiConfig> &mConfig)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_CONFIG_WIFI);
-    msg->set<sp<WIFI_CONFIG>>("wifi_config",mConfig);
+    sp<ARMessage> msg = obtainMessage(UI_CONFIG_WIFI);
+    msg->set<sp<WifiConfig>>("wifi_config", mConfig);
     msg->post();
 }
+
 
 void MenuUI::send_sys_info(sp<SYS_INFO> &mSysInfo)
 {
@@ -2639,7 +2724,7 @@ bool MenuUI::start_speed_test()
 
 void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 {
-    if(mAct->stOrgInfo.save_org != SAVE_OFF)
+    if (mAct->stOrgInfo.save_org != SAVE_OFF)
     {
         mAct->size_per_act = (mAct->stOrgInfo.stOrgAct.mOrgV.org_br * 6) / 10;
     }
@@ -3569,13 +3654,13 @@ void MenuUI::disp_wifi(bool bState, int disp_main)
 
 
 
-
 void MenuUI::wifi_action()
 {
     Log.e(TAG, " wifi_action %d", mProCfg->get_val(KEY_WIFI_ON));
 
     sp<ARMessage> msg;
     sp<DEV_IP_INFO> tmpInfo;
+
 
     tmpInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
     strcpy(tmpInfo->cDevName, WLAN0_NAME);
@@ -3596,6 +3681,10 @@ void MenuUI::wifi_action()
 
     msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
     NetManager::getNetManagerInstance()->postNetMessage(msg);
+
+
+	
+	
 }
 
 
@@ -4351,7 +4440,7 @@ void MenuUI::caculate_rest_info(u64 size)
         size_M -= AVAIL_SUBSTRACT;;
         int item = 0;
 		
-        Log.d(TAG, " curmenu %d item %d", cur_menu, item);
+        Log.d(TAG, " curmenu %d item %d", getCurMenuStr(cur_menu), item);
 		
         switch (cur_menu) {
             case MENU_PIC_INFO:
@@ -4398,9 +4487,8 @@ void MenuUI::caculate_rest_info(u64 size)
                     } else {
                         item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
                         if (item >= 0 && item < VID_CUSTOM) {
-                            Log.d(TAG,"2vid size_per_act %d",
-                                  mVIDAction[item].size_per_act);
-                            rest_sec = (size_M/mVIDAction[item].size_per_act);
+                            Log.d(TAG, "2vid  item[%d] size_per_act %d", item, mVIDAction[item].size_per_act);
+                            rest_sec = (size_M / mVIDAction[item].size_per_act);
                         } else if (VID_CUSTOM == item) {
                             Log.d(TAG,"3vid size_per_act %d",
                                   mProCfg->get_def_info(KEY_VIDEO_DEF)->size_per_act);
@@ -4413,8 +4501,7 @@ void MenuUI::caculate_rest_info(u64 size)
                     mRemainInfo->remain_sec = rest_sec%60;
                     mRemainInfo->remain_hour = rest_min/60;
                     mRemainInfo->remain_min = rest_min%60;
-                    Log.d(TAG,"remain( %d %d "
-                                  " %d  %d )",
+                    Log.d(TAG,"remain( %d %d %d  %d )",
                           size_M,
                           mRemainInfo->remain_hour,
                           mRemainInfo->remain_min,
@@ -4984,7 +5071,7 @@ void MenuUI::disp_cam_param(int higlight)
             case MENU_VIDEO_SET_DEF:
                 Log.d(TAG,"tl_count is %d", tl_count);
                 if (tl_count != -1) {
-                    disp_org_rts(0,0);
+                    disp_org_rts(0, 0);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
                 } else if (mControlAct != nullptr) {
                     disp_org_rts(mControlAct);
@@ -4992,20 +5079,15 @@ void MenuUI::disp_cam_param(int higlight)
                 } else {
                     item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
 //                    Log.d(TAG, "video def item %d", item);
-                    if(item >= 0 && item < VID_CUSTOM)
-                    {
+                    if (item >= 0 && item < VID_CUSTOM) {
                         icon = vid_def_setting_menu[higlight][item];
                         disp_org_rts((int) (mVIDAction[item].stOrgInfo.save_org != SAVE_OFF),
                                      (int) (mVIDAction[item].stStiInfo.stich_mode != STITCH_OFF));
-                    }
-                    else if(VID_CUSTOM == item)
-                    {
+                    } else if (VID_CUSTOM == item) {
                         icon = vid_def_setting_menu[higlight][item];
                         disp_org_rts((int) (mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.save_org != SAVE_OFF),
                                      (int) (mProCfg->get_def_info(KEY_VIDEO_DEF)->stStiInfo.stich_mode != STITCH_OFF));
-                    }
-                    else
-                    {
+                    } else {
                         ERR_ITEM(item);
                     }
                 }
@@ -5245,25 +5327,19 @@ void MenuUI::disp_menu(bool dispBottom)
                     (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING))
             {
                 disp_waiting();
-            }
-            else if (check_state_in(STATE_RECORD))
-            {
-                Log.d(TAG,"do nothing in rec cam state 0x%x",
-                      cam_state);
-                if(tl_count != -1)
-                {
+            } else if (check_state_in(STATE_RECORD)) {
+                Log.d(TAG, "do nothing in rec cam state 0x%x", cam_state);
+                if (tl_count != -1) {
                     clear_ready();
                 }
-            }
-            else
-            {
+            } else {
                 Log.d(TAG,"vid menu error state 0x%x menu %d",cam_state,cur_menu);
-                if(check_state_equal(STATE_IDLE))
-                {
+                if (check_state_equal(STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
             break;
+			
         case MENU_LIVE_INFO:
             INFO_MENU_STATE(cur_menu,cam_state);
             disp_icon(ICON_LIVE_ICON_0_16_20_32);
@@ -8192,6 +8268,81 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 
 
 
+/*
+ * 将消息丢给NetManager进行配置
+ */
+void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
+{
+	Log.d(TAG, ">>>> handleConfigWifiMsg");
+    sp<ARMessage> msg;
+	const char* pWifName = NULL;
+	const char* pWifPasswd = NULL;
+	const char* pWifMode = NULL;
+	const char* pWifChannel = NULL;
+	
+
+	/* SSID */
+	if (strcmp(mConfig->cApName, "none") == 0) {	/* 没有传WIFI名称,使用默认的格式:Insta360-Pro2-XXXXX */
+		pWifName = property_get(DEFAULT_WIFI_AP_SSID);
+		if (NULL == pWifName) {
+			pWifName = DEFAULT_WIFI_AP_SSID;
+		}
+		memset(mConfig->cApName, 0, sizeof(mConfig->cApName));
+		strncpy(mConfig->cApName, pWifName, (strlen(pWifName) > DEFAULT_NAME_LEN)?DEFAULT_NAME_LEN: strlen(pWifName));
+	}
+
+	/* INTERFACE_NAME */
+	if (strcmp(mConfig->cInterface, WLAN0_NAME)) {
+		memset(mConfig->cInterface, 0, sizeof(mConfig->cInterface));
+		strcpy(mConfig->cInterface, WLAN0_NAME);
+	}
+
+	/* MODE */
+	if (mConfig->iApMode == WIFI_HW_MODE_AUTO) {
+		mConfig->iApMode = WIFI_HW_MODE_G;
+	}
+
+	if (mConfig->iApMode < WIFI_HW_MODE_AUTO || mConfig->iApMode > WIFI_HW_MODE_N) {
+		mConfig->iApMode = WIFI_HW_MODE_G;
+	}
+
+	if (mConfig->iApMode == WIFI_HW_MODE_B || mConfig->iApMode == WIFI_HW_MODE_G) {
+		mConfig->iApChannel = DEFAULT_WIFI_AP_CHANNEL_NUM_BG;
+	} else {
+		mConfig->iApChannel = DEFAULT_WIFI_AP_CHANNEL_NUM_AN;
+	}	
+
+
+	/* COMMON:
+	 * HW_MODE, CHANNEL
+	 */
+	if (mConfig->iAuthMode == AUTH_OPEN) {	/* OPEN模式 */
+
+	} else if (mConfig->iAuthMode == AUTH_WPA2) {	/* WPA2 */
+		
+		if (strcmp(mConfig->cPasswd, "none") == 0) {	/* 没有传WIFI密码，使用默认值 */
+			pWifPasswd = property_get(PROP_SYS_AP_PASSWD);
+			if (NULL == pWifPasswd) {
+				pWifPasswd = "88888888";
+			}
+			memset(mConfig->cPasswd, 0, sizeof(mConfig->cPasswd));
+			strncpy(mConfig->cPasswd, pWifPasswd, (strlen(pWifPasswd) > DEFAULT_NAME_LEN) ? DEFAULT_NAME_LEN: strlen(pWifPasswd));
+		}
+
+
+	} else {
+		Log.d(TAG, "Not supported auth mode in current");
+	}
+
+	Log.d(TAG, "Send our configure to NetManager");
+
+	msg = (sp<ARMessage>)(new ARMessage(NETM_CONFIG_WIFI_AP));
+    msg->set<sp<WifiConfig>>("wifi_config", mConfig);
+    NetManager::getNetManagerInstance()->postNetMessage(msg);
+
+}
+
+
 /*************************************************************************
 ** 方法名称: handleMessage
 ** 方法功能: 消息处理
@@ -8266,10 +8417,10 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 配置WIFI (UI-CORE处理)
 			 */
-            case OLED_CONFIG_WIFI:  {	/* On/Off Wifi AP */
-                sp<WIFI_CONFIG> mConfig;
-                CHECK_EQ(msg->find<sp<WIFI_CONFIG>>("wifi_config", &mConfig), true);
-                //wifi_config(mConfig);
+            case UI_CONFIG_WIFI:  {	/* On/Off Wifi AP */
+                sp<WifiConfig> mConfig;
+                CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
+                handleorSetWifiConfig(mConfig);
             }
                 break;
 

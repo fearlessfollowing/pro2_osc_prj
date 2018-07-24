@@ -53,6 +53,11 @@ using namespace std;
 
 //#define ENABLE_IP_DEBUG
 
+#define NETM_DISPATCH_PRIO	0x10		/* 按优先级的顺序显示IP */
+#define NETM_DISPATCH_POLL	0x11		/* 若有多个IP依次显示 */
+
+
+
 struct ethtool_value {
     __uint32_t cmd;
     __uint32_t data;
@@ -216,8 +221,11 @@ int NetDev::getNetdevLinkFrmPhy()
 
     ret = ioctl(skfd, 0x8946, &ifr);
     if (ret == 0) {
-        Log.i(TAG, "Link detected: %d\n", edata.data);
 
+		#if 0
+        Log.i(TAG, "Link detected: %d\n", edata.data);
+		#endif
+		
         if (edata.data == 1) {
             err = NET_LINK_CONNECT;
         } else {
@@ -409,7 +417,7 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
     int iCurLinkState = etherDev->getNetdevLinkFrmPhy();
 	int iPollInterval = 1;
 	
-    Log.i(TAG, "ethernet current state: %s", (iCurLinkState == NET_LINK_CONNECT) ? "Connect": "Disconnect");
+    //Log.i(TAG, "ethernet current state: %s", (iCurLinkState == NET_LINK_CONNECT) ? "Connect": "Disconnect");
 
     if (etherDev->getNetdevSavedLink() != iCurLinkState) {	/* 链路发生变化 */
 
@@ -429,16 +437,14 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
                     etherDev->getIpByDhcp();
                 }
             } else {	/* mCurIpAddr != mSaveIpAddr */
-                Log.d(TAG, ">>>> Resume mSaveIpAddr to mCurIpAddr");
+                //Log.d(TAG, ">>>> Resume mSaveIpAddr to mCurIpAddr");
                 etherDev->resumeSavedIp2CurAndPhy(true);
             }
-            /* 将地址设置到网卡,并将地址发送给UI */
-            Log.d(TAG, ">>>> send our ip to UI thread ....");
 
         } else {	/* Connect -> Disconnect */
             Log.i(TAG, "++++>>> link disconnect");
 
-            //etherDev->storeCurIp2Saved();
+             //etherDev->storeCurIp2Saved();
             etherDev->setCurIpAddr("0.0.0.0", true);
         }
 
@@ -448,12 +454,11 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
 
         if (etherDev->getNetdevSavedLink() == NET_LINK_CONNECT) {   /* Connected */
 			
-            Log.d(TAG, "+++++>>> link not changed(Connected), check ip haved changed ....");
+           // Log.d(TAG, "+++++>>> link not changed(Connected), check ip haved changed ....");
 
 			/* DHCP获取到了IP地址, Phy的地址跟getCurIpAddr不一样 */
             if (etherDev->getNetDevIpFrmPhy() && strcmp(etherDev->getNetDevIpFrmPhy(), etherDev->getCurIpAddr())) {  /* Ip changed */
 
-                Log.d(TAG, ">>>> send our ip(%s) to UI thread .... ", etherDev->getNetDevIpFrmPhy());
 
 				if (!strcmp(etherDev->getCurIpAddr(), "0.0.0.0") || etherDev->getCurGetIpMode() == GET_IP_DHCP) {
 					if (etherDev->isCachedDhcpAddr() == false || strcmp(etherDev->getCachedDhcpAddr(), etherDev->getNetDevIpFrmPhy())) {
@@ -464,7 +469,7 @@ int EtherNetDev::processPollEvent(sp<NetDev>& etherDev)
                 etherDev->setCurIpAddr(etherDev->getNetDevIpFrmPhy(), false);
             }
         } else {
-            Log.i(TAG, "+++++>>> link not changed(Disconnected), do nothing.");
+           // Log.i(TAG, "+++++>>> link not changed(Disconnected), do nothing.");
             etherDev->setCurIpAddr("0.0.0.0", true);
             iPollInterval = 2;
         }
@@ -490,10 +495,11 @@ WiFiNetDev::~WiFiNetDev()
 
 int WiFiNetDev::netdevOpen()
 {
+	char cmd[512] = {0};
+	u32 i;
+	int iResult;
 
-	if (bLoadDrvier == false) {
-		char cmd[512] = {0};
-		
+	if (bLoadDrvier == false) {	
 		sprintf(cmd, "insmod %s", BCMDHD_DRIVER_PATH);
 		system(cmd);	
 
@@ -501,11 +507,28 @@ int WiFiNetDev::netdevOpen()
 	}
 
 	if (getWiFiWorkMode() == WIFI_WORK_MODE_AP) {
+		
 		system("echo 2 > /sys/module/bcmdhd/parameters/op_mode");	/* 通知固件工作在AP模式 */
+		
+		memset(cmd, 0, sizeof(cmd));
+		sprintf(cmd, "hostapd -B %s", WIFI_TMP_AP_CONFIG_FILE);
 
-		setCurIpAddr(WLAN0_DEFAULT_IP, true);
 
-		system("hostapd /etc/hostapd.conf -B");
+		for (i = 0; i < 3; i++) {
+			iResult = system(cmd);
+			if (!iResult) 
+				break;
+			msg_util::sleep_ms(500);
+		}
+
+		if (i >= 3) { 
+			Log.d(TAG, "NetManager: startup hostapd Failed, reason(%d)", iResult);
+		} else {
+		
+			Log.d(TAG, "NetManager: startup hostapd Sucess");
+			setCurIpAddr(WLAN0_DEFAULT_IP, true);
+		}		
+
 	} else {
 		system("echo 0 > /sys/module/bcmdhd/parameters/op_mode");	/* 通知固件工作在STA模式 */
 	}
@@ -635,6 +658,10 @@ string NetManager::convWhat2Msg(uint32_t what)
             msg = "NETM_EXIT_LOOP";
             break;
 
+		case NETM_CONFIG_WIFI_AP:
+			msg = "NETM_CONFIG_WIFI_AP";
+			break;
+
         default:
             msg = "Unkown Msg";
             break;
@@ -642,9 +669,6 @@ string NetManager::convWhat2Msg(uint32_t what)
 
     return msg;
 }
-
-#define NETM_DISPATCH_PRIO	0x10		/* 按优先级的顺序显示IP */
-#define NETM_DISPATCH_POLL	0x11		/* 若有多个IP依次显示 */
 
 
 /*
@@ -655,8 +679,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 {
     uint32_t what = msg->what();
 	int iInterval = 0;
-	
+
+#ifdef ENABLE_DEBUG_NETM	
     Log.d(TAG, "NetManager get msg what %s", convWhat2Msg(what).c_str());
+#endif
+
+
 
 	switch (what) {
 		case NETM_POLL_NET_STATE: {		/* 轮询网络设备的状态 */
@@ -821,34 +849,45 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 		case NETM_CONFIG_WIFI_AP: {	/* 配置WIFI的AP参数 */
 
 			sp<WifiConfig> tmpConfig = NULL;
-            CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_arg", &tmpConfig), true);
+            CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &tmpConfig), true);
 
-#define WIFI_TMP_AP_CONFIG_FILE	"/etc/.wifi_ap.conf"
+			if (tmpConfig) {
+				Log.d(TAG, "SSID[%s], Passwd[%s], Inter[%s], Mode[%d], Channel[%d], Auth[%d]",
+									tmpConfig->cApName,
+									tmpConfig->cPasswd,
+									tmpConfig->cInterface,
+									tmpConfig->iApMode,
+									tmpConfig->iApChannel,
+									tmpConfig->iAuthMode);
 
-            Log.d(TAG, "Ap arg name[%s], passwd[%s], mode =%d, channel = %d",
-					tmpConfig->cApName,			
-					tmpConfig->cPasswd,
-					tmpConfig->iApMode,
-					tmpConfig->iApChannel,
-					tmpConfig->iAuthMode
-					);
+				/* 创建配置文件 
+			 	 * 目前只支持OPEN/WPA2两种模式
+			 	 */
+				FILE* iWifiFile = fopen(WIFI_TMP_AP_CONFIG_FILE, "w+");
+				if (iWifiFile == NULL) {
+					Log.e(TAG, "NetManager: create wifi config file [%s] failed...", WIFI_TMP_AP_CONFIG_FILE);
+				} else {
+					fprintf(iWifiFile, "interface=%s\n", tmpConfig->cInterface);			
+					fprintf(iWifiFile, "%s\n", "driver=nl80211");
+					fprintf(iWifiFile, "%s\n", "ctrl_interface=/var/run/hostapd");
+					fprintf(iWifiFile, "ssid=%s\n", tmpConfig->cApName);
+					fprintf(iWifiFile, "channel=%d\n", tmpConfig->iApChannel);
 
-			/* 创建配置文件 */
-			FILE* iWifiFile = open(WIFI_TMP_AP_CONFIG_FILE, "w+");
-			if (iWifiFile == NULL) {
-				Log.e(TAG, "NetManager: create wifi config file [%s] failed...", WIFI_TMP_AP_CONFIG_FILE);
-			} else {
-				fprintf(iWifiFile, "%s\n", "ctrl_interface=/var/run/hostapd");
-				fprintf(iWifiFile, "interface=%s\n", "wlan0");			
-				fprintf(iWifiFile, "ssid=%s\n", "Insta360-Pro2-001");
-				fprintf(iWifiFile, "hw_mode=%s\n", "g");
-				fprintf(iWifiFile, "channel=%s\n", "6");
+					if (tmpConfig->iAuthMode == AUTH_OPEN) {
+						fprintf(iWifiFile, "hw_mode=%s\n", "g");
+						fprintf(iWifiFile, "%s\n", "ignore_broadcast_ssid=0");
 
-				fprintf(iWifiFile, "wpa=%s\n", "g");
-				fprintf(iWifiFile, "wpa_passphrase=%s\n", "6");
-				fprintf(iWifiFile, "wpa_key_mgmt=%s\n", "6");
-
-				fclose(iWifiFile);
+					} else if (tmpConfig->iAuthMode == AUTH_WPA2) {
+						fprintf(iWifiFile, "hw_mode=%s\n", "g");
+						fprintf(iWifiFile, "wpa=%d\n", tmpConfig->iAuthMode);
+						fprintf(iWifiFile, "wpa_passphrase=%s\n", tmpConfig->cPasswd);
+						fprintf(iWifiFile, "wpa_key_mgmt=%s\n", "WPA-PSK");
+					}
+					
+					fclose(iWifiFile);
+				}
+			}else {
+				Log.d(TAG, ">>>>>>>>>>>>>>>> Invalid tmpConfig pointer");
 			}
 			break;
 		}
@@ -1028,14 +1067,19 @@ void NetManager::dispatchIpPolicy(int iPolicy)
 
 	case NETM_DISPATCH_PRIO: 	/* LAN > WLAN */
 
-	 
+
+#ifdef ENABLE_DEBUG_NETM
 	 	Log.d(TAG, "mLastDispIp ip: [%s]", mLastDispIp);
-		
+#endif
+
 		tmpEthDev = getNetDevByname(ETH0_NAME);
 		tmpWlanDev = getNetDevByname(WLAN0_NAME);
 
 		if (tmpEthDev && strcmp(tmpEthDev->getCurIpAddr(), "0.0.0.0")) {
+			
+#ifdef ENABLE_DEBUG_NETM
             Log.d(TAG, "Lan Ip compare....[%s],[%s]", tmpEthDev->getCurIpAddr(), mLastDispIp);
+#endif
 			if (strcmp(tmpEthDev->getCurIpAddr(), mLastDispIp)) {
 				memset(mLastDispIp, 0, sizeof(mLastDispIp));
 				strcpy(mLastDispIp, tmpEthDev->getCurIpAddr());
@@ -1076,9 +1120,13 @@ void NetManager::dispatchIpPolicy(int iPolicy)
 
 void NetManager::sendIpInfo2Ui()
 {
+
+#ifdef ENABLE_DEBUG_NETM
+
     /* Get Global UI object */
     Log.d(TAG, "NetManager: send ip(%s) info to ui", mLastDispIp);
-	
+#endif
+
     sp<DEV_IP_INFO> pInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
     strcpy(pInfo->cDevName, "NetManager");
     strcpy(pInfo->ipAddr, mLastDispIp);

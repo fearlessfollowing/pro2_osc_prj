@@ -478,12 +478,13 @@ typedef struct _setting_items_ {
  * 设置项 
  */
 typedef struct stSetItem {
-	char 		cName[SETTING_ITEM_NAME_MAX];		/* 设置项的名称 */
-	int			iItemMaxVal;						/* 设置项可取的最大值 */
-	int  		iCurVal;							/* 当前的值,(根据当前值来选择对应的图标) */
-	bool		bHaveSubMenu;						/* 是否含有子菜单 */
-	void 		(*pSetItemProc)(struct stSetItem*);	/* 菜单项的处理函数(当选中并按确认时被调用) */
-	ICON_INFO 	stIcon[SETIING_ITEM_ICON_NUM];
+	const char* pItemName;								/* 设置项的名称 */
+	int			iItemMaxVal;							/* 设置项可取的最大值 */
+	int  		iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
+	bool		bHaveSubMenu;							/* 是否含有子菜单 */
+	void 		(*pSetItemProc)(struct stSetItem*);		/* 菜单项的处理函数(当选中并按确认时被调用) */
+	ICON_INFO 	stLightIcon[SETIING_ITEM_ICON_NUM];		/* 选中时的图标列表 */
+	ICON_INFO 	stNorIcon[SETIING_ITEM_ICON_NUM];		/* 未选中时的图标列表 */
 } SettingItem;
 
 
@@ -515,7 +516,6 @@ public:
     void send_disp_ip(int ip, int net_type = 0);
     void send_disp_battery(int battery, bool charge);
 
-    void send_wifi_config(sp<struct _wifi_config_> &mConfig);
     void send_sys_info(sp<SYS_INFO> &mSysInfo);
     void send_get_key(int key);
     void send_long_press_key(int key,int64 ts);
@@ -751,6 +751,12 @@ private:
 
     void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
 
+	/* 
+	 * 网络接口
+	 */
+	void sendWifiConfig(sp<WifiConfig> &mConfig);
+	void handleorSetWifiConfig(sp<WifiConfig> &mConfig);
+
 
 	void handleGyroCalcEvent();
 
@@ -877,6 +883,11 @@ private:
 
     char mLocalIpAddr[32];        /* UI本地保存的IP地址 */
 
+
+	/*
+	 * 是否已经配置SSID
+	 */
+	bool	mHaveConfigSSID = false;
 
 	/*
 	 * 存储管理部分
