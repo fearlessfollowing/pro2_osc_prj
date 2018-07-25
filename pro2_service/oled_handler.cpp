@@ -453,8 +453,7 @@ typedef struct _rec_info_
  * 在进入设置菜单时,以Photo delay: Xs的索引来初始化MENU_SET_PHOTO_DELAY菜单的SELECT_INFO对象
  */
 
-typedef struct _select_info_
-{
+typedef struct _select_info_ {
     int last_select;		/* 上次选中的项 */
     int select;				/* 当前选中的项 */
     int cur_page;			/* 选项所在的页 */
@@ -476,11 +475,7 @@ typedef struct _menu_info_ {
     const int mSupportkeys[OLED_KEY_MAX];
 } MENU_INFO;
 
-//typedef struct _cp_info_
-//{
-//    const char *src;
-//    const char *dest;
-//}CP_INFO;
+
 
 static int photo_delay[SET_PHOTO_DELAY_MAX] = {3, 5, 10, 20, 30, 40, 50, 60};
 
@@ -8080,6 +8075,11 @@ void MenuUI::handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo)
 
 }
 
+/*
+ * 动态生成随机数
+ * 解决拍照倒计时时无声音
+ * 添加新的菜单方案
+ */
 
 void MenuUI::handleLongKeyMsg(int key, int64 ts)
 {

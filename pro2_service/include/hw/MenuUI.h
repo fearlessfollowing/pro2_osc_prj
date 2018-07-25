@@ -12,6 +12,8 @@
 #include <sys/StorageManager.h>
 #include <sys/action_info.h>
 
+#include <sys/Menu.h>
+
 
 typedef enum _type_ {
     START_RECING ,// 0,
@@ -213,66 +215,7 @@ enum {
     OLED_KEY_MAX,
 };
 
-enum {
-    MENU_TOP ,
-    MENU_PIC_INFO,
-    MENU_VIDEO_INFO,
-    MENU_LIVE_INFO,
-    MENU_STORAGE,//menu storage setting
-    MENU_SYS_SETTING, //5
-    MENU_PIC_SET_DEF,
-    MENU_VIDEO_SET_DEF ,
-    MENU_LIVE_SET_DEF,
-    MENU_CALIBRATION,
-    MENU_QR_SCAN,//10
-//    MENU_CALIBRATION_SETTING,
-    MENU_SYS_DEV_INFO,
-    MENU_SYS_ERR,
-    MENU_LOW_BAT,
-    MENU_GYRO_START,
-    MENU_SPEED_TEST,//15
-    MENU_RESET_INDICATION,
-    MENU_WIFI_CONNECT,
-    MENU_AGEING,
-//    MENU_LOW_PROTECT,
-    MENU_NOSIE_SAMPLE,
-    MENU_LIVE_REC_TIME,//20
 
-    MENU_STITCH_BOX,
-    MENU_FORMAT,
-    MENU_FORMAT_INDICATION,
-    
-	MENU_SET_PHOTO_DEALY,	/* add by skymixos */
-	
-    //messagebox keep at the end
-    MENU_DISP_MSG_BOX,
-    MENU_MAX,
-#if 0
-    MENU_CAMERA_SETTING,
-    //lr_menu start_item
-    MENU_PIC_SETTING,
-    MENU_VIDEO_SETTING,
-    MENU_LIVE_SETTING,
-    //pic
-    MENU_ORIGIN = 10, //default, raw, off
-    MENU_PIC_OUTP_3D,
-    MENU_PIC_OUTP_PANO,
-    //video
-    MENU_VID_EACH_LEN_3D,
-    MENU_VID_EACH_LEN_PANO,
-    MENU_VID_BR = 15,
-    MENU_VID_OUT_3D,
-    MENU_VID_OUT_PANO,
-    //live
-    MENU_LIVE_BR,
-    MENU_LIVE_OUT_3D,
-    MENU_LIVE_OUT_PANO = 20,
-    //menu sys device
-    MENU_SYS_DEV,
-    MENU_SYS_DEV_FACTORY_DEFAULT,
-#endif
-
-};
 
 enum {
     REBOOT_NORMAL,
@@ -907,6 +850,10 @@ private:
 	int		mSavePathIndex = -1;
 
 
+	/*
+	 * 菜单管理相关
+	 */
+	std::vector<sp<MENU_INFO>> mMenuLists;
 
 };
 #endif //PROJECT_OLED_WRAPPER_H

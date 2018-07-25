@@ -175,21 +175,8 @@ typedef struct _ver_info_ {
 } VER_INFO;
 
 
-
-#define SYS_TMP "/home/nvidia/insta360/etc/sys_tmp"
-
 //#define GOOGLE_8K_5F
 
-
-const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
-const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
-
-//ssid conf
-const char *wlan_wifi_conf = "/home/nvidia/insta360/etc/wpa_supplicant.conf";
-
-//for ap
-const char *host_apd_conf = "/home/nvidia/insta360/etc/hostapd.conf";
-//const char *sys_file_def = "/data/etc/sys_info_def";
 
 typedef struct _sys_read_ {
     const char *key;
@@ -203,8 +190,7 @@ static const SYS_READ astSysRead[] = {
 };
 
 //pic ,vid, live def
-enum
-{
+enum {
     //normal stich
 //#ifndef ONLY_PIC_FLOW
 //    PIC_8K_3D_SAVE,
@@ -289,16 +275,6 @@ enum {
     LIVE_DEF_MAX,
 };
 
-enum
-{
-    MAINMENU_PIC,
-    MAINMENU_VIDEO,
-    MAINMENU_LIVE,
-    MAINMENU_WIFI,
-    MAINMENU_CALIBRATION,
-    MAINMENU_SETTING,
-    MAINMENU_MAX,
-};
 
 
 /* Slave Addr: 0x77 Reg Addr: 0x02
@@ -444,34 +420,7 @@ typedef struct _rec_info_
  * 在进入设置菜单时,以Photo delay: Xs的索引来初始化MENU_SET_PHOTO_DELAY菜单的SELECT_INFO对象
  */
 
-typedef struct _select_info_
-{
-    int last_select;		/* 上次选中的项 */
-    int select;				/* 当前选中的项 */
-    int cur_page;			/* 选项所在的页 */
 
-    //how many items
-    int total;				/* 真个含有的项数 */
-
-    //how many item in one page
-    int page_max;			/* 一页含有的项数 */
-
-    //how many pages
-    int page_num;			/* 含有的页数 */
-} SELECT_INFO;
-
-
-typedef struct _menu_info_ {
-    int back_menu;
-    SELECT_INFO mSelectInfo;
-    const int mSupportkeys[OLED_KEY_MAX];
-} MENU_INFO;
-
-//typedef struct _cp_info_
-//{
-//    const char *src;
-//    const char *dest;
-//}CP_INFO;
 
 static int photo_delay[SET_PHOTO_DELAY_MAX] = {3, 5, 10, 20, 30, 40, 50, 60};
 
@@ -554,162 +503,7 @@ static int setting_icon_lights[SETTING_MAX][2] =
 };
 
 
-static MENU_INFO mMenuInfos[] = {
-    {	/* MENU_TOP: Top Menu */
-    	-1,					/* back_menu */
-		{	
-			-1,				/* last_select */
-			0,				/* select */
-			0,				/* cur_page */
-			MAINMENU_MAX,	/* total */
-			MAINMENU_MAX,	/* page_max */
-			1				/* page_num */
-		}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN,  0, OLED_KEY_SETTING, OLED_KEY_POWER}		
-	},	
-    {	/* MENU_PIC_INFO */
-    	MENU_TOP,
-		{
-			-1,
-			0,
-			0,
-			0,
-			0,
-			0
-		}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		
-	},
-    {	/* MENU_VIDEO_INFO */
-    	MENU_TOP,
-		{-1,0,0,0,0,0}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}
-	},
-    {	/* MENU_LIVE_INFO */
-    	MENU_TOP,
-		{-1, 0, 0, 0, 0, 0}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* DOWN, BACK, SETTING, POWER */
-	},
-    {	/* MENU_STORAGE */
-    	MENU_SYS_SETTING,
-		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, 0}		/* BACK */
-	},
 
-	{	/* MENU_SYS_SETTING */
-    	MENU_TOP,
-		{-1, 0, 0, SETTING_MAX, PAGE_MAX, 5}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER}		/* UP, DOWN, BACK, POWER */
-	}, //5
-	
-    {	/* MENU_PIC_SET_DEF */
-    	MENU_PIC_INFO,
-		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
-	},
-    {	/* MENU_VIDEO_SET_DEF */
-    	MENU_VIDEO_INFO,
-		{-1, 0, 0, VID_DEF_MAX, VID_DEF_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
-	},
-    {	/* MENU_LIVE_SET_DEF */
-    	MENU_LIVE_INFO,
-		{-1, 0, 0, LIVE_DEF_MAX, LIVE_DEF_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
-	},
-    {	/* MENU_CALIBRATION */
-    	MENU_TOP,
-		{0},
-		{0}
-	},
-    {	/* MENU_QR_SCAN */
-    	MENU_PIC_INFO,
-		{0},
-		{0, 0, OLED_KEY_BACK, 0, 0}			/* BACK */
-	}, //10
-    //menu calibartion setting
-#if 0    
-   {
-   		MENU_TOP,
-		{-1, 0, 0, MODE_MAX, PAGE_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER}
-	},
-#endif
-    //sys info
-#ifdef ENABLE_ADB_OFF
-    {
-    	MENU_SYS_SETTING,
-		{-1, 0, 0, 1, PAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}
-	},
-#else
-    {	/* MENU_SYS_DEV_INFO */
-    	MENU_SYS_SETTING,
-		{-1, 0, 0, 1, PAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, 0}
-	},
-#endif
-
-    {	/* MENU_SYS_ERR */
-    	MENU_TOP,
-		{0},
-		{0}
-	},
-    {	/* MENU_LOW_BAT */
-    	MENU_TOP,
-    	{0},
-    	{0}
-	},
-    {	/* MENU_GYRO_START */
-    	MENU_SYS_SETTING,
-		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}
-	},
-    {	/* MENU_SPEED_TEST */
-    	MENU_PIC_INFO,
-		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}
-	},
-    {	/* MENU_RESET_INDICATION */
-    	MENU_SYS_SETTING,
-		{0},
-		{OLED_KEY_UP, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}
-	},
-    {	/* MENU_WIFI_CONNECT */
-    	MENU_SYS_SETTING,
-		{0},
-		{0}
-	},
-
-		
-    {	/* MENU_AGEING */
-    	MENU_TOP,
-		{0},
-		{0},		
-	},
-#if 0	
-    //low bat protect
-	{
-		MENU_TOP,
-		{0},
-		{0}
-	},
-#endif
-    {	/* MENU_NOSIE_SAMPLE */
-    	MENU_SYS_SETTING,
-		{0},
-		{0}
-	},
-    {	/* MENU_LIVE_REC_TIME */
-    	MENU_LIVE_INFO,
-		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}			/* BACK, POWER */
-	},
-	    {	/* MENU_DISP_MSG_BOX */
-    	MENU_TOP,
-		{0},
-		{0}
-	},
-};
 
 static int main_icons[][MAINMENU_MAX] = {
 	{

@@ -79,6 +79,21 @@
 #define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand"
 
 
+#define SYS_TMP "/home/nvidia/insta360/etc/sys_tmp"
+
+
+
+const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
+const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
+
+//ssid conf
+const char *wlan_wifi_conf = "/home/nvidia/insta360/etc/wpa_supplicant.conf";
+
+//for ap
+const char *host_apd_conf = "/home/nvidia/insta360/etc/hostapd.conf";
+//const char *sys_file_def = "/data/etc/sys_info_def";
+
+
 /* 
  * FIFO路径
  */
