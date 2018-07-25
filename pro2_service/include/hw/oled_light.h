@@ -18,6 +18,8 @@ public:
     void suspend_led_status();
     void resume_led_status();
 
+    void close_all();
+
 private:
     void init();
     void deinit();

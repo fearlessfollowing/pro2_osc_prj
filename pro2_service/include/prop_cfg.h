@@ -53,6 +53,9 @@
 #define PROP_BOOTAN_NAME			"sys.bootan"
 
 
+#define PROP_HUB_RESET_INTERVAL     "sys.hub_reset"
+#define PROP_CAM_POWER_INTERVAL     "sys.cam_pinterval"
+
 #define PROP_SYS_DISK_NUM 			"sys.disk_cnt"
 #define PROP_SYS_DISK_RW			"sys.disk_rw"
 
@@ -76,23 +79,16 @@
  */
 #define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
 
-#define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand"
+#define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand_sn"
 
 
-#define SYS_TMP "/home/nvidia/insta360/etc/sys_tmp"
+#define SYS_TMP 				"/home/nvidia/insta360/etc/sys_tmp"
 
 
-
+#if 0
 const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
 const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
-
-//ssid conf
-const char *wlan_wifi_conf = "/home/nvidia/insta360/etc/wpa_supplicant.conf";
-
-//for ap
-const char *host_apd_conf = "/home/nvidia/insta360/etc/hostapd.conf";
-//const char *sys_file_def = "/data/etc/sys_info_def";
-
+#endif
 
 /* 
  * FIFO路径

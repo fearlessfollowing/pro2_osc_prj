@@ -196,12 +196,12 @@ tips:
 "stabilization": 1-eanble 0-disable
 "flicker": 0-pal 1-ntsc
 "logMode": "value":{"mode":int, "effect":int}
-"fanless": 0/1        //0:启动风扇 1:关闭风扇
-"panoAudio":0/1   //0:拼接流不存声音 1:拼接流存非全景声 2:拼接流存全景声
-"logo": 0/1    //0:不打logo 1:打logo
+"fanless": 0/1          // 0:启动风扇 1:关闭风扇
+"panoAudio":0/1         // 0:拼接流不存声音 1:拼接流存非全景声 2:拼接流存全景声
+"logo": 0/1             // 0:不打logo 1:打logo
 "audio_gain": 1-127
-"video_fragment": 0/1 //0:视频不分段 1：视频分段
-"depthMap": string, 深度图数据
+"video_fragment": 0/1   // 0:视频不分段 1：视频分段
+"depthMap": string,     // 深度图数据
 
 
 

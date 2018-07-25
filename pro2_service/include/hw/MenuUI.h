@@ -205,15 +205,6 @@ enum {
 
 };
 
-enum {
-
-    OLED_KEY_UP			= 0x101,
-    OLED_KEY_DOWN 		= 0x102,
-    OLED_KEY_BACK 		= 0x104,
-    OLED_KEY_SETTING 	= 0x103,
-    OLED_KEY_POWER 		= 0x100,
-    OLED_KEY_MAX,
-};
 
 
 
@@ -270,30 +261,7 @@ enum {
 	
 };
 
-enum {
-    SAVE_DEF,
-    SAVE_RAW,
-    SAVE_OFF,
-};
 
-typedef enum live_pro {
-    STITCH_NORMAL,
-    STITCH_CUBE,
-    STITCH_OPTICAL_FLOW,
-    STITCH_OFF,
-} LIVE_PROJECTON;
-
-typedef enum video_enc {
-    EN_H264,
-    EN_H265,
-    EN_JPEG,
-    EN_RAW,
-} VIDEO_ENC;
-
-typedef enum hdmi_state {
-    HDMI_OFF,
-    HDMI_ON,
-} HDMI_STATE;
 
 typedef struct _sync_init_info_ {
     char a_v[128];
@@ -355,38 +323,6 @@ struct _err_type_info_;
 struct _cam_prop_;
 
 
-enum {
-    SET_WIFI_AP,		// 1 (25, 16)
-    SET_DHCP_MODE,		// 2 (25, 32)
-    SET_FREQ,			// 3 (25, 48)50 or 60,flicker
-
-    SET_PHOTO_DELAY,	/* 4 (25, 16) 设置拍照延时: 3s,5s,10s,20s,30s,40s,50s,60s */
-    SET_SPEAK_ON,		/* 5 (25, 32) */
-    SET_BOTTOM_LOGO, 	/* 6 (25, 48) */
-
-    SET_LIGHT_ON,		/* 7 (25, 16) */
-    SET_AUD_ON,			/* 8 (25, 32) before spatial aud 170727*/
-    SET_SPATIAL_AUD,	/* 9 (25, 48) */
-
-    SET_GYRO_ON,		/* 10 (25, 16) */
-    //gyro calibration
-    SET_START_GYRO,		/* 11 (25, 32) */
-    SET_FAN_ON, 		/* 12 (25, 48) */
-
-    //sample fan nosie
-    SET_NOISE,			/* 13 (25, 16) */
-    SET_VIDEO_SEGMENT,	/* 14 (25, 32) */
-    SET_STITCH_BOX,		/* 15 (25, 48) */
-
-    //keep at end
-    SET_STORAGE,		/* 16 (25, 16) */
-    SET_INFO, 			/* 17 (25, 32) */
-    SET_RESTORE,		/* 18 (25, 48) */
-
-    SETTING_MAX
-};
-
-
 
 #define PH_DELAY_PATH "/data/etc/ph_delay"
 #define PH_DELAY_TMP_PATH "/data/etc/ph_delay.tmp"
@@ -406,12 +342,6 @@ enum {
 
 
 
-typedef struct _setting_items_ {
-    int clear_icons[2];
-    int iSelect[SETTING_MAX];
-    int (*icon_normal)[2];
-    int (*icon_light)[2];
-} SETTING_ITEMS;
 
 
 #define SETTING_ITEM_NAME_MAX 	32

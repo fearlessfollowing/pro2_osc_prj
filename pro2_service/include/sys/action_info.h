@@ -154,4 +154,40 @@ typedef struct _err_type_info_ {
 } ERR_TYPE_INFO;
 
 
+
+/*
+ *
+ *
+ */
+typedef enum video_enc {
+    EN_H264,
+    EN_H265,
+    EN_JPEG,
+    EN_RAW,
+    EN_JPEG_RAW,
+} VIDEO_ENC;
+
+
+enum {
+    SAVE_DEF,
+    SAVE_RAW,
+    SAVE_OFF,
+};
+
+
+typedef enum live_pro {
+    STITCH_NORMAL,
+    STITCH_CUBE,
+    STITCH_OPTICAL_FLOW,
+    STITCH_OFF,
+} LIVE_PROJECTON;
+
+
+
+typedef enum hdmi_state {
+    HDMI_OFF,
+    HDMI_ON,
+} HDMI_STATE;
+
+
 #endif 	/* _ACTION_INFO_H_ */

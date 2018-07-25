@@ -55,6 +55,8 @@ void oled_light::suspend_led_status()
 {
     if (mI2CLight->i2c_read(LED_I2C_REG, &light_restore_val) != 0) {
         Log.e(TAG, ">>> restore led light status failed, so bad...");
+    } else {
+
     }
 }
 
@@ -93,6 +95,12 @@ void oled_light::set_light_val(u8 val)
     } else {
         Log.e(TAG, "set_light_val [0x%x] failed ...", val);
     }
+}
+
+
+void oled_light::close_all()
+{
+    mI2CLight->i2c_write_byte(LED_I2C_REG, 0);
 }
 
 

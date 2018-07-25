@@ -1,3 +1,18 @@
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: MenuUI.cpp
+** 功能描述: UI核心
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V2.0
+** 日     期: 2016年12月1日
+** 修改记录:
+** V1.0			Wans			2016-12-01		创建文件
+** V2.0			Skymixos		2018-06-05		添加注释
+******************************************************************************************************/
 #include <future>
 #include <vector>
 #include <dirent.h>
@@ -189,91 +204,7 @@ static const SYS_READ astSysRead[] = {
     { "uuid", "uuid=", "/home/nvidia/insta360/etc/uuid"},
 };
 
-//pic ,vid, live def
-enum {
-    //normal stich
-//#ifndef ONLY_PIC_FLOW
-//    PIC_8K_3D_SAVE,
-//#endif
-    //optical flow stich
-    PIC_8K_3D_SAVE_OF,
-    PIC_8K_PANO_SAVE_OF,
-    PIC_8K_PANO_SAVE,
-#ifdef OPEN_HDR_RTS
-    PIC_HDR_RTS,
-#endif
-    PIC_HDR,
-    PIC_BURST,
-    PIC_RAW,
-    PIC_CUSTOM,
-    PIC_DEF_MAX,
-};
 
-
-
-/* 6+1
- * 录像 - 
- */
-enum {
-	VID_8K_30FPS_3D,
-	VID_8K_60FPS,
-	VID_8K_30FPS,
-	VID_8K_5FPS_STREETVIEW,
-	VID_6K_60FPS_3D,
-	VID_6K_30FPS_3D,
-	VID_4K_120FPS_3D,
-	VID_4K_60FPS_3D,
-	VID_4K_30FPS_3D,
-	VID_4K_60FPS_RTS,
-	VID_4K_30FPS_RTS,
-	VID_4K_30FPS_3D_RTS,
-	VID_2_5K_60FPS_3D_RTS,
-	VID_AERIAL,
-};
-
-
-/*
- * 6+1
- * 直播
- */
-enum {
-	LIVE_4K_30FPS,
-	LIVE_4K_30FPS_3D,
-	LIVE_4K_30FPS_HDMI,
-	LIVE_4K_30FPS_3D_HDMI
-};
-
-
-enum {
-    //video
-    VID_8K_50M_30FPS_PANO_RTS_OFF,
-#ifdef GOOGLE_8K_5F
-//    VID_8K_5FPS_RTS,//for google 170921
-    VID_8K_5FPS,
-#endif
-    VID_6K_50M_30FPS_3D_RTS_OFF,
-    VID_4K_50M_120FPS_PANO_RTS_OFF,
-    VID_4K_20M_60FPS_3D_RTS_OFF,
-    VID_4K_20M_24FPS_3D_50M_24FPS_RTS_ON,
-    VID_4K_20M_24FPS_PANO_50M_30FPS_RTS_ON,
-    VID_CUSTOM,
-    VID_DEF_MAX,
-};
-
-enum {
-    //live
-#ifdef LIVE_ORG
-    LIVE_ORIGIN,
-#endif
-    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON,
-    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON,
-    //hdmi on
-    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI,
-    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI,
-    VID_ARIAL,
-    LIVE_CUSTOM,
-    LIVE_DEF_MAX,
-};
 
 
 
@@ -308,7 +239,6 @@ enum {
     LIGHT_ALL 		= 0xff		/* 所有的灯亮白色 */
 };
 
-#define PAGE_MAX (3)
 
 #define INTERVAL_1HZ 	(1000)
 
@@ -328,6 +258,8 @@ enum {
     SND_STOP,
     SND_THREE_T,
     SND_ONE_T,
+
+#if 0       /* 为了去掉声音跟显示不同步问题 */
 	SND_1S_T,
 	SND_3S_T,
 	SND_5S_T,
@@ -337,9 +269,13 @@ enum {
 	SND_40S_T,
 	SND_50S_T,
 	SND_60S_T,
+#endif
     SND_MAX_NUM,
 };
 
+/*
+ * 声音文件
+ */
 static const char *sound_str[] = {
     "/home/nvidia/insta360/wav/camera_shutter.wav",
     "/home/nvidia/insta360/wav/completed.wav",
@@ -352,6 +288,7 @@ static const char *sound_str[] = {
 };
 
 
+#if 0
 static int get_cap_to_sound_index(int delay)
 {
 	int sound_index = SND_1S_T;
@@ -394,6 +331,7 @@ static int get_cap_to_sound_index(int delay)
 	}
 	return sound_index;
 }
+#endif
 
 typedef struct _area_info_ {
     u8 x;
@@ -419,7 +357,6 @@ typedef struct _rec_info_
 /*
  * 在进入设置菜单时,以Photo delay: Xs的索引来初始化MENU_SET_PHOTO_DELAY菜单的SELECT_INFO对象
  */
-
 
 
 static int photo_delay[SET_PHOTO_DELAY_MAX] = {3, 5, 10, 20, 30, 40, 50, 60};
@@ -1212,26 +1149,17 @@ static int get_phdelay_index()
 	index = SET_PHOTO_DELAY_5S;
 	
 	/* /data/etc/ph_delay */
-	if (access(PH_DELAY_PATH, F_OK) != 0) 	/* 文件不存在 */
-	{
+	if (access(PH_DELAY_PATH, F_OK) != 0) {   /* 文件不存在 */
 		Log.d(TAG, "%s file not exist, use default val", PH_DELAY_PATH);
-	}
-	else 
-	{
+	} else  {
 		int fd = open(PH_DELAY_PATH, O_RDONLY);
-		if (fd < 0) 
-		{
+		if (fd < 0)  {
 			Log.e(TAG, "Open [%s] failed", PH_DELAY_PATH);
-		}
-		else 
-		{
+		} else {
 			int rd = read(fd, &index, sizeof(index));
-			if (rd != sizeof(index))
-			{
+			if (rd != sizeof(index)) {
 				Log.e(TAG, "<<<<<<<<<< read %s error", PH_DELAY_PATH);
-			}
-			else
-			{
+			} else {
 				Log.d(TAG, "<<<<<<<<<<<read index = %d", index);
 			}
 		}
@@ -1439,7 +1367,7 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
         play_sound(sound_id);
 	
         //force to 0 ,for play sounds cost times
-        //interval = 0;
+        interval = 0;
     } else if (bLight) {	/* 需要闪灯 */
         flick_light();
     }
@@ -1478,8 +1406,7 @@ void MenuUI::play_sound(u32 type)
     if (get_setting_select(SET_SPEAK_ON) == 1) {
         if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
             char cmd[1024];
-            snprintf(cmd,sizeof(cmd),"tinyplay %s -D 1 &", sound_str[type]);
-            //Log.d(TAG,"cmd is %s", cmd);
+            snprintf(cmd, sizeof(cmd), "aplay -D hw:1,0 %s", sound_str[type]);
             exec_sh(cmd);
 		} else {
             Log.d(TAG,"sound type %d exceed \n",type);
@@ -1983,11 +1910,10 @@ void MenuUI::init()
 	if (access(WIFI_RAND_NUM_CFG, F_OK)) {
 		srand(time(NULL));
 
-		int iRandNum = rand();
+		int iRandNum = rand() % 32768;
 		Log.d(TAG, "rand num %d", iRandNum);
 
 		sprintf(tmpName, "%5d", iRandNum);
-
 		FILE* fp = fopen(WIFI_RAND_NUM_CFG, "w+");
 		if (fp) {
 			fprintf(fp, "%s", tmpName);
@@ -2634,13 +2560,14 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
     switch (option) {
         case ACTION_PIC:	/* 拍照动作 */
-            if (check_dev_exist(option)) {
+
+            // if (check_dev_exist(option)) {
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
 				
                 // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
-                if (check_allow_pic()) {
-                    oled_disp_type(CAPTURE);
+                // if (check_allow_pic()) {
+                    // oled_disp_type(CAPTURE);
                     item = get_menu_select_by_power(MENU_PIC_SET_DEF);
 //                    Log.d(TAG," pic action item is %d",item);
 
@@ -2670,12 +2597,12 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                         SWITCH_DEF_ERROR(item);
                     }
                     msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-                } else {
-                    bAllow = false;
-                }
-            } else {
-                bAllow = false;
-            }
+                //  } else {
+                    // bAllow = false;
+                //  }
+            // } else {
+                // bAllow = false;
+            // }
             break;
 			
         case ACTION_VIDEO:
@@ -2877,6 +2804,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 bAllow = false;
             }
             break;
+
         case ACTION_SET_OPTION:
             msg->set<int>("type", cmd);
             switch(cmd)
@@ -5138,28 +5066,19 @@ void MenuUI::disp_menu(bool dispBottom)
             INFO_MENU_STATE(cur_menu,cam_state);
             disp_icon(ICON_LIVE_ICON_0_16_20_32);
             disp_cam_param(0);
-            if(check_state_preview())
-            {
+
+            if (check_state_preview()) {
                 disp_live_ready();
-            }
-            else if(check_state_equal(STATE_START_PREVIEWING) ||
-                    check_state_in(STATE_STOP_PREVIEWING) || check_state_in(STATE_START_LIVING))
-            {
+            } else if (check_state_equal(STATE_START_PREVIEWING) ||
+                    check_state_in(STATE_STOP_PREVIEWING) || check_state_in(STATE_START_LIVING)) {
                 disp_waiting();
-            }
-            else if (check_state_in(STATE_LIVE))
-            {
+            } else if (check_state_in(STATE_LIVE)) {
                 Log.d(TAG,"do nothing in live cam state 0x%x",cam_state);
-            }
-            else if (check_state_in(STATE_LIVE_CONNECTING))
-            {
+            } else if (check_state_in(STATE_LIVE_CONNECTING)) {
                 disp_connecting();
-            }
-            else
-            {
+            } else {
                 Log.d(TAG,"live menu error state 0x%x",cam_state);
-                if(check_state_equal(STATE_IDLE))
-                {
+                if (check_state_equal(STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5195,12 +5114,14 @@ void MenuUI::disp_menu(bool dispBottom)
 			break;
 			}
 		
-        case MENU_SYS_SETTING:
+
+        case MENU_SYS_SETTING:      /* 显示"设置菜单"" */
             clear_area(0,16);
             disp_icon(ICON_SET_IC_DEFAULT_25_48_0_1625_48);
             disp_sys_setting(&mSettingItems);
             break;
 			
+
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
@@ -5536,6 +5457,7 @@ void MenuUI::procPowerKeyEvent()
 	/* 根据当前的菜单做出不同的处理 */
     switch (cur_menu) {	/* 根据当前的菜单做出响应的处理 */
         case MENU_TOP:	/* 顶层菜单 */
+
             switch (get_select()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC:	/* 选择的是"拍照"项 */
 
@@ -5584,7 +5506,7 @@ void MenuUI::procPowerKeyEvent()
 					handleGyroCalcEvent();
                     break;
 				
-                case MAINMENU_SETTING:
+                case MAINMENU_SETTING:          /* 设置键按下，进入“设置” */
                     set_cur_menu(MENU_SYS_SETTING);
                     break;
 				
@@ -5592,9 +5514,19 @@ void MenuUI::procPowerKeyEvent()
                     break;
             }
             break;
-			
+
+
         case MENU_PIC_INFO:		/* 拍照子菜单 */
-            send_option_to_fifo(ACTION_PIC);	/* 发送拍照请求 */
+
+            /* 检查存储设备是否存在，是否有剩余空间来拍照 */
+            if (check_dev_exist(ACTION_PIC)) {
+                // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
+                if (check_allow_pic()) {    /* 检查当前状态是否允许拍照 */
+                    oled_disp_type(CAPTURE);
+                }
+            } 
+
+            //send_option_to_fifo(ACTION_PIC);	/* 发送拍照请求 */
             break;
 		
         case MENU_VIDEO_INFO:	/* 录像子菜单 */
@@ -7064,15 +6996,16 @@ int MenuUI::oled_disp_type(int type)
 
 				set_cur_menu(MENU_PIC_INFO);
 
-				Log.d(TAG, "CAPTURE::: set_photo_delay_index = %d, sound_id = %d", set_photo_delay_index, SND_1S_T + set_photo_delay_index);
+				//Log.d(TAG, "CAPTURE::: set_photo_delay_index = %d, sound_id = %d", set_photo_delay_index, SND_1S_T + set_photo_delay_index);
 				
 				/* 第一次发送更新消息, 根据cap_delay的值来决定播放哪个声音 */
-                send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ, SND_1S_T + set_photo_delay_index);
+                send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ);
             }
             break;
 
 			
         case CAPTURE_SUC:
+
             if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
                 //disp capture suc
                 minus_cam_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
@@ -7997,13 +7930,15 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 				if (check_state_in(STATE_PLAY_SOUND)) {
 					/* 播放声音,去除STATE_PLAY_SOUND状态 */
 					rm_state(STATE_PLAY_SOUND);
-					Log.d(TAG, "MENU_PIC_INFO remove STATE_PLAY_SOUND state, play index: %d", SND_3S_T + set_photo_delay_index);
-					//play_sound(SND_3S_T + set_photo_delay_index);
-					play_sound(get_cap_to_sound_index(cap_delay));
+					//Log.d(TAG, "MENU_PIC_INFO remove STATE_PLAY_SOUND state, play index: %d", SND_3S_T + set_photo_delay_index);
+					//play_sound(get_cap_to_sound_index(cap_delay));
 				}
 						
 				if (cap_delay == 0) {
-					if (menu == cur_menu) {
+
+                    send_option_to_fifo(ACTION_PIC);
+					
+                    if (menu == cur_menu) {
 						disp_shooting();
 					}
 				} else {
@@ -8011,13 +7946,14 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 						disp_sec(cap_delay, 52, 24);	/* 显示倒计时的时间 */
 					}
 
-				#ifdef ENABLE_SOUND
+                    Log.d(TAG, "MENU_PIC_INFO: sound id = %d", SND_ONE_T);
+
 					/* 倒计时时根据当前cap_dela y的值,只在	CAPTURE中播放一次, fix bug1147 */
-					send_update_light(menu, state, INTERVAL_1HZ, true);
-				#endif
+					send_update_light(menu, state, INTERVAL_1HZ, true, SND_ONE_T);
 
 				}
 				cap_delay--;
+
 			} else if (check_state_in(STATE_PIC_STITCHING)) {
 				send_update_light(menu, state, INTERVAL_5HZ, true);
 			} else {

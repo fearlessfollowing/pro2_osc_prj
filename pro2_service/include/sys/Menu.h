@@ -1,33 +1,26 @@
 #ifndef _MENU_H_
 #define _MENU_H_
 
-typedef struct _select_info_ {
-    int last_select;		/* 上次选中的项 */
-	
-    int select;				/* 当前选中的项 */
-	
-    int cur_page;			/* 选项所在的页 */
-
-    int total;				/* 真个含有的项数 */
-
-    int page_max;			/* 一页含有的项数 */
-
-    int page_num;			/* 含有的页数 */
-} SELECT_INFO;
+#include <hw/dev_manager.h>
+#include <sys/net_manager.h>
+#include <util/ARHandler.h>
+#include <util/ARMessage.h>
+#include <hw/oled_module.h>
+#include <sys/StorageManager.h>
+#include <sys/action_info.h>
+#include <sys/pro_cfg.h>
+#include <icon/pic_mode_select.h>
 
 
-typedef struct _menu_info_ {
-	
-    int 		back_menu;
-	
-    SELECT_INFO mSelectInfo;
-    const int 	mSupportkeys[OLED_KEY_MAX];
+enum {
 
-	int 		iMenuId;	/* 菜单的ID */
-	void*		priv;		/* 菜单的私有数据 */
-	
-} MENU_INFO;
-
+    OLED_KEY_UP			= 0x101,
+    OLED_KEY_DOWN 		= 0x102,
+    OLED_KEY_BACK 		= 0x104,
+    OLED_KEY_SETTING 	= 0x103,
+    OLED_KEY_POWER 		= 0x100,
+    OLED_KEY_MAX,
+};
 
 
 enum {
@@ -35,7 +28,7 @@ enum {
     MENU_PIC_INFO,
     MENU_VIDEO_INFO,
     MENU_LIVE_INFO,
-    MENU_SYS_SETTING, //5
+    MENU_SYS_SETTING,       //5
     MENU_PIC_SET_DEF,
     MENU_VIDEO_SET_DEF ,
     MENU_LIVE_SET_DEF,
@@ -66,6 +59,7 @@ enum {
     //messagebox keep at the end
     MENU_DISP_MSG_BOX,
     MENU_MAX,
+
 #if 0
     MENU_CAMERA_SETTING,
     //lr_menu start_item
@@ -95,6 +89,39 @@ enum {
 
 
 enum {
+    SET_WIFI_AP,		// 1 (25, 16)
+    SET_DHCP_MODE,		// 2 (25, 32)
+    SET_FREQ,			// 3 (25, 48)50 or 60,flicker
+
+    SET_PHOTO_DELAY,	/* 4 (25, 16) 设置拍照延时: 3s,5s,10s,20s,30s,40s,50s,60s */
+    SET_SPEAK_ON,		/* 5 (25, 32) */
+    SET_BOTTOM_LOGO, 	/* 6 (25, 48) */
+
+    SET_LIGHT_ON,		/* 7 (25, 16) */
+    SET_AUD_ON,			/* 8 (25, 32) before spatial aud 170727*/
+    SET_SPATIAL_AUD,	/* 9 (25, 48) */
+
+    SET_GYRO_ON,		/* 10 (25, 16) */
+    //gyro calibration
+    SET_START_GYRO,		/* 11 (25, 32) */
+    SET_FAN_ON, 		/* 12 (25, 48) */
+
+    //sample fan nosie
+    SET_NOISE,			/* 13 (25, 16) */
+    SET_VIDEO_SEGMENT,	/* 14 (25, 32) */
+    SET_STITCH_BOX,		/* 15 (25, 48) */
+
+    //keep at end
+    SET_STORAGE,		/* 16 (25, 16) */
+    SET_INFO, 			/* 17 (25, 32) */
+    SET_RESTORE,		/* 18 (25, 48) */
+
+    SETTING_MAX
+};
+
+
+
+enum {
     MAINMENU_PIC,
     MAINMENU_VIDEO,
     MAINMENU_LIVE,
@@ -105,9 +132,141 @@ enum {
 };
 
 
+typedef struct _select_info_ {
+    int last_select;		/* 上次选中的项 */
+	
+    int select;				/* 当前选中的项 */
+	
+    int cur_page;			/* 选项所在的页 */
+
+    int total;				/* 真个含有的项数 */
+
+    int page_max;			/* 一页含有的项数 */
+
+    int page_num;			/* 含有的页数 */
+} SELECT_INFO;
+
+
+
+typedef struct _menu_info_ {
+	
+    int 		back_menu;
+	
+    SELECT_INFO mSelectInfo;
+    const int 	mSupportkeys[OLED_KEY_MAX];
+
+	int 		iMenuId;	/* 菜单的ID */
+	void*		priv;		/* 菜单的私有数据 */
+	
+} MENU_INFO;
+
+
+
+
+
+#define PAGE_MAX (3)
+
+
+
+
+//pic ,vid, live def
+enum {
+    //normal stich
+//#ifndef ONLY_PIC_FLOW
+//    PIC_8K_3D_SAVE,
+//#endif
+    //optical flow stich
+    PIC_8K_3D_SAVE_OF,
+    PIC_8K_PANO_SAVE_OF,
+    PIC_8K_PANO_SAVE,
+#ifdef OPEN_HDR_RTS
+    PIC_HDR_RTS,
+#endif
+    PIC_HDR,
+    PIC_BURST,
+    PIC_RAW,
+    PIC_CUSTOM,
+    PIC_DEF_MAX,
+};
+
+
+
+/* 6+1
+ * 录像 - 
+ */
+enum {
+	VID_8K_30FPS_3D,
+	VID_8K_60FPS,
+	VID_8K_30FPS,
+	VID_8K_5FPS_STREETVIEW,
+	VID_6K_60FPS_3D,
+	VID_6K_30FPS_3D,
+	VID_4K_120FPS_3D,
+	VID_4K_60FPS_3D,
+	VID_4K_30FPS_3D,
+	VID_4K_60FPS_RTS,
+	VID_4K_30FPS_RTS,
+	VID_4K_30FPS_3D_RTS,
+	VID_2_5K_60FPS_3D_RTS,
+	VID_AERIAL,
+};
+
+
+/*
+ * 6+1
+ * 直播
+ */
+enum {
+	LIVE_4K_30FPS,
+	LIVE_4K_30FPS_3D,
+	LIVE_4K_30FPS_HDMI,
+	LIVE_4K_30FPS_3D_HDMI
+};
+
+
+enum {
+    //video
+    VID_8K_50M_30FPS_PANO_RTS_OFF,
+#ifdef GOOGLE_8K_5F
+//    VID_8K_5FPS_RTS,//for google 170921
+    VID_8K_5FPS,
+#endif
+    VID_6K_50M_30FPS_3D_RTS_OFF,
+    VID_4K_50M_120FPS_PANO_RTS_OFF,
+    VID_4K_20M_60FPS_3D_RTS_OFF,
+    VID_4K_20M_24FPS_3D_50M_24FPS_RTS_ON,
+    VID_4K_20M_24FPS_PANO_50M_30FPS_RTS_ON,
+    VID_CUSTOM,
+    VID_DEF_MAX,
+};
+
+enum {
+    //live
+#ifdef LIVE_ORG
+    LIVE_ORIGIN,
+#endif
+    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON,
+    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON,
+    //hdmi on
+    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI,
+    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI,
+    VID_ARIAL,
+    LIVE_CUSTOM,
+    LIVE_DEF_MAX,
+};
+
+
+typedef struct _setting_items_ {
+    int clear_icons[2];
+    int iSelect[SETTING_MAX];
+    int (*icon_normal)[2];
+    int (*icon_light)[2];
+} SETTING_ITEMS;
+
+
 
 static MENU_INFO mMenuInfos[] = {
-    {	/* MENU_TOP: Top Menu */
+    {	
     	-1,					/* back_menu */
 		{	
 			-1,				/* last_select */
@@ -118,11 +277,11 @@ static MENU_INFO mMenuInfos[] = {
 			1				/* page_num */
 		}, 
 		{OLED_KEY_UP, OLED_KEY_DOWN,  0, OLED_KEY_SETTING, OLED_KEY_POWER},
-		MENU_TOP,
+		MENU_TOP,           /* Menu ID: MENU_TOP */
 		NULL,
 	},	
 	
-    {	/* MENU_PIC_INFO */
+    {	
     	MENU_TOP,
 		{
 			-1,
@@ -133,61 +292,74 @@ static MENU_INFO mMenuInfos[] = {
 			0
 		}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
-		MENU_PIC_INFO,
+		MENU_PIC_INFO,      /* Menu ID: MENU_PIC_INFO */
 		NULL,
 	},
 	
-    {	/* MENU_VIDEO_INFO */
+    {	
     	MENU_TOP,
-		{-1,0,0,0,0,0}, 
+		{-1, 0, 0, 0, 0, 0}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
-		MENU_VIDEO_INFO,
+		MENU_VIDEO_INFO,    /* Menu ID: MENU_VIDEO_INFO */
 		NULL,
 	},
+
     {	/* MENU_LIVE_INFO */
     	MENU_TOP,
 		{-1, 0, 0, 0, 0, 0}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* DOWN, BACK, SETTING, POWER */
-		MENU_LIVE_INFO,
+		MENU_LIVE_INFO,     /* Menu ID: MENU_LIVE_INFO */
 		NULL,
 	},
 	
 
-	{	/* MENU_SYS_SETTING */
+	{	
     	MENU_TOP,
 		{-1, 0, 0, SETTING_MAX, PAGE_MAX, 5}, 
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},		/* UP, DOWN, BACK, POWER */
-		MENU_SYS_SETTING,
-		NULL,
-	}, //5
+		MENU_SYS_SETTING,    /* Menu ID: MENU_SYS_SETTING */
+		NULL,                /* 设置页菜单的私有数据为一个设置项列表 */
+	}, 
 	
-    {	/* MENU_PIC_SET_DEF */
+    {	
     	MENU_PIC_INFO,
 		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
+        MENU_PIC_SET_DEF,      /* Menu ID: MENU_PIC_SET_DEF */
+        NULL,
 	},
-    {	/* MENU_VIDEO_SET_DEF */
+
+    {	
     	MENU_VIDEO_INFO,
 		{-1, 0, 0, VID_DEF_MAX, VID_DEF_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
-	},
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
+        MENU_VIDEO_SET_DEF,     /* Menu ID: MENU_VIDEO_SET_DEF */
+        NULL,                   /* TODO */
+    },
+    
     {	/* MENU_LIVE_SET_DEF */
     	MENU_LIVE_INFO,
 		{-1, 0, 0, LIVE_DEF_MAX, LIVE_DEF_MAX, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}		/* UP, DOWN, BACK, SETTING, POWER */
-	},
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
+        MENU_LIVE_SET_DEF,      /* Menu ID: MENU_LIVE_SET_DEF */
+        NULL,
+    },
 	
-    {	/* MENU_CALIBRATION */
+    {	
     	MENU_TOP,
 		{0},
-		{0}
+		{0},
+        MENU_CALIBRATION,       /* Menu ID: MENU_CALIBRATION */
+        NULL,
 	},
 	
-    {	/* MENU_QR_SCAN */
+    {	
     	MENU_PIC_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, 0}			/* BACK */
-	}, //10
+		{0, 0, OLED_KEY_BACK, 0, 0},			/* BACK */
+        MENU_QR_SCAN,           /* Menu ID: MENU_QR_SCAN */
+        NULL,
+    }, //10
 	
     //menu calibartion setting
 #if 0    
@@ -202,7 +374,7 @@ static MENU_INFO mMenuInfos[] = {
     	MENU_SYS_SETTING,
 		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
 		{0, 0, OLED_KEY_BACK, 0, 0}	,	/* BACK */
-		MENU_STORAGE,
+		MENU_STORAGE,           /* Menu ID: MENU_STORAGE */
 		NULL,
 	},
 
@@ -218,49 +390,67 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SYS_DEV_INFO */
     	MENU_SYS_SETTING,
 		{-1, 0, 0, 1, PAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, 0}
+		{0, 0, OLED_KEY_BACK, 0, 0},
+        MENU_SYS_DEV_INFO,      /* Menu ID: MENU_SYS_DEV_INFO */
+        NULL,
 	},
 #endif
 
     {	/* MENU_SYS_ERR */
     	MENU_TOP,
 		{0},
-		{0}
+		{0},
+        MENU_SYS_ERR,
+        NULL,
 	},
+
     {	/* MENU_LOW_BAT */
     	MENU_TOP,
     	{0},
-    	{0}
+    	{0},
+        MENU_LOW_BAT,
+        NULL,
 	},
+
     {	/* MENU_GYRO_START */
     	MENU_SYS_SETTING,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}
+		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_GYRO_START,
+        NULL,
 	},
 	
     {	/* MENU_SPEED_TEST */
     	MENU_PIC_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}
+		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_SPEED_TEST,
+        NULL,
 	},
 	
     {	/* MENU_RESET_INDICATION */
     	MENU_SYS_SETTING,
 		{0},
-		{OLED_KEY_UP, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}
+		{OLED_KEY_UP, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
+        MENU_RESET_INDICATION,
+        NULL,
 	},
 	
     {	/* MENU_WIFI_CONNECT */
     	MENU_SYS_SETTING,
 		{0},
-		{0}
+		{0},
+        MENU_WIFI_CONNECT,
+        NULL,
 	},
 
 		
     {	/* MENU_AGEING */
     	MENU_TOP,
 		{0},
-		{0},		
+		{0},
+        MENU_AGEING,
+        NULL,		
 	},
 	
 #if 0	
@@ -275,19 +465,26 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_NOSIE_SAMPLE */
     	MENU_SYS_SETTING,
 		{0},
-		{0}
+		{0},
+        MENU_NOSIE_SAMPLE,
+        NULL,
 	},
 	
     {	/* MENU_LIVE_REC_TIME */
     	MENU_LIVE_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER}			/* BACK, POWER */
+		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},			/* BACK, POWER */
+        MENU_LIVE_REC_TIME,
+        NULL,
+
 	},
 	
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,
 		{0},
-		{0}
+		{0},
+        MENU_DISP_MSG_BOX,
+        NULL,
 	},
 };
 

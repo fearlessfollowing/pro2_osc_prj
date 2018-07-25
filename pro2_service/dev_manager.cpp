@@ -151,7 +151,7 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
 
     bool bBlockDisk = false;
 
-	Log.d(TAG, "parseAsciiNetlinkMessage: %s", buffer);
+	//Log.d(TAG, "parseAsciiNetlinkMessage: %s", buffer);
 
     sp<NET_LINK_INFO> mLink = sp<NET_LINK_INFO>(new NET_LINK_INFO());
 	
@@ -492,7 +492,7 @@ void dev_manager::uevent_detect_thread()
         }
 
         if (FD_ISSET(device_fd, &read_fds)) {	/* 接收内核发送的NetLink消息 */
-			Log.d(TAG, "kernel have device msg ...");
+			//Log.d(TAG, "kernel have device msg ...");
             if ((n = uevent_kernel_multicast_recv(device_fd, msg, UEVENT_MSG_LEN)) > 0) {
                 parseAsciiNetlinkMessage(msg, n);	/* 解析内核传递的消息 */
             }

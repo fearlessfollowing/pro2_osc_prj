@@ -44,10 +44,13 @@ static QR_STRUCT mQRInfo[] = {
 };
 
 static const char *act_mode[] = {"3d_top_left", "pano"};
-static const char *all_mime[] = {"h264", "h265", "jpeg", "raw"};
+
+static const char *all_mime[] = {"h264", "h265", "jpeg", "raw", "raw+jpeg"};
+
 static const char *all_map[] = {"flat", "cube"};
 
-static const int all_frs[] = {24,25,30,60,120,5};
+static const int all_frs[] = {24, 25, 30, 60, 120, 5};
+
 //static const char *cal_mode[] = {"pano", "3d"};
 //kbits/s
 //static const int all_brs[] = {150000,100000,50000,40000,30000,25000,20000,10000,8000,5000,3000};
@@ -624,6 +627,9 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 				 */	
                 switch (action) {
                     case ACTION_PIC:
+
+                        Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
+                    
                         cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
                         cJSON_AddNumberToObject(param, "delay", mActInfo->delay);
                         if (mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count > 0) {
@@ -631,6 +637,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                             cJSON_AddTrueToObject(burst,"enable");
                             cJSON_AddNumberToObject(burst, "count", mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count);
                             cJSON_AddItemToObject(param, "burst",burst);
+
                         } else if(mActInfo->stOrgInfo.stOrgAct.mOrgP.hdr_count > 0) {
                             cJSON *hdr = cJSON_CreateObject();
                             cJSON_AddTrueToObject(hdr,"enable");
@@ -1024,6 +1031,8 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
             }
             pSrt = cJSON_Print(root);
 			
+            Log.d(TAG, ">>>>> send str %s", pSrt);
+
             write_fifo(EVENT_OLED_KEY, pSrt);
         }
 			break;

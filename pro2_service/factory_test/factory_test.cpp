@@ -23,7 +23,6 @@
 #include <sys/action_info.h>
 #include <hw/battery_interface.h>
 #include <sys/net_manager.h>
-#include <trans/fifo_struct.h>
 #include <util/GitVersion.h>
 #include <log/stlog.h>
 #include <hw/oled_module.h>
@@ -120,13 +119,15 @@ int FactoryTest::awbCorrectTest()
 
 void FactoryTest::enterBlcbpc()
 {
-    mOLEDModule->display_onoff(0);
+	/* 关闭灯 */
+	mOLEDLight->close_all();
+    mOLEDModule->display_onoff(0);	/* 关闭屏幕 */
 }
 
 void FactoryTest::exitBlcbpc()
 {
     mOLEDModule->display_onoff(1);
-
+	/* 恢复灯:pro2_service重启后会自动恢复灯的状态 */
 }
 
 
