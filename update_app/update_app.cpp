@@ -55,9 +55,12 @@
 
 #define TAG "update_app"
 
-#define UAPP_VER "V2.1"
+#define UAPP_VER "V2.2"
 
 static bool update_del_flag = true;
+
+#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
+
 
 enum {
     COPY_UPDAE,
@@ -105,7 +108,6 @@ struct sensor_firm_item firm_items[SENSOR_FIRM_CNT] = {
 
 
 static UPDATE_HEADER gstHeader;
-
 
 /*
  * sections - 段链表
@@ -638,7 +640,6 @@ static bool check_require_exist(const char* mount_point, std::vector<sp<UPDATE_S
     return true;
 }
 
-#define TMP_UNZIP_PATH	"/tmp/update"
 
 /*************************************************************************
 ** 方法名称: get_unzip_update_app
@@ -652,110 +653,111 @@ static bool check_require_exist(const char* mount_point, std::vector<sp<UPDATE_S
 static bool get_unzip_update_app(const char* mount_point)
 {
     bool bRet = false;
-	char image_full_path[512];
+	char image_full_path[512] = {0};
+	char image_cp_dst_path[512] = {0};
 	char pro_update_path[1024];
 	char com_cmd[1024] = {0};
 
 	memset(image_full_path, 0, sizeof(image_full_path));
 	sprintf(image_full_path, "%s/%s", mount_point, UPDATE_IMAGE_FILE);
 
-	/*
-	 * 更改：将/mnt/udiskX/Insta360_Pro2_Update.bin拷贝到/tmp/update/目录下
+	/* 1.将固件拷贝到TMP_UNZIP_PATH目录下
+	 * 将/mnt/udiskX/Insta360_Pro2_Update.bin拷贝到/tmp/update/目录下
 	 */
-	if (access(TMP_UNZIP_PATH, F_OK)) {
+	if (access(TMP_UNZIP_PATH, F_OK)) {	
 		mkdir(TMP_UNZIP_PATH, 0666);
 	}
 
 	Log.d(TAG, "Copy src[%s] ---> dst[%s]", image_full_path, TMP_UNZIP_PATH);
 	sprintf(com_cmd, "cp %s %s", image_full_path, TMP_UNZIP_PATH);
-	if (system(com_cmd)) {
+	if (system(com_cmd)) {	/* 拷贝失败?? */
 		Log.e(TAG, "Copy Update binaray to [%s] failed, what??", TMP_UNZIP_PATH);
 		return false;
-	} else {
+	} else {	/* Success */
+
+		/* 打开拷贝后的文件 */
+		sprintf(image_cp_dst_path, "%s/%s", TMP_UNZIP_PATH, UPDATE_IMAGE_FILE);
+		FILE *fp_bin = fopen(image_cp_dst_path, "rb");	/* 打开/XXXX/Insta360_Pro2_Update.bin */
+		if (fp_bin) {
+        	u8 buf[1024 * 1024];
+        	u32 read_len;
+        	u32 update_app_len;
+        	u32 header_len;
+        	u32 content_len;
+
+			u32 content_offset = strlen(FP_KEY) + VERSION_LEN;
+        	fseek(fp_bin, content_offset, SEEK_SET);
+        	memset(buf, 0, sizeof(buf));
 		
-	}
+			/* 获取压缩文件的长度: 4字节表示压缩文件的长度 */
+        	read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp_bin);
+        	if (read_len != UPDATE_APP_CONTENT_LEN)  {
+            	Log.e(TAG, "get_unzip_update_app: pro_update read update_app content len mismatch(%d %d)", read_len, UPDATE_APP_CONTENT_LEN);
+            	goto EXIT;
+        	}
 
-    FILE *fp_bin = fopen(image_full_path, "rb");	/* 打开/XXXX/Insta360_Pro2_Update.bin */
-    if (fp_bin) {
-        u8 buf[1024 * 1024];
-        u32 read_len;
-        u32 update_app_len;
-        u32 header_len;
-        u32 content_len;
+        	content_offset += read_len;
+        	update_app_len = bytes_to_int(buf);
+        	content_offset += update_app_len;
+        	fseek(fp_bin, content_offset, SEEK_SET);
+
+
+        	read_len = fread(buf, 1, HEADER_CONENT_LEN, fp_bin);
+        	if (read_len != HEADER_CONENT_LEN) {
+            	Log.e(TAG, "get_unzip_update_app: header len mismatch(%d %d)", read_len, HEADER_CONENT_LEN);
+            	goto EXIT;
+        	}
+
 		
-        u32 content_offset = strlen(FP_KEY) + VERSION_LEN;
-        fseek(fp_bin, content_offset, SEEK_SET);
-        memset(buf, 0, sizeof(buf));
+        	header_len = bytes_to_int(buf);
 
-		/* 获取压缩文件的长度: 4字节表示压缩文件的长度 */
-        read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp_bin);
-        if (read_len != UPDATE_APP_CONTENT_LEN)  {
-            Log.e(TAG, "get_unzip_update_app: pro_update read update_app content len mismatch(%d %d)", read_len, UPDATE_APP_CONTENT_LEN);
-            goto EXIT;
-        }
-        content_offset += read_len;
+        	if (header_len != sizeof(UPDATE_HEADER)) {
+            	Log.e(TAG, "get_unzip_update_app: header content len mismatch1(%u %zd)", read_len, sizeof(UPDATE_HEADER));
+            	goto EXIT;
+        	}
 
-        update_app_len = bytes_to_int(buf);
-        content_offset += update_app_len;
+			/* 从镜像中读取UPDATE_HEADER */
+        	memset(buf, 0, sizeof(buf));
+       		read_len = fread(buf, 1, header_len, fp_bin);
+        	if (read_len != header_len) {
+            	Log.e(TAG, "get_unzip_update_app: header content len mismatch2(%d %d)", read_len, header_len);
+            	goto EXIT;
+        	}
 
-        fseek(fp_bin, content_offset, SEEK_SET);
+        	memcpy(&gstHeader, buf, header_len);
 
-        read_len = fread(buf, 1, HEADER_CONENT_LEN, fp_bin);
-        if (read_len != HEADER_CONENT_LEN) {
-            Log.e(TAG, "get_unzip_update_app: header len mismatch(%d %d)", read_len, HEADER_CONENT_LEN);
-            goto EXIT;
-        }
-		
-        header_len = bytes_to_int(buf);
+			/* 检查头部 */
+        	if (!check_header_match(&gstHeader)) {
+				Log.e(TAG, "get_unzip_update_app: check header match failed...");
+            	goto EXIT;
+        	}
 
-        if (header_len != sizeof(UPDATE_HEADER)) {
-            Log.e(TAG, "get_unzip_update_app: header content len mismatch1(%u %zd)", read_len, sizeof(UPDATE_HEADER));
-            goto EXIT;
-        }
+			/* 得到升级压缩包的长度 */
+			content_len = bytes_to_int(gstHeader.len);
+			memset(pro_update_path, 0, sizeof(pro_update_path));
+			sprintf(pro_update_path, "%s/%s", TMP_UNZIP_PATH, PRO_UPDATE_ZIP);
 
-		/* 从镜像中读取UPDATE_HEADER */
-        memset(buf, 0, sizeof(buf));
-        read_len = fread(buf, 1, header_len, fp_bin);
-        if (read_len != header_len) {
-            Log.e(TAG, "get_unzip_update_app: header content len mismatch2(%d %d)", read_len, header_len);
-            goto EXIT;
-        }
-
-        memcpy(&gstHeader, buf, header_len);
-
-		/* 检查头部 */
-        if (!check_header_match(&gstHeader)) {
-			Log.e(TAG, "get_unzip_update_app: check header match failed...");
-            goto EXIT;
-        }
-
-		/* 得到升级压缩包的长度 */
-		content_len = bytes_to_int(gstHeader.len);
-
-		memset(pro_update_path, 0, sizeof(pro_update_path));
-		sprintf(pro_update_path, "%s/%s", mount_point, PRO_UPDATE_ZIP);
-		
-		/* 提取升级压缩包:    pro_update.zip */
-        if (gen_file(pro_update_path, content_len, fp_bin)) {
-            if (tar_zip(pro_update_path, mount_point) == 0) {	/* 解压压缩包 */
-                bRet = true;
-				Log.d(TAG, "unzip pro_update.zip success...");
-            } else {
-				Log.d(TAG, "unzip pro_update.zip failed...");
-            }
-        } else {
-            Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
-        }
-    } else {
-        Log.e(TAG, "update_app open %s fail", image_full_path);
-    }
-	
+			/* 提取升级压缩包:    pro2_update.zip */
+        	if (gen_file(pro_update_path, content_len, fp_bin)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
+            	if (tar_zip(pro_update_path, TMP_UNZIP_PATH) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
+                	bRet = true;
+					Log.d(TAG, "unzip pro2_update.zip to [%s] success...", TMP_UNZIP_PATH);
+           	 	} else {
+					Log.e(TAG, "unzip pro_update.zip to [%s] failed...", TMP_UNZIP_PATH);
+            	}
+			} else {
+            	Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
+        	}
 EXIT:
-
-    if (fp_bin) {
-        fclose(fp_bin);
-    }
-    return bRet;
+    		if (fp_bin) {
+        		fclose(fp_bin);
+   	 		}
+    		return bRet;
+		} else {
+        	Log.e(TAG, "update_app open %s fail", image_full_path);
+			return false;
+    	}
+	}
 }
 
 
@@ -792,18 +794,18 @@ static int start_update_app(const char* mount_point)
 			/* 判断pro_update/bill.list文件是否存在
 			 * 系统将根据该文件进行程序升级
 			 */
-            if (!check_require_exist(mount_point, mSections)) {	/* 检查必备的升级程序是否存在 */
+            if (!check_require_exist(TMP_UNZIP_PATH, mSections)) {	/* 检查必备的升级程序是否存在: bill.list */
 				iRet = ERR_UPAPP_BILL;
             } else {
 				/** 根据mSections的各个section进行更新 */
-				sprintf(update_root_path, "%s/%s", mount_point, PRO2_UPDATE_DIR);
+				sprintf(update_root_path, "%s/%s", TMP_UNZIP_PATH, PRO2_UPDATE_DIR);
 				iRet = update_sections(update_root_path, mSections);
 			}
-        } else {
-			Log.e(TAG, "get update_app form Insta360_Pro_Update.bin failed...");
+        } else {	/* 提取升级包失败 */
+			Log.e(TAG, "start_update_app: get update_app form Insta360_Pro_Update.bin failed...");
 			iRet = ERR_UPAPP_GET_APP_TAR;
 		}
-    } else  {
+    } else  {	/* 电池电量低 */
         Log.e(TAG, "battery low, can't update...");
         iRet = ERR_UPAPP_BATTERY_LOW;
     }
@@ -1100,6 +1102,51 @@ static void deal_update_result(int ret, const char* mount_point)
 int main(int argc, char **argv)
 {
     int iRet = -1;
+	const char* update_image_path = NULL;
+	char delete_file_path[512] = {0};
+
+	/* 注册信号处理 */
+	registerSig(default_signal_handler);
+	signal(SIGPIPE, pipe_signal_handler);
+
+
+	/* 配置日志 */
+    arlog_configure(true, true, UPDATE_APP_LOG_PATH, false);
+
+	iRet = __system_properties_init();		/* 属性区域初始化 */
+	if (iRet) {
+		Log.e(TAG, "update_app service exit: __system_properties_init() faile, ret = %d\n", iRet);
+		return -1;
+	}
+	
+	Log.d(TAG, ">>> Service: update_app starting ^_^ !! <<");
+	property_set(PROP_SYS_UA_VER, UAPP_VER);
+	
+	/* 1.获取升级包的路径：/mnt/udisk1/XXX */
+	update_image_path = property_get(PROP_SYS_UPDATE_IMG_PATH);
+
+	Log.d(TAG, "get update image path [%s]", update_image_path);
+
+	/* 2.根据文件夹中是否有flag_delete文件来决定升级成功后是否删除固件 */
+	sprintf(delete_file_path, "%s/flag_delete", update_image_path);
+	if (access(delete_file_path, F_OK) != 0) {
+		update_del_flag = true;
+		Log.d(TAG, "flag file [%s] not exist, will delete image if update ok", delete_file_path);
+	} else {
+		update_del_flag = false;
+		Log.d(TAG, "flag file [%s] exist", delete_file_path);
+
+	}
+
+    iRet = start_update_app(update_image_path);		/* 传递的是固件所在的存储路径 */
+
+	/** 根据返回值统一处理 */
+	deal_update_result(iRet, update_image_path);
+    return iRet;
+}
+
+
+
 	const char* update_image_path = NULL;
 	char delete_file_path[512] = {0};
 

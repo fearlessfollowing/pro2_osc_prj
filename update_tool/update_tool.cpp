@@ -7,9 +7,10 @@
 ** 作     者: skymixos, ws
 ** 修改记录:
 ** V1.0			ws			2017-03-24			创建文件
-** V1.1			skymixos	2018年4月18日			添加注释,并做修改(版本号)
-** V1.2			skymixos	2018年4月19日			增加解包功能
-** V1.3			skymixos	2018年5月7日			增加自动生成清单文件
+** V1.1			skymixos	2018年4月18日		添加注释,并做修改(版本号)
+** V1.2			skymixos	2018年4月19日		增加解包功能
+** V1.3			skymixos	2018年5月7日		增加自动生成清单文件
+** V1.4			skymixos	2018年7月27日		确保固件升级放在第一个section中			
 *************************************************************************/
 
 #include <stdio.h>
@@ -32,7 +33,7 @@
 #include <dirent.h>
 
 
-#define UPDATE_TOOL_VER	"V1.3 Created By skymixos"
+#define UPDATE_TOOL_VER	"V1.4 Created By skymixos"
 
 
 /*
@@ -570,6 +571,7 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 	
 		/* 依次读取各个目录项 */
 		while ((de = readdir(dir))) {
+
 			if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || (de->d_name[1] == '.' && de->d_name[2] == '\0')))
 				continue;
 		
@@ -579,12 +581,10 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 			/* 如果目录项是一个子目录,将建立一个UPDATE_SECITON对象并遍历该子目录的内容 */
 			if (de->d_type == DT_DIR) {
 				
-				for (i = 0; i < sizeof(section_cfgs)/sizeof(section_cfgs[0]); i++) {
-					if (strcmp(section_cfgs[i].section_name, de->d_name) == 0)
-					{
+				for (i = 0; i < sizeof(section_cfgs) / sizeof(section_cfgs[0]); i++) {
+					if (strcmp(section_cfgs[i].section_name, de->d_name) == 0) {
 						pCur = (sp<UPDATE_SECTION>)(new UPDATE_SECTION());
-						if (pCur == nullptr)
-						{
+						if (pCur == nullptr) {
 							printf("alloc UPDATE_SECTION failed...\n");
 							iRet = -1;
 							goto EXIT_LOOP;
@@ -593,8 +593,7 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 					}
 				}
 		
-				if (i >= sizeof(section_cfgs)/sizeof(section_cfgs[0]))
-				{
+				if (i >= sizeof(section_cfgs)/sizeof(section_cfgs[0])) {
 					continue;
 				}
 		
@@ -612,17 +611,13 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 					printf("open dir[%s] failed ...\n", sub_dir_base);	
 					iRet = -1;
 					goto EXIT_LOOP;
-				}
-				else
-				{
-					while ((sub_de = readdir(sub_dir)))
-					{
+				} else {
+					while ((sub_de = readdir(sub_dir))) {
 						if (sub_de->d_name[0] == '.' && (sub_de->d_name[1] == '\0' || (sub_de->d_name[1] == '.' && sub_de->d_name[2] == '\0')))
 							continue;
 					
 						pItem = (sp<UPDATE_ITEM_INFO>)(new UPDATE_ITEM_INFO());
-						if (pItem == nullptr)
-						{
+						if (pItem == nullptr) {
 							printf("alloc UPDATE_ITEM_INFO failed...\n");
 							iRet = -1;
 							closedir(sub_dir);
@@ -641,6 +636,7 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 			}
 			
 		}
+
 		printf("seciont nr: %lu\n", sections.size());
 
 EXIT_LOOP:		
@@ -677,11 +673,9 @@ static void writeSection(int fd, const char* name, std::vector<sp<UPDATE_SECTION
 {
 	sp<UPDATE_SECTION> pSection;
 
-	for (u32 i = 0; i < sections.size(); i++)
-	{
+	for (u32 i = 0; i < sections.size(); i++) {
 		pSection = sections.at(i);
-		if (strcmp(pSection->cname, name) == 0)
-		{
+		if (strcmp(pSection->cname, name) == 0) {
 			write_one_section(fd, pSection);
 		}
 	}
@@ -697,14 +691,12 @@ static int write_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char*
 	
 	printf("bill file name [%s]\n", bill_path);
 
-	if (access(bill_path, F_OK) == 0)
-	{
+	if (access(bill_path, F_OK) == 0) {
 		unlink(bill_path);
 	}
 
 	fd = open(bill_path, O_CREAT|O_RDWR, 0644);
-	if (fd < 0)
-	{
+	if (fd < 0) {
 		printf("create file [%s] failed...\n", bill_path);
 		return -1;
 	}
@@ -736,13 +728,13 @@ static int write_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char*
 		}
 	}
 #else
+	writeSection(fd, "firmware", sections);		/* 首先更新的固件部分 */
 	writeSection(fd, "cfg", sections);
 	writeSection(fd, "data", sections);
 	writeSection(fd, "bin", sections);
 	writeSection(fd, "lib", sections);
-	writeSection(fd, "firmware", sections);
-
 #endif
+
 	close(fd);
 	return 0;
 }
@@ -758,12 +750,9 @@ static int gen_bill_list()
 	
 	/* 1.一次遍历各个目录,每个目录对应一个section */
 	iRet = gen_sections(mSections, "./pro2_update");
-	if (iRet)
-	{
+	if (iRet) {
 		printf("gen_sections failed ...\n");
-	}
-	else
-	{
+	} else {
 		/* 将mSections的内容写入到pro2_update/bill.list文件中 */
 		iRet = write_sections(mSections, "./pro2_update/bill.list");
 	}
@@ -828,16 +817,13 @@ int main(int argc, char **argv)
     //set k1.00 default
     snprintf(k_version, sizeof(k_version), "%s", "k1.00");
 
-	if (argc < 3)
-	{
+	if (argc < 3) {
 		usage();
 		return -1;
 	}
 
-    while ((ch = getopt(argc, argv, "c:m:t:k:v:l:h")) != -1)
-    {
-        switch (ch)
-        {
+    while ((ch = getopt(argc, argv, "c:m:t:k:v:l:h")) != -1) {
+        switch (ch) {
         case 'c':
             cid = atoi(optarg);
             break;
@@ -895,8 +881,7 @@ int main(int argc, char **argv)
 	 * step 2.检查必须文件是否存在(update_app以及pro_update目录)
 	 */
 	iRet = check_neccessray_file_dir();
-	if (iRet)
-	{
+	if (iRet) {
 		printf("loss some file or dir, please check!\n");
 		return -1;
 	}
@@ -923,13 +908,10 @@ int main(int argc, char **argv)
 	/*
 	 * step 5.生成镜像文件: Insta360_Pro_Update.bin
 	 */
-	if (cid >= 0 && cid <= 255)
-	{	/* 用户ID和厂商ID均为0 - 255 */
-        if (mid >= 0 && mid <= 255)
-        {
+	if (cid >= 0 && cid <= 255) {	/* 用户ID和厂商ID均为0 - 255 */
+        if (mid >= 0 && mid <= 255) {
             CHECK_EQ(type, 0);	/* 检查是否制作应用升级包: type = 0 */
-            if (encrpyt >= 0 && encrpyt <= 1)
-            {
+            if (encrpyt >= 0 && encrpyt <= 1)  {
                 const char *file_name = update_zip_name[type];	/* file_name = "pro_update.zip" */
 
 				/* 构造一个更新头部(UPDATE_HEADER)    4A1E363*/
@@ -951,14 +933,10 @@ int main(int argc, char **argv)
                 CHECK_EQ(iRet, 0);
                 check_final_bin_size(check_size + 32);	/* 最后检查文件长度是否一致 */
             }
-        }
-        else
-        {
+        } else  {
             printf("invalid mid %d ,pls input 0-255\n", mid);
         }
-    }
-	else
-	{
+    } else {
         printf("invalid cid %d ,pls input 0-255\n", cid);
     }
 EXIT:
