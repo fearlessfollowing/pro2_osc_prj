@@ -34,11 +34,14 @@
 #define PROP_SYS_AP_PASSWD			"sys.wifi_passwd"
 #define PROP_SYS_AP_MODE			"sys.wifi_mode"
 #define PROP_SYS_AP_CHANNEL			"sys.wifi_channel"
+#define PROP_WIFI_DRV_EXIST         "sys.wifi_driver"
+#define PROP_WIFI_AP_STATE          "sys.wifi_ap_state"
 
 #define PROP_SYS_FIRM_VER 			"sys.firm_ver"			/*  */
 #define PROP_SYS_IMAGE_VER 			"sys.img_ver"
 #define PROP_UC_START_UPDATE 		"sys.uc_update_app"
 #define PROP_UC_START_APP 			"sys.uc_start_app"
+
 
 #define PROP_SYS_UPDATE_IMG_PATH	"update_image_path"
 
@@ -46,6 +49,8 @@
 #define PROP_SYS_UC_VER 			"sys.uc_ver"
 
 #define PROP_SYS_UA_VER 			"sys.ua_ver"
+
+#define PROP_PWR_FIRST      	    "sys.hub_reset_first"
 
 /*
  * 启动动画属性
@@ -71,18 +76,16 @@
 #define PROP_SYS_DEV_DISK9			"sys.disk9"
 
 
-#define PROP_MAX_DISK_SLOT_NUM	10
+#define PROP_MAX_DISK_SLOT_NUM	    10
 
 
 /*
  * WIFI固件路径
  */
 #define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
-
 #define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand_sn"
-
-
 #define SYS_TMP 				"/home/nvidia/insta360/etc/sys_tmp"
+
 
 
 #if 0
@@ -95,9 +98,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
  */
 #define  FIFO_FROM_CLIENT		"/home/nvidia/insta360/fifo/fifo_read_client"
 #define  FIFO_TO_CLIENT			"/home/nvidia/insta360/fifo/fifo_write_client"
-
-
-#define ETC_RESOLV_PATH         "/etc/resolv.conf"
+#define  ETC_RESOLV_PATH         "/etc/resolv.conf"
 
 
 /*

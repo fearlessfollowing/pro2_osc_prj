@@ -7,8 +7,9 @@
 ** 作     者: skymixos, ws
 ** 修改记录:
 ** V1.0			ws			2017-03-24			创建文件
-** V2.0			skymixos	2018年4月18日			添加注释,并做修改(版本号)
-** V2.1 		skymixos	2018年5月7日			修改升级流程
+** V2.0			skymixos	2018年4月18日		 添加注释,并做修改(版本号)
+** V2.1 		skymixos	2018年5月7日		 修改升级流程
+** V2.2			skymixos	2018年7月26日		 解压升级包到系统的/tmp/update/目录下
 *************************************************************************/
 
 /*
@@ -63,7 +64,6 @@ enum {
     DIRECT_UPDATE,
     ERROR_UPDATE,
 };
-
 
 
 typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION> & section);
@@ -622,29 +622,29 @@ static bool check_require_exist(const char* mount_point, std::vector<sp<UPDATE_S
 	Log.d(TAG, "bill.list abs path: %s", bill_path);
 
 	/* 检查bill.list文件是否存在 */
-	if (access(bill_path, F_OK) != 0)
-	{
+	if (access(bill_path, F_OK) != 0) {
 		Log.e(TAG, "bill.list not exist, check failed...");
 		return false;
 	}
 
 	/* 解析该配置文件 */
 	iRet = parse_sections(section_list, bill_path);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "parse bill.list failed, please check bill.list...");
 		return false;
 	}
+
 	Log.d(TAG, "check bill.list success...");
     return true;
 }
 
-
+#define TMP_UNZIP_PATH	"/tmp/update"
 
 /*************************************************************************
 ** 方法名称: get_unzip_update_app
 ** 方法功能: 从镜像文件中获取升级包
 ** 入口参数: 
+**		mount_pointer - 挂载点路径（如：/mnt/udisk1/ + Insta360_Pro2_Update.bin）
 ** 返 回 值: 成功返回0;失败返回-1
 ** 调     用: start_update_app
 **
@@ -654,9 +654,26 @@ static bool get_unzip_update_app(const char* mount_point)
     bool bRet = false;
 	char image_full_path[512];
 	char pro_update_path[1024];
+	char com_cmd[1024] = {0};
 
 	memset(image_full_path, 0, sizeof(image_full_path));
 	sprintf(image_full_path, "%s/%s", mount_point, UPDATE_IMAGE_FILE);
+
+	/*
+	 * 更改：将/mnt/udiskX/Insta360_Pro2_Update.bin拷贝到/tmp/update/目录下
+	 */
+	if (access(TMP_UNZIP_PATH, F_OK)) {
+		mkdir(TMP_UNZIP_PATH, 0666);
+	}
+
+	Log.d(TAG, "Copy src[%s] ---> dst[%s]", image_full_path, TMP_UNZIP_PATH);
+	sprintf(com_cmd, "cp %s %s", image_full_path, TMP_UNZIP_PATH);
+	if (system(com_cmd)) {
+		Log.e(TAG, "Copy Update binaray to [%s] failed, what??", TMP_UNZIP_PATH);
+		return false;
+	} else {
+		
+	}
 
     FILE *fp_bin = fopen(image_full_path, "rb");	/* 打开/XXXX/Insta360_Pro2_Update.bin */
     if (fp_bin) {
@@ -747,6 +764,7 @@ EXIT:
 ** 方法名称: start_update_app
 ** 方法功能: 执行更新操作
 ** 入口参数: 
+**		mount_point - 挂载点路径
 ** 返 回 值: 成功返回0;失败返回-1
 ** 调     用: OS
 **
@@ -758,9 +776,9 @@ static int start_update_app(const char* mount_point)
 	std::vector<sp<UPDATE_SECTION>> mSections;
 	char update_root_path[512] = {0};
 	
-	Log.d(TAG, "start_update_app, init_oled_module ...\n");
+	Log.d(TAG, "start_update_app: init_oled_module ...\n");
 
-    init_oled_module();	/* 初始化OLED模块 */
+    init_oled_module();		/* 初始化OLED模块 */
 	
     disp_update_icon(ICON_UPGRADE_SCHEDULE00128_64);	/* 显示正在更新 */
 
@@ -1084,6 +1102,7 @@ int main(int argc, char **argv)
     int iRet = -1;
 	const char* update_image_path = NULL;
 	char delete_file_path[512] = {0};
+
 	/* 配置日志 */
     arlog_configure(true, true, UPDATE_APP_LOG_PATH, false);
 
@@ -1096,8 +1115,9 @@ int main(int argc, char **argv)
 	Log.d(TAG, ">>> Service: update_app starting ^_^ !! <<");
 	property_set(PROP_SYS_UA_VER, UAPP_VER);
 	
-	/* 获取升级包的路径 */
+	/* 获取升级包的路径：/mnt/udisk1/XXX */
 	update_image_path = property_get(PROP_SYS_UPDATE_IMG_PATH);
+
 	Log.d(TAG, "get update image path [%s]", update_image_path);
 
 	sprintf(delete_file_path, "%s/flag_delete", update_image_path);
@@ -1114,18 +1134,7 @@ int main(int argc, char **argv)
 	registerSig(default_signal_handler);
 	signal(SIGPIPE, pipe_signal_handler);
 	
-
-
-	#if 0
-    create_dir("/data/etc");
-    create_dir("/sdcard/noise_sample");
-	#endif
-	
     iRet = start_update_app(update_image_path);
-
-	#if 0
-    chmod_wifi_misc();
-	#endif
 
 	/** 根据返回值统一处理 */
 	deal_update_result(iRet, update_image_path);

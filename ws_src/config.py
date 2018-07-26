@@ -176,6 +176,11 @@ PATH_INFO = '/osc/info'
 PATH_CMD_STITCH = '/osc/commands/stitch'
 # PATH_PIC_NAME = '/osc/pic/<media_name>'
 
+
+#配置文件的路径：
+INSTA360_PRO2_CFG_BASE = "/home/nvidia/insta360/etc"
+SYS_SETTING_PATH = INSTA360_PRO2_CFG_BASE + "user_cfg"
+
 """camera_state"""
 STATE_IDLE = 0x00
 STATE_RECORD = 0x01

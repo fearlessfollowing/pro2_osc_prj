@@ -452,7 +452,7 @@ static ACTION_INFO mPICAction[]= {
 		60,
 		5,
         {
-	        3,	//EN_JPEG_RAW,		// EN_JPEG -> EN_JPEG_RAW
+	        EN_JPEG,	//EN_JPEG_RAW,		// EN_JPEG -> EN_JPEG_RAW
 	        SAVE_DEF,
 	        4000,
 	        3000,
@@ -473,7 +473,7 @@ static ACTION_INFO mPICAction[]= {
 	    30,
 	    5,
 		{
-			3,	//EN_JPEG_RAW,
+			EN_JPEG,	//EN_JPEG_RAW,
 			SAVE_DEF,
 			4000,
 			3000,
@@ -493,7 +493,7 @@ static ACTION_INFO mPICAction[]= {
         30,
         5,
         {
-            EN_JPEG_RAW,
+            EN_JPEG,
             SAVE_DEF,
             4000,
             3000,
@@ -515,7 +515,7 @@ static ACTION_INFO mPICAction[]= {
 		165,
 		5,
 		{
-			3,	//EN_JPEG,
+			EN_JPEG,	//EN_JPEG,
 			SAVE_DEF,
 			4000,
 			3000,

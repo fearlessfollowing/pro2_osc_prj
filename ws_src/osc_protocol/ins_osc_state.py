@@ -96,14 +96,14 @@ class osc_state(threading.Thread):
 
     def run(self):
         self.func = OrderedDict({
-            osc_state_handle.CLEAR_TL_COUNT:self.clear_tl_count,
-            osc_state_handle.RM_RES_ID:self.rm_res_id,
-            osc_state_handle.SET_DEV_SPEED_SUC:self.set_dev_speed_test_suc,
-            osc_state_handle.SET_TL_COUNT:self.set_tl_count,
-            osc_state_handle.ADD_RES_ID:self.add_res_id,
-            osc_state_handle.HAND_SAVE_PATH:self.handle_save_path_change,
-            osc_state_handle.HANDLE_BAT:self.handle_battery,
-            osc_state_handle.HANDLE_DEV_NOTIFY:self.handle_dev_notify_action
+            osc_state_handle.CLEAR_TL_COUNT:    self.clear_tl_count,
+            osc_state_handle.RM_RES_ID:         self.rm_res_id,
+            osc_state_handle.SET_DEV_SPEED_SUC: self.set_dev_speed_test_suc,
+            osc_state_handle.SET_TL_COUNT:      self.set_tl_count,
+            osc_state_handle.ADD_RES_ID:        self.add_res_id,
+            osc_state_handle.HAND_SAVE_PATH:    self.handle_save_path_change,
+            osc_state_handle.HANDLE_BAT:        self.handle_battery,
+            osc_state_handle.HANDLE_DEV_NOTIFY: self.handle_dev_notify_action
         })
 
         while self._exit is False:
@@ -277,9 +277,12 @@ class osc_state(threading.Thread):
         except Exception as e:
             Err('set_gps_state exception {}'.format(e))
 
+    # 设置_snd_state
     def set_snd_state(self,param):
         try:
-            self.poll_info[SND_STATE] = param
+            # 将字符串转换为json对象, 2018年7月26日（修复BUG）
+            #self.poll_info[SND_STATE] = param
+            self.poll_info[SND_STATE] = json.loads(param)
         except Exception as e:
             Err('set_snd_state exception {}'.format(e))
 

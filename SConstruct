@@ -72,6 +72,9 @@ pro2_service_obj = SConscript('./pro2_service/SConscript')
 com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
+############################ udisk_test ##################################
+udisk_test_obj = SConscript('./pro2_service/udisk/SConscript')
+com_env.Program('./out/udisk_test', udisk_test_obj)
 
 
 

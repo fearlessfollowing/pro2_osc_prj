@@ -47,6 +47,8 @@
 
 #include <trans/fifo.h>
 
+#include <system_properties.h>
+
 using namespace std;
 
 #define TAG "NetManager"
@@ -486,6 +488,21 @@ WiFiNetDev::WiFiNetDev(int work_mode, string name, int iMode):NetDev(DEV_WLAN, w
 																,bLoadDrvier(false)
 {
     Log.d(TAG, "constructor WiFi device");
+	int iRet = -1;
+	char cmd[512] = {0};
+
+	if (bLoadDrvier == false) {	
+		sprintf(cmd, "insmod %s", BCMDHD_DRIVER_PATH);
+		iRet = system(cmd);
+		if (iRet && iRet != 256) {
+			Log.e(TAG, "+_+>> load wifi driver failed, what's wrong??, ret = %d", iRet);
+			property_set(PROP_WIFI_DRV_EXIST, "false");
+		} else {
+			Log.d(TAG, "^^_^^ load wifi driver success!!!!");
+			property_set(PROP_WIFI_DRV_EXIST, "true");
+			bLoadDrvier = true;
+		}
+	}
 }
 
 WiFiNetDev::~WiFiNetDev()
@@ -493,18 +510,12 @@ WiFiNetDev::~WiFiNetDev()
     Log.d(TAG, "deconstructor WiFi device...");
 }
 
+
 int WiFiNetDev::netdevOpen()
 {
 	char cmd[512] = {0};
 	u32 i;
 	int iResult;
-
-	if (bLoadDrvier == false) {	
-		sprintf(cmd, "insmod %s", BCMDHD_DRIVER_PATH);
-		system(cmd);	
-
-		bLoadDrvier = true;
-	}
 
 	if (getWiFiWorkMode() == WIFI_WORK_MODE_AP) {
 		
@@ -512,7 +523,6 @@ int WiFiNetDev::netdevOpen()
 		
 		memset(cmd, 0, sizeof(cmd));
 		sprintf(cmd, "hostapd -B %s", WIFI_TMP_AP_CONFIG_FILE);
-
 
 		for (i = 0; i < 3; i++) {
 			iResult = system(cmd);
@@ -523,9 +533,11 @@ int WiFiNetDev::netdevOpen()
 
 		if (i >= 3) { 
 			Log.d(TAG, "NetManager: startup hostapd Failed, reason(%d)", iResult);
+			property_set(PROP_WIFI_AP_STATE, "false");
 		} else {
 		
 			Log.d(TAG, "NetManager: startup hostapd Sucess");
+			property_set(PROP_WIFI_AP_STATE, "true");
 			setCurIpAddr(WLAN0_DEFAULT_IP, true);
 		}		
 
@@ -537,11 +549,12 @@ int WiFiNetDev::netdevOpen()
 
 int WiFiNetDev::netdevClose()
 {
+
 	system("killall hostapd");
-
 	setCurIpAddr(OFF_IP, true);
-
 	system("ifconfig wlan0 down");
+	property_set(PROP_WIFI_AP_STATE, "false");
+
 	return 0;
 }
 
@@ -687,6 +700,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 
 	switch (what) {
+
 		case NETM_POLL_NET_STATE: {		/* 轮询网络设备的状态 */
 			
             if (!mPollMsg) {
@@ -778,12 +792,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
             tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
 			if (tmpNetDev) {
 				if (tmpNetDev->getNetDevActiveState() == true) {
-					Log.e(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
+					Log.e(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName().c_str());
 				} else {
 					if (tmpNetDev->netdevOpen() == 0) {
 						tmpNetDev->setNetDevActiveState(true);
 					} else {
-						Log.e(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
+						Log.e(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName().c_str());
 					}
 				}
 			}			
@@ -801,12 +815,12 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
             tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
 			if (tmpNetDev) {
 				if (tmpNetDev->getNetDevActiveState() == false) {
-					Log.e(TAG, "NetManager: netdev [%s] have actived, ignore this command", tmpNetDev->getDevName());
+					Log.e(TAG, "NetManager: netdev [%s] have inactived, ignore this command", tmpNetDev->getDevName().c_str());
 				} else {
 					if (tmpNetDev->netdevClose() == 0) {
 						tmpNetDev->setNetDevActiveState(false);
 					} else {
-						Log.e(TAG, "NetManager: netdev[%s] active failed...", tmpNetDev->getDevName());
+						Log.e(TAG, "NetManager: netdev[%s] inactive failed...", tmpNetDev->getDevName().c_str());
 					}
 				}
 			}			
@@ -834,11 +848,16 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 					tmpNetDev->setCurGetIpMode(GET_IP_STATIC);
 				} else {	/* DHCP */
 					/* 如果已经缓存了DHCP地址,直接使用DHCP地址,否则将启动DHCP */
+#ifdef ENABLE_USE_CACHED_DHCP_IP					
 					if (tmpNetDev->isCachedDhcpAddr()) {
 						tmpNetDev->setNetDevIp2Phy(tmpNetDev->getCachedDhcpAddr());
 					} else {
 						tmpNetDev->getIpByDhcp();
 					}
+#else
+					tmpNetDev->getIpByDhcp();
+
+#endif
 					tmpNetDev->setCurGetIpMode(GET_IP_DHCP);
 				}
             }
@@ -1085,7 +1104,9 @@ void NetManager::dispatchIpPolicy(int iPolicy)
 				strcpy(mLastDispIp, tmpEthDev->getCurIpAddr());
 				bUpdate = true;
 			} else {
+#ifdef ENABLE_DEBUG_NETM
 				Log.d(TAG, "Lan ip equal mLastDispIp");
+#endif
 			}
 		} else if (tmpWlanDev && strcmp(tmpWlanDev->getCurIpAddr(), "0.0.0.0")) {
 			if (strcmp(tmpWlanDev->getCurIpAddr(), mLastDispIp)) {

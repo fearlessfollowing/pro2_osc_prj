@@ -287,29 +287,29 @@ class control_center:
         )
 
         self.state_notify_func = OrderedDict({
-            config._STATE_NOTIFY:self.state_notify,
-            config._RECORD_FINISH:self.rec_notify,
-            config._PIC_NOTIFY:self.pic_notify,
-            config._RESET_NOTIFY:self.reset_notify,
-            config._QR_NOTIFY:self.qr_notify,
-            config._CALIBRATION_NOTIFY:self.calibration_notify,
-            config._PREVIEW_FINISH: self.preview_finish_notify,
-            config._LIVE_STATUS:self.live_stats_notify,
-            config._NET_LINK_STATUS:self.net_link_state_notify,
-            config._GYRO_CALIBRATION:self.gyro_calibration_finish_notify,
-            config._SPEED_TEST_NOTIFY:self.storage_speed_test_finish_notify,
-            config._LIVE_FINISH:self.handle_live_finsh,
-            config._LIVE_REC_FINISH:self.handle_live_rec_finish,
-            config._PIC_ORG_FINISH:self.handle_pic_org_finish,
-            config._CAL_ORG_FINISH:self.handle_cal_org_finish,
-            config._TIMELAPSE_PIC_FINISH:self.handle_timelapse_pic_finish,
-            config._NOISE_FINISH:self.handle_noise_finish,
-            config._GPS_NOTIFY:self.gps_notify,
-            config._STITCH_NOTIFY:self.stitch_notify,
-            config._BLC_FINISH:self.calibration_blc_notify,
-            config._SND_NOTIFY:self.snd_notify,
-            config._BLC_FINISH: self.calibration_blc_notify,
-            config._BPC_FINISH: self.calibration_bpc_notify,
+            config._STATE_NOTIFY:           self.state_notify,
+            config._RECORD_FINISH:          self.rec_notify,
+            config._PIC_NOTIFY:             self.pic_notify,
+            config._RESET_NOTIFY:           self.reset_notify,
+            config._QR_NOTIFY:              self.qr_notify,
+            config._CALIBRATION_NOTIFY:     self.calibration_notify,
+            config._PREVIEW_FINISH:         self.preview_finish_notify,
+            config._LIVE_STATUS:            self.live_stats_notify,
+            config._NET_LINK_STATUS:        self.net_link_state_notify,
+            config._GYRO_CALIBRATION:       self.gyro_calibration_finish_notify,
+            config._SPEED_TEST_NOTIFY:      self.storage_speed_test_finish_notify,
+            config._LIVE_FINISH:            self.handle_live_finsh,
+            config._LIVE_REC_FINISH:        self.handle_live_rec_finish,
+            config._PIC_ORG_FINISH:         self.handle_pic_org_finish,
+            config._CAL_ORG_FINISH:         self.handle_cal_org_finish,
+            config._TIMELAPSE_PIC_FINISH:   self.handle_timelapse_pic_finish,
+            config._NOISE_FINISH:           self.handle_noise_finish,
+            config._GPS_NOTIFY:             self.gps_notify,
+            config._STITCH_NOTIFY:          self.stitch_notify,
+            config._BLC_FINISH:             self.calibration_blc_notify,
+            config._SND_NOTIFY:             self.snd_notify,
+            config._BLC_FINISH:             self.calibration_blc_notify,
+            config._BPC_FINISH:             self.calibration_bpc_notify,
             
             # config._STOP_REC_FINISH:self.handle_stop_rec_finish,
             # config._STOP_LIVE_FINISH:self.handle_stop_live_finish,
@@ -632,7 +632,7 @@ class control_center:
     # 1:全景声
     # "dev_name":string
     # }
-    def snd_notify(self,param):
+    def snd_notify(self, param):
         Info('snd_notify param {}'.format(param))
         self.set_snd_state(param)
 
@@ -1969,7 +1969,7 @@ class control_center:
 
     #{"flicker": 0, "speaker": 0, "light_on": 0, "fan_on": 0, "aud_on": 0, "aud_spatial": 0, "set_logo": 0,"gyro_on":0}};
     def get_all_sys_cfg(self):
-        filename = '/data/etc/user_cfg'
+        filename = config.SYS_SETTING_PATH
 
         all_cfg = ['flicker',
                    'speaker',
@@ -2017,6 +2017,7 @@ class control_center:
             return dict_to_jsonstr(res)
         else:
             return cmd_error(req[_name],'camera_get_sys_setting','sys cfg none')
+
 
     def start_rec(self,req, from_oled = False):
         # osc_state_handle.set_rec_info(OrderedDict())
@@ -3640,7 +3641,7 @@ class control_center:
         self.release_sem_camera()
         Info('handle_oled_key over')
 
-    def handle_notify_from_camera(self,content):
+    def handle_notify_from_camera(self, content):
         Info('handle notify content {}'.format(content))
         self.acquire_sem_camera()
         try:

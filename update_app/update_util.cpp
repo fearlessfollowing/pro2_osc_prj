@@ -347,6 +347,10 @@ int kill_app(const char *app_name)
     return iRet;
 }
 
+
+/*
+ * gen_file - 
+ */
 bool gen_file(const char *name, u32 file_size, FILE *fp_read)
 {
     u32 gen_file_size = 0;
@@ -367,6 +371,7 @@ bool gen_file(const char *name, u32 file_size, FILE *fp_read)
         max_read_size = file_size;
         fseek(fp_write, 0L, SEEK_SET);
         memset(buf, 0, sizeof(buf));
+        
         if (max_read_size > sizeof(buf)) {
             u32 read_bytes = sizeof(buf);
             while ((read_len = fread(buf, 1, read_bytes, fp_read)) > 0) {

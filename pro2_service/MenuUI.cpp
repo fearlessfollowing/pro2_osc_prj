@@ -575,20 +575,19 @@ static const int vid_def_setting_menu[][VID_DEF_MAX] =
 
 
 
-static const int live_def_setting_menu[][LIVE_DEF_MAX] =
-        {
-                {
-#ifdef LIVE_ORG
-                        ICON_ORIGIN_NORMAL_78_1678_16,
-#endif
-                        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
-                        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
-                        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
-                        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
-                        ICON_VIDEO_INFO08_NORMAL_0_48_78_1678_16,
-                        ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
 
-                },
+static const int live_def_setting_menu[][LIVE_DEF_MAX] = {
+    {
+#ifdef LIVE_ORG
+        ICON_ORIGIN_NORMAL_78_1678_16,
+#endif
+        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
+        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
+        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
+        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
+        ICON_VIDEO_INFO08_NORMAL_0_48_78_1678_16,
+        ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
+     },
                 {
 #ifdef LIVE_ORG
                         ICON_ORIGIN_HIGH_78_1678_16,
@@ -1304,8 +1303,10 @@ void MenuUI::init_cfg_select()
         msg = (sp<ARMessage>)(new ARMessage(NETM_CLOSE_NETDEV));
 	}	
 
+    Log.d(TAG, "init_cfg_select: wifi state[%d]", mProCfg->get_val(KEY_WIFI_ON));
     msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
     NetManager::getNetManagerInstance()->postNetMessage(msg);
+
 }
 
 
@@ -3379,6 +3380,11 @@ void MenuUI::disp_wifi(bool bState, int disp_main)
 void MenuUI::wifi_action()
 {
     Log.e(TAG, " wifi_action %d", mProCfg->get_val(KEY_WIFI_ON));
+    
+    const char* pWifiDrvProp = NULL;
+    int iCmd = -1;
+    bool bShowWifiIcon = false;
+    int iSetVal = 0;
 
     sp<ARMessage> msg;
     sp<DEV_IP_INFO> tmpInfo;
@@ -3389,24 +3395,56 @@ void MenuUI::wifi_action()
     strcpy(tmpInfo->ipAddr, WLAN0_DEFAULT_IP);
     tmpInfo->iDevType = DEV_WLAN;
 
-    if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
-        Log.e(TAG, "set KEY_WIFI_ON -> 0");
-        mProCfg->set_val(KEY_WIFI_ON, 0);
-        msg = (sp<ARMessage>)(new ARMessage(NETM_CLOSE_NETDEV));
-        disp_wifi(false, 1);
+#if 1
+    pWifiDrvProp = property_get(PROP_WIFI_DRV_EXIST);
+
+    if (pWifiDrvProp == NULL || strcmp(pWifiDrvProp, "false") == 0) {
+        Log.e(TAG, ">>>> Wifi driver not loaded, please load wifi deriver first!!!");
+        return;
     } else {
-        msg = (sp<ARMessage>)(new ARMessage(NETM_STARTUP_NETDEV));
-        Log.e(TAG, "set KEY_WIFI_ON -> 1");
-        mProCfg->set_val(KEY_WIFI_ON, 1);
-        disp_wifi(true, 1);
-    }
+#endif
+        /*
+         * 检查启动WIFI热点的情况（PROP_WIFI_AP_STATE） 
+         */
+        if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+            Log.e(TAG, "set KEY_WIFI_ON -> 0");
+            iCmd = NETM_CLOSE_NETDEV;
+            bShowWifiIcon = false;
+            iSetVal = 0;
+        } else {
+            Log.e(TAG, "set KEY_WIFI_ON -> 1");
+            iCmd = NETM_STARTUP_NETDEV;
+            bShowWifiIcon = true;
+            iSetVal = 1;
+        }
 
-    msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
-    NetManager::getNetManagerInstance()->postNetMessage(msg);
+        msg = (sp<ARMessage>)(new ARMessage(iCmd));
+        msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
+        NetManager::getNetManagerInstance()->postNetMessage(msg);
 
+        msg_util::sleep_ms(500);
 
-	
-	
+        Log.d(TAG, "Current wifi state [%s]", property_get(PROP_WIFI_AP_STATE));
+
+        mProCfg->set_val(KEY_WIFI_ON, iSetVal);
+        disp_wifi(bShowWifiIcon, 1);
+
+        /*
+         * TODO：检查WIFI启动的状态，根据状态来改变WIFI图标
+         */
+        #if 0
+        while (true) {
+            
+            if ()
+            if (strcmp(property_get(PROP_WIFI_AP_STATE), "false")) {    /* 启动WIFI失败 */
+
+            }
+        }
+        #endif
+#if 1
+    }	
+#endif
+
 }
 
 

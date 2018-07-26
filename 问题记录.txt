@@ -9,4 +9,38 @@
 7.视频，直播，设置菜单改写
 
 
+PC U盘：
 
+控制模组变成U盘：G8, D7
+G8: GPIO3_PR.00			(320 + 17 * 8 + 0)	gpio456	
+D7: GPIO3_PX.06			(320 + 19 * 8 + 6)	gpio478
+
+
+日期：2018年7月26日
+1.更新power_manager，交替给模组上电
+2.更新升级程序，让程序首先升级模组（解压升级包到系统目录中/tmp下）
+
+问题1：
+camera._getSysSetting返回为NULL
+{"name": "camera._getSysSetting", "state": "done", "results": {}}
+
+原因：路径问题(默认的pro用户配置文件路径为/data/etc/user_cfg)
+修改：
+在config.py中添加：
+#配置文件的路径：
+INSTA360_PRO2_CFG_BASE = "/home/nvidia/insta360/etc"
+SYS_SETTING_PATH = INSTA360_PRO2_CFG_BASE + "user_cfg"
+
+修改control_center.py中的get_all_sys_cfg方法：
+filename = config.SYS_SETTING_PATH
+
+问题2：
+_snd_state参数格式问题：
+control_center.snd_notify
+    -> control_center.set_snd_state(param)
+        -> osc_state_handle.set_snd_state(param)
+                -> self.poll_info[SND_STATE] = param
+
+
+handle_notify_from_camera
+    -> self.state_notify_func[name]()

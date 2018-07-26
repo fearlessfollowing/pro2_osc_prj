@@ -1,5 +1,5 @@
 #!/bin/bash
-adb connect 192.168.3.184
+adb connect 192.168.3.196
 #adb shell killall monitor
 #adb shell killall pro2_service
 adb push out/pro2_service   /usr/local/bin/

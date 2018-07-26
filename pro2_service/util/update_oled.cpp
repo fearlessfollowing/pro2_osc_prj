@@ -32,7 +32,7 @@ static OLED_STR mSysStr[] = {
 	
 	{ERR_SPACE_LIMIT, 				"701"},
 	{ERR_RDONLY_DEV,				"702"},
-	{ERR_CHECK, 					"703"}, 	//md5
+	{ERR_CHECK, 					"703"}, 	/* md5 */
 	{ERR_OPEN_BIN,					"704"},
 	{ERR_READ_KEY, 					"705"},
 	{ERR_KEY_MISMATCH, 				"706"},

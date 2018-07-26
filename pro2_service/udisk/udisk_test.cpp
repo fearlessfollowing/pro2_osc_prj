@@ -141,8 +141,7 @@ exit 0
 static int createDir(const char* path)
 {
 	int iRet = -1;
-	if (access(path, F_OK) != 0)
-	{
+	if (access(path, F_OK) != 0) {
 		iRet = mkdir(path, 0644);
 	}
 	return iRet;
@@ -156,27 +155,20 @@ static int writeConfigFile(const char* path, const char* val)
 	int iWriteLen = 0;
 	int iValLen = 0;
 
-	if (access(path, F_OK) != 0)
-	{
+	if (access(path, F_OK) != 0) {
 		iOpenFlg = O_CREAT;
 	}
 
 	iOpenFlg |= O_WRONLY;
 	iTmpFd = open(path, iOpenFlg, 0644);
-	if (iTmpFd < 0)
-	{
+	if (iTmpFd < 0) {
 		Log.e(TAG, "open [%s] failed, flags = %d", path, iOpenFlg);
-	}
-	else
-	{
+	} else {
 		iValLen = strlen(val);
 		iWriteLen = write(iTmpFd, val, iValLen);
-		if (iWriteLen != iValLen)
-		{
+		if (iWriteLen != iValLen) {
 			Log.d(TAG, "write failed [%s] ...", path);
-		}
-		else
-		{
+		} else {
 			Log.d(TAG, "write ok [%s]", path);
 			iRet = 0;
 		}
@@ -188,8 +180,7 @@ static int writeConfigFile(const char* path, const char* val)
 static bool checkDiskPathValid(const char* path)
 {
 	bool bResult = false;
-	if (path)
-	{
+	if (path) {
 		if (strncmp(path, "/dev/sd", strlen("/dev/sd")) == 0 || strncmp(path, "/dev/mmcblk", strlen("/dev/mmcblk")) == 0) {
 			bResult = true;
 		}
@@ -202,7 +193,7 @@ static bool checkDiskPathValid(const char* path)
 static int configUdisk(int iDiskCnt)
 {
 	int iRet = 0;
-	const char* pTmpDiskPath = NULL;
+	char* pTmpDiskPath = NULL;
 
 	Log.d(TAG, "disk count = %d", iDiskCnt);
 
@@ -237,8 +228,7 @@ static int configUdisk(int iDiskCnt)
 	createDir(USB_GADGET_CONFIG1_PATH);
 
 
-	if (iDiskCnt <= 0)	/* 如果一个磁盘也没有，使用系统自带的filesystem.img */
-	{
+	if (0 /*iDiskCnt <= 0*/) {	/* 如果一个磁盘也没有，使用系统自带的filesystem.img */
 		createDir("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0");
 
 		/* Get sys.udisk_prop = ro,rw */
@@ -246,22 +236,21 @@ static int configUdisk(int iDiskCnt)
 
 		writeConfigFile("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0/lun.0/ro", "1");
 		writeConfigFile("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0/lun.0/file", DEFAULT_VIRTUAL_DISK);
-	}
-	else
-	{	/* 依次检查各个插槽 */
-		for (int i = 0; i < PROP_MAX_DISK_SLOT_NUM; i++)
-		{
+	} else {	/* 依次检查各个插槽 */
+	
+		//for (int i = 0; i < 6; i++) {	// PROP_MAX_DISK_SLOT_NUM
+			
+			#if 0
 			char cDiskPropName[64];
 			memset(cDiskPropName, 0, sizeof(cDiskPropName));
 			sprintf(cDiskPropName, "sys.disk%d", i);
 			Log.d(TAG, ">> tmp disk name [%s]", cDiskPropName);
-
-
+			#endif
+#if 0
+			/* 默认为/dev/sda1, /dev/sdb1, /dev/sdc1, /dev/sdd1, /dev/sde1, /dev/sdf1 */
 			pTmpDiskPath = property_get(cDiskPropName);
-			if (pTmpDiskPath)	/* 检查磁盘名是否合法 */
-			{
-				if (checkDiskPathValid(pTmpDiskPath))
-				{
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
 					string storagePath = USB_GADGET_FUNCTION_BASE;
 					string storageDir = "mass_storage.";
 					storageDir += ('0' + i);
@@ -284,7 +273,173 @@ static int configUdisk(int iDiskCnt)
 //				link("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0", "/sys/kernel/config/usb_gadget/l4t/configs/c.1/mass_storage.0");
 //				writeConfigFile("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0/lun.0/file", "/dev/sda4");
 			}
-		}
+		//}
+#else
+			pTmpDiskPath = "/dev/sda1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '0';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}
+			}
+
+
+			pTmpDiskPath = "/dev/sdb1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '1';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}
+			}				
+
+
+			
+			pTmpDiskPath = "/dev/sdc1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '2';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}	
+			}
+
+			
+			pTmpDiskPath = "/dev/sdd1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '3';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}	
+			}	
+
+			pTmpDiskPath = "/dev/sde1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '3';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}	
+			}
+
+
+			pTmpDiskPath = "/dev/sde1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '4';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}	
+			}	
+
+
+			pTmpDiskPath = "/dev/sdf1";
+			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
+				if (checkDiskPathValid(pTmpDiskPath)) {
+					string storagePath = USB_GADGET_FUNCTION_BASE;
+					string storageDir = "mass_storage.";
+					storageDir += '5';
+					storagePath += storageDir;
+
+					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
+
+					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
+					cfgLinkPath += ("/" + storageDir);
+
+					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
+
+					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
+					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
+					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
+
+				}	
+			}	
+		
+		// }													
+
+#endif
+
+
 	}
 
 	createDir("/sys/kernel/config/usb_gadget/l4t/configs/c.1/strings/0x409");
@@ -307,11 +462,11 @@ static int scanExistDisk(void)
 	const char* pPropDiskCnt = NULL;
 
 	pPropDiskCnt = property_get(PROP_SYS_DISK_NUM);
-	if (NULL != pPropDiskCnt)
-	{
+	if (NULL != pPropDiskCnt) {
 		iDiskCnt = atoi(pPropDiskCnt);
 		Log.d(TAG, "+++ current disk num -> [%d]", iDiskCnt);
 	}
+
 	return iDiskCnt;
 }
 
@@ -325,8 +480,7 @@ int main(int argc, char* argv[])
 	/* 属性及日志系统初始化 */
 	arlog_configure(true, true, UDISK_LOG_PATH, false);    /* 配置日志 */
 
-	if (__system_properties_init())	/* 属性区域初始化 */
-	{
+	if (__system_properties_init())		{	/* 属性区域初始化 */
 		Log.e(TAG, "update_check service exit: __system_properties_init() failed");
 		return -1;
 	}

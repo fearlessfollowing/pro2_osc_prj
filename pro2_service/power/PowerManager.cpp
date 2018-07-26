@@ -62,6 +62,7 @@ static const char* pHubRestProp = NULL;
 static const char* pCamRestProp = NULL;
 
 
+
 /*
  * 模组上电,包括开风扇
  */
@@ -71,6 +72,7 @@ static void powerModule(int iOnOff)
 	u8 module2_val = 0; 	
 	u8 readVal1 = 0;
 	u8 readVal2 = 0;
+	const char* pFirstPwrOn = NULL;
 
 	switch (iOnOff) {
 	case CMD_POWER_ON:
@@ -78,6 +80,7 @@ static void powerModule(int iOnOff)
 		/* 1.设置时钟 */
 		system("nvpmodel -m 0");
 		system("jetson_clocks.sh");
+
 
 		/* 2.复位HUB */
 		if (access(HUB1_SYS_PATH, F_OK)) {
@@ -90,80 +93,64 @@ static void powerModule(int iOnOff)
 			fprintf(stderr, "HUB1 Reset Pin(%s) Not Export", HUB2);
 		}
 
-		system("echo 1 > /sys/class/gpio/gpio457/value");
-		system("echo in > /sys/class/gpio/gpio457/direction");
-		msg_util::sleep_ms(iHubResetInterval);
-		system("echo out > /sys/class/gpio/gpio457/direction");
-		system("echo 0 > /sys/class/gpio/gpio457/value");
 
-		msg_util::sleep_ms(iHubResetInterval);
+		pFirstPwrOn = property_get(PROP_PWR_FIRST);
+		if (pFirstPwrOn == NULL || strcmp(pFirstPwrOn, "false") == 0) {
 
-		system("echo 1 > /sys/class/gpio/gpio461/value");
-		system("echo in > /sys/class/gpio/gpio461/direction");
-		msg_util::sleep_ms(iHubResetInterval);
-		system("echo out > /sys/class/gpio/gpio461/direction");
-		system("echo 0 > /sys/class/gpio/gpio461/value");
+			system("echo 1 > /sys/class/gpio/gpio457/value");
+			system("echo in > /sys/class/gpio/gpio457/direction");
+			msg_util::sleep_ms(iHubResetInterval);
+			system("echo out > /sys/class/gpio/gpio457/direction");
+			system("echo 0 > /sys/class/gpio/gpio457/value");
 
-		msg_util::sleep_ms(100);
+			msg_util::sleep_ms(iHubResetInterval);
 
-		/* 3.模组上电 */
-		if (mI2CLight->i2c_read(0x2, &module1_val) == 0) {
-		
-			printf("read 0x77 0x2 init val[0x%x]\n", module1_val);
-			module1_val |= (1 << 6);
-			mI2CLight->i2c_write_byte(0x2, module1_val);
-			msg_util::sleep_ms(iCamResetInterval);
-
-			module1_val |= (1 << 7);
-			mI2CLight->i2c_write_byte(0x2, module1_val);
-
-			msg_util::sleep_ms(iCamResetInterval);
+			system("echo 1 > /sys/class/gpio/gpio461/value");
+			system("echo in > /sys/class/gpio/gpio461/direction");
+			msg_util::sleep_ms(iHubResetInterval);
+			system("echo out > /sys/class/gpio/gpio461/direction");
+			system("echo 0 > /sys/class/gpio/gpio461/value");
 			
-			mI2CLight->i2c_read(0x2, &readVal1);
-
-			msg_util::sleep_ms(iCamResetInterval);
-
-			if (readVal1 != module1_val) {
-				printf("read 0x77 0x2 not equal write[0x%x, 0x%x] \n", module1_val, readVal1);
-			}
-
-		} else {
-			fprintf(stderr, "powerModule: i2c_read 0x2 error....\n");
+			property_set(PROP_PWR_FIRST, "true");	/* 只在开机第一次后会复位HUB,后面的操作都是在power_off后复位HUB */
 		}
 
-		if (mI2CLight->i2c_read(0x3, &module2_val) == 0) {
+
+		msg_util::sleep_ms(200);
+
+
+		/* 3.模组上电 */
+		mI2CLight->i2c_read(0x2, &module1_val);
+		mI2CLight->i2c_read(0x3, &module2_val);		
+
+		/* 6号 */
+		module2_val |= (1 << 3);
+		mI2CLight->i2c_write_byte(0x3, module2_val);
+		msg_util::sleep_ms(iCamResetInterval);
+
+		/* 3号 */
+		module2_val |= (1 << 0);
+		mI2CLight->i2c_write_byte(0x3, module2_val);
+		msg_util::sleep_ms(iCamResetInterval);
+
+		/* 2号 */
+		module1_val |= (1 << 7);
+		mI2CLight->i2c_write_byte(0x2, module1_val);
+		msg_util::sleep_ms(iCamResetInterval);
 		
-			printf("read 0x77 0x3 init val[0x%x]\n", module2_val);
-			
-			
+		/* 4号 */
+		module2_val |= (1 << 1);
+		mI2CLight->i2c_write_byte(0x3, module2_val);
+		msg_util::sleep_ms(iCamResetInterval);
 
-			module2_val |= (1 << 0);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
+		/* 1号 */
+		module1_val |= (1 << 6);
+		mI2CLight->i2c_write_byte(0x2, module1_val);
+		msg_util::sleep_ms(iCamResetInterval);
 
-			msg_util::sleep_ms(iCamResetInterval);
+		/* 5号 */
+		module2_val |= (1 << 2);
+		mI2CLight->i2c_write_byte(0x3, module2_val);
 
-			module2_val |= (1 << 1);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
-
-			msg_util::sleep_ms(iCamResetInterval);
-			
-			module2_val |= (1 << 2);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
-
-			msg_util::sleep_ms(iCamResetInterval);
-			
-			module2_val |= (1 << 3);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
-			
-			msg_util::sleep_ms(iCamResetInterval);
-
-			mI2CLight->i2c_read(0x2, &readVal2);
-			if (readVal2 != module2_val) {
-				printf("read 0x77 0x3 not equal write[0x%x, 0x%x]", module2_val, readVal2);
-			}
-		} else {
-			fprintf(stderr, "powerModule: i2c_read 0x3 error....\n");
-		}			
 		break;
 
 	case CMD_POWER_OFF:
@@ -203,6 +190,21 @@ static void powerModule(int iOnOff)
 		} else {
 			fprintf(stderr, "powerModule: i2c_read 0x3 error....\n");
 		}
+
+		system("echo 1 > /sys/class/gpio/gpio457/value");
+		system("echo in > /sys/class/gpio/gpio457/direction");
+		msg_util::sleep_ms(iHubResetInterval);
+		system("echo out > /sys/class/gpio/gpio457/direction");
+		system("echo 0 > /sys/class/gpio/gpio457/value");
+
+		msg_util::sleep_ms(iHubResetInterval);
+
+		system("echo 1 > /sys/class/gpio/gpio461/value");
+		system("echo in > /sys/class/gpio/gpio461/direction");
+		msg_util::sleep_ms(iHubResetInterval);
+		system("echo out > /sys/class/gpio/gpio461/direction");
+		system("echo 0 > /sys/class/gpio/gpio461/value");
+
 		break;
 
 	default:
@@ -233,7 +235,7 @@ int main(int argc, char* argv[])
 
 	pHubRestProp = property_get(PROP_HUB_RESET_INTERVAL);
 	if (pHubRestProp == NULL) {
-		pHubRestProp = "150";	// 500ms
+		pHubRestProp = "250";	// 500ms
 	}
 
 	iHubResetInterval = atoi(pHubRestProp);

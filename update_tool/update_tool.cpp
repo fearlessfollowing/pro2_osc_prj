@@ -220,14 +220,11 @@ static void check_final_bin_size(u32 check_size)
     u32 file_len = get_file_size(UPDATE_BIN_NAME);
 
     msg_util::sleep_ms(1000);
-    if (file_len != check_size)
-    {
+    if (file_len != check_size) {
         fprintf(stderr, "check file size error file_len %u check size %u\n", file_len, check_size);
         rm_update_bin();
         abort();
-    }
-    else
-    {
+    } else {
         printf("write update app suc\n");
     }
 }
@@ -328,8 +325,8 @@ static u32 write_bin(UPDATE_HEADER *pstHead, const char *file_name, SYS_VERSION*
 
 	/* 将pro_update.zip的内容写入 */
     fseek(fp, 0L, SEEK_SET);
-    while ((read_len = fread(buf, 1, sizeof(buf), fp)) > 0)
-    {
+
+    while ((read_len = fread(buf, 1, sizeof(buf), fp)) > 0) {
         write_len = fwrite(buf, 1, read_len, fp_bin);
         CHECK_EQ(write_len, read_len);
         read_file_len += write_len;
@@ -370,14 +367,11 @@ static u32 write_bin(UPDATE_HEADER *pstHead, const char *file_name, SYS_VERSION*
 static bool check_is_digit(const char* data)
 {
 	const char* p = data;
-	while (*p != '\0')
-	{
-		if (*p >= '0' && *p <= '9')
-		{
+
+	while (*p != '\0') {
+		if (*p >= '0' && *p <= '9') {
 			p++;
-		}
-		else
-		{
+		} else {
 			break;
 		}
 	}
@@ -400,27 +394,24 @@ static bool gen_version(const char* optarg, SYS_VERSION* pVer)
 	char release[32] = {0};
 
 	pmajor_end = strstr(phead, ".");
-	if (pmajor_end == NULL)
-	{
+	if (pmajor_end == NULL) {
 		return false;
 	}
 	
 	strncpy(major, phead, pmajor_end - phead);
-	if (check_is_digit(major) == false)
-	{
+	if (check_is_digit(major) == false) {
 		return false;
 	}
 	pVer->major_ver = atoi(major);
 
 	phead = pmajor_end + 1;
 	pminor_end = strstr(phead, ".");
-	if (pminor_end == NULL)
-	{
+	if (pminor_end == NULL) {
 		return false;
 	}
+
 	strncpy(minor, phead, pminor_end - phead);
-	if (check_is_digit(minor) == false)
-	{
+	if (check_is_digit(minor) == false) {
 		return false;
 	}
 	pVer->minor_ver = atoi(minor);
@@ -428,10 +419,10 @@ static bool gen_version(const char* optarg, SYS_VERSION* pVer)
 	
 	phead = pminor_end + 1;
 	strcpy(release, phead);
-	if (check_is_digit(release) == false)
-	{
+	if (check_is_digit(release) == false) {
 		return false;
 	}
+
 	pVer->release_ver = atoi(release);
 	
 	return true;
@@ -454,16 +445,14 @@ static void show_image_info(const char* image)
  	 * 1.检查该镜像文件是否存在
  	 * 2.提取镜像文件的版本信息
  	 */
-	if (access(image, F_OK) != 0)
-	{
+	if (access(image, F_OK) != 0) {
 		printf("[%s] is not exist..\n", image);
 		goto EXIT;
 	}
 
 	/* 打开镜像，提取版本字段 */
     fp = fopen(image, "rb");	
-    if (!fp)
-    {	/* 文件打开失败返回-1 */
+    if (!fp) {	/* 文件打开失败返回-1 */
         printf("open pro_update [%s] fail\n", image);
         goto EXIT;
     }
@@ -473,8 +462,7 @@ static void show_image_info(const char* image)
 
 	/* 读取文件的PF_KEY */
     read_len = fread(buf, 1, strlen(key), fp);
-    if (read_len != strlen(key))
-    {
+    if (read_len != strlen(key)) {
         printf("read key len mismatch(%u %zd)\n", read_len, strlen(key));
 		goto EXIT;
     }
@@ -483,8 +471,7 @@ static void show_image_info(const char* image)
 
     memset(buf, 0, sizeof(buf));
     read_len = fread(buf, 1, sizeof(SYS_VERSION), fp);
-    if (read_len != sizeof(SYS_VERSION))
-    {
+    if (read_len != sizeof(SYS_VERSION)) {
         printf("read version len mismatch(%u 1)\n", read_len);
 		goto EXIT;
     }
@@ -496,11 +483,11 @@ static void show_image_info(const char* image)
 	/* 提取update_app.zip文件的长度 */
     memset(buf, 0, sizeof(buf));
     read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp);
-    if (read_len != UPDATE_APP_CONTENT_LEN)
-    {
+    if (read_len != UPDATE_APP_CONTENT_LEN) {
         printf("update app len mismatch(%d %d)\n", read_len, UPDATE_APP_CONTENT_LEN);
         goto EXIT;
     }
+
 	update_app_len = bytes_to_int(buf);
 	printf("update_app.zip size: %fKB\n", update_app_len * 1.0 / 1024);
 	
@@ -523,10 +510,8 @@ EXIT:
 
 static void clean_history_files()
 {
-	for (u32 i = 0; i < sizeof(clean_files) / sizeof(clean_files[0]); i++)
-	{
-		if (access(clean_files[i], F_OK) == 0)
-		{
+	for (u32 i = 0; i < sizeof(clean_files) / sizeof(clean_files[0]); i++) {
+		if (access(clean_files[i], F_OK) == 0) {
 			unlink(clean_files[i]);
 		}
 	}
@@ -536,17 +521,15 @@ static int check_neccessray_file_dir()
 {
 	int iRet = -1;
 	u32 i = 0;
-	for (i = 0; i < sizeof(necesary_file_dir) / sizeof(necesary_file_dir[0]); i++)
-	{
-		if (access(necesary_file_dir[i], F_OK) != 0)
-		{
+
+	for (i = 0; i < sizeof(necesary_file_dir) / sizeof(necesary_file_dir[0]); i++) {
+		if (access(necesary_file_dir[i], F_OK) != 0) {
 			printf("file/dir [%s] not exist\n", necesary_file_dir[i]);
 			break;
 		}
 	}
 
-	if (i >= sizeof(necesary_file_dir) / sizeof(necesary_file_dir[0]))
-	{
+	if (i >= sizeof(necesary_file_dir) / sizeof(necesary_file_dir[0])) {
 		iRet = 0;
 	}
 
@@ -581,16 +564,12 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 	int iRet = 0;
 
     dir = opendir(base_path);	/* 打开pro_update目录 */
-    if (dir == NULL)
-    {
+    if (dir == NULL) {
         iRet = -1;
-	}
-    else
-    {
+	} else {
 	
 		/* 依次读取各个目录项 */
-		while ((de = readdir(dir)))
-		{
+		while ((de = readdir(dir))) {
 			if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || (de->d_name[1] == '.' && de->d_name[2] == '\0')))
 				continue;
 		
@@ -598,11 +577,9 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 			u32 i = 0;
 			
 			/* 如果目录项是一个子目录,将建立一个UPDATE_SECITON对象并遍历该子目录的内容 */
-			if (de->d_type == DT_DIR)
-			{
+			if (de->d_type == DT_DIR) {
 				
-				for (i = 0; i < sizeof(section_cfgs)/sizeof(section_cfgs[0]); i++)
-				{
+				for (i = 0; i < sizeof(section_cfgs)/sizeof(section_cfgs[0]); i++) {
 					if (strcmp(section_cfgs[i].section_name, de->d_name) == 0)
 					{
 						pCur = (sp<UPDATE_SECTION>)(new UPDATE_SECTION());
@@ -631,8 +608,7 @@ static int gen_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char* b
 				sprintf(sub_dir_base, "%s/%s", base_path, section_cfgs[i].section_name);
 		
 				sub_dir = opendir(sub_dir_base);
-				if (sub_dir == NULL)
-				{
+				if (sub_dir == NULL) {
 					printf("open dir[%s] failed ...\n", sub_dir_base);	
 					iRet = -1;
 					goto EXIT_LOOP;
