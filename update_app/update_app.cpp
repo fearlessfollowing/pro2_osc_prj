@@ -75,7 +75,7 @@ typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION> & sect
 #define BILL_REL_PATH 	"pro2_update/bill.list"
 #define PRO2_UPDATE_DIR	"pro2_update"
 
-#define UPDATE_APP_LOG_PATH "/home/nvidia/insta360/log/ua_log" 
+
 #define FIRMWARE 			"firmware"
 #define EXCUTEABLE			"bin"
 #define LIBRARY				"lib"
@@ -125,6 +125,7 @@ static int parse_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char*
 	
 	FILE *fp = fopen(fn, "rb");
 	if (fp) {
+
 		while ((pret = fgets(line, sizeof(line), fp))) {
 			
 			line[strlen(line) - 1] = '\0';	/* 将换行符替换成'\0' */
@@ -225,20 +226,14 @@ static u8 get_mid()
 static bool check_header_match(UPDATE_HEADER * pstTmp)
 {
     bool bRet = false;
-    if (pstTmp->cid == get_cid())
-    {
-        if (pstTmp->mid == get_mid())
-        {
+    if (pstTmp->cid == get_cid()) {
+        if (pstTmp->mid == get_mid()) {
             bRet = true;
-        }
-        else
-        {
+        } else {
             Log.e(TAG, "header mismatch mid(%d %d)\n", pstTmp->mid, get_mid());
             disp_update_error(ERR_APP_HEADER_MID_MISMATCH);
         }
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "header mismatch cid (%d %d) mid(%d %d)\n", pstTmp->cid, get_cid(), pstTmp->mid, get_mid());
         disp_update_error(ERR_APP_HEADER_CID_MISMATCH);
     }
@@ -272,8 +267,7 @@ static int section_cp(const char* update_root_path, sp<UPDATE_SECTION> & section
 	 * [cfg]
 	 * [firmware]
 	 */
-	for (u32 i = 0; i < section->mContents.size(); i++)
-	{
+	for (u32 i = 0; i < section->mContents.size(); i++) {
 		memset(src_path, 0, sizeof(src_path));
 		memset(dst_path, 0, sizeof(dst_path));
 
@@ -283,23 +277,18 @@ static int section_cp(const char* update_root_path, sp<UPDATE_SECTION> & section
 
 		Log.d(TAG, "cp [%s] -> [%s]", src_path, dst_path);
 
-		if (access(src_path, F_OK) != 0)
-		{
+		if (access(src_path, F_OK) != 0) {
 			Log.e(TAG, "Warnning: src %s not exist, but in bill.list...", src_path);
 			continue;
 		}
 
 		/* 将该文件拷贝到section->dst_path下 */
 		snprintf(cmd, sizeof(cmd), "cp -pfR %s %s", src_path, dst_path);
-		if (exec_sh(cmd) != 0)
-		{
+		if (exec_sh(cmd) != 0) {
 			Log.e(TAG, "section_cp cmd %s error\n", cmd);
 			iRet = -1;
-		}
-		else
-		{	/* 拷贝成功,确保文件具备执行权限 */
-			if (flag & CP_FLAG_ADD_X)
-			{
+		} else {	/* 拷贝成功,确保文件具备执行权限 */
+			if (flag & CP_FLAG_ADD_X) {
 				chmod_x(dst_path);	/* 确保文件具有可执行权限 */
 			}
 		}
@@ -337,23 +326,16 @@ static int exec_sh_firm(const char* cmd)
     int status = system(cmd);
     int iRet = -1;
 
-    if (-1 == status)
-    {
+    if (-1 == status) {
         Log.e(TAG, "system %s error\n", cmd);
-    }
-    else
-    {
+    } else {
        Log.d(TAG, "exit status value = [%d]\n", status);
-        if (WIFEXITED(status))
-        {	/* 获取退出码 */
+        if (WIFEXITED(status)) {	/* 获取退出码 */
 			Log.d(TAG, "exec_sh_firm -> exit code: %d", WEXITSTATUS(status));
-			if (0 == WEXITSTATUS(status) || 1 == WEXITSTATUS(status))
-			{
+			if (0 == WEXITSTATUS(status) || 1 == WEXITSTATUS(status)) {
 				iRet = 0;
 			}
-        }
-        else
-        {
+        } else {
             Log.e(TAG, "exit status %s error  = [%d]\n", cmd, WEXITSTATUS(status));
         }
     }
@@ -389,8 +371,7 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 	 * 2.将文件拷贝到/usr/local/bin/firmware目录下
 	 * 3.直接升级操作
 	 */
-	for (u32 i = 0; i < section->mContents.size(); i++)
-	{
+	for (u32 i = 0; i < section->mContents.size(); i++) {
 
 		Log.d(TAG, "update_firmware: section item[%d] -> [%s]", i, section->mContents.at(i)->name);
 
@@ -408,41 +389,33 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 		}
 	} 
 
-	if (iCnt < firm_item_cnt)
-	{
+	if (iCnt < firm_item_cnt) {
 		Log.e(TAG, "update_firmware: iCnt[%d], firm_item_cnt[%d],some neccesary file loss...", iCnt, firm_item_cnt);
 		iRet = ERR_UPAPP_MODUE;
-	}
-	else
-	{
+	} else {
 		/* 2.将固件文件拷贝到目标目录 */
 		iRet = section_cp(update_root_path, section, CP_FLAG_ADD_X);
-		if (iRet)
-		{
+		if (iRet) {
 			Log.e(TAG, "update_firmware:  section_cp failed ...");
 			iRet = ERR_UPAPP_MODUE;
-		}
-		else
-		{
+		} else {
+
 			/* 3.执行升级操作 */
 			sprintf(update_prog, "%s", "/usr/local/bin/upgrade");
 			Log.d(TAG, "update_firmware: prog full path: %s", update_prog);
 			
 			int icnt = 0;
-			for (icnt = 0; icnt < 3; icnt++)
-			{
+			for (icnt = 0; icnt < 3; icnt++) {
 				/* 得到升级命令 */
 				sprintf(cmd, "%s -p %s\n", update_prog, section->dst_path);
 				Log.d(TAG, "update cmd: [%s]", cmd);
-				if (exec_sh_firm(cmd) == 0)
-				{
+				if (exec_sh_firm(cmd) == 0) {
 					Log.e(TAG, "update_firmware: update success...");
 					break;
 				} 
 			}
 
-			if (icnt >= 3)
-			{
+			if (icnt >= 3) {
 				Log.d(TAG, "update_firmware: update module failed...");
 				iRet = ERR_UPAPP_MODUE;
 			}
@@ -450,6 +423,7 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 	}
 	return iRet;
 }
+
 
 /*************************************************************************
 ** 方法名称: update_execute_bin
@@ -466,8 +440,7 @@ static int update_execute_bin(const char* update_root_path, sp<UPDATE_SECTION> &
 	int iRet = ERR_UPDATE_SUCCESS;
 
 	iRet = section_cp(update_root_path, section, CP_FLAG_ADD_X);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_execute_bin: failed ...");
 		iRet = ERR_UPAPP_BIN;
 	}
@@ -489,8 +462,7 @@ static int update_library(const char* update_root_path, sp<UPDATE_SECTION> & sec
 	int iRet = ERR_UPDATE_SUCCESS;
 
 	iRet = section_cp(update_root_path, section, 0);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_library: failed ...");
 		iRet = ERR_UPAPP_LIB;
 	}
@@ -512,8 +484,7 @@ static int update_cfg(const char* update_root_path, sp<UPDATE_SECTION> & section
 	int iRet = ERR_UPDATE_SUCCESS;
 
 	iRet = section_cp(update_root_path, section, 0);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_cfg: failed ...");
 		iRet = ERR_UPAPP_CFG;
 	}
@@ -534,8 +505,7 @@ static int update_data(const char* update_root_path, sp<UPDATE_SECTION> & sectio
 	int iRet = ERR_UPDATE_SUCCESS;
 
 	iRet = section_cp(update_root_path, section, 0);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_data: failed ...");
 		iRet = ERR_UPAPP_DATA;
 	}
@@ -557,8 +527,7 @@ static int update_default(const char* update_root_path, sp<UPDATE_SECTION> & sec
 	int iRet = ERR_UPDATE_SUCCESS;
 
 	iRet = section_cp(update_root_path, section, 0);
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_default: failed ...");
 		iRet = ERR_UPAPP_DEFAULT;
 	}
@@ -588,8 +557,7 @@ static int update_sections(const char* updat_root_path, std::vector<sp<UPDATE_SE
 
 	sp<UPDATE_SECTION> mSection;
 
-	if (update_step <= 0)
-	{
+	if (update_step <= 0) {
 		update_step = 1;
 	}
 	
@@ -598,49 +566,33 @@ static int update_sections(const char* updat_root_path, std::vector<sp<UPDATE_SE
 	disp_update_icon(start_index);
 
 	/* 一次更新各个Section */
-	for (u32 i = 0; i < mSections.size(); i++)
-	{
+	for (u32 i = 0; i < mSections.size(); i++) {
 
 		mSection = mSections.at(i);
-		if (strcmp(mSection->cname, FIRMWARE) == 0)
-		{
+		if (strcmp(mSection->cname, FIRMWARE) == 0) {
 			pfn = update_firmware;
-		}
-		else if (strcmp(mSection->cname, EXCUTEABLE) == 0)
-		{
+		} else if (strcmp(mSection->cname, EXCUTEABLE) == 0) {
 			pfn = update_execute_bin;
-		}
-		else if (strcmp(mSection->cname, LIBRARY) == 0)
-		{
+		} else if (strcmp(mSection->cname, LIBRARY) == 0) {
 			pfn = update_library;	
-		}
-		else if (strcmp(mSection->cname, CFG) == 0)
-		{
+		} else if (strcmp(mSection->cname, CFG) == 0) {
 			pfn = update_cfg;	
-		}
-		else if (strcmp(mSection->cname, DATA) == 0)
-		{
+		} else if (strcmp(mSection->cname, DATA) == 0) {
 			pfn = update_data;
-		}
-		else
-		{
+		} else {
 			pfn = update_default;	
 		}
 
 		iRet = pfn(updat_root_path, mSection);
-		if (iRet)
-		{	/* 更新某个section失败 */
+		if (iRet) {	/* 更新某个section失败 */
 			Log.e(TAG, "update section [%s] failed...", mSection->cname);
 			break;
-		}
-		else
-		{	/* 根据当前section的索引值来更新进度 */
+		} else {	/* 根据当前section的索引值来更新进度 */
 			Log.d(TAG, "update section [%s] success ...", mSection->cname);
 			int index = i / update_step;
 			Log.d(TAG, "index = %d", index);
 			
-			if (index >= 0 && index <= 5)
-			{
+			if (index >= 0 && index <= 5) {
 				disp_update_icon(start_index + index);
 			}
 		}
@@ -707,8 +659,7 @@ static bool get_unzip_update_app(const char* mount_point)
 	sprintf(image_full_path, "%s/%s", mount_point, UPDATE_IMAGE_FILE);
 
     FILE *fp_bin = fopen(image_full_path, "rb");	/* 打开/XXXX/Insta360_Pro2_Update.bin */
-    if (fp_bin)
-    {
+    if (fp_bin) {
         u8 buf[1024 * 1024];
         u32 read_len;
         u32 update_app_len;
@@ -721,8 +672,7 @@ static bool get_unzip_update_app(const char* mount_point)
 
 		/* 获取压缩文件的长度: 4字节表示压缩文件的长度 */
         read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp_bin);
-        if (read_len != UPDATE_APP_CONTENT_LEN)
-        {
+        if (read_len != UPDATE_APP_CONTENT_LEN)  {
             Log.e(TAG, "get_unzip_update_app: pro_update read update_app content len mismatch(%d %d)", read_len, UPDATE_APP_CONTENT_LEN);
             goto EXIT;
         }
@@ -734,16 +684,14 @@ static bool get_unzip_update_app(const char* mount_point)
         fseek(fp_bin, content_offset, SEEK_SET);
 
         read_len = fread(buf, 1, HEADER_CONENT_LEN, fp_bin);
-        if (read_len != HEADER_CONENT_LEN)
-        {
+        if (read_len != HEADER_CONENT_LEN) {
             Log.e(TAG, "get_unzip_update_app: header len mismatch(%d %d)", read_len, HEADER_CONENT_LEN);
             goto EXIT;
         }
 		
         header_len = bytes_to_int(buf);
 
-        if (header_len != sizeof(UPDATE_HEADER))
-        {
+        if (header_len != sizeof(UPDATE_HEADER)) {
             Log.e(TAG, "get_unzip_update_app: header content len mismatch1(%u %zd)", read_len, sizeof(UPDATE_HEADER));
             goto EXIT;
         }
@@ -751,8 +699,7 @@ static bool get_unzip_update_app(const char* mount_point)
 		/* 从镜像中读取UPDATE_HEADER */
         memset(buf, 0, sizeof(buf));
         read_len = fread(buf, 1, header_len, fp_bin);
-        if (read_len != header_len)
-        {
+        if (read_len != header_len) {
             Log.e(TAG, "get_unzip_update_app: header content len mismatch2(%d %d)", read_len, header_len);
             goto EXIT;
         }
@@ -760,8 +707,7 @@ static bool get_unzip_update_app(const char* mount_point)
         memcpy(&gstHeader, buf, header_len);
 
 		/* 检查头部 */
-        if (!check_header_match(&gstHeader))
-        {
+        if (!check_header_match(&gstHeader)) {
 			Log.e(TAG, "get_unzip_update_app: check header match failed...");
             goto EXIT;
         }
@@ -773,32 +719,23 @@ static bool get_unzip_update_app(const char* mount_point)
 		sprintf(pro_update_path, "%s/%s", mount_point, PRO_UPDATE_ZIP);
 		
 		/* 提取升级压缩包:    pro_update.zip */
-        if (gen_file(pro_update_path, content_len, fp_bin))
-        {
-            if (tar_zip(pro_update_path, mount_point) == 0)
-            {	/* 解压压缩包 */
+        if (gen_file(pro_update_path, content_len, fp_bin)) {
+            if (tar_zip(pro_update_path, mount_point) == 0) {	/* 解压压缩包 */
                 bRet = true;
 				Log.d(TAG, "unzip pro_update.zip success...");
-            }
-            else
-            {
+            } else {
 				Log.d(TAG, "unzip pro_update.zip failed...");
             }
-        }
-        else
-        {
+        } else {
             Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
         }
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "update_app open %s fail", image_full_path);
     }
 	
 EXIT:
 
-    if (fp_bin)
-    {
+    if (fp_bin) {
         fclose(fp_bin);
     }
     return bRet;
@@ -830,34 +767,25 @@ static int start_update_app(const char* mount_point)
 	/* 检查电池电量是否充足 
 	 * - 如果有充电器没电池呢?
 	 */
-    if (is_bat_enough())
-    {	/* 电量充足 */
+    if (is_bat_enough()) {	/* 电量充足 */
 		
-        if (get_unzip_update_app(mount_point))	/* 提取解压升级包成功 */
-        {
+        if (get_unzip_update_app(mount_point))	{	/* 提取解压升级包成功 */
 
 			/* 判断pro_update/bill.list文件是否存在
 			 * 系统将根据该文件进行程序升级
 			 */
-            if (!check_require_exist(mount_point, mSections))	/* 检查必备的升级程序是否存在 */
-            {
+            if (!check_require_exist(mount_point, mSections)) {	/* 检查必备的升级程序是否存在 */
 				iRet = ERR_UPAPP_BILL;
-            }
-            else
-            {
+            } else {
 				/** 根据mSections的各个section进行更新 */
 				sprintf(update_root_path, "%s/%s", mount_point, PRO2_UPDATE_DIR);
 				iRet = update_sections(update_root_path, mSections);
 			}
-        }
-        else
-        {
+        } else {
 			Log.e(TAG, "get update_app form Insta360_Pro_Update.bin failed...");
 			iRet = ERR_UPAPP_GET_APP_TAR;
 		}
-    }
-    else
-    {
+    } else  {
         Log.e(TAG, "battery low, can't update...");
         iRet = ERR_UPAPP_BATTERY_LOW;
     }
@@ -880,8 +808,7 @@ static void clean_tmp_image_file(const char* mount_point)
 	char pro_update_path[512] = {0};
 	
 	/* 删除镜像文件:  Insta360_Pro_Updaete.bin */
-	if (update_del_flag == true)
-	{
+	if (update_del_flag == true) {
 		sprintf(image_path, "%s/%s", mount_point, UPDATE_IMAGE_FILE);
 		unlink(image_path);
 		Log.d(TAG, "unlink image file [%s]", image_path);
@@ -1161,8 +1088,7 @@ int main(int argc, char **argv)
     arlog_configure(true, true, UPDATE_APP_LOG_PATH, false);
 
 	iRet = __system_properties_init();		/* 属性区域初始化 */
-	if (iRet)
-	{
+	if (iRet) {
 		Log.e(TAG, "update_app service exit: __system_properties_init() faile, ret = %d\n", iRet);
 		return -1;
 	}
@@ -1175,21 +1101,18 @@ int main(int argc, char **argv)
 	Log.d(TAG, "get update image path [%s]", update_image_path);
 
 	sprintf(delete_file_path, "%s/flag_delete", update_image_path);
-	if (access(delete_file_path, F_OK) != 0)
-	{
+	if (access(delete_file_path, F_OK) != 0) {
 		update_del_flag = true;
 		Log.d(TAG, "flag file [%s] not exist, will delete image if update ok", delete_file_path);
-	}
-	else
-	{
+	} else {
 		update_del_flag = false;
 		Log.d(TAG, "flag file [%s] exist", delete_file_path);
 
 	}
 
 	/* 注册信号处理 */
-    	registerSig(default_signal_handler);
-    	signal(SIGPIPE, pipe_signal_handler);
+	registerSig(default_signal_handler);
+	signal(SIGPIPE, pipe_signal_handler);
 	
 
 

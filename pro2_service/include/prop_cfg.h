@@ -120,4 +120,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
  */
 #define PRO2_SERVICE_LOG_PATH   "/home/nvidia/insta360/log/p_log"
 
+
+#define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
+
 #endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */
