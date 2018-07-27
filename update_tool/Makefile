@@ -17,7 +17,7 @@ CXXFLAGS += -std=c++11 -frtti -fexceptions  -Wall
 LDFLAGS :=
 
 INCLUDE_PATH = -I ./include 
-INCLUDE_PATH += -I ../include
+INCLUDE_PATH += -I ../pro2_service/include
 
 LIBS = -lrt -lpthread 
 #-llog -lev

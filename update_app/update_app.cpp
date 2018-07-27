@@ -40,6 +40,8 @@
 #include <update/update_util.h>
 #include <update/dbg_util.h>
 #include <update/update_oled.h>
+#include <hw/oled_module.h>
+
 #include <util/icon_ascii.h>
 #include <log/arlog.h>
 #include <system_properties.h>
@@ -67,6 +69,7 @@ enum {
     DIRECT_UPDATE,
     ERROR_UPDATE,
 };
+
 
 
 typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION> & section);
@@ -1145,47 +1148,5 @@ int main(int argc, char **argv)
     return iRet;
 }
 
-
-
-	const char* update_image_path = NULL;
-	char delete_file_path[512] = {0};
-
-	/* 配置日志 */
-    arlog_configure(true, true, UPDATE_APP_LOG_PATH, false);
-
-	iRet = __system_properties_init();		/* 属性区域初始化 */
-	if (iRet) {
-		Log.e(TAG, "update_app service exit: __system_properties_init() faile, ret = %d\n", iRet);
-		return -1;
-	}
-	
-	Log.d(TAG, ">>> Service: update_app starting ^_^ !! <<");
-	property_set(PROP_SYS_UA_VER, UAPP_VER);
-	
-	/* 获取升级包的路径：/mnt/udisk1/XXX */
-	update_image_path = property_get(PROP_SYS_UPDATE_IMG_PATH);
-
-	Log.d(TAG, "get update image path [%s]", update_image_path);
-
-	sprintf(delete_file_path, "%s/flag_delete", update_image_path);
-	if (access(delete_file_path, F_OK) != 0) {
-		update_del_flag = true;
-		Log.d(TAG, "flag file [%s] not exist, will delete image if update ok", delete_file_path);
-	} else {
-		update_del_flag = false;
-		Log.d(TAG, "flag file [%s] exist", delete_file_path);
-
-	}
-
-	/* 注册信号处理 */
-	registerSig(default_signal_handler);
-	signal(SIGPIPE, pipe_signal_handler);
-	
-    iRet = start_update_app(update_image_path);
-
-	/** 根据返回值统一处理 */
-	deal_update_result(iRet, update_image_path);
-    return iRet;
-}
 
 

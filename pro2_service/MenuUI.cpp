@@ -5194,7 +5194,7 @@ void MenuUI::disp_menu(bool dispBottom)
         SWITCH_DEF_ERROR(cur_menu);
     }
 //    Log.d(TAG,"cur menu %d disptop %d",cur_menu,bDispTop);
-    i f(is_top_clear(cur_menu)) {
+    if (is_top_clear(cur_menu)) {
         reset_last_info();
         bDispTop = false;
     } else if (!bDispTop)  {
