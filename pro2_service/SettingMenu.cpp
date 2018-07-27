@@ -445,14 +445,6 @@ enum {
 
 	SET_RESTORE,
     SETTING_MAX
-
-
-#if 0
-    SET_GYRO_ON,		/* 10 (25, 16) */
-    //gyro calibration
-    SET_START_GYRO,		/* 11 (25, 32) */
-    SET_STITCH_BOX,		
-#endif
 }; 
 
 

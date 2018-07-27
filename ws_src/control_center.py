@@ -804,6 +804,7 @@ class control_center:
             Err('start_camera_cmd_func exception {}'.format(e))
             ret = cmd_exception(e,name)
         self.release_sem_camera()
+
         Info('start_camera_cmd_func name3 {}'.format(name))
         return ret
 
@@ -2153,11 +2154,12 @@ class control_center:
     def camera_take_pic(self,req):
         Info('take pic req {} state {}'.format(req,self.get_cam_state()))
         if self.check_allow_pic():
-            self.send_oled_type(config.CAPTURE,req)
+            self.send_oled_type(config.CAPTURE, req)
             read_info = self.take_pic(req)
         else:
             Info('not allow take pic')
             read_info = cmd_error_state(req[_name], self.get_cam_state())
+
         Info('take pic read_info {}'.format(read_info))
         return read_info
 
@@ -2801,6 +2803,8 @@ class control_center:
                     # else:
                     #     req[KEY_STABLIZATION] = True
                     res = self.take_pic(self.get_req(name,req),True)
+            else if self.get_cam_state() == config.STATE_TAKE_CAPTURE_IN_PROCESS:
+                Info('camerad is taking picture in processing....')
             else:
                 Err('oled pic:error state {}'.format(self.get_cam_state()))
                 res = cmd_error_state(name, self.get_cam_state())

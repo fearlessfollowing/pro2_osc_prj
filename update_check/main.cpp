@@ -13,6 +13,7 @@
 ** V2.3			skymixos	2018年5月17日			等待挂载超时,精简代码
 ** V2.4			skymixos	2018年5月26日			增多通过属性系统配置等待延时
 ** V2.5			skymixos	2018年6月9日			将涉及的属性名统一移动到/include/prop_cfg.h中，便于管理
+** V2.6			skymixos	2018年7月27日			提取update_app.zip到/tmp目录下
 ***************************************************************************************************/
 
 
@@ -65,6 +66,8 @@
 #define UPDATE_APP_ZIP 			"update_app.zip"
 #define UPDATE_APP_DEST_PATH	"/usr/local/bin"
 
+#define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
+
 #define UPDAE_CHECK_VER		"V2.5"
 
 static const char* rm_devies_list[] = {
@@ -77,10 +80,8 @@ static char update_image_root_path[256];
 static bool is_removable_device(char *dev)
 {
     bool ret = false;
-    for (u32 i = 0; i < sizeof(rm_devies_list) / sizeof(rm_devies_list[0]); i++)
-    {
-        if (strstr(dev, rm_devies_list[i]) == dev)
-        {
+    for (u32 i = 0; i < sizeof(rm_devies_list) / sizeof(rm_devies_list[0]); i++) {
+        if (strstr(dev, rm_devies_list[i]) == dev) {
             ret = true;
             break;
         }
@@ -115,12 +116,9 @@ static bool check_free_space(char* fs_path, u32 limit)
     u64 availableDisk = diskInfo.f_bavail * blocksize;   // 可用空间大小
     u32 size_M = (u32) (availableDisk >> 20);
 
-    if (size_M > limit)
-    {
+    if (size_M > limit) {
         bAllow = true;
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "update no space free size_M %u limit %u", size_M, limit);
     }
     return bAllow;
@@ -130,14 +128,10 @@ static bool check_free_space(char* fs_path, u32 limit)
 static bool check_is_digit(const char* data)
 {
 	const char* p = data;
-	while (*p != '\0')
-	{
-	    if (*p >= '0' && *p <= '9')
-	    {
+	while (*p != '\0') {
+	    if (*p >= '0' && *p <= '9') {
 	        p++;
-        }
-	    else
-	    {
+        } else {
 	        break;
 	    }
     }
@@ -161,14 +155,12 @@ static bool conv_str2ver(const char* str_ver, SYS_VERSION* pVer)
     char release[32] = {0};
 
     pmajor_end = strstr(phead, ".");
-    if (pmajor_end == NULL)
-    {
+    if (pmajor_end == NULL) {
 	    return false;
     }
 
     strncpy(major, phead, pmajor_end - phead);
-	if (check_is_digit(major) == false)
-	{
+	if (check_is_digit(major) == false) {
         return false;
     }
     pVer->major_ver = atoi(major);
@@ -176,13 +168,12 @@ static bool conv_str2ver(const char* str_ver, SYS_VERSION* pVer)
 
     phead = pmajor_end + 1;
     pminor_end = strstr(phead, ".");
-    if (pminor_end == NULL)
-    {
+    if (pminor_end == NULL) {
         return false;
     }
+
     strncpy(minor, phead, pminor_end - phead);
-    if (check_is_digit(minor) == false)
-    {
+    if (check_is_digit(minor) == false) {
         return false;
     }
     pVer->minor_ver = atoi(minor);
@@ -191,8 +182,7 @@ static bool conv_str2ver(const char* str_ver, SYS_VERSION* pVer)
 
     phead = pminor_end + 1;
     strncpy(release, phead, prelease_end - phead);
-    if (check_is_digit(release) == false)
-    {
+    if (check_is_digit(release) == false) {
         return false;
     }
     pVer->release_ver = atoi(release);
@@ -256,23 +246,17 @@ static int version_check(SYS_VERSION* pVer)
 	 * 版本文件不存在(第一次升级??),直接通过
 	 * 版本文件存在,解析版本错误
 	 */
-	if ((pSysVer = property_get(PROP_SYS_FIRM_VER)) )
-	{
+	if ((pSysVer = property_get(PROP_SYS_FIRM_VER)) ) {
 		/* 将属性字符串转换为SYS_VERSION结果进行比较 */
 		sprintf(ver_str, "%s", pSysVer);
 		Log.d(TAG, "version_check: version str[%s]", pSysVer);
 		conv_str2ver(pSysVer, &old_ver);
-		if (isNeedUpdate(&old_ver, pVer))
-		{
+		if (isNeedUpdate(&old_ver, pVer)) {
 			bRet = 0;
-		}
-		else
-		{
+		} else {
 			bRet = 2;
 		}
-	}
-	else
-	{
+	} else {
 		Log.d(TAG, "version file not exist, maybe first update!");
 	}
 
@@ -305,8 +289,7 @@ static int get_unzip_update_check(char* image_path)
 	memset(update_app_name, 0, sizeof(update_app_name));
 	sprintf(update_app_name, "%s/%s", image_path, UPDATE_IMAGE_FILE);
 	
-    if (!check_file_key_md5(update_app_name))
-    {	/* 文件的MD5值进行校验: 校验失败返回-1 */
+    if (!check_file_key_md5(update_app_name)) {	/* 文件的MD5值进行校验: 校验失败返回-1 */
         Log.e(TAG, "md5 check err [%s]", update_app_name);
         disp_update_error(ERR_CHECK);
         goto EXIT;
@@ -315,8 +298,7 @@ static int get_unzip_update_check(char* image_path)
 	Log.d(TAG, "check file [%s] MD5 success...", update_app_name);
 	
     fp = fopen(update_app_name, "rb");	
-    if (!fp)
-    {	/* 文件打开失败返回-1 */
+    if (!fp) {	/* 文件打开失败返回-1 */
         Log.e(TAG, "open pro_update [%s] fail", update_app_name);
         disp_update_error(ERR_OPEN_BIN);
         goto EXIT;
@@ -327,15 +309,13 @@ static int get_unzip_update_check(char* image_path)
 
 	/* 读取文件的PF_KEY */
     read_len = fread(buf, 1, strlen(key), fp);
-    if (read_len != strlen(key))
-    {
+    if (read_len != strlen(key)) {
         Log.e(TAG, "read key len mismatch(%u %zd)", read_len, strlen(key));
         disp_update_error(ERR_READ_KEY);
         goto EXIT;
     }
 	
-    if (strcmp((const char *) buf, key) != 0)
-    {
+    if (strcmp((const char *) buf, key) != 0) {
         Log.e(TAG, "key mismatch(%s %s)\n", key, buf);
         disp_update_error(ERR_KEY_MISMATCH);
         goto EXIT;
@@ -344,8 +324,7 @@ static int get_unzip_update_check(char* image_path)
 	/* 提取比较版本 */
     memset(buf, 0, sizeof(buf));
     read_len = fread(buf, 1, sizeof(SYS_VERSION), fp);
-    if (read_len != sizeof(SYS_VERSION))
-    {
+    if (read_len != sizeof(SYS_VERSION)) {
         Log.e(TAG, "read version len mismatch(%u 1)", read_len);
         disp_update_error(ERR_READ_VER_LEN);
         goto EXIT;
@@ -358,16 +337,14 @@ static int get_unzip_update_check(char* image_path)
 	property_set(PROP_SYS_IMAGE_VER, ver_str);
 
     bRet = version_check(pVer);
-    if (bRet != 0)
-    {
+    if (bRet != 0) {
         goto EXIT;
     }
 
 	/* 提取update_app.zip文件的长度 */
     memset(buf, 0, sizeof(buf));
     read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp);
-    if (read_len != UPDATE_APP_CONTENT_LEN)
-    {
+    if (read_len != UPDATE_APP_CONTENT_LEN) {
         disp_update_error(ERR_READ_APP_LEN);
         Log.e(TAG, "update app len mismatch(%d %d)\n", read_len, UPDATE_APP_CONTENT_LEN);
         goto EXIT;
@@ -377,33 +354,26 @@ static int get_unzip_update_check(char* image_path)
 
 	/* 从更新文件中得到update_app.zip */
 	memset(update_app_name, 0, sizeof(update_app_name));
-	sprintf(update_app_name, "%s/%s", update_image_root_path, UPDATE_APP_ZIP);
+	sprintf(update_app_name, "%s/%s", UPDATE_APP_TMP_PATH, UPDATE_APP_ZIP);
 	Log.d(TAG, "update app zip full path: %s", update_app_name);
 	
-    if (gen_file(update_app_name, update_app_len, fp))
-    {
+    if (gen_file(update_app_name, update_app_len, fp)) {
 		
 		/* 将update_app直接解压到/usr/local/bin/目录下 */
-        if (tar_zip(update_app_name, UPDATE_APP_DEST_PATH) == 0)
-        {	/* 直接将其解压到/usr/local/bin目录下 */
+        if (tar_zip(update_app_name, UPDATE_APP_DEST_PATH) == 0) {	/* 直接将其解压到/usr/local/bin目录下 */
 			Log.d(TAG, "unzip update_app success...");
 			bRet = 0;
-        }
-        else
-        {	/* 解压update_app.zip文件出错 */
+        } else {	/* 解压update_app.zip文件出错 */
 			Log.e(TAG, "unzip update_app.zip failed...");
             disp_update_error(ERR_TAR_APP_ZIP);
         }
-    }
-    else
-    {	/* 提取update_app.zip文件出错 */
+    } else {	/* 提取update_app.zip文件出错 */
 		Log.e(TAG, "gen_file update_app.zip failed...");
         disp_update_error(ERR_GET_APP_ZIP);
     }
 	
 EXIT:
-    if (fp)
-    {
+    if (fp) {
         fclose(fp);
     }
 	Log.e(TAG, "get_update_app, ret = %d", bRet);
@@ -419,27 +389,20 @@ static int read_line(int fd, void *vptr, int maxlen)
     char *ptr;
 
     ptr = (char *)vptr;
-    for (n = 1; n < maxlen; n++)
-    {
+    for (n = 1; n < maxlen; n++) {
         again:
 			
-        if ((rc = read(fd, &c, 1)) == 1)
-        {
+        if ((rc = read(fd, &c, 1)) == 1) {
             //not add '\n' to buf
             if (c == '\n')
                 break;
             *ptr++ = c;
 
-        }
-        else if (rc == 0)
-        {
+        } else if (rc == 0) {
             *ptr = 0;
             return (n - 1);
-        }
-        else
-        {
-            if (errno == EINTR)
-            {
+        } else {
+            if (errno == EINTR) {
                 Log.d(TAG, "ad line error");
                 goto again;
             }
@@ -529,16 +492,14 @@ static bool is_fs_rw(const char* path)
 	sprintf(tmp_file, "%s/tmpfile", path);
 
 	Log.e(TAG, "create tmp file [%s]\n", tmp_file);
-	if ((fd = open(tmp_file, O_CREAT | O_RDWR, 0666)) < 0)
-	{
+	if ((fd = open(tmp_file, O_CREAT | O_RDWR, 0666)) < 0) {
 		Log.e(TAG, "create tmpfile failed...");
- 	}
-	else
-	{
+ 	} else {
  		ret = true;
 		close(fd);
 		unlink(tmp_file);
 	}
+
 	return ret;
 }
 
@@ -569,16 +530,13 @@ static bool check_update_device_insert()
     filename = devname + strlen(devname);
     *filename++ = '/';
 
-    while ((de = readdir(dir)))
-    {
+    while ((de = readdir(dir))) {
         if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || (de->d_name[1] == '.' && de->d_name[2] == '\0')))
             continue;
 
         strcpy(filename, de->d_name);
-		for (u32 i = 0; i < sizeof(update_dev_prefix) / sizeof(update_dev_prefix[0]); i++)
-		{
-			if (strstr(filename, update_dev_prefix[i]) != NULL)
-			{
+		for (u32 i = 0; i < sizeof(update_dev_prefix) / sizeof(update_dev_prefix[0]); i++) {
+			if (strstr(filename, update_dev_prefix[i]) != NULL) {
 				bFound = true;
 				memset(dev_node_path, 0, 512);
 				sprintf(dev_node_path, "/dev/%s", filename);
@@ -602,11 +560,9 @@ static bool wait_update_dev_mounted(char* dev_node, int timeout)
 	int time_out;
 	int i_cnt = 0;
 	
-	while (true)
-	{
+	while (true) {
 		int fd = open("/proc/mounts", O_RDONLY);
-		if (fd < 0)
-		{
+		if (fd < 0) {
 			Log.e(TAG, "open /proc/mounts failed..");
 			return false;
 		}
@@ -616,13 +572,10 @@ static bool wait_update_dev_mounted(char* dev_node, int timeout)
 		char *delim = (char *)" ";
 
 		memset(buf, 0, sizeof(buf));
-		while ((iLen = read_line(fd, buf, sizeof(buf))) > 0)
-		{
+		while ((iLen = read_line(fd, buf, sizeof(buf))) > 0) {
 			char *p = strtok(buf, delim);	/* 提取"cat /proc/mounts"的低0列(设备文件) */
-			if (p != nullptr)
-			{
-				if (strstr(p, dev_node) != NULL)
-				{
+			if (p != nullptr) {
+				if (strstr(p, dev_node) != NULL) {
 					Log.d(TAG, "device[%s] have mounted ....", p);
 					close(fd);
 					return true;
@@ -635,8 +588,7 @@ static bool wait_update_dev_mounted(char* dev_node, int timeout)
 		msg_util::sleep_ms(wait_step);
 		i_cnt++;
 
-		if (i_cnt >= MAX_WAIT_TIMES)
-		{
+		if (i_cnt >= MAX_WAIT_TIMES) {
 			Log.d(TAG, "wait device mount timeout ...");
 			break;
 		}
@@ -659,14 +611,11 @@ static void set_sys_ver_prop(const char* ver_path)
 	char sys_ver[128];
 	
 	/* 读取版本文件 */
-	if (access(ver_path, F_OK) == 0)
-	{
+	if (access(ver_path, F_OK) == 0) {
 		FILE* fp = fopen(ver_path, "rb");
-		if (fp)
-		{
+		if (fp) {
 			pret = fgets(sys_ver, sizeof(sys_ver), fp);
-			if (pret)
-			{
+			if (pret) {
 				str_trim(sys_ver);
 				Log.d(TAG, "get sys_ver [%s]", sys_ver);
 				property_set(PROP_SYS_FIRM_VER, sys_ver);
@@ -766,11 +715,13 @@ int main(int argc, char **argv)
 		u32 bin_file_size = get_file_size(image_path);	/* 得到升级文件的大小 */
 
 
+#if 0
 		if (!check_free_space(update_image_root_path, (u32)((bin_file_size * 3) >> 20))) {
 			Log.e(TAG, "free space is not enough for unzip image");
 			disp_update_error(ERR_SPACE_LIMIT);
 			err_reboot();
 		}
+
 
 		/* 检查SD卡是否 */
 		if (is_fs_rw(update_image_root_path) == false) {
@@ -778,6 +729,7 @@ int main(int argc, char **argv)
 			disp_update_error(ERR_RDONLY_DEV);
 			err_reboot();			
 		}
+#endif
 
         iRet = get_unzip_update_check(update_image_root_path);	/* 提取用于系统更新的应用: update_app */
         if (iRet == 0) {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */

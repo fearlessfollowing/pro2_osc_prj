@@ -36,16 +36,16 @@ Shift+Alt+A	        添加/删除块注释
 Alt+Z	            自动换行
 
 导航
-Ctrl+T	显示所有符号
-Ctrl+G	跳转到行
-Ctrl+P	跳转到文件
-Ctrl+Shift+O	跳转到符号
-Ctrl+Shift+M	显示问题面板
-F8	跳转到下一个问题或警告
-Shift+F8	跳转到前一个问题或警告
-Ctrl+Shift+Tab	显示编辑器文件历史
-Alt+ ← / →	向后/向前查看文件
-Ctrl+M	开启/关闭 Tab 移动焦点
+Ctrl+T	            显示所有符号
+Ctrl+G	            跳转到行
+Ctrl+P	            跳转到文件
+Ctrl+Shift+O	    跳转到符号
+Ctrl+Shift+M    	显示问题面板
+F8	                跳转到下一个问题或警告
+Shift+F8	        跳转到前一个问题或警告
+Ctrl+Shift+Tab	    显示编辑器文件历史
+Alt+ ← / →          向后/向前查看文件
+Ctrl+M	            开启/关闭 Tab 移动焦点
 
 
 搜索和替换
