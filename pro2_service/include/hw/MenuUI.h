@@ -641,7 +641,7 @@ private:
 	void handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
 	void handleLongKeyMsg(int key, int64 ts);
 	void handleDispLightMsg(int menu, int state, int interval);
-	
+	void handleUpdateMid();
 	
 
 	void procBackKeyEvent();

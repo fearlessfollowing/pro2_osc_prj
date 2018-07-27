@@ -141,12 +141,12 @@ enum {
     OLED_SYNC_INIT_INFO,
 //    OLED_CHECK_LIVE_OR_REC,
     OLED_UPDATE_DEV_INFO,
-    OLED_UPDATE_MID, //10
+    UI_UPDATE_MID, //10
     OLED_DISP_BAT_LOW,
     OLED_UPDATE_CAPTURE_LIGHT,
     OLED_UPDATE_CAL_LIGHT,
     OLED_CLEAR_MSG_BOX,
-    OLED_READ_BAT, //15
+    UI_READ_BAT, //15
     OLED_DISP_LIGHT,
     //disp oled info at start
     OLED_DISP_INIT,
@@ -543,8 +543,8 @@ static int main_menu[][MAINMENU_MAX] = {
 
 static const int vid_def_setting_menu[][VID_DEF_MAX] =
 {
-        {
-                ICON_VIDEO_INFO02_NORMAL_0_48_78_1678_16,
+    {
+        ICON_VIDEO_INFO02_NORMAL_0_48_78_1678_16,
 #ifdef GOOGLE_8K_5F
 //                ICON_8K_5FS_78_1678_16,
                 ICON_8K_5FS_78_1678_16,
@@ -588,18 +588,18 @@ static const int live_def_setting_menu[][LIVE_DEF_MAX] = {
         ICON_VIDEO_INFO08_NORMAL_0_48_78_1678_16,
         ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
      },
-                {
+    {
 #ifdef LIVE_ORG
-                        ICON_ORIGIN_HIGH_78_1678_16,
+        ICON_ORIGIN_HIGH_78_1678_16,
 #endif
-                        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
-                        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
-                        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
-                        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
-                        ICON_VIDEO_INFO08_LIGHT_0_48_78_1678_16,
-                        ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16,
-                }
-        };
+        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
+        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
+        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
+        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
+        ICON_VIDEO_INFO08_LIGHT_0_48_78_1678_16,
+        ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16,
+    }
+};
 
 
 #if 0
@@ -1094,29 +1094,28 @@ static ERR_CODE_DETAIL mErrDetails[] = {
     {391, " ", ICON_LIVE_REC_LOW_SPEED_128_64128_64},
 };
 
-static SYS_ERROR mSysErr[] =
-{
-        {START_PREVIEW_FAIL,"1401"},
-        {CAPTURE_FAIL,"1402"},
-        {START_REC_FAIL,"1403"},
-        {START_LIVE_FAIL,"1404"},
-        {START_QR_FAIL,"1405"},
-        {CALIBRATION_FAIL,"1406"},
-        {QR_FINISH_ERROR,"1407"},
-        {START_GYRO_FAIL,"1408"},
-        {START_STA_WIFI_FAIL,"1409"},
-        {START_AP_WIFI_FAIL,"1410"},
-        {SPEED_TEST_FAIL,"1411"},
-        {START_NOISE_FAIL,"1412"},
-        {STOP_PREVIEW_FAIL,"1501"},
-        {STOP_REC_FAIL,"1503"},
-        {STOP_LIVE_FAIL,"1504"},
-        {STOP_QR_FAIL,"1505"},
-        {QR_FINISH_UNRECOGNIZE,"1507"},
-        {STOP_STA_WIFI_FAIL,"1509"},
-        {STOP_AP_WIFI_FAIL,"1510"},
-        {RESET_ALL,"1001"},
-        {START_FORCE_IDLE,"1002"}
+static SYS_ERROR mSysErr[] = {
+    {START_PREVIEW_FAIL,    "1401"},
+    {CAPTURE_FAIL,          "1402"},
+    {START_REC_FAIL,        "1403"},
+    {START_LIVE_FAIL,       "1404"},
+    {START_QR_FAIL,         "1405"},
+    {CALIBRATION_FAIL,      "1406"},
+    {QR_FINISH_ERROR,       "1407"},
+    {START_GYRO_FAIL,       "1408"},
+    {START_STA_WIFI_FAIL,   "1409"},
+    {START_AP_WIFI_FAIL,    "1410"},
+    {SPEED_TEST_FAIL,       "1411"},
+    {START_NOISE_FAIL,      "1412"},
+    {STOP_PREVIEW_FAIL,     "1501"},
+    {STOP_REC_FAIL,         "1503"},
+    {STOP_LIVE_FAIL,        "1504"},
+    {STOP_QR_FAIL,          "1505"},
+    {QR_FINISH_UNRECOGNIZE, "1507"},
+    {STOP_STA_WIFI_FAIL,     "1509"},
+    {STOP_AP_WIFI_FAIL,     "1510"},
+    {RESET_ALL,             "1001"},
+    {START_FORCE_IDLE,      "1002"}
 };
 
 
@@ -1174,32 +1173,22 @@ static void set_phdelay_index(int index)
 {
 	char val = index;
 	
-	if (index < 0 || index > SET_PHOTO_DELAY_MAX)
-	{
+	if (index < 0 || index > SET_PHOTO_DELAY_MAX) {
 		Log.e(TAG, "invalid index = %d", index);
 		index = SET_PHOTO_DELAY_5S;
-	}
-	else
-	{
-		if (access(PH_DELAY_PATH, F_OK) != 0)
-		{
+	} else {
+		if (access(PH_DELAY_PATH, F_OK) != 0) {
 			unlink(PH_DELAY_PATH);
 		}
 		
 		int fd = open(PH_DELAY_PATH, O_CREAT | O_RDWR, 0644);
-		if (fd < 0) 
-		{
+		if (fd < 0) {
 			Log.e(TAG, "+++++ open %s failed", PH_DELAY_PATH);
-		}
-		else 
-		{
+		} else  {
 			int wcnt = write(fd, &val, sizeof(val));
-			if (wcnt != sizeof(val))
-			{
+			if (wcnt != sizeof(val)) {
 				Log.e(TAG, "write %s failed ...");
-			}
-			else 
-			{
+			} else {
 				Log.d(TAG, "write %s success", PH_DELAY_PATH);
 			}
 		}
@@ -1209,8 +1198,7 @@ static void set_phdelay_index(int index)
 
 static void update_takepic_delay(int index)
 {
-	for (u32 i = 0; i < sizeof(mPICAction) / sizeof(mPICAction[0]); i++)
-	{
+	for (u32 i = 0; i < sizeof(mPICAction) / sizeof(mPICAction[0]); i++) {
 		Log.d(TAG, "++++++ update_takepic_delay = %d", photo_delay[index]);
 		mPICAction[i].delay = photo_delay[index];
 	}
@@ -1258,6 +1246,8 @@ void MenuUI::set_setting_select(int type,int val)
     mSettingItems.iSelect[type] = val;
 }
 
+
+
 void MenuUI::disp_top_info()
 {
 	
@@ -1289,6 +1279,7 @@ void MenuUI::init_cfg_select()
 
     sp<ARMessage> msg;
     sp<DEV_IP_INFO> tmpInfo;
+    int iCmd = -1;
 
     tmpInfo = (sp<DEV_IP_INFO>)(new DEV_IP_INFO());
     strcpy(tmpInfo->cDevName, WLAN0_NAME);
@@ -1296,13 +1287,14 @@ void MenuUI::init_cfg_select()
     tmpInfo->iDevType = DEV_WLAN;
 
 	if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
-        msg = (sp<ARMessage>)(new ARMessage(NETM_STARTUP_NETDEV));
+        iCmd = NETM_STARTUP_NETDEV;
 		disp_wifi(true);
 	} else {
 		disp_wifi(false);
-        msg = (sp<ARMessage>)(new ARMessage(NETM_CLOSE_NETDEV));
+        iCmd = NETM_CLOSE_NETDEV;
 	}	
 
+    msg = (sp<ARMessage>)(new ARMessage(iCmd));
     Log.d(TAG, "init_cfg_select: wifi state[%d]", mProCfg->get_val(KEY_WIFI_ON));
     msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
     NetManager::getNetManagerInstance()->postNetMessage(msg);
@@ -1327,7 +1319,6 @@ void MenuUI::oled_init_disp()
     read_ver_info();				/* 读取系统的版本信息 */ 
 	
     init_cfg_select();				/* 根据配置初始化选择项 */
-
 
 	/*
 	 * 显示IP地址
@@ -1736,17 +1727,17 @@ void MenuUI::init_menu_select()
         switch (i) {
             case SET_WIFI_AP:
                 val = mProCfg->get_val(KEY_WIFI_AP);
-                set_setting_select(i,val);
+                set_setting_select(i, val);
                 break;
 				
             case SET_DHCP_MODE:
                 val = mProCfg->get_val(KEY_DHCP);
-                set_setting_select(i,val);
+                set_setting_select(i, val);
                 break;
 				
             case SET_FREQ:
                 val = mProCfg->get_val(KEY_PAL_NTSC);
-                set_setting_select(i,val);
+                set_setting_select(i, val);
                 send_option_to_fifo(ACTION_SET_OPTION, OPTION_FLICKER);
                 break;
 
@@ -1825,6 +1816,7 @@ void MenuUI::init_menu_select()
             SWITCH_DEF_ERROR(i);
         }
     }
+    
     send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
 }
 
@@ -2136,7 +2128,7 @@ void MenuUI::send_update_mid_msg(int interval)
 {
     if (!bSendUpdateMid) {
         bSendUpdateMid = true;
-        send_delay_msg(OLED_UPDATE_MID, interval);
+        send_delay_msg(UI_UPDATE_MID, interval);
     } else {
         Log.d(TAG, "set_update_mid true (%d 0x%x)", cur_menu, cam_state);
     }
@@ -2445,17 +2437,15 @@ bool MenuUI::start_speed_test()
 
 void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 {
-    if (mAct->stOrgInfo.save_org != SAVE_OFF)
-    {
+    if (mAct->stOrgInfo.save_org != SAVE_OFF) {
         mAct->size_per_act = (mAct->stOrgInfo.stOrgAct.mOrgV.org_br * 6) / 10;
     }
-    if(mAct->stStiInfo.stStiAct.mStiL.file_save)
-    {
-       mAct->size_per_act +=
-               mAct->stStiInfo.stStiAct.mStiV.sti_br / 10;
+
+    if (mAct->stStiInfo.stStiAct.mStiL.file_save) {
+       mAct->size_per_act += mAct->stStiInfo.stStiAct.mStiV.sti_br / 10;
     }
-    if(mAct->size_per_act <= 0)
-    {
+
+    if (mAct->size_per_act <= 0) {
         Log.d(TAG,"fix_live_save_per_act strange %d %d %d",
               mAct->stOrgInfo.save_org,mAct->stOrgInfo.stOrgAct.mOrgV.org_br,
               mAct->stStiInfo.stStiAct.mStiV.sti_br);
@@ -2466,11 +2456,11 @@ void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 bool MenuUI::check_live_save(ACTION_INFO *mAct)
 {
     bool ret = false;
-    if(mAct->stOrgInfo.save_org != SAVE_OFF ||
-            mAct->stStiInfo.stStiAct.mStiL.file_save )
-    {
+    if (mAct->stOrgInfo.save_org != SAVE_OFF ||
+            mAct->stStiInfo.stStiAct.mStiL.file_save ) {
         ret = true;
     }
+
     Log.d(TAG, "check_live_save is %d %d ret %d",
           mAct->stOrgInfo.save_org ,
           mAct->stStiInfo.stStiAct.mStiL.file_save,
@@ -2512,26 +2502,21 @@ bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
                                 min = min % 60;
                                 snprintf(disp, sizeof(disp), "%02d:%02d:%02d",
                                          hour, min, sec);
-                            }
-                            else
-                            {
+                            }  else {
                                 snprintf(disp,sizeof(disp),"%s","00:00:00");
                             }
-                        }
-                        else
-                        {
+                        } else {
                             snprintf(disp,sizeof(disp),"%s","no access");
                             Log.e(TAG,"start_live_rec usb no access");
                         }
-                    }
-                    else
-                    {
+                    } else {
                         snprintf(disp,sizeof(disp),"%s","99:99:99");
                     }
                     Log.d(TAG,"start_live_rec "
                                   "pstTmp->size_per_act %d %s",
                           mAct->size_per_act,disp);
-                    disp_str((const u8 *)disp,37,32);
+
+                    disp_str((const u8 *)disp, 37, 32);
                     set_cur_menu(MENU_LIVE_REC_TIME);
                 }
             }
@@ -2562,48 +2547,35 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
     switch (option) {
         case ACTION_PIC:	/* 拍照动作 */
 
-            // if (check_dev_exist(option)) {
-
-				Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
+            Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
 				
-                // only happen in preview in oled panel, taking pic in live or rec only actvied by controller client
-                // if (check_allow_pic()) {
-                    // oled_disp_type(CAPTURE);
-                    item = get_menu_select_by_power(MENU_PIC_SET_DEF);
-//                    Log.d(TAG," pic action item is %d",item);
-
-                    switch (item) {
-//                        case PIC_8K_3D_SAVE:
-                        case PIC_8K_PANO_SAVE:
-                        case PIC_8K_3D_SAVE_OF:
+            item = get_menu_select_by_power(MENU_PIC_SET_DEF);
+            switch (item) {
+//              case PIC_8K_3D_SAVE:
+                case PIC_8K_PANO_SAVE:
+                case PIC_8K_3D_SAVE_OF:
                             //optical flow stich
-                        case PIC_8K_PANO_SAVE_OF:
+                case PIC_8K_PANO_SAVE_OF:
 #ifdef OPEN_HDR_RTS
-                        case PIC_HDR_RTS:
+                case PIC_HDR_RTS:
 #endif
-                        case PIC_HDR:
-                        case PIC_BURST:
-                        case PIC_RAW:							
-                            memcpy(mActionInfo.get(), &mPICAction[item], sizeof(ACTION_INFO));
-                            break;
+                case PIC_HDR:
+                case PIC_BURST:
+                case PIC_RAW:							
+                    memcpy(mActionInfo.get(), &mPICAction[item], sizeof(ACTION_INFO));
+                    break;
 							
-                        case PIC_CUSTOM:
-                            memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_PIC_DEF), sizeof(ACTION_INFO));
-                            if (strlen(mActionInfo->stProp.len_param) > 0 || strlen(mActionInfo->stProp.mGammaData) > 0) {
-                                mProCfg->get_def_info(KEY_PIC_DEF)->stProp.audio_gain = -1;
-                                send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_PIC_DEF)->stProp);
-                            }
-                            break;
-							
-                        SWITCH_DEF_ERROR(item);
+                case PIC_CUSTOM:
+                    memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_PIC_DEF), sizeof(ACTION_INFO));
+                    if (strlen(mActionInfo->stProp.len_param) > 0 || strlen(mActionInfo->stProp.mGammaData) > 0) {
+                        mProCfg->get_def_info(KEY_PIC_DEF)->stProp.audio_gain = -1;
+                        send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_PIC_DEF)->stProp);
                     }
-                    msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-                //  } else {
-                    // bAllow = false;
-                //  }
-            // } else {
-                // bAllow = false;
-            // }
+                    break;
+							
+                    SWITCH_DEF_ERROR(item);
+            }
+            msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
             break;
 			
         case ACTION_VIDEO:
@@ -2760,47 +2732,38 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 Log.e(TAG, "action speed test mSavePathIndex -1");
                 bAllow = false;
             } else {
-                if(!check_state_in(STATE_SPEED_TEST))
-                {
+                if (!check_state_in(STATE_SPEED_TEST)) {
                     msg->set<char *>("path", mLocalStorageList.at(mSavePathIndex)->path);
                     oled_disp_type(SPEED_START);
-                }
-                else
-                {
+                } else {
                     bAllow = false;
                 }
             }
             break;
+
         case ACTION_GYRO:
-            if(check_state_in(STATE_IDLE))
-            {
+            if (check_state_in(STATE_IDLE)) {
                 oled_disp_type(START_GYRO);
-            }
-            else
-            {
+            } else  {
                 ERR_MENU_STATE(cur_menu,cam_state);
                 bAllow = false;
             }
             break;
+
         case ACTION_NOISE:
-            if(check_state_in(STATE_IDLE))
-            {
+            if (check_state_in(STATE_IDLE)) {
                 oled_disp_type(START_NOISE);
-            }
-            else
-            {
+            } else {
                 ERR_MENU_STATE(cur_menu,cam_state);
                 bAllow = false;
             }
             break;
+
         case ACTION_AGEING:
-            if(check_state_in(STATE_IDLE))
-            {
+            if (check_state_in(STATE_IDLE)) {
                 oled_disp_type(START_RECING);
                 set_cur_menu(MENU_AGEING);
-            }
-            else
-            {
+            } else {
                 ERR_MENU_STATE(cur_menu,cam_state);
                 bAllow = false;
             }
@@ -2808,44 +2771,44 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
         case ACTION_SET_OPTION:
             msg->set<int>("type", cmd);
-            switch(cmd)
-            {
+            switch (cmd) {
                 case OPTION_FLICKER:
                     msg->set<int>("flicker", get_setting_select(SET_FREQ));
                     break;
+
                 case OPTION_LOG_MODE:
                     msg->set<int>("mode", 1);
                     msg->set<int>("effect", 0);
                     break;
+
                 case OPTION_SET_FAN:
                     msg->set<int>("fan", get_setting_select(SET_FAN_ON));
                     break;
+
                 case OPTION_SET_AUD:
-                    if(get_setting_select(SET_AUD_ON) == 1)
-                    {
-                        if(get_setting_select(SET_SPATIAL_AUD) == 1)
-                        {
+                    if (get_setting_select(SET_AUD_ON) == 1) {
+                        if (get_setting_select(SET_SPATIAL_AUD) == 1) {
                             msg->set<int>("aud", 2);
-                        }
-                        else
-                        {
+                        } else {
                             msg->set<int>("aud", 1);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         msg->set<int>("aud", 0);
                     }
                     break;
+
                 case OPTION_GYRO_ON:
                     msg->set<int>("gyro_on", get_setting_select(SET_GYRO_ON));
                     break;
+
                 case OPTION_SET_LOGO:
                     msg->set<int>("logo_on", get_setting_select(SET_BOTTOM_LOGO));
                     break;
+
                 case OPTION_SET_VID_SEG:
                     msg->set<int>("video_fragment", get_setting_select(SET_VIDEO_SEGMENT));
                     break;
+
 //                case OPTION_SET_AUD_GAIN:
 //                {
 //                    sp<CAM_PROP> mProp = sp<CAM_PROP>(new CAM_PROP());
@@ -2856,16 +2819,14 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 SWITCH_DEF_ERROR(cmd);
             }
             break;
+
         case ACTION_POWER_OFF:
-            if(!check_state_in(STATE_POWER_OFF))
-            {
+            if (!check_state_in(STATE_POWER_OFF)) {
                 add_state(STATE_POWER_OFF);
                 clear_area();
                 set_light_direct(LIGHT_OFF);
                 msg->set<int>("cmd", cmd);
-            }
-            else
-            {
+            } else {
                 ERR_MENU_STATE(cur_menu,cam_state);
                 bAllow = false;
             }
@@ -2959,7 +2920,7 @@ void MenuUI::send_bat_low()
 
 void MenuUI::send_read_bat()
 {
-    sp<ARMessage> msg = obtainMessage(OLED_READ_BAT);
+    sp<ARMessage> msg = obtainMessage(UI_READ_BAT);
     msg->post();
 }
 
@@ -3168,59 +3129,35 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
           mSyncInfo->c_v,mSyncInfo->h_v);
     INFO_MENU_STATE(cur_menu,cam_state);
 
-    if (state == STATE_IDLE)
-	{	/* 如果相机处于Idle状态 */
+    if (state == STATE_IDLE) {	/* 如果相机处于Idle状态 */
 		Log.d(TAG,"set_sync_info oled_reset_disp cam_state 0x%x, cur_menu %d", cam_state, cur_menu);
         cam_state = STATE_IDLE;
         set_cur_menu(MENU_TOP);	/* 初始化显示为顶级菜单 */
-    }
-    else if ((state & STATE_RECORD) == STATE_RECORD)
-    {
-        if ((state & STATE_PREVIEW )== STATE_PREVIEW)
-        {
+    } else if ((state & STATE_RECORD) == STATE_RECORD) {
+        if ((state & STATE_PREVIEW )== STATE_PREVIEW) {
             oled_disp_type(SYNC_REC_AND_PREVIEW);
-        }
-        else
-        {
+        } else {
             oled_disp_type(START_REC_SUC);
         }
-    }
-    else if((state& STATE_LIVE) == STATE_LIVE)
-    {
-        if ((state& STATE_PREVIEW) == STATE_PREVIEW)
-        {
+    } else if ((state& STATE_LIVE) == STATE_LIVE) {
+        if ((state& STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_AND_PREVIEW);
-        }
-        else
-        {
+        } else {
             oled_disp_type(START_LIVE_SUC);
         }
-    }
-    else if((state& STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING)
-    {
-        if ((state& STATE_PREVIEW) == STATE_PREVIEW)
-        {
+    } else if ((state& STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) {
+        if ((state& STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_CONNECT_AND_PREVIEW);
-        }
-        else
-        {
+        } else {
             oled_disp_type(START_LIVE_CONNECTING);
         }
-    }
-    else if((state& STATE_CALIBRATING) == STATE_CALIBRATING)
-    {
+    } else if ((state& STATE_CALIBRATING) == STATE_CALIBRATING) {
         oled_disp_type(START_CALIBRATIONING);
-    }
-    else if((state& STATE_PIC_STITCHING) == STATE_PIC_STITCHING)
-    {
+    } else if ((state& STATE_PIC_STITCHING) == STATE_PIC_STITCHING) {
         oled_disp_type(SYNC_PIC_STITCH_AND_PREVIEW);
-    }
-    else if((state& STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING)
-    {
+    } else if ((state& STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING) {
         oled_disp_type(SYNC_PIC_CAPTURE_AND_PREVIEW);
-    }
-    else if( (state& STATE_PREVIEW) == STATE_PREVIEW)
-    {
+    } else if ( (state& STATE_PREVIEW) == STATE_PREVIEW)  {
         oled_disp_type(START_PREVIEW_SUC);
     }
 	
@@ -3271,58 +3208,6 @@ void MenuUI::write_sys_info(sp<SYS_INFO> &mSysInfo)
     Log.d(TAG,"close write sn");
 #endif
 }
-
-
-
-#ifdef ENABLE_WIFI_STA
-bool MenuUI::start_wifi_sta(int disp_main)
-{
-    bool ret = false;
-
-    Log.d(TAG,"start_wifi_sta (%d %d)",
-          mProCfg->get_val(KEY_WIFI_ON),
-          mProCfg->get_val(KEY_WIFI_AP));
-
-    if (mProCfg->get_val(KEY_WIFI_ON) == 1 && mProCfg->get_val(KEY_WIFI_AP) == 0) {
-        Log.d(TAG, "wifi ssid %s pwd %s "
-                      "disp_main %d cur_menu %d",
-              mWifiConfig->ssid,
-              mWifiConfig->pwd,
-              disp_main,
-              cur_menu);
-        if (strlen(mWifiConfig->ssid) > 0 /*&& strlen(mWifiConfig->pwd) > 0*/) {
-            wifi_stop();
-            if (disp_main != -1) {
-                set_cur_menu(MENU_WIFI_CONNECT);
-                if (strlen(mWifiConfig->pwd) == 0) {
-                    Log.d(TAG,"connect no pwd %s", mWifiConfig->ssid);
-                    //tx_softsta_start(mWifiConfig->ssid,0, 7);
-                } else {
-                    //tx_softsta_start(mWifiConfig->ssid, mWifiConfig->pwd, 7);
-                }
-//            Log.d(TAG,"tx_softsta_start is %d", iRet);
-                procBackKeyEvent();
-            }
-            else
-            {
-                if(strlen(mWifiConfig->pwd) == 0)
-                {
-                    Log.d(TAG,"connect no pwd2 %s", mWifiConfig->ssid);
-                    //tx_softsta_start(mWifiConfig->ssid,0, 7);
-                }
-                else
-                {
-                    //tx_softsta_start(mWifiConfig->ssid, mWifiConfig->pwd, 7);
-                }
-//            Log.d(TAG,"2tx_softsta_start is %d", iRet);
-            }
-            disp_wifi(true, disp_main);
-            ret = true;
-        }
-    }
-    return ret;
-}
-#endif
 
 
 
@@ -3452,32 +3337,21 @@ void MenuUI::wifi_action()
 
 int MenuUI::get_back_menu(int item)
 {
-    if (item >= 0 && (item < MENU_MAX))
-    {
+    if (item >= 0 && (item < MENU_MAX)) {
         return mMenuInfos[item].back_menu;
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "get_back_menu item %d", item);
-#ifdef ENABLE_ABORT
-        abort();
-#else
         return MENU_TOP;
-#endif
     }
 }
 
 void MenuUI::set_back_menu(int item,int menu)
 {
-    if(menu == -1)
-    {
-        if(cur_menu == -1)
-        {
+    if (menu == -1) {
+        if (cur_menu == -1) {
             cur_menu = MENU_TOP;
             menu = MENU_TOP;
-        }
-        else
-        {
+        } else {
             Log.e(TAG,"back menu is -1 cur_menu %d\n",cur_menu);
 
             #ifdef ENABLE_ABORT
@@ -3488,33 +3362,24 @@ void MenuUI::set_back_menu(int item,int menu)
     }
 
 //    Log.d(TAG, " set back menu item %d menu %d", item, menu);
-    if (item > MENU_TOP && (item < MENU_MAX))
-    {
+    if (item > MENU_TOP && (item < MENU_MAX)) {
         {
-            if (MENU_SYS_ERR == menu || menu == MENU_DISP_MSG_BOX || menu == MENU_LOW_BAT || menu == MENU_LIVE_REC_TIME)
-            {
+            if (MENU_SYS_ERR == menu || menu == MENU_DISP_MSG_BOX || menu == MENU_LOW_BAT || menu == MENU_LIVE_REC_TIME) {
                  menu = get_back_menu(menu);
             }
         }
 //        Log.d(TAG, "2 set back menu item %d menu %d", item, menu);
-        if (item == menu)
-        {
+        if (item == menu) {
             Log.e(TAG,"same (%d %d)",item,menu);
             menu = get_back_menu(menu);
         }
 //        Log.d(TAG, "3 set back menu item %d menu %d", item, menu);
-        if (item != menu)
-        {
+        if (item != menu)  {
             Log.d(TAG,"set back (%d %d)",item,menu);
             mMenuInfos[item].back_menu = menu;
         }
-    }
-    else
-    {
+    } else {
         Log.e(TAG, "set_back_menu item %d", item);
-#ifdef ENABLE_ABORT
-        abort();
-#endif
     }
 }
 
@@ -3630,12 +3495,6 @@ void MenuUI::disp_scroll()
 
 }
 
-//void MenuUI::clear_bottom()
-//{
-//    Log.d(TAG,"clear_bottom");
-//    mOLEDModule->clear_area(0,48,128,16);
-//    Log.d(TAG,"clear_bottom over");
-//}
 
 void MenuUI::update_menu_disp(const int *icon_light,const int *icon_normal)
 {
@@ -3647,8 +3506,7 @@ void MenuUI::update_menu_disp(const int *icon_light,const int *icon_normal)
 //          mSelect->page_max,mSelect->total);
     if (icon_normal != nullptr) {
         //sometimes force last_select to -1 to avoid update last select
-        if(last_select != -1)
-        {
+        if(last_select != -1) {
             disp_icon(icon_normal[last_select + mSelect->cur_page * mSelect->page_max]);
         }
     }
@@ -3671,7 +3529,6 @@ void MenuUI::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_
 }
 
 
-
 void MenuUI::update_menu_page()
 {
     // CHECK_EQ(cur_menu,MENU_SYS_SETTING);
@@ -3687,18 +3544,14 @@ void MenuUI::update_menu_page()
 
 void MenuUI::set_mainmenu_item(int item,int val)
 {
-    switch(item)
-    {
+    switch (item) {
         case MAINMENU_WIFI:
             //off
 //            Log.d(TAG,"set_mainmenu_item val %d",val);
-            if(val == 0)
-            {
+            if (val == 0) {
                 main_menu[0][item] = ICON_INDEX_IC_WIFICLOSE_NORMAL24_24;
                 main_menu[1][item] = ICON_INDEX_IC_WIFICLOSE_LIGHT24_24;
-            }
-            else
-            {
+            } else {
                 main_menu[0][item] = ICON_INDEX_IC_WIFIOPEN_NORMAL24_24;
                 main_menu[1][item] = ICON_INDEX_IC_WIFIOPEN_LIGHT24_24;
             }
@@ -3713,10 +3566,8 @@ void MenuUI::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
 	
     //sometimes force last_select to -1 to avoid update last select
 //    Log.d(TAG,"cur %d last %d",cur,last_select);
-    if (bUpdateLast)
-    {
-        if(last_select != -1)
-        {
+    if (bUpdateLast) {
+        if (last_select != -1) {
             SELECT_INFO * mSelect = get_select_info();
             int last = last_select + mSelect->cur_page * mSelect->page_max;
 //            Log.d(TAG,"last %d",last);
@@ -3730,32 +3581,32 @@ void MenuUI::update_sys_cfg(int item, int val)
 {
     val = val&0x00000001;
     Log.d(TAG," update_sys_cfg item %d val %d",item,val);
-    switch(item)
-    {
+    switch(item) {
         case SET_FREQ:
             mProCfg->set_val(KEY_PAL_NTSC, val);
             set_setting_select(item, val);
             break;
+
         case SET_SPEAK_ON:
             mProCfg->set_val(KEY_SPEAKER, val);
             set_setting_select(item, val);
             break;
+
         case SET_BOTTOM_LOGO:
             mProCfg->set_val(KEY_SET_LOGO, val);
             set_setting_select(item, val);
             break;
+
         case SET_LIGHT_ON:
             mProCfg->set_val(KEY_LIGHT_ON, val);
             set_setting_select(item, val);
-            if (val == 1)
-            {
+            if (val == 1) {
                 set_light();
-            }
-            else
-            {
+            } else {
                 set_light_direct(LIGHT_OFF);
             }
             break;
+
 //        case SET_RESTORE:
 //            if(check_state_equal(STATE_IDLE))
 //            {
@@ -3770,22 +3621,27 @@ void MenuUI::update_sys_cfg(int item, int val)
             mProCfg->set_val(KEY_AUD_SPATIAL, val);
             set_setting_select(item, val);
             break;
+
         case SET_GYRO_ON:
             mProCfg->set_val(KEY_GYRO_ON, val);
             set_setting_select(item, val);
             break;
+
         case SET_FAN_ON:
             mProCfg->set_val(KEY_FAN, val);
             set_setting_select(item, val);
             break;
+
         case SET_AUD_ON:
             mProCfg->set_val(KEY_AUD_ON, val);
             set_setting_select(item, val);
             break;
+
         case SET_VIDEO_SEGMENT:
             mProCfg->set_val(KEY_VID_SEG, val);
             set_setting_select(item, val);
             break;
+
             SWITCH_DEF_ERROR(item)
     }
 }
@@ -3835,9 +3691,7 @@ void MenuUI::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 
             bStiching = true;
         }
-    }
-    else
-    {
+    } else {
         Log.e(TAG,"%s cur_menu %d %d",
               __FUNCTION__,cur_menu,bStiching);
     }
@@ -3860,45 +3714,44 @@ void MenuUI::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
           mSysSetting->video_fragment);
 
     {
-        if(mSysSetting->flicker != -1)
-        {
+        if (mSysSetting->flicker != -1) {
             update_sys_cfg(SET_FREQ, mSysSetting->flicker);
         }
-        if(mSysSetting->speaker != -1)
-        {
+
+        if (mSysSetting->speaker != -1) {
             update_sys_cfg(SET_SPEAK_ON,mSysSetting->speaker);
         }
-        if(mSysSetting->aud_on != -1)
-        {
+
+        if (mSysSetting->aud_on != -1) {
             update_sys_cfg(SET_AUD_ON,mSysSetting->aud_on);
         }
-        if(mSysSetting->aud_spatial != -1)
-        {
+
+        if (mSysSetting->aud_spatial != -1) {
             update_sys_cfg(SET_SPATIAL_AUD,mSysSetting->aud_spatial);
         }
-        if(mSysSetting->fan_on != -1)
-        {
+
+        if (mSysSetting->fan_on != -1)  {
             update_sys_cfg(SET_FAN_ON,mSysSetting->fan_on);
         }
-        if(mSysSetting->set_logo != -1)
-        {
+
+        if (mSysSetting->set_logo != -1) {
             update_sys_cfg(SET_BOTTOM_LOGO,mSysSetting->set_logo);
         }
-        if(mSysSetting->led_on != -1)
-        {
+
+        if (mSysSetting->led_on != -1) {
             update_sys_cfg(SET_LIGHT_ON,mSysSetting->led_on);
         }
-        if(mSysSetting->gyro_on != -1)
-        {
+
+        if (mSysSetting->gyro_on != -1) {
             update_sys_cfg(SET_GYRO_ON,mSysSetting->gyro_on);
         }
-        if(mSysSetting->video_fragment != -1)
-        {
+
+        if (mSysSetting->video_fragment != -1)  {
             update_sys_cfg(SET_VIDEO_SEGMENT,mSysSetting->video_fragment);
         }
+
         //update current menu
-        if(cur_menu == MENU_SYS_SETTING)
-        {
+        if (cur_menu == MENU_SYS_SETTING) {
             set_cur_menu(MENU_SYS_SETTING);
         }
     }
@@ -3913,87 +3766,85 @@ void MenuUI::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
     int menu;
     int max;
     int key;
+
     sp<ACTION_INFO> mRes = sp<ACTION_INFO>(new ACTION_INFO());
     memcpy(mRes.get(), mAdd.get(),sizeof(ACTION_INFO));
 
-    Log.d(TAG,"add_qr_res type (%d %d)",
-          type,control_act );
-    switch(control_act)
-    {
+    Log.d(TAG, "add_qr_res type (%d %d)", type, control_act);
+
+    switch(control_act) {
         case ACTION_PIC:
         case ACTION_VIDEO:
         case ACTION_LIVE:
             mControlAct = mRes;
             //force 0 to 10
-            if (mControlAct->size_per_act == 0)
-            {
+            if (mControlAct->size_per_act == 0) {
                 Log.d(TAG,"force control size_per_act is %d",
                       mControlAct->size_per_act);
                 mControlAct->size_per_act = 10;
             }
             break;
+
         case CONTROL_SET_CUSTOM:
-            switch (type)
-            {
+            switch (type) {
                 case ACTION_PIC:
                     key = KEY_PIC_DEF;
-                    if(mRes->size_per_act == 0)
-                    {
-                        Log.d(TAG,"force CONTROL_SET_CUSTOM pic size_per_act is %d",
-                              mRes->size_per_act);
+                    if (mRes->size_per_act == 0) {
+                        Log.d(TAG, "force CONTROL_SET_CUSTOM pic size_per_act is %d", mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
+
                 case ACTION_VIDEO:
                     key = KEY_VIDEO_DEF;
-                    if(mRes->size_per_act == 0)
-                    {
-                        Log.d(TAG,"force CONTROL_SET_CUSTOM video size_per_act is %d",
-                              mRes->size_per_act);
+                    if (mRes->size_per_act == 0) {
+                        Log.d(TAG, "force CONTROL_SET_CUSTOM video size_per_act is %d", mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
+
                 case ACTION_LIVE:
                     key = KEY_LIVE_DEF;
                     fix_live_save_per_act(mRes.get());
                     break;
+
                 SWITCH_DEF_ERROR(type);
             }
             mProCfg->set_def_info(key, -1, mRes);
             break;
+
         default:
         {
             //only save one firstly
-            switch (type)
-            {
+            switch (type)  {
                 case ACTION_PIC:
                     menu = MENU_PIC_SET_DEF;
                     key = KEY_PIC_DEF;
                     max = PIC_CUSTOM;
-                    if(mRes->size_per_act == 0)
-                    {
-                        Log.d(TAG,"force qr pic size_per_act is %d",
-                              mRes->size_per_act);
+                    if (mRes->size_per_act == 0) {
+                        Log.d(TAG, "force qr pic size_per_act is %d", mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
+
                 case ACTION_VIDEO:
                     key = KEY_VIDEO_DEF;
                     menu = MENU_VIDEO_SET_DEF;
                     max = VID_CUSTOM;
-                    if(mRes->size_per_act == 0)
-                    {
+                    if (mRes->size_per_act == 0) {
                         Log.d(TAG,"force qr video size_per_act is %d",
                               mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
+
                 case ACTION_LIVE:
                     key = KEY_LIVE_DEF;
                     menu = MENU_LIVE_SET_DEF;
                     max = LIVE_CUSTOM;
                     fix_live_save_per_act(mRes.get());
                     break;
+
                 SWITCH_DEF_ERROR(type);
             }
             mProCfg->set_def_info(key, max, mRes);
@@ -4090,15 +3941,13 @@ void MenuUI::get_storage_info()
     memset(used_space,0,sizeof(used_space));
 
 //    Log.d(TAG,"get total mLocalStorageList.size() %d", mLocalStorageList.size());
-    for(u32 i = 0; i < mLocalStorageList.size(); i++)
-    {
+    for (u32 i = 0; i < mLocalStorageList.size(); i++) {
         struct statfs diskInfo;
         u64 totalsize = 0;
         u64 used_size = 0;
         storage_index = get_dev_type_index(mLocalStorageList.at(i)->dev_type);
 
-        if (access(mLocalStorageList.at(i)->path, F_OK) != -1)
-        {
+        if (access(mLocalStorageList.at(i)->path, F_OK) != -1) {
             statfs(mLocalStorageList.at(i)->path, &diskInfo);
             u64 blocksize = diskInfo.f_bsize;    //每个block里包含的字节数
             totalsize = blocksize * diskInfo.f_blocks;   //总的字节数，f_blocks为block的数目
@@ -4115,9 +3964,7 @@ void MenuUI::get_storage_info()
                                  sizeof(used_space[storage_index]));
 
             Log.d(TAG," used %s total %s path %s",used_space[storage_index],total_space[storage_index],mLocalStorageList.at(i)->path);
-        }
-        else
-        {
+        } else {
             Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
         }
     }
@@ -4131,8 +3978,7 @@ bool MenuUI::get_save_path_avail()
         int i = 0;
         for (i = 0; i < times; i++) {
             struct statfs diskInfo;
-            if (access(mLocalStorageList.at(mSavePathIndex)->path, F_OK) != -1)
-            {
+            if (access(mLocalStorageList.at(mSavePathIndex)->path, F_OK) != -1) {
                 statfs(mLocalStorageList.at(mSavePathIndex)->path, &diskInfo);
 
                 /*
@@ -4148,16 +3994,14 @@ bool MenuUI::get_save_path_avail()
                       mLocalStorageList.at(mSavePathIndex)->path,
                       mLocalStorageList.at(mSavePathIndex)->avail);
                 break;
-            }
-            else
-            {
+            }  else {
                 Log.d(TAG,"fail to access(%d) %s",i,
                       mLocalStorageList.at(mSavePathIndex)->path);
                 msg_util::sleep_ms(10);
             }
         }
-        if( i == times )
-        {
+
+        if (i == times) {
             Log.d(TAG,"still fail to access %s",
                   mLocalStorageList.at(mSavePathIndex)->path);
             mLocalStorageList.at(mSavePathIndex)->avail = 0;
@@ -4458,6 +4302,7 @@ int MenuUI::exec_sh_new(const char *buf)
     return exec_sh(buf);
 }
 
+
 //- 格式化exfat: mkexfat /dev/block/mmcblk1p1
 //- 格式化ext4: mke2fs -t ext4 /dev/block/mmcblk1p1
 //- Trim废弃block: fstrim /dev/block/mmcblk1p1
@@ -4472,48 +4317,38 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
           src,path,cur_menu);
 
     add_state(STATE_FORMATING);
-    switch(get_menu_select_by_power(MENU_FORMAT))
-    {
+
+    switch (get_menu_select_by_power(MENU_FORMAT)) {
         //exfat
         case 0:
-            snprintf(buf,sizeof(buf),"umount -f %s",path);
-            if(exec_sh_new((const char *)buf) != 0)
-            {
+            snprintf(buf, sizeof(buf), "umount -f %s", path);
+            if (exec_sh_new((const char *)buf) != 0) {
                 goto ERROR;
             }
 
             snprintf(buf,sizeof(buf),"mke2fs -F -t ext4 %s",src);
-            if(exec_sh_new((const char *)buf) != 0)
-            {
+            if (exec_sh_new((const char *)buf) != 0) {
                 err_trim = 1;
-            } 
-            else
-            {
+            }  else {
                 snprintf(buf,sizeof(buf),"mount -t ext4 -o discard %s %s",src,path);
                 //            snprintf(buf,sizeof(buf),"mountufsd %s %s -o uid=1023,gid=1023,fmask=0700,dmask=0700,force",src,path);
-                if(exec_sh_new((const char *)buf) != 0)
-                {
+                if (exec_sh_new((const char *)buf) != 0) {
                     err_trim = 1;
-                }
-                else
-                {
+                }  else {
                     snprintf(buf,sizeof(buf),"fstrim %s",path);
-                    if(exec_sh_new((const char *)buf) != 0)
-                    {
+                    if (exec_sh_new((const char *)buf) != 0) {
                         err_trim = 1;
                     }
 
                     snprintf(buf,sizeof(buf),"umount -f %s",path);
-                    if(exec_sh_new((const char *)buf) != 0)
-                    {
+                    if (exec_sh_new((const char *)buf) != 0) {
                         goto ERROR;
                     }
                   }
              }
 
             snprintf(buf,sizeof(buf),"mkexfat -f %s",src);
-            if(exec_sh_new((const char *)buf) != 0)
-            {
+            if (exec_sh_new((const char *)buf) != 0) {
                 goto ERROR;
             }
             Log.d(TAG,"err_trim %d",err_trim);
@@ -4523,32 +4358,29 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
             snprintf(buf,sizeof(buf),"mountufsd %s %s "
                     "-o uid=1023,gid=1023,fmask=0700,dmask=0700,force",
                      src,path);
-            if(exec_sh((const char *)buf) != 0)
-            {
+            if (exec_sh((const char *)buf) != 0) {
                 goto ERROR;
-            }
-            else
-            {
+            }  else {
                 Log.d(TAG,"mountufsd suc");
             }
 #endif
 
-            if (err_trim)
-            {
+            if (err_trim) {
                 goto ERROR_TRIM;
             }
 
-            switch(get_menu_select_by_power(MENU_STORAGE))
-            {
+            switch(get_menu_select_by_power(MENU_STORAGE)) {
                 case SET_STORAGE_SD:
                     disp_icon(ICON_SDCARD_FORMATTED_SUCCESS128_48);
                     break;
+
                 case SET_STORAGE_USB:
                     disp_icon(ICON_USBHARDDRIVE_FORMATTED_SUCCESS128_48);
                     break;
             }
             msg_util::sleep_ms(3000);
             break;
+
 #ifndef ONLY_EXFAT
         //ext4
         case 1:
@@ -4595,26 +4427,22 @@ ERROR:
 void MenuUI::start_format()
 {
     bool bFound = false;
-    switch(get_menu_select_by_power(MENU_STORAGE))
-    {
+    switch (get_menu_select_by_power(MENU_STORAGE)) {
         case SET_STORAGE_SD:
             disp_icon(ICON_SDCARD_FORMATTING128_48);
-            for(u32 i = 0; i < mLocalStorageList.size(); i++)
-            {
-                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_SD)
-                {
+            for(u32 i = 0; i < mLocalStorageList.size(); i++) {
+                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_SD) {
                     format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
                     bFound = true;
                     break;
                 }
             }
             break;
+
         case SET_STORAGE_USB:
             disp_icon(ICON_USBHARDDRIVE_FORMATTING128_48);
-            for(u32 i = 0; i < mLocalStorageList.size(); i++)
-            {
-                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_USB)
-                {
+            for(u32 i = 0; i < mLocalStorageList.size(); i++)  {
+                if (get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_USB) {
                     bFound = true;
                     format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,
                            ICON_FORMAT_REPLACE_NEW_USB_128_48128_48,
@@ -4625,13 +4453,11 @@ void MenuUI::start_format()
             break;
         SWITCH_DEF_ERROR(get_menu_select_by_power(MENU_STORAGE))
     }
-    if(!bFound)
-    {
+
+    if (!bFound) {
         Log.e(TAG,"no format device found");
         abort();
-    }
-    else
-    {
+    } else {
 //        msg_util::sleep_ms(3000);
         rm_state(STATE_FORMATING);
         add_state(STATE_FORMAT_OVER);
@@ -4739,12 +4565,9 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
             SWITCH_DEF_ERROR(new_org_rts)
         }
     }
-    if(hdmi == 0)
-    {
+    if (hdmi == 0)  {
         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
-    }
-    else if(hdmi == 1)
-    {
+    } else if (hdmi == 1) {
 //        disp_str_fill((const u8 *)"  HDMI",bottom_info_start,48,0);
         disp_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
     }
@@ -5028,10 +4851,9 @@ bool MenuUI::isDevExist()
 {
     int item = get_menu_select_by_power(MENU_STORAGE);
     bool bFound = false;
-    for(u32 i = 0;i < mLocalStorageList.size(); i++)
-    {
-        if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == item)
-        {
+
+    for (u32 i = 0;i < mLocalStorageList.size(); i++) {
+        if (get_dev_type_index(mLocalStorageList.at(i)->dev_type) == item) {
             bFound = true;
             break;
         }
@@ -5084,8 +4906,7 @@ void MenuUI::disp_menu(bool dispBottom)
             if (check_state_preview()) {
                 disp_ready_icon();
             } else if (check_state_equal(STATE_START_PREVIEWING) ||
-                    (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING))
-            {
+                    (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING)) {
                 disp_waiting();
             } else if (check_state_in(STATE_RECORD)) {
                 Log.d(TAG, "do nothing in rec cam state 0x%x", cam_state);
@@ -5171,18 +4992,12 @@ void MenuUI::disp_menu(bool dispBottom)
 //                reset_last_info();
 //                Log.d(TAG,"disp MENU_QR_SCAN state is 0x%x",cam_state);
             INFO_MENU_STATE(cur_menu,cam_state)
-            if(check_state_in(STATE_START_QRING) || check_state_in(STATE_STOP_QRING))
-            {
+            if(check_state_in(STATE_START_QRING) || check_state_in(STATE_STOP_QRING)) {
                 disp_waiting();
-            }
-            else if (check_state_in(STATE_START_QR))
-            {
+            } else if (check_state_in(STATE_START_QR)) {
                 disp_icon(ICON_QR_SCAN128_64);
-            }
-            else
-            {
-                if(check_state_equal(STATE_IDLE))
-                {
+            } else {
+                if (check_state_equal(STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5260,31 +5075,29 @@ void MenuUI::disp_menu(bool dispBottom)
 //            break;
         case MENU_GYRO_START:
 //                CHECK_EQ(cam_state,STATE_IDLE);
-            if(check_state_equal(STATE_START_GYRO))
-            {
+            if (check_state_equal(STATE_START_GYRO)) {
                 disp_icon(ICON_GYRO_CALIBRATING128_48);
-            }
-            else
-            {
+            } else {
                 disp_icon(ICON_HORIZONTALLY01128_48);
             }
             break;
+
         case MENU_SPEED_TEST:
         {
 //                Log.d(TAG,"mSavePathIndex is %d",mSavePathIndex);
-            if(!check_save_path_none())
-            {
+            if (!check_save_path_none()) {
                 int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
-                if(check_state_in(STATE_SPEED_TEST))
-                {
+                if (check_state_in(STATE_SPEED_TEST)) {
                     switch(dev_index)
                     {
                         case SET_STORAGE_SD:
                             disp_icon(ICON_SPEEDTEST03128_64);
                             break;
+
                         case SET_STORAGE_USB:
                             disp_icon(ICON_SPEEDTEST04128_64);
                             break;
+
                         default:
                             Log.d(TAG,"STATE_SPEED_TEST mSavePathIndex is -1");
 #ifdef ENABLE_ABORT
@@ -5294,17 +5107,16 @@ void MenuUI::disp_menu(bool dispBottom)
 #endif
                             break;
                     }
-                }
-                else
-                {
-                    switch(dev_index)
-                    {
+                } else {
+                    switch (dev_index) {
                         case SET_STORAGE_SD:
                             disp_icon(ICON_SPEEDTEST01128_64);
                             break;
+
                         case SET_STORAGE_USB:
                             disp_icon(ICON_SPEEDTEST02128_64);
                             break;
+
                         default:
                             Log.d(TAG,"mSavePathIndex is -1");
 //                        abort();
@@ -5312,9 +5124,7 @@ void MenuUI::disp_menu(bool dispBottom)
                             break;
                     }
                 }
-            }
-            else
-            {
+            } else {
                 Log.d(TAG,"card remove while speed test cam_state 0x%x",cam_state);
                 procBackKeyEvent();
             }
@@ -5324,39 +5134,41 @@ void MenuUI::disp_menu(bool dispBottom)
             aging_times = 0;
             disp_icon(ICON_RESET_IDICATION_128_48128_48);
             break;
+
         case MENU_FORMAT_INDICATION:
             Log.d(TAG,"cam state 0x%x",cam_state);
-            if(isDevExist())
-            {
+            if (isDevExist()) {
                 disp_icon(ICON_FORMAT_MSG_128_48128_48);
-            }
-            else
-            {
+            } else {
                 set_cur_menu(MENU_STORAGE);
             }
             break;
+
         case MENU_WIFI_CONNECT:
             disp_wifi_connect();
             break;
+
         case MENU_AGEING:
             disp_ageing();
             break;
+
         case MENU_NOSIE_SAMPLE:
             disp_icon(ICON_SAMPLING_128_48128_48);
             break;
+
         case MENU_LIVE_REC_TIME:
             break;
+
         case MENU_STITCH_BOX:
             bStiching = false;
             disp_icon(ICON_WAITING_STITCH_128_48128_48);
             break;
+
         case MENU_FORMAT:
         {
             int item = get_menu_select_by_power(MENU_STORAGE);
-            if(isDevExist())
-            {
-                switch(item)
-                {
+            if (isDevExist()) {
+                switch(item) {
                     case SET_STORAGE_SD:
                         disp_icon(ICON_SD_FORMAT_IC_DEFAULT_38_48_0_1638_48);
                         break;
@@ -5382,13 +5194,10 @@ void MenuUI::disp_menu(bool dispBottom)
         SWITCH_DEF_ERROR(cur_menu);
     }
 //    Log.d(TAG,"cur menu %d disptop %d",cur_menu,bDispTop);
-    if(is_top_clear(cur_menu))
-    {
+    i f(is_top_clear(cur_menu)) {
         reset_last_info();
         bDispTop = false;
-    }
-    else if(!bDispTop)
-    {
+    } else if (!bDispTop)  {
         disp_top_info();
     }
 }
@@ -5722,20 +5531,19 @@ void MenuUI::procPowerKeyEvent()
                 case SET_NOISE:
                     send_option_to_fifo(ACTION_NOISE);
                     break;
+
                 case SET_VIDEO_SEGMENT:
                     val = ((~val) & 0x00000001);
                     mProCfg->set_val(KEY_VID_SEG, val);
                     set_setting_select(item, val);
-                    if (val == 0)
-                    {
+                    if (val == 0) {
                         disp_msg_box(DISP_VID_SEGMENT);
-                    }
-                    else
-                    {
+                    } else {
                         update_menu_sys_setting(&mSettingItems);
                     }
                     send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
                     break;
+
                 case SET_STITCH_BOX:
                     set_cur_menu(MENU_STITCH_BOX);
                     send_option_to_fifo(ACTION_SET_STICH);
@@ -5760,22 +5568,18 @@ void MenuUI::procPowerKeyEvent()
             break;
 
         case MENU_GYRO_START:
-            if(check_state_equal(STATE_IDLE))
-            {
+            if (check_state_equal(STATE_IDLE)) {
                 send_option_to_fifo(ACTION_GYRO);
-            }
-            else
-            {
-                Log.d(TAG,"gyro start cam_state 0x%x",cam_state);
+            } else {
+                Log.d(TAG, "gyro start cam_state 0x%x", cam_state);
             }
             break;
 			
         case MENU_SPEED_TEST:
             if (check_state_equal(STATE_PREVIEW)) {
                 send_option_to_fifo(ACTION_SPEED_TEST);
-            } else
-            {
-                Log.d(TAG,"speed cam_state 0x%x",cam_state);
+            } else  {
+                Log.d(TAG, "speed cam_state 0x%x", cam_state);
             }
             break;
 			
@@ -6441,52 +6245,49 @@ void MenuUI::minus_cam_state(int state)
 //    Log.d(TAG,"after minus_cam_state cam_state 0x%x "
 //                  "cur_menu %d state 0x%x",
 //          cam_state,cur_menu, state);
-    if(check_state_equal(STATE_IDLE))
-    {
+    if (check_state_equal(STATE_IDLE)) {
         reset_last_info();
-        switch(state)
-        {
+        switch (state) {
             case STATE_CALIBRATING:
             case STATE_START_GYRO:
             case STATE_START_QR:
             case STATE_NOISE_SAMPLE:
                 set_cur_menu_from_exit();
                 break;
+
             default:
                 set_cur_menu(MENU_TOP);
                 break;
         }
-    }
-    else if (check_state_preview())
-    {
+    } else if (check_state_preview()) {
         Log.d(TAG, "minus_cam_state　state preview (%d 0x%x)", cur_menu, state);
-        switch(cur_menu)
-        {
+        switch (cur_menu) {
             case MENU_PIC_INFO:
             case MENU_VIDEO_INFO:
                 disp_ready_icon();
                 break;
+
             case MENU_LIVE_INFO:
                 disp_live_ready();
                 break;
+
             case MENU_QR_SCAN:
                 set_cur_menu_from_exit();
                 break;
+
             default:
                 //force pic menu
                 set_cur_menu(MENU_PIC_INFO);
                 break;
         }
-    }
-    else
-    {
+    } else {
         Log.w(TAG," minus error cam_state 0x%x state 0x%x", cam_state,state);
     }
 }
 
 
 
-void MenuUI::disp_err_code(int code,int back_menu)
+void MenuUI::disp_err_code(int code, int back_menu)
 {
     bool bFound = false;
     char err_code[128];
@@ -6527,10 +6328,12 @@ void MenuUI::disp_err_code(int code,int back_menu)
     }
 
     reset_last_info();
+
     //force cur menu sys_err
     set_light_direct(BACK_RED|FRONT_RED);
     cur_menu = MENU_SYS_ERR;
     bDispTop = false;
+
     Log.d(TAG,"disp_err_code code %d "
                   "back_menu %d cur_menu %d "
                   "bFound %d cam_state 0x%x",
@@ -6826,9 +6629,10 @@ void MenuUI::set_led_power(unsigned int on)
 
 void MenuUI::set_oled_power(unsigned int on)
 {
+#if 0    
     int GPIP_PX3 = 187;
 
-#if 0
+
     Log.i(TAG,"set_oled_power on %d",on);
     if (gpio_is_requested(GPIP_PX3) != 1)
     {
@@ -7431,12 +7235,9 @@ int MenuUI::oled_disp_type(int type)
         case START_LOW_BAT_SUC:
             INFO_MENU_STATE(cur_menu,cam_state)
             cam_state = STATE_IDLE;
-            if(MENU_LOW_BAT != cur_menu)
-            {
+            if (MENU_LOW_BAT != cur_menu) {
                 set_cur_menu(MENU_LOW_BAT);
-            }
-            else
-            {
+            } else {
                 set_light_direct(BACK_RED|FRONT_RED);
             }
             mControlAct = nullptr;
@@ -7444,32 +7245,33 @@ int MenuUI::oled_disp_type(int type)
         case START_LOW_BAT_FAIL:
             cam_state = STATE_IDLE;
             INFO_MENU_STATE(cur_menu,cam_state)
-            if(MENU_LOW_BAT != cur_menu)
-            {
+            if (MENU_LOW_BAT != cur_menu) {
                 set_cur_menu(MENU_LOW_BAT);
-            }
-            else
-            {
+            } else {
                 set_light_direct(BACK_RED|FRONT_RED);
             }
             mControlAct = nullptr;
             break;
+
         case START_NOISE_SUC:
-            if(check_state_in(STATE_NOISE_SAMPLE))
-            {
+            if (check_state_in(STATE_NOISE_SAMPLE)) {
                 minus_cam_state(STATE_NOISE_SAMPLE);
             }
             break;
+
         case START_NOISE_FAIL:
             rm_state(STATE_NOISE_SAMPLE);
             disp_sys_err(type,get_back_menu(MENU_NOSIE_SAMPLE));
             break;
+
         case START_BLC:
             set_oled_power(0);
             break;
+
         case STOP_BLC:
             set_oled_power(1);
             break;
+
         default:
             break;
     }
@@ -7805,8 +7607,7 @@ void MenuUI::func_low_bat()
 void MenuUI::set_light_direct(u8 val)
 {
 //    Log.d(TAG,"last_light 0x%x val 0x%x",last_light,val);
-    if(last_light != val)
-    {
+    if (last_light != val) {
         last_light = val;
         mOLEDLight->set_light_val(val);
     }
@@ -7818,8 +7619,7 @@ void MenuUI::set_light(u8 val)
 //    Log.d(TAG,"set_light (0x%x  0x%x  0x%x 0x%x %d)",
 //          last_light,val, front_light,fli_light,
 //          get_setting_select(SET_LIGHT_ON));
-    if(get_setting_select(SET_LIGHT_ON) == 1)
-    {
+    if (get_setting_select(SET_LIGHT_ON) == 1) {
         set_light_direct(val|front_light);
     }
 #endif
@@ -7828,46 +7628,34 @@ void MenuUI::set_light(u8 val)
 bool MenuUI::check_rec_tl()
 {
     bool ret = false;
-    if(mControlAct != nullptr)
-    {
+    if (mControlAct != nullptr) {
 //        Log.d(TAG,"mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int is %d",
 //              mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-        if(mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0)
-        {
+        if (mControlAct->stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0) {
             ret = true;
         }
-    }
-    else
-    {
+    }  else {
         int item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
-        if(item >= 0 && item < VID_CUSTOM)
-        {
+        if (item >= 0 && item < VID_CUSTOM) {
 //            Log.d(TAG,"mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-            if(mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0)
-            {
+            if (mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0) {
                 ret = true;
             }
-        }
-        else if(VID_CUSTOM == item)
-        {
+        } else if (VID_CUSTOM == item) {
             Log.d(TAG,"mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",
                   mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-            if(mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0)
-            {
-                if(mProCfg->get_def_info(KEY_VIDEO_DEF)->size_per_act == 0)
-                {
+            if (mProCfg->get_def_info(KEY_VIDEO_DEF)->stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0) {
+                if (mProCfg->get_def_info(KEY_VIDEO_DEF)->size_per_act == 0) {
                     mProCfg->get_def_info(KEY_VIDEO_DEF)->size_per_act = 10;
                 }
                 ret = true;
             }
-        }
-        else
-        {
+        } else {
             ERR_ITEM(item);
         }
     }
-    if(!ret)
-    {
+
+    if (!ret) {
         tl_count = -1;
     }
     return ret;
@@ -7968,8 +7756,6 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 				if (check_state_in(STATE_PLAY_SOUND)) {
 					/* 播放声音,去除STATE_PLAY_SOUND状态 */
 					rm_state(STATE_PLAY_SOUND);
-					//Log.d(TAG, "MENU_PIC_INFO remove STATE_PLAY_SOUND state, play index: %d", SND_3S_T + set_photo_delay_index);
-					//play_sound(get_cap_to_sound_index(cap_delay));
 				}
 						
 				if (cap_delay == 0) {
@@ -8111,6 +7897,49 @@ void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
 }
 
 
+
+void MenuUI::handleUpdateMid()
+{
+    bSendUpdateMid = false;
+    unique_lock<mutex> lock(mutexState);
+
+    // Log.d(TAG,"UI_UPDATE_MID %d 0x%x tl_count %d",cur_menu,cam_state,tl_count);
+    if (check_state_in(STATE_RECORD)) {         /* 录像状态 */
+        send_update_mid_msg(INTERVAL_1HZ);
+        if (!check_state_in(STATE_STOP_RECORDING)) {    /* 非录像停止状态 */
+            if (tl_count == -1) {       /* tl_count 用来干嘛? */
+                increase_rec_time();    /* 增加已录像的时间 +1s */
+                                
+                if (decrease_rest_time()) { /* 录像剩余时间减1s */
+                                //hide while stop recording
+                    if (cur_menu == MENU_VIDEO_INFO) {  /* 如果是在录像界面,更新录像时间和剩余时间到UI */
+                        disp_mid();
+                        disp_bottom_space();
+                    }
+                }
+            }
+        }
+        flick_light();  /* 闪烁灯 */
+
+    } else if (check_state_in(STATE_LIVE)) {     /* 直播状态 */
+        send_update_mid_msg(INTERVAL_1HZ);
+        if (!check_state_in(STATE_STOP_LIVING)) {   /* 非停止直播状态 */
+            increase_rec_time();
+            if (cur_menu == MENU_LIVE_INFO) {
+                disp_mid();
+            }
+        }
+        flick_light();
+
+    } else if (check_state_in(STATE_LIVE_CONNECTING)) {
+        Log.d(TAG,"cancel send msg　in state STATE_LIVE_CONNECTING");
+        set_light();
+    } else {
+        ERR_MENU_STATE(cur_menu, cam_state);
+        set_light();
+    }
+}
+
 /*************************************************************************
 ** 方法名称: handleMessage
 ** 方法功能: 消息处理
@@ -8178,7 +8007,6 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 				Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
 
 				procUpdateIp(tmpIpInfo->ipAddr);
-			
                	break;
             }
 
@@ -8242,46 +8070,9 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 更新显示时间(只有在录像,直播的UI)
 			 */
-            case OLED_UPDATE_MID: {
-                bSendUpdateMid = false;
-                unique_lock<mutex> lock(mutexState);
-				
-//                Log.d(TAG,"OLED_UPDATE_MID %d 0x%x tl_count %d",cur_menu,cam_state,tl_count);
-                if (check_state_in(STATE_RECORD)) {
-                    send_update_mid_msg(INTERVAL_1HZ);
-                    if (!check_state_in(STATE_STOP_RECORDING)) {
-                        if (tl_count == -1) {
-                            increase_rec_time();
-							
-                            if (decrease_rest_time()) {
-                                //hide while stop recording
-                                if (cur_menu == MENU_VIDEO_INFO) {
-                                    disp_mid();
-                                    disp_bottom_space();
-                                }
-                            }
-                        }
-                    }
-                    flick_light();
-                } else if (check_state_in(STATE_LIVE)) {
-//                    send_delay_msg(OLED_UPDATE_MID,INTERVAL_1HZ);
-                    send_update_mid_msg(INTERVAL_1HZ);
-                    if (!check_state_in(STATE_STOP_LIVING)) {
-                        increase_rec_time();
-                        if (cur_menu == MENU_LIVE_INFO) {
-                            disp_mid();
-                        }
-                    }
-                    flick_light();
-                } else if(check_state_in(STATE_LIVE_CONNECTING)) {
-                    Log.d(TAG,"cancel send msg　in state STATE_LIVE_CONNECTING");
-                    set_light();
-                } else {
-                    ERR_MENU_STATE(cur_menu, cam_state);
-                    set_light();
-                }
-            }
-                break;
+            case UI_UPDATE_MID: 
+                handleUpdateMid();
+				break;
 
 			/*
 			 * 低电
@@ -8293,7 +8084,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 读取电池电量
 			 */
-            case OLED_READ_BAT: {
+            case UI_READ_BAT: {
                 unique_lock<mutex> lock(mutexState);
                 check_battery_change();
                 break;
@@ -8316,10 +8107,10 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 
 			
             case OLED_CLEAR_MSG_BOX: /* 清除消息框 */
-                if (cur_menu == MENU_DISP_MSG_BOX) {
+                if (cur_menu == MENU_DISP_MSG_BOX) {    /* 如果当前处于消息框菜单中,执行返回 */
                     procBackKeyEvent();
                 } else {
-                    Log.d(TAG, "other cur_menu %d", cur_menu);
+                    Log.d(TAG, "Warnning Cler MsgBox cur_menu [%d]", cur_menu);
                 }
                 break;
 				
@@ -8432,6 +8223,7 @@ bool MenuUI::check_battery_change(bool bUpload)
     }
 
     if (is_bat_low()) {
+
 #ifdef OPEN_BAT_LOW
         if (cur_menu != MENU_LOW_BAT) {
             Log.d(TAG, "bat low menu %d state 0x%x bStiching %d", cur_menu, cam_state, bStiching);
@@ -8444,7 +8236,7 @@ bool MenuUI::check_battery_change(bool bUpload)
         }
 #endif
     }
-    send_delay_msg(OLED_READ_BAT, BAT_INTERVAL);
+    send_delay_msg(UI_READ_BAT, BAT_INTERVAL);
 
     return bUpdate;
 }
@@ -8456,7 +8248,7 @@ int MenuUI::get_battery_charging(bool *bCharge)
 
 int MenuUI::read_tmp(double *int_tmp, double *tmp)
 {
-    return mBatInterface->read_tmp(int_tmp,tmp);
+    return mBatInterface->read_tmp(int_tmp, tmp);
 }
 
 void MenuUI::deinit()
@@ -8472,5 +8264,3 @@ void MenuUI::deinit()
 
     Log.d(TAG, "deinit2");
 }
-
-

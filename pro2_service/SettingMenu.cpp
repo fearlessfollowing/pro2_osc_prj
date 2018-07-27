@@ -417,27 +417,82 @@ SettingItem setResetItem = {
 	}					
 };
 
- 
+
+enum {
+    SET_DHCP_MODE,		
+    SET_FREQ,			
+	SET_HDR,
+
+	SET_RAWPHOTO,
+	SET_AEB,
+    SET_PHOTO_DELAY,
+
+    SET_SPEAK_ON,
+	SET_LIGHT_ON,
+	SET_AUD_ON,	
+
+	SET_SPATIAL_AUD,
+	SET_FLOWSTATE,
+	SET_START_GYRO,
+
+	SET_FAN_ON,
+	SET_NOISE,
+    SET_BOTTOM_LOGO, 
+
+	SET_VIDEO_SEGMENT,
+	SET_STORAGE,
+	SET_INFO,
+
+	SET_RESTORE,
+    SETTING_MAX
+
+
+#if 0
+    SET_GYRO_ON,		/* 10 (25, 16) */
+    //gyro calibration
+    SET_START_GYRO,		/* 11 (25, 32) */
+    SET_STITCH_BOX,		
+#endif
+}; 
+
+
+void MenuUI::updateSettingItemVal(int iIndex, int iCurVal)
+{
+	if (iIndex > SETTING_MAX || iIndex < 0 )
+		return;
+
+	if (iCurVal > gSettingItems[iIndex]->iItemMaxVal)
+		return;
+
+	gSettingItems[iIndex]->iCurVal = iCurVal;
+}
+
 
 SettingItem* gSettingItems[] = {
 	&setDhcpItem,
 	&setFreqItem,
 	&setHDRItem,
+
 	&setRawPhotoItem,
 	&setAebItem,
 	&setPhotoDelayItem,
+
 	&setSpeakerItem,
 	&setLedItem,
 	&setAudioItem,
+
 	&setSpatialAudioItem,
 	&setFlowStateItem,
 	&setGyroCalItem,
+
 	&setFanItem,
 	&setSampleNosieItem,
 	&setBottomLogoItem,
+
 	&setVideSegItem,
 	&setStorageItem,
 	&setInfoItem,
+
 	&setResetItem,
 };
 
@@ -499,6 +554,9 @@ typedef struct _menu_info_ {
 	
 } MENU_INFO;
 #endif
+
+
+
 
 
 

@@ -44,3 +44,12 @@ control_center.snd_notify
 
 handle_notify_from_camera
     -> self.state_notify_func[name]()
+
+
+
+日期：2018年7月27日
+修改设置页菜单
+1.设置页各项均为配置值，在系统启动时，会从配置文件中读取并初始化其值
+oled_init_disp
+    -> init_cfg_select
+        -> init_menu_select
