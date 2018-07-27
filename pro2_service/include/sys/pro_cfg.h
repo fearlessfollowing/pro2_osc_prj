@@ -124,25 +124,32 @@ enum {
 
 
 enum {
-    KEY_PIC_DEF,
-    KEY_VIDEO_DEF,
+    /*
+     * Setting Item
+     */
+    KEY_ALLCARD_PIC_DEF,    /* KEY_PIC_DEF -> KEY_ALLCARD_PIC_DEF */
+    KEY_ALLCVIDEO_DEF,
     KEY_LIVE_DEF,
-	KEY_PAL_NTSC, //flicker
+	KEY_PAL_NTSC,           //flicker
     KEY_LAN,
-    KEY_SPEAKER,
-    KEY_SET_LOGO,
+    KEY_SPEAKER,            /* Speaker */
+    KEY_SET_LOGO,           /* Logo */
     KEY_LIGHT_ON,
-    KEY_DHCP,
-    KEY_WIFI_ON,
-    KEY_FAN,
-    KEY_AUD_ON,
-    KEY_AUD_SPATIAL,
+    KEY_DHCP,               /* DHCP/Static */
+    KEY_WIFI_ON,            /* WIFI */
+    KEY_FAN,                /* Fan */
+    KEY_AUD_ON,             /* Audio */
+    KEY_AUD_SPATIAL,        /* Audio Spatial */
     KEY_GYRO_ON,
-    KEY_VID_SEG,
+    KEY_VID_SEG,            /* Video Segement */
     KEY_WIFI_AP,
 //    KEY_SAVE_PATH,
+
+    /**
+     * Action Info 
+     */
     //above is int vale
-    //pic
+    // pic
     KEY_PIC_MODE,
     KEY_PIC_SIZE_PER_ACT,
     KEY_PIC_DELAY,
@@ -220,6 +227,7 @@ enum {
     
     KEY_CFG_MAX,
 };
+
 
 #define NONE_PATH "none"
 

@@ -660,7 +660,7 @@ static const ACTION_INFO mVIDAction[] = {
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 	        
-	        {ALL_FR_30,40}
+	        {ALL_FR_30, 60}
         },
 		{
 			EN_H264,
@@ -734,7 +734,7 @@ static const ACTION_INFO mVIDAction[] = {
 	        EN_H264,
 	        SAVE_DEF,
 	        3200,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
-	        2440,
+	        2400,
 #if 1
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
@@ -1080,8 +1080,6 @@ const char* getCurMenuStr(int iCurMenu)
 }
 
 
-
-
 //str not used 0613
 static ERR_CODE_DETAIL mErrDetails[] = {
     {432, "No Space", ICON_STORAGE_INSUFFICIENT128_64},
@@ -1119,8 +1117,6 @@ static SYS_ERROR mSysErr[] = {
 };
 
 
-
-
 class oled_arhandler : public ARHandler {
 public:
     oled_arhandler(MenuUI *source): mHandler(source) {
@@ -1136,7 +1132,6 @@ public:
 private:
     MenuUI *mHandler;
 };
-
 
 
 static int get_phdelay_index()
