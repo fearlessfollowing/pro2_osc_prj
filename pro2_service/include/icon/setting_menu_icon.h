@@ -1448,7 +1448,7 @@ enum {
 
 	SET_SPATIAL_AUD,
 	SET_FLOWSTATE,
-	SET_START_GYRO,
+	SET_GYRO_ON,
 
 	SET_FAN_ON,
 	SET_NOISE,
@@ -1463,8 +1463,10 @@ enum {
 }; 
 
 
+#if 0
 static vector<sp<SettingItem>>  mSettingList = NULL;
 static int gItemsIndex = 0;
+#endif
 
 
 
@@ -1489,22 +1491,15 @@ typedef struct stSetItem {
 } SettingItem;
 
 
-/* 菜单项的处理函数(当选中并按确认时被调用) */
-void setItemComProc(struct stSetItem* pSetItem)
-{
-
-}
-
-
 
 /* Ethernet Normal: DHCP/Direct  */
 SettingItem setDhcpItem = {
-	"dhcp",				// pItemName
+	SET_ITEM_NAME_DHCP,	// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
-	{},
+	NULL,				// pSetItemProc
+	{0,0,0,0},
 	{ 	/* 选中时的图标列表 */
 		set_ethernet_direct_light_96_16,
 		set_ethernet_dhcp_light_96_16,
@@ -1512,17 +1507,17 @@ SettingItem setDhcpItem = {
 	{	/* 未选中时的图标列表 */
 		set_ethernet_direct_normal_96_16,
 		set_ethernet_dhcp_normal_96_16,
-	}					
+	}		
 };
 
 
 /* Frequency Light: 50/60Hz */
 SettingItem setFreqItem = {
-	"freq",				// pItemName
+	SET_ITEM_NAME_FREQ,	// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		set_frequency_50hz_light_96_16,
@@ -1536,11 +1531,11 @@ SettingItem setFreqItem = {
 
 /* DOL HDR Normal: On/Off */
 SettingItem setHDRItem = {
-	"hdr",				// pItemName
+	SET_ITEM_NAME_HDR,	// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		setHdrOffLight_96x16,
@@ -1555,11 +1550,11 @@ SettingItem setHDRItem = {
 
 /* Raw Photo: On/Off */
 SettingItem setRawPhotoItem = {
-	"rawPhoto",			// pItemName
+	SET_ITEM_NAME_RAW,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		setRawPhotoOffLight_96x16,
@@ -1574,11 +1569,11 @@ SettingItem setRawPhotoItem = {
 
 /* AEB: 3,5,7,9 */
 SettingItem setAebItem = {
-	"aeb",				// pItemName
+	SET_ITEM_NAME_AEB,				// pItemName
 	3,					// iItemMaxVal
 	0,					// iCurVal
 	true,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		setAeb3Light_96x16,
@@ -1597,11 +1592,11 @@ SettingItem setAebItem = {
 
 /* Photo Delay: - 含有二级子菜单 */
 SettingItem setPhotoDelayItem = {
-	"photodelay",		// pItemName
+	SET_ITEM_NAME_PHDEALY,		// pItemName
 	7,					// iItemMaxVal
 	0,					// iCurVal
 	true,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		setPhotoDelay3sLight_96x16,
@@ -1629,11 +1624,11 @@ SettingItem setPhotoDelayItem = {
 
 /* Speaker: On/Off */
 SettingItem setSpeakerItem = {
-	"speaker",			// pItemName
+	SET_ITEM_NAME_SPEAKER,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
 		setSpeakOffLight_96x16,
@@ -1649,189 +1644,189 @@ SettingItem setSpeakerItem = {
 
 /* Led: On/Off */
 SettingItem setLedItem = {
-	"led",				// pItemName
+	SET_ITEM_NAME_LED,				// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setLedOffNor_96x16,
-		setLedOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setLedOffLight_96x16,
 		setLedOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setLedOffNor_96x16,
+		setLedOnNor_96x16,
 	}					
 };
 
 
 /* Audio: Off/On */
 SettingItem setAudioItem = {
-	"audio",			// pItemName
+	SET_ITEM_NAME_AUDIO,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setAudioOffNor_96x16,
-		setAudioOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setAudioOffLight_96x16,
 		setAudioOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setAudioOffNor_96x16,
+		setAudioOnNor_96x16,
 	}					
 };
 
 /* Spatial Audio: Off/On */
 SettingItem setSpatialAudioItem = {
-	"spaudio",			// pItemName
+	SET_ITEM_NAME_SPAUDIO,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setSpatialAudioOffNor_96x16,
-		setSpatialAudioOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setSpatialAudioOffLight_96x16,
 		setSpatialAudioOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setSpatialAudioOffNor_96x16,
+		setSpatialAudioOnNor_96x16,
 	}					
 };
 
 
 /* FlowState: Off/On */
 SettingItem setFlowStateItem = {
-	"flowstate",		// pItemName
+	SET_ITEM_NAME_FLOWSTATE,		// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setFlowStateOffNor_96x16,
-		setFlowStateOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setFlowStateOffLight_96x16,
 		setFlowStateOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setFlowStateOffNor_96x16,
+		setFlowStateOnNor_96x16,
 	}					
 };
 
 
 /* Gyro calc: Off/On */
 SettingItem setGyroCalItem = {
-	"gyrocal",		// pItemName
+	SET_ITEM_NAME_GYRO_CALC,		// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setGyrCalNor_96x16,
-		setGyrCalNor_96x16,
+		setGyrCalLight_96x16,
+		setGyrCalLight_96x16,
 	},					
 	{	/* 未选中时的图标列表 */
-		setGyrCalLight_96x16,
-		setGyrCalLight_96x16,
+		setGyrCalNor_96x16,
+		setGyrCalNor_96x16,
 	}					
 };
 
 
 /* Fan: Off/On */
 SettingItem setFanItem = {
-	"fan",			// pItemName
+	SET_ITEM_NAME_FAN,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setFanOffNor_96x16,
-		setFanOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setFanOffLight_96x16,
 		setFanOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setFanOffNor_96x16,
+		setFanOnNor_96x16,
 	}					
 };
 
 
 /* Sample Fan Noise */
 SettingItem setSampleNosieItem = {
-	"samplenoise",		// pItemName
+	SET_ITEM_NAME_NOISESAM,		// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setSampNoiseNor_96x16,
-		setSampNoiseNor_96x16,
+		setSampNoiseLight_96x16,
+		setSampNoiseLight_96x16,
 	},					
 	{	/* 未选中时的图标列表 */
-		setSampNoiseLight_96x16,
-		setSampNoiseLight_96x16,
+		setSampNoiseNor_96x16,
+		setSampNoiseNor_96x16,
 	}					
 };
 
 
 /* Bottom Logo: Off/On */
 SettingItem setBottomLogoItem = {
-	"bottomlogo",		// pItemName
+	SET_ITEM_NAME_BOOTMLOGO,		// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setBottomlogoOff_Nor_96x16,
-		setBottomlogoOn_Nor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setBottomlogoOff_Light_96x16,
 		setBottomlogoOn_Light_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setBottomlogoOff_Nor_96x16,
+		setBottomlogoOn_Nor_96x16,
 	}					
 };
 
 
 /* Video Seg: Off/On */
 SettingItem setVideSegItem = {
-	"vidseg",			// pItemName
+	SET_ITEM_NAME_VIDSEG,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setSegOffNor_96x16,
-		setSegOnNor_96x16,
-	},					
-	{	/* 未选中时的图标列表 */
 		setSegOffLight_96x16,
 		setSegOnLight_96x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		setSegOffNor_96x16,
+		setSegOnNor_96x16,
 	}					
 };
 
 
 /* Storage */
 SettingItem setStorageItem = {
-	"storage",			// pItemName
+	SET_ITEM_NAME_STORAGE,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	false,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setStorageNor_96x16,
-		setStorageNor_96x16,
+		setStorageLight_96x16,
+		setStorageLight_96x16,
 	},					
 	{	/* 未选中时的图标列表 */
-		setStorageLight_96x16,
-		setStorageLight_96x16,
+		setStorageNor_96x16,
+		setStorageNor_96x16,
 	}					
 };
 
@@ -1842,37 +1837,64 @@ SettingItem setInfoItem = {
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	true,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setInfoNor_96x16,
-		setInfoNor_96x16,
+		setInfoLight_96x16,
+		setInfoLight_96x16,
 	},					
 	{	/* 未选中时的图标列表 */
-		setInfoLight_96x16,
-		setInfoLight_96x16,
+		setInfoNor_96x16,
+		setInfoNor_96x16,
 	}					
 };
 
 
 /* Reset */
 SettingItem setResetItem = {
-	"info",			// pItemName
+	SET_ITEM_NAME_RESET,			// pItemName
 	1,					// iItemMaxVal
 	0,					// iCurVal
 	true,				// bHaveSubMenu
-	setItemComProc,		// pSetItemProc
+	NULL,		// pSetItemProc
 	{},
 	{ 	/* 选中时的图标列表 */
-		setResetNor_96x16,
-		setResetNor_96x16,
+		setResetLight_96x16,
+		setResetLight_96x16,
 	},					
 	{	/* 未选中时的图标列表 */
-		setResetLight_96x16,
-		setResetLight_96x16,
+		setResetNor_96x16,
+		setResetNor_96x16,
 	}					
 };
 
 
+SettingItem* gSettingItems[] = {
+	&setDhcpItem,
+	&setFreqItem,
+	&setHDRItem,
+
+	&setRawPhotoItem,
+	&setAebItem,
+	&setPhotoDelayItem,
+
+	&setSpeakerItem,
+	&setLedItem,
+	&setAudioItem,
+
+	&setSpatialAudioItem,
+	&setFlowStateItem,
+	&setGyroCalItem,
+
+	&setFanItem,
+	&setSampleNosieItem,
+	&setBottomLogoItem,
+
+	&setVideSegItem,
+	&setStorageItem,
+	&setInfoItem,
+
+	&setResetItem,
+};
 
 #endif /* _SETTING_MENU_ICON_H_ */

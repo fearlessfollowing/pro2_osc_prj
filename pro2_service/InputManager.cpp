@@ -45,6 +45,10 @@ enum {
 };
 
 #define LONG_PRESS_MSEC     (2000)
+
+/*
+ * 该值用于控制按键的灵敏度(考虑放入属性系统中))
+ */
 #define SHORT_PRESS_THOR	(100)	// 100ms
 
 
@@ -314,12 +318,14 @@ int InputManager::inputEventLoop()
 
 							key_interval = key_ts - last_key_ts;
 
-							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, key_interval / 1000);
-						
+                            int iIntervalMs =  key_interval / 1000;
+
+							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, iIntervalMs);
                             switch (event.value) {
 								case UP:
-                                    if ((key_interval > SHORT_PRESS_THOR ) && (key_interval <  (LONG_PRESS_MSEC * 1000))) {
+                                    if ((iIntervalMs > SHORT_PRESS_THOR ) && (iIntervalMs <  (LONG_PRESS_MSEC * 1000))) {
 										if (event.code == last_down_key) {
+                                            Log.d(TAG, "---> OK report key code [%d]", event.code); 
 											reportEvent(event.code);
                                         } else {
 											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);

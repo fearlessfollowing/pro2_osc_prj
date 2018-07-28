@@ -53,3 +53,15 @@ handle_notify_from_camera
 oled_init_disp
     -> init_cfg_select
         -> init_menu_select
+
+
+
+设置页菜单：
+1.初始化时
+init_cfg_select
+    -> init_menu_select
+        -> setSysMenuInit      // 初始化各级"设置"菜单
+
+// 各级设置菜单的
+
+2.按键动作
