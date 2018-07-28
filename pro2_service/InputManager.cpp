@@ -83,8 +83,7 @@ void InputManager::exit()
 
     if (mCtrlPipe[0] != -1) {
         writePipe(mCtrlPipe, Pipe_Shutdown);
-        if (loopThread.joinable())
-        {
+        if (loopThread.joinable()) {
             loopThread .join();
         }
         close_pipe(mCtrlPipe);

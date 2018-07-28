@@ -544,7 +544,7 @@ private:
     void disp_sys_info();
     void update_sys_info();
     void restore_all();
-    void set_cur_menu(int menu,int back_menu = -1);
+
     void set_cur_menu_from_exit();
     void handle_top_menu_power_key();
     void send_oled_power_action();
@@ -628,16 +628,25 @@ private:
 
     void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
 
+    /************************************** 灯光管理 START *************************************************/
+    void setLightDirect(u8 val);
+    void setLight(u8 val);
+    void setLight();
+    /************************************** 灯光管理 END *************************************************/
+
+
     /************************************** 菜单相关 START *************************************************/
     int getCurMenuCurSelectIndex();
     int getMenuLastSelectIndex(int menu);
     int getCurMenuLastSelectIndex();    
     void updateMenu();
+    void setCurMenu(int menu,int back_menu = -1);
 
     /*
      * 设置页部分
      */
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
+    void procSetMenuKeyEvent();
     void setSysMenuInit(MENU_INFO* pParentMenu);
     void setMenuOneLevelInit(MENU_INFO* pParentMenu);
     void updateMenuPage();
