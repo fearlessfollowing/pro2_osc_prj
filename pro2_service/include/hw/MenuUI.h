@@ -409,7 +409,7 @@ private:
     void disp_dev_msg_box(int bAdd,int type,bool bChange = false);
     void start_qr_func();
     void exit_qr_func();
-    struct _select_info_ * get_select_info();
+    struct _select_info_ * getSelectedMenuItemInfo();
 
 	bool check_cur_menu_support_key(int iKey);
 
@@ -421,7 +421,9 @@ private:
     void disp_low_protect(bool bStart = false);
     void disp_low_bat();
     void func_low_protect();
-    bool is_top_clear(int menu);
+
+    bool menuHasStatusbar(int menu);
+
     void disp_waiting();
     void disp_connecting();
     void disp_saving();
@@ -445,9 +447,15 @@ private:
     void select_down();
     int get_select();
     void set_menu_select_info(int menu, int iSelect);
+
+#if 0
     void disp_wifi_connect();
-    int get_menu_select_by_power(int menu);
+#endif
+
+    int getMenuCurSelectedIndex(int menu);
+
     int get_last_select();
+
     void disp_org_rts(int org,int rts,int hdmi = -1);
     void disp_org_rts(sp<struct _action_info_> &mAct,int hdmi = -1);
     void send_save_path_change();
@@ -784,6 +792,9 @@ private:
 	 * 菜单管理相关
 	 */
 	std::vector<sp<MENU_INFO>> mMenuLists;
+    
+    /* "设置"菜单的设置项列表 */
+    std::vector<SettingItem*> mSettingItemsList;
 
 };
 #endif //PROJECT_OLED_WRAPPER_H

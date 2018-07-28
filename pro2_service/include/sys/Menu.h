@@ -135,7 +135,7 @@ enum {
 typedef struct _select_info_ {
     int last_select;		/* 上次选中的项 */
 	
-    int select;				/* 当前选中的项 */
+    int select;				/* 当前选中的项（在当前页中的索引） */
 	
     int cur_page;			/* 选项所在的页 */
 
@@ -144,6 +144,7 @@ typedef struct _select_info_ {
     int page_max;			/* 一页含有的项数 */
 
     int page_num;			/* 含有的页数 */
+    
 } SELECT_INFO;
 
 
@@ -265,6 +266,8 @@ typedef struct _setting_items_ {
 
 
 
+
+
 static MENU_INFO mMenuInfos[] = {
     {	
     	-1,					/* back_menu */
@@ -298,7 +301,14 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_TOP,
-		{-1, 0, 0, 0, 0, 0}, 
+		{
+            -1, 
+            0,
+            0, 
+            0, 
+            0, 
+            0
+        }, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
 		MENU_VIDEO_INFO,    /* Menu ID: MENU_VIDEO_INFO */
 		NULL,
@@ -306,7 +316,14 @@ static MENU_INFO mMenuInfos[] = {
 
     {	/* MENU_LIVE_INFO */
     	MENU_TOP,
-		{-1, 0, 0, 0, 0, 0}, 
+		{
+            -1, 
+            0, 
+            0, 
+            0, 
+            0, 
+            0
+        }, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* DOWN, BACK, SETTING, POWER */
 		MENU_LIVE_INFO,     /* Menu ID: MENU_LIVE_INFO */
 		NULL,
@@ -315,7 +332,14 @@ static MENU_INFO mMenuInfos[] = {
 
 	{	
     	MENU_TOP,
-		{-1, 0, 0, SETTING_MAX, PAGE_MAX, 5}, 
+		{
+            -1, 
+            0, 
+            0, 
+            SETTING_MAX, 
+            PAGE_MAX, 
+            5
+        }, 
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},		/* UP, DOWN, BACK, POWER */
 		MENU_SYS_SETTING,    /* Menu ID: MENU_SYS_SETTING */
 		NULL,                /* 设置页菜单的私有数据为一个设置项列表 */
@@ -323,7 +347,14 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_PIC_INFO,
-		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
+		{
+            -1,
+            0, 
+            0, 
+            PIC_ALLCARD_MAX, 
+            PIC_ALLCARD_MAX, 
+            1
+        },
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
         MENU_PIC_SET_DEF,      /* Menu ID: MENU_PIC_SET_DEF */
         NULL,
@@ -331,7 +362,14 @@ static MENU_INFO mMenuInfos[] = {
 
     {	
     	MENU_VIDEO_INFO,
-		{-1, 0, 0, VID_DEF_MAX, VID_DEF_MAX, 1},
+		{
+            -1, 
+            0,
+            0, 
+            VID_DEF_MAX, 
+            VID_DEF_MAX, 
+            1
+        },
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_VIDEO_SET_DEF,     /* Menu ID: MENU_VIDEO_SET_DEF */
         NULL,                   /* TODO */
@@ -339,7 +377,14 @@ static MENU_INFO mMenuInfos[] = {
     
     {	/* MENU_LIVE_SET_DEF */
     	MENU_LIVE_INFO,
-		{-1, 0, 0, LIVE_DEF_MAX, LIVE_DEF_MAX, 1},
+		{
+            -1, 
+            0, 
+            0, 
+            LIVE_DEF_MAX, 
+            LIVE_DEF_MAX, 
+            1
+        },
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_LIVE_SET_DEF,      /* Menu ID: MENU_LIVE_SET_DEF */
         NULL,
@@ -372,7 +417,14 @@ static MENU_INFO mMenuInfos[] = {
 
     {	/* MENU_STORAGE */
     	MENU_SYS_SETTING,
-		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
+		{
+            -1, 
+            0, 
+            0, 
+            SET_STORAGE_MAX, 
+            SET_STORAGE_MAX, 
+            1
+        }, 
 		{0, 0, OLED_KEY_BACK, 0, 0}	,	/* BACK */
 		MENU_STORAGE,           /* Menu ID: MENU_STORAGE */
 		NULL,
@@ -389,7 +441,14 @@ static MENU_INFO mMenuInfos[] = {
 #else
     {	/* MENU_SYS_DEV_INFO */
     	MENU_SYS_SETTING,
-		{-1, 0, 0, 1, PAGE_MAX, 1}, 
+		{
+            -1, 
+            0, 
+            0, 
+            1, 
+            PAGE_MAX, 
+            1
+        }, 
 		{0, 0, OLED_KEY_BACK, 0, 0},
         MENU_SYS_DEV_INFO,      /* Menu ID: MENU_SYS_DEV_INFO */
         NULL,

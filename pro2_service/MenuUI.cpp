@@ -288,51 +288,6 @@ static const char *sound_str[] = {
 };
 
 
-#if 0
-static int get_cap_to_sound_index(int delay)
-{
-	int sound_index = SND_1S_T;
-	switch (delay) {
-	case 1:
-		sound_index = SND_1S_T;
-		break;
-
-	case 3:
-		sound_index = SND_3S_T;
-		break;
-
-	case 5:
-		sound_index = SND_5S_T;
-		break;
-
-	case 10:
-		sound_index = SND_10S_T;
-		break;	
-
-	case 20:
-		sound_index = SND_20S_T;
-		break;
-
-	case 30:
-		sound_index = SND_30S_T;
-		break;
-
-	case 40:
-		sound_index = SND_40S_T;
-		break;	
-	case 50:
-		sound_index = SND_50S_T;
-		break;
-	case 60:
-		sound_index = SND_60S_T;
-		break;
-	default:
-		sound_index = -1;
-	}
-	return sound_index;
-}
-#endif
-
 typedef struct _area_info_ {
     u8 x;
     u8 y;
@@ -346,8 +301,7 @@ static const AREA_INFO storage_area[] =
 	{25,32,103,16}
 };
 
-typedef struct _rec_info_
-{
+typedef struct _rec_info_ {
     int rec_hour;
     int rec_min;
     int rec_sec;
@@ -360,86 +314,6 @@ typedef struct _rec_info_
 
 
 static int photo_delay[SET_PHOTO_DELAY_MAX] = {3, 5, 10, 20, 30, 40, 50, 60};
-
-
-
-
-
-static int setting_icon_normal[SETTING_MAX][2] =
-{
-	/* page 1 */
-	{ICON_SET_WIFI_WIFI_NORMAL_25_16_96_16, ICON_SET_WIFI_AP_NORMAL_25_16_96_16},
-	{ICON_SET_ETHERNET_DIRECT_NORMAL_25_32_96_16,ICON_SET_ETHERNET_DHCP_NORMAL_25_32_96_16},
-	{ICON_SET_FREQUENCY_50HZ_NORMAL_25_48_96_16,ICON_SET_FREQUENCY_60HZ_NORMAL_25_48_96_16},
-
-	/* page 2 */
-	{ICON_SET_PHOTO_DELAY_5S_NORMAL_25_16_96_16, ICON_SET_PHOTO_DELAY_5S_NORMAL_25_16_96_16},
-	/* 第5项改成: Speaker ON/OFF */
-    {ICON_SET_SPEAKER_OFF_NORMAL_25_32_96_16, ICON_SET_SPEAKER_ON_NORMAL_25_32_96_16},
-    {ICON_SET_BOTTOMLOGO_OFF_NORMAL_25_48_96_16,ICON_SET_BOTTOMLOGO_ON_NORMAL_25_48_96_16},
-
-	/* page 3 */
-    {ICON_SET_LED_OFF_NORMAL_25_16_96_16, ICON_SET_LED_ON_NORMAL_25_16_96_16},
-    {ICON_SET_AUDIO_OFF_NORMAL_25_32_96_16,ICON_SET_AUDIO_ON_NORMAL_25_32_96_16},
-    {ICON_SET_SPATIALAUDIO_OFF_NORMAL_25_48_96_16,ICON_SET_SPATIALAUDIO_ON_NORMAL_25_48_96_16},
-
-	/* page 4 */
-    {ICON_SET_GYRO_OFF_NORMAL_25_16_96_16,ICON_SET_GYRO_ON_NORMAL_25_16_96_16},
-	//gyro calibration
-    {ICON_SET_GYRO_CALC_NORMAL_25_32_96_16,ICON_SET_GYRO_CALC_NORMAL_25_32_96_16},	// need change
-    {ICON_SET_FAN_OFF_NORMAL_25_48_96_16,ICON_SET_FAN_ON_NORMAL_25_48_96_16},
-
-	/* page 5 */
-    {ICON_SET_NOISE_NORMAL_25_16_96_16,    ICON_SET_NOISE_NORMAL_25_16_96_16},
-    {ICON_SAVE_SEG_OFF_NORMAL_25_32_96_16,    ICON_SAVE_SEG_ON_NORMAL_25_32_96_16},
-    {ICON_STICHING_BOX_NORMAL_25_48_96_16,    ICON_STICHING_BOX_NORMAL_25_48_96_16},
-
-	/* page 6 */
-    {ICON_SET_STORAGE_NORMAL_25_16_96_16, ICON_SET_STORAGE_NORMAL_25_16_96_16},
-    {ICON_SET_INFO_NORMAL_25_32_96_16,    ICON_SET_INFO_NORMAL_25_32_96_16},
-    {ICON_SET_RESET_NORMAL_25_48_96_16,   ICON_SET_RESET_NORMAL_25_48_96_16},
-};
-
-static int setting_icon_lights[SETTING_MAX][2] =
-{
-	/* page 1 */
-	{ICON_SET_WIFI_WIFI_LIGHT_25_16_96_16, ICON_SET_WIFI_AP_LIGHT_25_16_96_16},
-	{ICON_SET_ETHERNET_DIRECT_LIGHT_25_32_96_16,ICON_SET_ETHERNET_DHCP_LIGHT_25_32_96_16},
-	{ICON_SET_FREQUENCY_50HZ_LIGHT_25_48_96_16,ICON_SET_FREQUENCY_60HZ_LIGHT_25_48_96_16},
-
-	/* page 2 */
-	/* 第4项: SetPhotoDelay */
-	{ICON_SET_PHOTO_DELAY_5S_LIGHT_25_16_96_16, ICON_SET_PHOTO_DELAY_5S_LIGHT_25_16_96_16},
-	/* 第5项改成: Speaker ON/OFF */
-	{ICON_SET_SPEAKER_OFF_LIGHT_25_32_96_16, ICON_SET_SPEAKER_ON_LIGHT_25_32_96_16},
-	{ICON_SET_BOTTOMLOGO_OFF_LIGHT_25_48_96_16,ICON_SET_BOTTOMLOGO_ON_LIGHT_25_48_96_16},
-
-	/* page 3 */
-	{ICON_SET_LED_OFF_LIGHT_25_16_96_16, ICON_SET_LED_ON_LIGHT_25_16_96_16},
-	{ICON_SET_AUDIO_OFF_LIGHT_25_32_96_16,ICON_SET_AUDIO_ON_LIGHT_25_32_96_16},
-	{ICON_SET_SPATIALAUDIO_OFF_LIGHT_25_48_96_16,ICON_SET_SPATIALAUDIO_ON_LIGHT_25_48_96_16},
-
-	/* page 4 */
-	{ICON_SET_GYRO_OFF_LIGHT_25_16_96_16,ICON_SET_GYRO_ON_LIGHT_25_16_96_16},
-	//gyro calibration
-	{ICON_SET_GYRO_CALC_LIGHT_25_32_96_16,ICON_SET_GYRO_CALC_LIGHT_25_32_96_16},
-	{ICON_SET_FAN_OFF_LIGHT_25_48_96_16,ICON_SET_FAN_ON_LIGHT_25_48_96_16},
-
-
-	/* page 5 */
-	//sample fan noise
-	{ICON_SET_NOISE_HIGH_25_16_96_16,    ICON_SET_NOISE_HIGH_25_16_96_16},
-	{ICON_SAVE_SEG_OFF_HIGH_25_32_96_16,    ICON_SAVE_SEG_ON_HIGH_25_32_96_16},
-	{ICON_STITCHING_BOX_HIGH_25_48_96_16,    ICON_STITCHING_BOX_HIGH_25_48_96_16},
-
-
-	/* page 6 */
-	{ICON_SET_STORAGE_LIGHT_25_16_96_16,ICON_SET_STORAGE_LIGHT_25_16_96_16},
-	{ICON_SET_INFO_LIGHT_25_32_96_16,    ICON_SET_INFO_LIGHT_25_32_96_16},
-	{ICON_SET_RESET_LIGHT_25_48_96_16,   ICON_SET_RESET_LIGHT_25_48_96_16},
-};
-
-
 
 
 static int main_icons[][MAINMENU_MAX] = {
@@ -462,61 +336,6 @@ static int main_icons[][MAINMENU_MAX] = {
 };
 
 
-static SETTING_ITEMS mSettingItems = {
-    {ICON_SET_ETHERNET_DHCP_NORMAL_25_32_96_16,
-     ICON_SET_FREQUENCY_50HZ_NORMAL_25_48_96_16},
-    {0},
-    setting_icon_normal,
-    setting_icon_lights
-};
-
-
-static int photodelay_icon_lights[SET_PHOTO_DELAY_MAX][2] =
-{
-	/* page 1 */
-	{ICON_PHOTO_DELAY_3S_LIGHT, ICON_PHOTO_DELAY_3S_LIGHT},
-	{ICON_PHOTO_DELAY_5S_LIGHT,ICON_PHOTO_DELAY_5S_LIGHT},
-	{ICON_PHOTO_DELAY_10S_LIGHT,ICON_PHOTO_DELAY_10S_LIGHT},
-
-	/* page 2 */
-	{ICON_PHOTO_DELAY_20S_LIGHT, ICON_PHOTO_DELAY_20S_LIGHT},
-	/* 第5项改成: Speaker ON/OFF */
-    {ICON_PHOTO_DELAY_30S_LIGHT, ICON_PHOTO_DELAY_30S_LIGHT},
-    {ICON_PHOTO_DELAY_40S_LIGHT,ICON_PHOTO_DELAY_40S_LIGHT},
-
-	/* page 3 */
-    {ICON_PHOTO_DELAY_50S_LIGHT, ICON_PHOTO_DELAY_50S_LIGHT},
-    {ICON_PHOTO_DELAY_60S_LIGHT,ICON_PHOTO_DELAY_60S_LIGHT},
-};
-
-static int photodelay_icon_normal[SET_PHOTO_DELAY_MAX][2] =
-{
-	/* page 1 */
-	{ICON_PHOTO_DELAY_3S_NORMAL, ICON_PHOTO_DELAY_3S_NORMAL},
-	{ICON_PHOTO_DELAY_5S_NORMAL,ICON_PHOTO_DELAY_5S_NORMAL},
-	{ICON_PHOTO_DELAY_10S_NORMAL,ICON_PHOTO_DELAY_10S_NORMAL},
-
-	/* page 2 */
-	{ICON_PHOTO_DELAY_20S_NORMAL, ICON_PHOTO_DELAY_20S_NORMAL},
-	/* 第5项改成: Speaker ON/OFF */
-    {ICON_PHOTO_DELAY_30S_NORMAL, ICON_PHOTO_DELAY_30S_NORMAL},
-    {ICON_PHOTO_DELAY_40S_NORMAL,ICON_PHOTO_DELAY_40S_NORMAL},
-
-	/* page 3 */
-    {ICON_PHOTO_DELAY_50S_NORMAL, ICON_PHOTO_DELAY_50S_NORMAL},
-    {ICON_PHOTO_DELAY_60S_NORMAL,ICON_PHOTO_DELAY_60S_NORMAL},
-
-};
-
-
-
-static SETTING_ITEMS mSetPhotoDelays = {
-    {ICON_SET_ETHERNET_DHCP_NORMAL_25_32_96_16,
-     ICON_SET_FREQUENCY_50HZ_NORMAL_25_48_96_16},
-    {0},
-    photodelay_icon_normal,
-    photodelay_icon_lights
-};
 
 
 static const char *dev_type[SET_STORAGE_MAX] = {"sd", "usb"};
@@ -1134,72 +953,6 @@ private:
 };
 
 
-static int get_phdelay_index()
-{
-	char index;
-	//char index_buf[32] = {0};
-
-	index = SET_PHOTO_DELAY_5S;
-	
-	/* /data/etc/ph_delay */
-	if (access(PH_DELAY_PATH, F_OK) != 0) {   /* 文件不存在 */
-		Log.d(TAG, "%s file not exist, use default val", PH_DELAY_PATH);
-	} else  {
-		int fd = open(PH_DELAY_PATH, O_RDONLY);
-		if (fd < 0)  {
-			Log.e(TAG, "Open [%s] failed", PH_DELAY_PATH);
-		} else {
-			int rd = read(fd, &index, sizeof(index));
-			if (rd != sizeof(index)) {
-				Log.e(TAG, "<<<<<<<<<< read %s error", PH_DELAY_PATH);
-			} else {
-				Log.d(TAG, "<<<<<<<<<<<read index = %d", index);
-			}
-		}
-
-		close(fd);
-	}
-
-	return index;
-}
-
-
-static void set_phdelay_index(int index)
-{
-	char val = index;
-	
-	if (index < 0 || index > SET_PHOTO_DELAY_MAX) {
-		Log.e(TAG, "invalid index = %d", index);
-		index = SET_PHOTO_DELAY_5S;
-	} else {
-		if (access(PH_DELAY_PATH, F_OK) != 0) {
-			unlink(PH_DELAY_PATH);
-		}
-		
-		int fd = open(PH_DELAY_PATH, O_CREAT | O_RDWR, 0644);
-		if (fd < 0) {
-			Log.e(TAG, "+++++ open %s failed", PH_DELAY_PATH);
-		} else  {
-			int wcnt = write(fd, &val, sizeof(val));
-			if (wcnt != sizeof(val)) {
-				Log.e(TAG, "write %s failed ...");
-			} else {
-				Log.d(TAG, "write %s success", PH_DELAY_PATH);
-			}
-		}
-	}
-}
-
-
-static void update_takepic_delay(int index)
-{
-	for (u32 i = 0; i < sizeof(mPICAction) / sizeof(mPICAction[0]); i++) {
-		Log.d(TAG, "++++++ update_takepic_delay = %d", photo_delay[index]);
-		mPICAction[i].delay = photo_delay[index];
-	}
-}
-
-
 MenuUI::MenuUI(const sp<ARMessage> &notify):mNotify(notify)
 {
     init_handler_thread();	/* 初始化消息处理线程 */
@@ -1241,6 +994,8 @@ void MenuUI::set_setting_select(int type,int val)
     mSettingItems.iSelect[type] = val;
 }
 
+
+void Menu::setSettingItemVal()
 
 
 void MenuUI::disp_top_info()
@@ -1430,7 +1185,7 @@ void MenuUI::select_up()
 	Log.d(TAG, "addr 0x%p", &(mMenuInfos[cur_menu].mSelectInfo));
 #endif
 
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
     CHECK_NE(mSelect, nullptr);
 
 #ifdef DEBUG_INPUT_KEY		
@@ -1454,16 +1209,16 @@ void MenuUI::select_up()
 #endif
 
     if (mSelect->select < 0) {
-        if (mSelect->page_num > 1) {
+        if (mSelect->page_num > 1) {    /* 需要上翻一页 */
             bUpdatePage = true;
-            if (--mSelect->cur_page < 0) {
+            if (--mSelect->cur_page < 0) {  /* 翻完第一页到最后一页 */
                 mSelect->cur_page = mSelect->page_num - 1;
-                mSelect->select = (mSelect->total - 1)%mSelect->page_max;
+                mSelect->select = (mSelect->total - 1) % mSelect->page_max; /* 选中最后一页最后一项 */
             } else {
-                mSelect->select = mSelect->page_max - 1;
+                mSelect->select = mSelect->page_max - 1;    /* 上一页的最后一项 */
             }
-        } else {
-            mSelect->select = mSelect->total - 1;
+        } else {    /* 整个菜单只有一页 */
+            mSelect->select = mSelect->total - 1;   /* 选中最后一项 */
         }
     }
 
@@ -1475,7 +1230,7 @@ void MenuUI::select_up()
           mSelect->cur_page, mSelect->page_max, mSelect->total);
 #endif
 
-    if (bUpdatePage) {
+    if (bUpdatePage) {  /*  */
         update_menu_page();
     } else {
         update_menu();
@@ -1488,7 +1243,7 @@ void MenuUI::select_down()
 {
     bool bUpdatePage = false;
 	
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
     CHECK_NE(mSelect, nullptr);
 
 #ifdef DEBUG_INPUT_KEY	
@@ -1568,7 +1323,7 @@ void MenuUI::update_disp_func(int lan)
 #endif
 
 
-int MenuUI::get_menu_select_by_power(int menu)
+int MenuUI::getMenuCurSelectedIndex(int menu)
 {
     int val = mMenuInfos[menu].mSelectInfo.select +
             mMenuInfos[menu].mSelectInfo.cur_page * mMenuInfos[menu].mSelectInfo.page_max;
@@ -1665,62 +1420,12 @@ void set_photodelay_select(int index)
 }
 
 
-
-void MenuUI::init_menu_select()
+/*
+ * 设置页配置初始化
+ */
+void Menu::setMenuCfgInit()
 {
-    int val;
-
-    for (int i = MENU_PIC_SET_DEF; i <= MENU_LIVE_SET_DEF; i++) {
-        switch (i) {
-            case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
-                val = mProCfg->get_val(KEY_ALL_PIC_DEF);
-//                Log.d(TAG,"pic set def %d", val);
-                switch (val) {
-                    case PIC_ALL_CUSTOM:
-                    case PIC_ALL_8K_3D_OF:
-                    case PIC_ALL_8K_OF:
-                    case PIC_ALL_8K:
-                    case PIC_ALL_BURST:
-                        set_menu_select_info(i, val);
-                        break;
-                        //user define
-                    SWITCH_DEF_ERROR(val)
-                }
-                break;
-				
-            case MENU_VIDEO_SET_DEF:
-                val = mProCfg->get_val(KEY_ALL_VIDEO_DEF);
-                if (val >= 0 && val < VID_DEF_MAX) {
-                    set_menu_select_info(i,val);
-                } else {
-                    ERR_ITEM(val)
-                }
-                break;
-
-            case MENU_LIVE_SET_DEF:
-                val = mProCfg->get_val(KEY_ALL_LIVE_DEF);
-                switch (val)  {
-#ifdef LIVE_ORG
-                    case LIVE_ORIGIN:
-#endif
-                    case LIVE_CUSTOM:
-                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON:
-                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON:
-                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI:
-                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI:
-                    case VID_ARIAL:
-                        set_menu_select_info(i,val);
-                        break;
-                        //user define
-                    SWITCH_DEF_ERROR(val)
-                }
-                break;
-            default:
-                break;
-        }
-    }
-
-
+    /* "设置菜单项的初始化" */
 	/* 初始化菜单时,读取系统配置值 */
     for (int i = 0; i < SETTING_MAX; i++) {
         switch (i) {				
@@ -1817,8 +1522,66 @@ void MenuUI::init_menu_select()
                 break;
         }
     }
-    
     send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
+}
+
+
+
+void MenuUI::init_menu_select()
+{
+    int val;
+
+    for (int i = MENU_PIC_SET_DEF; i <= MENU_LIVE_SET_DEF; i++) {
+        switch (i) {
+            case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
+                val = mProCfg->get_val(KEY_ALL_PIC_DEF);
+//                Log.d(TAG,"pic set def %d", val);
+                switch (val) {
+                    case PIC_ALL_CUSTOM:
+                    case PIC_ALL_8K_3D_OF:
+                    case PIC_ALL_8K_OF:
+                    case PIC_ALL_8K:
+                    case PIC_ALL_BURST:
+                        set_menu_select_info(i, val);
+                        break;
+                        //user define
+                    SWITCH_DEF_ERROR(val)
+                }
+                break;
+				
+            case MENU_VIDEO_SET_DEF:
+                val = mProCfg->get_val(KEY_ALL_VIDEO_DEF);
+                if (val >= 0 && val < VID_DEF_MAX) {
+                    set_menu_select_info(i,val);
+                } else {
+                    ERR_ITEM(val)
+                }
+                break;
+
+            case MENU_LIVE_SET_DEF:
+                val = mProCfg->get_val(KEY_ALL_LIVE_DEF);
+                switch (val)  {
+#ifdef LIVE_ORG
+                    case LIVE_ORIGIN:
+#endif
+                    case LIVE_CUSTOM:
+                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON:
+                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON:
+                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI:
+                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI:
+                    case VID_ARIAL:
+                        set_menu_select_info(i,val);
+                        break;
+                        //user define
+                    SWITCH_DEF_ERROR(val)
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    setMenuCfgInit();
 }
 
 
@@ -1841,6 +1604,11 @@ void MenuUI::init()
     CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
     CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
+
+    /*
+     * TODO: 对菜单资源初始化
+     */
+
 
     CHECK_EQ(sizeof(setting_icon_normal) / sizeof(setting_icon_normal[0]), SETTING_MAX);
     CHECK_EQ(sizeof(setting_icon_lights) / sizeof(setting_icon_lights[0]), SETTING_MAX);
@@ -2181,7 +1949,7 @@ void MenuUI::set_cur_menu_from_exit()
         cur_menu = MENU_TOP;
     }
 	
-    if (is_top_clear(cur_menu)) {
+    if (menuHasStatusbar(cur_menu)) {
         clear_area();
     }
 	
@@ -2237,7 +2005,7 @@ void MenuUI::set_cur_menu(int menu, int back_menu)
         Log.d(TAG, "set cur menu same menu %d cur menu %d\n", menu, cur_menu);
         bDispBottom = false;
     } else  {
-        if (is_top_clear(menu))  {
+        if (menuHasStatusbar(menu))  {
             if (back_menu == -1)  {
                 set_back_menu(menu, cur_menu);
             } else {
@@ -2259,7 +2027,7 @@ void MenuUI::restore_all()
 
 void MenuUI::update_sys_info()
 {
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
 
     mSelect->last_select = mSelect->select;
 
@@ -2550,7 +2318,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
             Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
 				
-            item = get_menu_select_by_power(MENU_PIC_SET_DEF);
+            item = getMenuCurSelectedIndex(MENU_PIC_SET_DEF);
             switch (item) {
 //              case PIC_8K_3D_SAVE:
                 case PIC_8K_PANO_SAVE:
@@ -2589,7 +2357,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                         bAllow = false;
                     } else {
                         oled_disp_type(START_RECING);
-                        item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
+                        item = getMenuCurSelectedIndex(MENU_VIDEO_SET_DEF);
 //                        Log.d(TAG, " vid set is %d ", item);
                         if (item >= 0 && item < VID_CUSTOM) {
                             memcpy(mActionInfo.get(), &mVIDAction[item], sizeof(ACTION_INFO));
@@ -2620,7 +2388,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
             if ((check_live()) && (!check_state_in(STATE_STOP_LIVING))) {
                 oled_disp_type(STOP_LIVING);
             } else if (check_state_preview()) {
-                item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
+                item = getMenuCurSelectedIndex(MENU_LIVE_SET_DEF);
 //				Log.d(TAG, "live item is %d", item);
                 switch (item) {
                     case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON:
@@ -3499,11 +3267,11 @@ void MenuUI::disp_scroll()
 
 void MenuUI::update_menu_disp(const int *icon_light,const int *icon_normal)
 {
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
     int last_select = get_last_select();
-//    Log.d(TAG,"cur_menu %d last_select %d get_select() %d "
+//    Log.d(TAG,"cur_menu %d last_select %d getSelectedMenuItem() %d "
 //                  " mSelect->cur_page %d mSelect->page_max %d total %d",
-//          cur_menu,last_select, get_select(), mSelect->cur_page ,
+//          cur_menu,last_select, getSelectedMenuItem(), mSelect->cur_page ,
 //          mSelect->page_max,mSelect->total);
     if (icon_normal != nullptr) {
         //sometimes force last_select to -1 to avoid update last select
@@ -3511,12 +3279,12 @@ void MenuUI::update_menu_disp(const int *icon_light,const int *icon_normal)
             disp_icon(icon_normal[last_select + mSelect->cur_page * mSelect->page_max]);
         }
     }
-    disp_icon(icon_light[get_menu_select_by_power(cur_menu)]);
+    disp_icon(icon_light[getMenuCurSelectedIndex(cur_menu)]);
 }
 
 void MenuUI::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal)
 {
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
     int last_select = get_last_select();
 	
     if (icon_normal != nullptr) {
@@ -3525,7 +3293,7 @@ void MenuUI::update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_
             dispIconByLoc(&icon_normal[last_select + mSelect->cur_page * mSelect->page_max]);
         }
     }
-    dispIconByLoc(&icon_light[get_menu_select_by_power(cur_menu)]);
+    dispIconByLoc(&icon_light[getMenuCurSelectedIndex(cur_menu)]);
 
 }
 
@@ -3579,13 +3347,13 @@ void MenuUI::set_mainmenu_item(int item,int val)
 void MenuUI::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
 {
     int last_select = get_last_select();
-    int cur= get_menu_select_by_power(cur_menu);
+    int cur= getMenuCurSelectedIndex(cur_menu);
 	
     //sometimes force last_select to -1 to avoid update last select
 //    Log.d(TAG,"cur %d last %d",cur,last_select);
     if (bUpdateLast) {
         if (last_select != -1) {
-            SELECT_INFO * mSelect = get_select_info();
+            SELECT_INFO * mSelect = getSelectedMenuItemInfo();
             int last = last_select + mSelect->cur_page * mSelect->page_max;
 //            Log.d(TAG,"last %d",last);
             disp_icon(pSetting->icon_normal[last][get_setting_select(last)]);
@@ -3594,6 +3362,11 @@ void MenuUI::update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
     disp_icon(pSetting->icon_light[cur][get_setting_select(cur)]);
 }
 
+
+void MenuUI::updateSettingPageItem(SettingItem* pSetItem)
+{
+
+}
 
 
 
@@ -3875,7 +3648,7 @@ void MenuUI::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
 
 void MenuUI::update_menu()
 {
-    int item = get_menu_select_by_power(cur_menu);
+    int item = getMenuCurSelectedIndex(cur_menu);
     switch (cur_menu) {
         case MENU_TOP:
             update_menu_disp(main_menu[1], main_menu[0]);
@@ -4074,7 +3847,7 @@ void MenuUI::caculate_rest_info(u64 size)
                     Log.d(TAG, "0remain(%d %d)", size_M, mRemainInfo->remain_pic_num);
                 } else {
 					
-                    item = get_menu_select_by_power(MENU_PIC_SET_DEF);
+                    item = getMenuCurSelectedIndex(MENU_PIC_SET_DEF);
                     switch (item) {
 //                          case PIC_8K_3D_SAVE:
                         case PIC_8K_PANO_SAVE:
@@ -4109,7 +3882,7 @@ void MenuUI::caculate_rest_info(u64 size)
                         Log.d(TAG,"vid size_per_act %d",mControlAct->size_per_act);
                         rest_sec = size_M/mControlAct->size_per_act;
                     } else {
-                        item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
+                        item = getMenuCurSelectedIndex(MENU_VIDEO_SET_DEF);
                         if (item >= 0 && item < VID_CUSTOM) {
                             Log.d(TAG, "2vid  item[%d] size_per_act %d", item, mVIDAction[item].size_per_act);
                             rest_sec = (size_M / mVIDAction[item].size_per_act);
@@ -4215,7 +3988,7 @@ void MenuUI::disp_bottom_space()
                         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
                     }
                 } else {
-                    int item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
+                    int item = getMenuCurSelectedIndex(MENU_LIVE_SET_DEF);
 //                    Log.d(TAG, "live def item %d", item);
                     switch (item) {
 #ifdef LIVE_ORG
@@ -4265,7 +4038,7 @@ void MenuUI::disp_bottom_info(bool high)
     update_bottom_space();
 }
 
-struct _select_info_ * MenuUI::get_select_info()
+struct _select_info_ * MenuUI::getSelectedMenuItemInfo()
 {
     return (SELECT_INFO *)&(mMenuInfos[cur_menu].mSelectInfo);
 }
@@ -4273,12 +4046,12 @@ struct _select_info_ * MenuUI::get_select_info()
 
 void MenuUI::disp_sys_setting(SETTING_ITEMS* pSetting)
 {
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
 
     int start = mSelect->cur_page * mSelect->page_max;
     const int end = start + mSelect->page_max;
     
-    const int select = get_menu_select_by_power(cur_menu);
+    const int select = getMenuCurSelectedIndex(cur_menu);
 
     int item = 0;
 	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
@@ -4311,12 +4084,12 @@ void MenuUI::disp_sys_setting(SETTING_ITEMS* pSetting)
 
 void MenuUI::showSettingPage()
 {
-    SELECT_INFO * mSelect = get_select_info();
+    SELECT_INFO * mSelect = getSelectedMenuItemInfo();
 
     int start = mSelect->cur_page * mSelect->page_max;
     const int end = start + mSelect->page_max;
     
-    const int select = get_menu_select_by_power(cur_menu);
+    const int select = getMenuCurSelectedIndex(cur_menu);
 
     int item = 0;
 	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
@@ -4375,12 +4148,12 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
     int err_trim = 0;
 
     Log.d(TAG," %d src %s path %s cur_menu %d",
-          get_menu_select_by_power(MENU_FORMAT),
+          getMenuCurSelectedIndex(MENU_FORMAT),
           src,path,cur_menu);
 
     add_state(STATE_FORMATING);
 
-    switch (get_menu_select_by_power(MENU_FORMAT)) {
+    switch (getMenuCurSelectedIndex(MENU_FORMAT)) {
         //exfat
         case 0:
             snprintf(buf, sizeof(buf), "umount -f %s", path);
@@ -4431,7 +4204,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
                 goto ERROR_TRIM;
             }
 
-            switch(get_menu_select_by_power(MENU_STORAGE)) {
+            switch(getMenuCurSelectedIndex(MENU_STORAGE)) {
                 case SET_STORAGE_SD:
                     disp_icon(ICON_SDCARD_FORMATTED_SUCCESS128_48);
                     break;
@@ -4473,7 +4246,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
             disp_icon(suc_icon);
             break;
 #endif
-        SWITCH_DEF_ERROR(get_menu_select_by_power(MENU_FORMAT));
+        SWITCH_DEF_ERROR(getMenuCurSelectedIndex(MENU_FORMAT));
     }
 
     return;
@@ -4489,7 +4262,7 @@ ERROR:
 void MenuUI::start_format()
 {
     bool bFound = false;
-    switch (get_menu_select_by_power(MENU_STORAGE)) {
+    switch (getMenuCurSelectedIndex(MENU_STORAGE)) {
         case SET_STORAGE_SD:
             disp_icon(ICON_SDCARD_FORMATTING128_48);
             for(u32 i = 0; i < mLocalStorageList.size(); i++) {
@@ -4513,7 +4286,7 @@ void MenuUI::start_format()
                 }
             }
             break;
-        SWITCH_DEF_ERROR(get_menu_select_by_power(MENU_STORAGE))
+        SWITCH_DEF_ERROR(getMenuCurSelectedIndex(MENU_STORAGE))
     }
 
     if (!bFound) {
@@ -4538,7 +4311,7 @@ void MenuUI::disp_format()
     disp_icon(ICON_SD_FORMAT_EXFAT_LIGHT90_16);
 #else
     //exfat high
-    if (get_menu_select_by_power(MENU_FORMAT) == 0) {
+    if (getMenuCurSelectedIndex(MENU_FORMAT) == 0) {
         disp_icon(ICON_SD_FORMAT_EXFAT_LIGHT90_16);
         disp_icon(ICON_SD_FORMAT_EXT4_NORMAL90_16);
     } else {
@@ -4565,10 +4338,10 @@ void MenuUI::disp_storage_setting()
                 }
 
                 Log.d(TAG,"disp storage[%d] select %d %s (%d %d %d)",
-                      i,get_menu_select_by_power(MENU_STORAGE),
+                      i,getMenuCurSelectedIndex(MENU_STORAGE),
                       dev_space,storage_area[i].x,storage_area[i].y,storage_area[i].w);
 
-                if (get_menu_select_by_power(MENU_STORAGE) == (int)i) {
+                if (getMenuCurSelectedIndex(MENU_STORAGE) == (int)i) {
                     disp_str((const u8 *)dev_space,storage_area[i].x,storage_area[i].y,true,storage_area[i].w);
                 } else {
                     disp_str((const u8 *)dev_space,storage_area[i].x,storage_area[i].y,false,storage_area[i].w);
@@ -4664,7 +4437,7 @@ void MenuUI::disp_cam_param(int higlight)
                     disp_org_rts(mControlAct);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
                 } else {
-                    item = get_menu_select_by_power(MENU_PIC_SET_DEF);
+                    item = getMenuCurSelectedIndex(MENU_PIC_SET_DEF);
 //                    Log.d(TAG, "pic def item %d", item);
                     switch (item) {
 
@@ -4722,7 +4495,7 @@ void MenuUI::disp_cam_param(int higlight)
                     disp_org_rts(mControlAct);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
                 } else {
-                    item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
+                    item = getMenuCurSelectedIndex(MENU_VIDEO_SET_DEF);
 //                    Log.d(TAG, "video def item %d", item);
                     if (item >= 0 && item < VID_CUSTOM) {
                         icon = vid_def_setting_menu[higlight][item];
@@ -4746,7 +4519,7 @@ void MenuUI::disp_cam_param(int higlight)
                             (mControlAct->stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON));
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
                 } else {
-                    item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
+                    item = getMenuCurSelectedIndex(MENU_LIVE_SET_DEF);
 //                    Log.d(TAG, "live def item %d", item);
                     switch (item)
                     {
@@ -4810,10 +4583,10 @@ void MenuUI::disp_calibration_res(int type, int t)
 			
         //fail
         case 1:
-//            cam_state |= STATE_CALIBRATE_FAIL;
-//            Log.d(TAG,"cal fail state 0x%x",cam_state);
-//            CHECK_EQ(cam_state,STATE_CALIBRATE_FAIL);
-//            disp_icon(ICON_CALIBRATION_FAILED128_16);
+            cam_state |= STATE_CALIBRATE_FAIL;
+            Log.d(TAG,"cal fail state 0x%x", cam_state);
+            CHECK_EQ(cam_state, STATE_CALIBRATE_FAIL);
+            disp_icon(ICON_CALIBRATION_FAILED128_16);
             break;
 
         //calibrating
@@ -4831,7 +4604,7 @@ void MenuUI::disp_calibration_res(int type, int t)
     }
 }
 
-bool MenuUI::is_top_clear(int menu)
+bool MenuUI::menuHasStatusbar(int menu)
 {
     bool ret= false;
     switch (menu) {
@@ -4911,7 +4684,7 @@ void MenuUI::func_low_protect()
 
 bool MenuUI::isDevExist()
 {
-    int item = get_menu_select_by_power(MENU_STORAGE);
+    int item = getMenuCurSelectedIndex(MENU_STORAGE);
     bool bFound = false;
 
     for (u32 i = 0;i < mLocalStorageList.size(); i++) {
@@ -4929,7 +4702,7 @@ void MenuUI::disp_menu(bool dispBottom)
 	Log.d(TAG, "disp_menu is %d", cur_menu);
     switch (cur_menu) {
         case MENU_TOP:
-            disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][get_select()]);
+            disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][getSelectedMenuItem()]);
             break;
 		
         case MENU_PIC_INFO:
@@ -5024,7 +4797,7 @@ void MenuUI::disp_menu(bool dispBottom)
 			 * 需要根据当前"Photo Delay"条目的选中的值来设置进入MENU_SET_PHOTO_DELAY菜单需要
 			 * 显示的页（set_photo_delay_index）
 			 */
-			SELECT_INFO * mSelect = get_select_info();
+			SELECT_INFO * mSelect = getSelectedMenuItemInfo();
 
 			/* 需要设置mSelect->cur_page,   mSelect->select */
 			mSelect->cur_page = (set_photo_delay_index / mSelect->page_max);
@@ -5228,7 +5001,7 @@ void MenuUI::disp_menu(bool dispBottom)
 
         case MENU_FORMAT:
         {
-            int item = get_menu_select_by_power(MENU_STORAGE);
+            int item = getMenuCurSelectedIndex(MENU_STORAGE);
             if (isDevExist()) {
                 switch(item) {
                     case SET_STORAGE_SD:
@@ -5256,7 +5029,7 @@ void MenuUI::disp_menu(bool dispBottom)
         SWITCH_DEF_ERROR(cur_menu);
     }
 //    Log.d(TAG,"cur menu %d disptop %d",cur_menu,bDispTop);
-    if (is_top_clear(cur_menu)) {
+    if (menuHasStatusbar(cur_menu)) {
         reset_last_info();
         bDispTop = false;
     } else if (!bDispTop)  {
@@ -5348,6 +5121,171 @@ bool MenuUI::switchEtherIpMode(int iMode)
 
 
 
+void MenuUI::procSettingPage(int iCurMenu)
+{
+    int item = getMenuCurSelectedIndex(iCurMenu);
+    int val = get_setting_select(item);
+
+    /* 1.根据当前菜单得到其子项列表，根据菜单当前选择的值来提取设置项
+     * 2.更新设置项的值（并引发重画设置页）
+     */
+    switch (item) {
+                case SET_WIFI_AP:
+                    val = ((~val) & 0x00000001);
+                    // wifi is on need switch
+                    if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
+                        //mProCfg->set_val(KEY_WIFI_AP, val);
+                        set_setting_select(item, val);
+                        update_menu_sys_setting(&mSettingItems);
+                        //start_wifi(1);
+                    } else {
+                        //mProCfg->set_val(KEY_WIFI_AP, val);
+                        set_setting_select(item, val);
+                        update_menu_sys_setting(&mSettingItems);
+                    }
+
+                    break;
+					
+                case SET_DHCP_MODE: /* 用于设置eth0的IP地址 */
+                    val = ((~val) & 0x00000001);
+                    if (switchEtherIpMode(val)) {
+                        mProCfg->set_val(KEY_DHCP, val);
+                        set_setting_select(item, val);
+                        update_menu_sys_setting(&mSettingItems);
+                    }
+                    break;
+					
+                case SET_FREQ:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_PAL_NTSC, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_FLICKER);
+                    break;
+
+				/* set photodelay  add by skymixos 2018-06-13 
+				 * 进入MENU_SET_PHOTO_DELAY菜单
+				 */
+				case SET_PHOTO_DELAY:
+                    set_cur_menu(MENU_SET_PHOTO_DEALY);
+					break;
+				
+                case SET_SPEAK_ON:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_SPEAKER, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    break;
+                case SET_BOTTOM_LOGO:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_SET_LOGO, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_LOGO);
+                    break;
+                case SET_LIGHT_ON:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_LIGHT_ON, val);
+                    set_setting_select(item, val);
+                    if (val == 1) {
+                        set_light();
+                    } else {
+                        set_light_direct(LIGHT_OFF);
+                    }
+                    update_menu_sys_setting(&mSettingItems);
+                    break;
+                case SET_STORAGE:
+                    set_cur_menu(MENU_STORAGE);
+                    break;
+				
+                case SET_RESTORE:
+                    set_cur_menu(MENU_RESET_INDICATION);
+                    break;
+                case SET_SPATIAL_AUD:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_AUD_SPATIAL, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    if(get_setting_select(SET_AUD_ON) == 1)
+                    {
+                        send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
+                    }
+                    break;
+                case SET_GYRO_ON:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_GYRO_ON, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_GYRO_ON);
+                    break;
+                case SET_FAN_ON:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_FAN, val);
+                    set_setting_select(item, val);
+                    if (val == 0)
+                    {
+                        disp_msg_box(DISP_ALERT_FAN_OFF);
+                    }
+                    else
+                    {
+                        update_menu_sys_setting(&mSettingItems);
+                    }
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_FAN);
+                    break;
+                case SET_AUD_ON:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_AUD_ON, val);
+                    set_setting_select(item, val);
+                    update_menu_sys_setting(&mSettingItems);
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
+                    break;
+                case SET_INFO:
+                    set_cur_menu(MENU_SYS_DEV_INFO);
+                    break;
+                case SET_START_GYRO:
+                    set_cur_menu(MENU_GYRO_START);
+                    break;
+                case SET_NOISE:
+                    send_option_to_fifo(ACTION_NOISE);
+                    break;
+
+                case SET_VIDEO_SEGMENT:
+                    val = ((~val) & 0x00000001);
+                    mProCfg->set_val(KEY_VID_SEG, val);
+                    set_setting_select(item, val);
+                    if (val == 0) {
+                        disp_msg_box(DISP_VID_SEGMENT);
+                    } else {
+                        update_menu_sys_setting(&mSettingItems);
+                    }
+                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
+                    break;
+
+                case SET_STITCH_BOX:
+                    set_cur_menu(MENU_STITCH_BOX);
+                    send_option_to_fifo(ACTION_SET_STICH);
+                    break;
+                SWITCH_DEF_ERROR(getMenuCurSelectedIndex(cur_menu))    
+}
+
+
+void MenuUI::settingPagePowerProc(int iCurMenu)
+{
+    /*  */
+    switch (iCurMenu) {
+        case MENU_SYS_SETTING:
+            procSettingPage(iCurMenu);
+            break;
+
+        case MENU_SET_PHOTO_DEALY:
+            break;
+
+        
+    }
+
+}
+
+
 
 /*************************************************************************
 ** 方法名称: func_power
@@ -5361,13 +5299,13 @@ bool MenuUI::switchEtherIpMode(int iMode)
 *************************************************************************/
 void MenuUI::procPowerKeyEvent()
 {
-	Log.d(TAG, "cur_menu %d select %d\n", cur_menu, get_select());
+	Log.d(TAG, "cur_menu %d select %d\n", cur_menu, getSelectedMenuItem());
 
 	/* 根据当前的菜单做出不同的处理 */
     switch (cur_menu) {	/* 根据当前的菜单做出响应的处理 */
         case MENU_TOP:	/* 顶层菜单 */
 
-            switch (get_select()) {	/* 获取当前选择的菜单项 */
+            switch (getSelectedMenuItem()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC:	/* 选择的是"拍照"项 */
 
 					/* 对于新版版: 发送"启动预览"后,需要查询当前卡的状态
@@ -5447,7 +5385,7 @@ void MenuUI::procPowerKeyEvent()
 
 		/* add by skymixos */
 		case MENU_SET_PHOTO_DEALY: {
-            set_photo_delay_index = get_menu_select_by_power(cur_menu);
+            set_photo_delay_index = getMenuCurSelectedIndex(cur_menu);
 			
 			Log.d(TAG, ">>>>>> get photo delay index [%d]", set_photo_delay_index);
 			#if 0
@@ -5467,152 +5405,10 @@ void MenuUI::procPowerKeyEvent()
 
 		}
 			
-        case MENU_SYS_SETTING: {
-            int item = get_menu_select_by_power(cur_menu);
-            int val = get_setting_select(item);
-            switch (item) {
-                case SET_WIFI_AP:
-                    val = ((~val) & 0x00000001);
-                    // wifi is on need switch
-                    if (mProCfg->get_val(KEY_WIFI_ON) == 1) {
-                        //mProCfg->set_val(KEY_WIFI_AP, val);
-                        set_setting_select(item, val);
-                        update_menu_sys_setting(&mSettingItems);
-                        //start_wifi(1);
-                    } else {
-                        //mProCfg->set_val(KEY_WIFI_AP, val);
-                        set_setting_select(item, val);
-                        update_menu_sys_setting(&mSettingItems);
-                    }
-
-                    break;
-					
-                case SET_DHCP_MODE: /* 用于设置eth0的IP地址 */
-                    val = ((~val) & 0x00000001);
-                    if (switchEtherIpMode(val)) {
-                        mProCfg->set_val(KEY_DHCP, val);
-                        set_setting_select(item, val);
-                        update_menu_sys_setting(&mSettingItems);
-                    }
-                    break;
-					
-                case SET_FREQ:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_PAL_NTSC, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_FLICKER);
-                    break;
-
-				/* set photodelay  add by skymixos 2018-06-13 
-				 * 进入MENU_SET_PHOTO_DELAY菜单
-				 */
-				case SET_PHOTO_DELAY:
-                    set_cur_menu(MENU_SET_PHOTO_DEALY);
-					break;
-				
-                case SET_SPEAK_ON:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_SPEAKER, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    break;
-                case SET_BOTTOM_LOGO:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_SET_LOGO, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_LOGO);
-                    break;
-                case SET_LIGHT_ON:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_LIGHT_ON, val);
-                    set_setting_select(item, val);
-                    if (val == 1)
-                    {
-                        set_light();
-                    }
-                    else
-                    {
-                        set_light_direct(LIGHT_OFF);
-                    }
-                    update_menu_sys_setting(&mSettingItems);
-                    break;
-                case SET_STORAGE:
-                    set_cur_menu(MENU_STORAGE);
-                    break;
-				
-                case SET_RESTORE:
-                    set_cur_menu(MENU_RESET_INDICATION);
-                    break;
-                case SET_SPATIAL_AUD:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_AUD_SPATIAL, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    if(get_setting_select(SET_AUD_ON) == 1)
-                    {
-                        send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
-                    }
-                    break;
-                case SET_GYRO_ON:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_GYRO_ON, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_GYRO_ON);
-                    break;
-                case SET_FAN_ON:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_FAN, val);
-                    set_setting_select(item, val);
-                    if (val == 0)
-                    {
-                        disp_msg_box(DISP_ALERT_FAN_OFF);
-                    }
-                    else
-                    {
-                        update_menu_sys_setting(&mSettingItems);
-                    }
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_FAN);
-                    break;
-                case SET_AUD_ON:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_AUD_ON, val);
-                    set_setting_select(item, val);
-                    update_menu_sys_setting(&mSettingItems);
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
-                    break;
-                case SET_INFO:
-                    set_cur_menu(MENU_SYS_DEV_INFO);
-                    break;
-                case SET_START_GYRO:
-                    set_cur_menu(MENU_GYRO_START);
-                    break;
-                case SET_NOISE:
-                    send_option_to_fifo(ACTION_NOISE);
-                    break;
-
-                case SET_VIDEO_SEGMENT:
-                    val = ((~val) & 0x00000001);
-                    mProCfg->set_val(KEY_VID_SEG, val);
-                    set_setting_select(item, val);
-                    if (val == 0) {
-                        disp_msg_box(DISP_VID_SEGMENT);
-                    } else {
-                        update_menu_sys_setting(&mSettingItems);
-                    }
-                    send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
-                    break;
-
-                case SET_STITCH_BOX:
-                    set_cur_menu(MENU_STITCH_BOX);
-                    send_option_to_fifo(ACTION_SET_STICH);
-                    break;
-                SWITCH_DEF_ERROR(get_menu_select_by_power(cur_menu))
-            }
-        }
+        case MENU_SYS_SETTING: 
+            settingPagePowerProc(MENU_SYS_SETTING);
             break;
+
 //        case MENU_CALIBRATION_SETTING:
 //            power_menu_cal_setting();
 //            break;
@@ -5675,7 +5471,7 @@ void MenuUI::procPowerKeyEvent()
             break;
 
         case MENU_STORAGE: {
-            int select = get_menu_select_by_power(MENU_STORAGE);
+            int select = getMenuCurSelectedIndex(MENU_STORAGE);
             Log.d(TAG,"used_space[%d] %s",select,used_space[select]);
             if (strlen(used_space[select]) != 0) {
                 set_cur_menu(MENU_FORMAT);
@@ -5692,7 +5488,7 @@ void MenuUI::procPowerKeyEvent()
 }
 
 
-int MenuUI::get_select()
+int MenuUI::getSelectedMenuItem()
 {
     return mMenuInfos[cur_menu].mSelectInfo.select;
 }
@@ -5719,7 +5515,7 @@ void MenuUI::procSettingKeyEvent()
 
     switch (cur_menu) {
         case MENU_TOP:	/* 如果当前处于主界面 */
-            if (get_select() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
+            if (getSelectedMenuItem() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
                 Log.d(TAG, "wif state %d ap %d", mProCfg->get_val(KEY_WIFI_ON), get_setting_select(SET_WIFI_AP));
                 if (/*mProCfg->get_val(KEY_WIFI_ON) == 0 &&*/ get_setting_select(SET_WIFI_AP) == 0) {
                     start_qr_func();
@@ -5926,7 +5722,7 @@ void MenuUI::clear_area(u8 x, u8 y)
 
 bool MenuUI::check_allow_update_top()
 {
-    return !is_top_clear(cur_menu);
+    return !menuHasStatusbar(cur_menu);
 }
 
 
@@ -5999,7 +5795,7 @@ void MenuUI::clear_ready()
 void MenuUI::disp_live_ready()
 {
     bool bReady = true;
-    int item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
+    int item = getMenuCurSelectedIndex(MENU_LIVE_SET_DEF);
 
     switch (item) {
 #ifdef LIVE_ORG
@@ -6868,7 +6664,7 @@ int MenuUI::oled_disp_type(int type)
                 	Log.d(TAG, "+++++++++++++++>>>> CAPTURE mControlAct != nullptr");
                     set_cap_delay(mControlAct->delay);
                 } else {
-                    int item = get_menu_select_by_power(MENU_PIC_SET_DEF);
+                    int item = getMenuCurSelectedIndex(MENU_PIC_SET_DEF);
                   	Log.d(TAG, "+++++++++++++++ CAPTURE def item %d", item);
                     switch (item) {
 						
@@ -7696,7 +7492,7 @@ bool MenuUI::check_rec_tl()
             ret = true;
         }
     }  else {
-        int item = get_menu_select_by_power(MENU_VIDEO_SET_DEF);
+        int item = getMenuCurSelectedIndex(MENU_VIDEO_SET_DEF);
         if (item >= 0 && item < VID_CUSTOM) {
 //            Log.d(TAG,"mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
             if (mVIDAction[item].stOrgInfo.stOrgAct.mOrgV.tim_lap_int > 0) {
@@ -8226,7 +8022,7 @@ bool MenuUI::check_live_save_org()
 //            }
             ret = check_live_save(mControlAct.get());
         } else {
-            int item = get_menu_select_by_power(MENU_LIVE_SET_DEF);
+            int item = getMenuCurSelectedIndex(MENU_LIVE_SET_DEF);
             Log.d(TAG, "check_live_save_org %d", item);
             switch (item) {
                 case VID_ARIAL:

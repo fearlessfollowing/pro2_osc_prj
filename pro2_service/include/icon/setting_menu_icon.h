@@ -1626,6 +1626,24 @@ SettingItem setPhotoDelayItem = {
 	}					
 };
 
+typedef struct  {
+    u8 	xPos;
+    u8 	yPos;
+    u8 	iWidth;
+    u8 	iHeight;
+} ICON_POS;
+
+
+typedef struct stSetItem {
+	const char* 	pItemName;								/* 设置项的名称 */
+	int				iItemMaxVal;							/* 设置项可取的最大值 */
+	int  			iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
+	bool			bHaveSubMenu;							/* 是否含有子菜单 */
+	void 			(*pSetItemProc)(struct stSetItem*);		/* 菜单项的处理函数(当选中并按确认时被调用) */
+	ICON_POS		stPos;
+	const u8 * 		stLightIcon[SETIING_ITEM_ICON_NUM];		/* 选中时的图标列表 */
+	const u8 * 		stNorIcon[SETIING_ITEM_ICON_NUM];		/* 未选中时的图标列表 */
+} SettingItem;
 
 /* Speaker: On/Off */
 SettingItem setSpeakerItem = {
@@ -1874,5 +1892,63 @@ SettingItem setResetItem = {
 };
 
 
+
+SettingItem* gSettingItems[] = {
+	&setDhcpItem,
+	&setFreqItem,
+	&setHDRItem,
+
+	&setRawPhotoItem,
+	&setAebItem,
+	&setPhotoDelayItem,
+
+	&setSpeakerItem,
+	&setLedItem,
+	&setAudioItem,
+
+	&setSpatialAudioItem,
+	&setFlowStateItem,
+	&setGyroCalItem,
+
+	&setFanItem,
+	&setSampleNosieItem,
+	&setBottomLogoItem,
+
+	&setVideSegItem,
+	&setStorageItem,
+	&setInfoItem,
+
+	&setResetItem,
+};
+
+
+enum {
+    SET_DHCP_MODE,		
+    SET_FREQ,			
+	SET_HDR,
+
+	SET_RAWPHOTO,
+	SET_AEB,
+    SET_PHOTO_DELAY,
+
+    SET_SPEAK_ON,
+	SET_LIGHT_ON,
+	SET_AUD_ON,	
+
+	SET_SPATIAL_AUD,
+	SET_FLOWSTATE,
+	SET_START_GYRO,
+
+	SET_FAN_ON,
+	SET_NOISE,
+    SET_BOTTOM_LOGO, 
+
+	SET_VIDEO_SEGMENT,
+	SET_STORAGE,
+	SET_INFO,
+
+	SET_RESTORE,
+    SETTING_MAX
+}; 
 
 #endif /* _SETTING_MENU_ICON_H_ */
