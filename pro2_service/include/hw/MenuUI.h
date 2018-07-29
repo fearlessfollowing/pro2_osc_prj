@@ -482,7 +482,7 @@ private:
     void clear_area(u8 x,u8 y, u8 w,u8 h);
     void clear_area(u8 x = 0,u8 y = 0);
     bool check_allow_update_top();
-    void wifi_action();
+    void handleWifiAction();
     void disp_wifi(bool bState, int disp_main = -1);
     int wifi_stop();
 
@@ -634,7 +634,7 @@ private:
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
     void procSetMenuKeyEvent();
     void setSysMenuInit(MENU_INFO* pParentMenu);
-    void setPhotoDelayMenuInit(MENU_INFO* pParentMenu);
+    void setCommonMenuInit(MENU_INFO* pParentMenu);
     void updateMenuPage();
     void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);

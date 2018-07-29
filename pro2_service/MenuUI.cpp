@@ -1187,10 +1187,10 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
 					getCurMenuStr(menu),
 					state,
 					interval,
-					get_setting_select(SET_SPEAK_ON),
+                    mProCfg->get_val(KEY_SPEAKER),
 					sound_id);
 	
-    if (sound_id != -1 && get_setting_select(SET_SPEAK_ON) == 1) {
+    if (sound_id != -1 && mProCfg->get_val(KEY_SPEAKER) == 1) {
         flick_light();
         play_sound(sound_id);
 	
@@ -1231,7 +1231,7 @@ void MenuUI::play_sound(u32 type)
 
 	Log.d(TAG, "play_sound type = %d", type);
 
-    if (get_setting_select(SET_SPEAK_ON) == 1) {
+    if (mProCfg->get_val(KEY_SPEAKER) == 1) {
         if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
             char cmd[1024];
             snprintf(cmd, sizeof(cmd), "aplay -D hw:1,0 %s", sound_str[type]);
@@ -1247,7 +1247,7 @@ void MenuUI::sound_thread()
 {
 #ifdef ENABLE_SOUND
     while (!bExitSound) {
-        if (get_setting_select(SET_SPEAK_ON) == 1) {
+        if (mProCfg->get_val(KEY_SPEAKER) == 1) {
 
         }
         msg_util::sleep_ms(INTERVAL_1HZ);
@@ -1404,19 +1404,6 @@ void MenuUI::init_handler_thread()
                    });
     CHECK_EQ(reply.get(), true);
 }
-
-
-#if 0
-void MenuUI::set_lan(int lan)
-{
-    mProCfg->set_val(KEY_LAN, lan);
-    update_disp_func(lan);
-}
-
-void MenuUI::update_disp_func(int lan)
-{
-}
-#endif
 
 
 int MenuUI::getMenuLastSelectIndex(int menu)
@@ -1694,7 +1681,41 @@ void Menu::setMenuCfgInit()
                 mMenuInfos[MENU_SET_PHOTO_DEALY].mSelectInfo.select
                 );
 
-    setPhotoDelayMenuInit(&mMenuInfos[MENU_SET_PHOTO_DEALY]);   /* 设置系统菜单初始化 */
+    setCommonMenuInit(&mMenuInfos[MENU_SET_PHOTO_DEALY]);   /* 设置系统菜单初始化 */
+
+
+#ifdef ENALEB_MENU_SET_AEB
+
+    mMenuInfos[MENU_SET_AEB].priv = static_cast<void*>(gSetAebItems);
+    mMenuInfos[MENU_SET_AEB].privList = static_cast<void*>(&mAebList);
+
+    mMenuInfos[MENU_SET_AEB].mSelectInfo.total = sizeof(gSetAebItems) / sizeof(gSetAebItems[0]);
+    mMenuInfos[MENU_SET_AEB].mSelectInfo.select = 0;   
+    mMenuInfos[MENU_SET_AEB].mSelectInfo.page_max = 3;
+
+    int iPageCnt = mMenuInfos[MENU_SET_AEB].mSelectInfo.total % mMenuInfos[MENU_SET_AEB].mSelectInfo.page_max;
+    if (iPageCnt == 0) {
+        iPageCnt = mMenuInfos[MENU_SET_AEB].mSelectInfo.total / mMenuInfos[MENU_SET_AEB].mSelectInfo.page_max;
+    } else {
+        iPageCnt = mMenuInfos[MENU_SET_AEB].mSelectInfo.total / mMenuInfos[MENU_SET_AEB].mSelectInfo.page_max + 1;
+    }
+
+    mMenuInfos[MENU_SET_AEB].mSelectInfo.page_num = iPageCnt;
+
+    /* 使用配置值来初始化首次显示的页面 */
+    updateMenuCurPageAndSelect(MENU_SET_AEB, mProCfg->get_val(KEY_AEB));
+
+    Log.d(TAG, "Set PhotoDealy Menu Info: total items [%d], page count[%d], cur page[%d], select [%d]", 
+                mMenuInfos[MENU_SET_AEB].mSelectInfo.total,
+                mMenuInfos[MENU_SET_AEB].mSelectInfo.page_num,
+                mMenuInfos[MENU_SET_AEB].mSelectInfo.cur_page,
+                mMenuInfos[MENU_SET_AEB].mSelectInfo.select
+                );
+
+    setCommonMenuInit(&mMenuInfos[MENU_SET_AEB]);   /* 设置系统菜单初始化 */
+
+
+#endif
 
 }
 
@@ -2741,12 +2762,12 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                     break;
 
                 case OPTION_SET_FAN:
-                    msg->set<int>("fan", get_setting_select(SET_FAN_ON));
+                    msg->set<int>("fan", mProCfg->get_val(KEY_FAN));
                     break;
 
                 case OPTION_SET_AUD:
-                    if (get_setting_select(SET_AUD_ON) == 1) {
-                        if (get_setting_select(SET_SPATIAL_AUD) == 1) {
+                    if (mProCfg->get_val(KEY_AUD_ON) == 1) {
+                        if (mProCfg->get_val(KEY_AUD_SPATIAL) == 1) {
                             msg->set<int>("aud", 2);
                         } else {
                             msg->set<int>("aud", 1);
@@ -2757,15 +2778,15 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                     break;
 
                 case OPTION_GYRO_ON:
-                    msg->set<int>("gyro_on", get_setting_select(SET_GYRO_ON));
+                    msg->set<int>("gyro_on", mProCfg->get_val(KEY_GYRO_ON));
                     break;
 
                 case OPTION_SET_LOGO:
-                    msg->set<int>("logo_on", get_setting_select(SET_BOTTOM_LOGO));
+                    msg->set<int>("logo_on", mProCfg->get_val(KEY_SET_LOGO));
                     break;
 
                 case OPTION_SET_VID_SEG:
-                    msg->set<int>("video_fragment", get_setting_select(SET_VIDEO_SEGMENT));
+                    msg->set<int>("video_fragment", mProCfg->get_val(KEY_VID_SEG));
                     break;
 
 //                case OPTION_SET_AUD_GAIN:
@@ -2786,14 +2807,14 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 setLightDirect(LIGHT_OFF);
                 msg->set<int>("cmd", cmd);
             } else {
-                ERR_MENU_STATE(cur_menu,cam_state);
+                ERR_MENU_STATE(cur_menu, cam_state);
                 bAllow = false;
             }
             break;
 
         case ACTION_CUSTOM_PARAM: {
             sp<CAM_PROP> mProp = sp<CAM_PROP>(new CAM_PROP());
-            memcpy(mProp.get(),pstProp,sizeof(CAM_PROP));
+            memcpy(mProp.get(), pstProp, sizeof(CAM_PROP));
             msg->set<sp<CAM_PROP>>("cam_prop", mProp);
 			break;
         }
@@ -3223,9 +3244,9 @@ void MenuUI::disp_wifi(bool bState, int disp_main)
 
 
 
-void MenuUI::wifi_action()
+void MenuUI::handleWifiAction()
 {
-    Log.e(TAG, " wifi_action %d", mProCfg->get_val(KEY_WIFI_ON));
+    Log.e(TAG, " handleWifiAction %d", mProCfg->get_val(KEY_WIFI_ON));
     
     const char* pWifiDrvProp = NULL;
     int iCmd = -1;
@@ -5066,8 +5087,17 @@ void MenuUI::enterMenu(bool dispBottom)
 			disp_icon(ICON_SET_PHOTO_DELAY_NV_0_16_32_48);		/* 绘制左侧"Photo Delay"图标 */
 
             /* 进入设置"Set Photo Delay" */
-            dispSettingPage(mSetItemsList);					/* 显示"右侧"的项 */
+            dispSettingPage(mPhotoDelayList);					/* 显示"右侧"的项 */
 			break;
+
+#ifdef ENALEB_MENU_SET_AEB
+        case MENU_SET_AEB:
+            clear_area(0, 16);	
+            disp_icon(ICON_SET_PHOTO_DELAY_NV_0_16_32_48);
+            dispSettingPage(mAebList);
+            break;
+
+#endif
 
 		
         case MENU_SYS_SETTING:      /* 显示"设置菜单"" */
@@ -5110,38 +5140,7 @@ void MenuUI::enterMenu(bool dispBottom)
                 //disp_calibration_res(2);	/* 显示正在校正"gyro caclibrating..." */
             }
             break;
-#if 0
-        case MENU_PIC_SETTING:
-//            disp_pic_setting();
-            disp_left_right_menu((LR_MENU *) &lr_menu_items[cur_menu - MENU_PIC_SETTING]);
-            break;
-        case MENU_VIDEO_SETTING:
-            disp_video_setting();
-//            disp_icon(ICON_VIDEO_LEFT);
-//            disp_icon(ICON_LINE_Y);
-            break;
-        case MENU_LIVE_SETTING:
-            disp_live_setting();
-//            disp_icon(ICON_LIVE_LEFT);
-//            disp_icon(ICON_LINE_Y);
-            break;
-        case MENU_VID_EACH_LEN:
-//            disp_vid_each_len();
-            break;
-        case MENU_VID_BR:
-//            disp_vid_br();
-            break;
-        case MENU_VID_OUT:
-//            disp_vid_outp();
-            break;
-            //video
-        case MENU_LIVE_BR:
-//            disp_live_br();
-            break;
-        case MENU_LIVE_OUT:
-//            disp_live_outp();
-            break;
-#endif
+
             //menu sys device
 //            case MENU_SYS_DEV:
 //                disp_sys_dev();
@@ -5300,10 +5299,12 @@ void MenuUI::enterMenu(bool dispBottom)
     }
 }
 
+#if 0
 void MenuUI::disp_wifi_connect()
 {
     disp_icon(ICON_WIF_CONNECT_128_64128_64);
 }
+#endif
 
 
 bool MenuUI::check_dev_exist(int action)
@@ -5596,7 +5597,7 @@ void MenuUI::procPowerKeyEvent()
                     break;
 					
                 case MAINMENU_WIFI:     		/* WiFi菜单项用于打开关闭AP */
-                    wifi_action();
+                    handleWifiAction();
                     break;
 				
                 case MAINMENU_CALIBRATION:		/* 陀螺仪校正 */
@@ -5642,7 +5643,16 @@ void MenuUI::procPowerKeyEvent()
             procBackKeyEvent();
 			break;
 
-			
+#ifdef ENALEB_MENU_SET_AEB
+        case MENU_SET_AEB:
+            /* 获取MENU_SET_PHOTO_DELAY的Select_info.select的全局索引值,用该值来更新 */
+            int iIndex = getMenuSelectIndex(MENU_SET_AEB);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AEB, iIndex);
+            mProCfg->set_val(KEY_AEB, iIndex);
+            procBackKeyEvent();
+            break;
+#endif 
+		
         case MENU_SYS_SETTING:      /* "设置"菜单按下Power键的处理 */
             procSetMenuKeyEvent();     
             break;
@@ -5756,6 +5766,7 @@ void MenuUI::procSettingKeyEvent()
         case MENU_TOP:	/* 如果当前处于主界面 */
             if (getCurMenuCurSelectIndex() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
                 Log.d(TAG, "wif state %d ap %d", mProCfg->get_val(KEY_WIFI_ON));
+                
                 #if 0
                 if (/*mProCfg->get_val(KEY_WIFI_ON) == 0 &&*/ get_setting_select(SET_WIFI_AP) == 0) {
                     start_qr_func();
@@ -5803,12 +5814,12 @@ void MenuUI::procSettingKeyEvent()
 
 
 /*************************************************************************
-** 方法名称: func_up
+** 方法名称: procUpKeyEvent
 ** 方法功能: 按键事件处理
 ** 入口参数: 
-**		iKey - 键值
-** 返 回 值: 无 
-** 调     用: 
+**		
+** 返回值: 无 
+** 调 用: 
 **
 *************************************************************************/
 void MenuUI::procUpKeyEvent()

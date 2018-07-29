@@ -2342,7 +2342,7 @@ SettingItem setPhDelay60SItem = {
 
 
 /*****************************************************************************************
- * 设置页二级设置项列表(该排列序列决定了显示在UI上的顺序)
+ * 设置页二级设置项列表(PhotoDelay)(该排列序列决定了显示在UI上的顺序)
  ******************************************************************************************/
 SettingItem* gSetPhotoDelayItems[] = {
 	&setPhDelay3SItem,
@@ -2357,6 +2357,83 @@ SettingItem* gSetPhotoDelayItems[] = {
 	&setPhDelay60SItem,
 };
 
+
+
+/* AEB3  */
+SettingItem setAeb3Item = {
+	SET_ITEM_NAME_AEB3,	// pItemName
+	0,					// iItemMaxVal
+	0,					// iCurVal
+	false,				// bHaveSubMenu
+	NULL,				// pSetItemProc
+	{0,0,0,0},
+	{ 	/* 选中时的图标列表 */
+		photodelay_60s_light_89x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		photodelay_60s_normal_89x16,
+	}		
+};
+
+
+SettingItem setAeb5Item = {
+	SET_ITEM_NAME_AEB5,	// pItemName
+	0,					// iItemMaxVal
+	0,					// iCurVal
+	false,				// bHaveSubMenu
+	NULL,				// pSetItemProc
+	{0,0,0,0},
+	{ 	/* 选中时的图标列表 */
+		photodelay_60s_light_89x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		photodelay_60s_normal_89x16,
+	}		
+};
+
+
+SettingItem setAeb7Item = {
+	SET_ITEM_NAME_AEB7,	// pItemName
+	0,					// iItemMaxVal
+	0,					// iCurVal
+	false,				// bHaveSubMenu
+	NULL,				// pSetItemProc
+	{0,0,0,0},
+	{ 	/* 选中时的图标列表 */
+		photodelay_60s_light_89x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		photodelay_60s_normal_89x16,
+	}		
+};
+
+
+SettingItem setAeb9Item = {
+	SET_ITEM_NAME_AEB9,	// pItemName
+	0,					// iItemMaxVal
+	0,					// iCurVal
+	false,				// bHaveSubMenu
+	NULL,				// pSetItemProc
+	{0,0,0,0},
+	{ 	/* 选中时的图标列表 */
+		photodelay_60s_light_89x16,
+	},					
+	{	/* 未选中时的图标列表 */
+		photodelay_60s_normal_89x16,
+	}		
+};
+
+
+/*****************************************************************************************
+ * 设置页二级设置项列表(AEB)(该排列序列决定了显示在UI上的顺序)
+ ******************************************************************************************/
+SettingItem* gSetAebItems[] = {
+	&setAeb3Item,
+	&setAeb5Item,
+	&setAeb7Item,
+
+	&setAeb9Item,
+};
 
 
 #endif /* _SETTING_MENU_ICON_H_ */

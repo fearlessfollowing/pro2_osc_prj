@@ -160,6 +160,9 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_60S           "60S"
 
 
-
+#define SET_ITEM_NAME_AEB3          "aeb3"
+#define SET_ITEM_NAME_AEB5          "aeb5"
+#define SET_ITEM_NAME_AEB7          "aeb7"
+#define SET_ITEM_NAME_AEB9          "aeb9"
 
 #endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */

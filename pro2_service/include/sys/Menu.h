@@ -56,34 +56,12 @@ enum {
     
 	MENU_SET_PHOTO_DEALY,	/* add by skymixos */
 	
+#ifdef ENALEB_MENU_AEB
+    MENU_AEB,
+#endif
     //messagebox keep at the end
     MENU_DISP_MSG_BOX,
     MENU_MAX,
-
-#if 0
-    MENU_CAMERA_SETTING,
-    //lr_menu start_item
-    MENU_PIC_SETTING,
-    MENU_VIDEO_SETTING,
-    MENU_LIVE_SETTING,
-    //pic
-    MENU_ORIGIN = 10, //default, raw, off
-    MENU_PIC_OUTP_3D,
-    MENU_PIC_OUTP_PANO,
-    //video
-    MENU_VID_EACH_LEN_3D,
-    MENU_VID_EACH_LEN_PANO,
-    MENU_VID_BR = 15,
-    MENU_VID_OUT_3D,
-    MENU_VID_OUT_PANO,
-    //live
-    MENU_LIVE_BR,
-    MENU_LIVE_OUT_3D,
-    MENU_LIVE_OUT_PANO = 20,
-    //menu sys device
-    MENU_SYS_DEV,
-    MENU_SYS_DEV_FACTORY_DEFAULT,
-#endif
 
 };
 
@@ -366,17 +344,8 @@ static MENU_INFO mMenuInfos[] = {
         MENU_QR_SCAN,           /* Menu ID: MENU_QR_SCAN */
         NULL,
         NULL,        
-    }, //10
+    }, 
 	
-    //menu calibartion setting
-#if 0    
-   {
-   		MENU_TOP,
-		{-1, 0, 0, MODE_MAX, PAGE_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER}
-	},
-#endif
-
     {	/* MENU_STORAGE */
     	MENU_SYS_SETTING,
 		{
@@ -395,13 +364,6 @@ static MENU_INFO mMenuInfos[] = {
 
 
     //sys info
-#ifdef ENABLE_ADB_OFF
-    {
-    	MENU_SYS_SETTING,
-		{-1, 0, 0, 1, PAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER}
-	},
-#else
     {	/* MENU_SYS_DEV_INFO */
     	MENU_SYS_SETTING,
 		{
@@ -417,7 +379,6 @@ static MENU_INFO mMenuInfos[] = {
         NULL,
         NULL,        
 	},
-#endif
 
     {	/* MENU_SYS_ERR */
     	MENU_TOP,
@@ -488,7 +449,10 @@ static MENU_INFO mMenuInfos[] = {
 	{
 		MENU_TOP,
 		{0},
-		{0}
+		{0},
+        MENU_LOW_PROTECT,
+        NULL,
+        NULL,
 	},
 #endif
 
@@ -510,7 +474,82 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        
 
 	},
-	
+
+    /*
+     * MENU_STITCH_BOX
+     */
+	{
+        MENU_SYS_SETTING,
+        {0},
+        {0, 0, OLED_KEY_BACK, 0 , OLED_KEY_POWER},
+        MENU_STITCH_BOX,
+        NULL,
+        NULL,
+    }
+
+    /*
+     * MENU_FORMAT
+     */
+#ifdef ONLY_EXFAT
+    {
+        MENU_STORAGE,
+        {0, 0, 0, 1, 1, 1}, 
+        {0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_FORMAT,
+        NULL,
+        NULL,
+    },
+#else
+    {
+        MENU_STORAGE,
+        {0, 0, 0, 2, 2, 1}, 
+        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER}
+        MENU_FORMAT,
+        NULL,
+        NULL,
+    },
+#endif
+
+
+    /*
+     * MENU_FORMAT_INDICATION
+     */
+    {
+        MENU_FORMAT,
+        {0},
+        {0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_FORMAT_INDICATION,
+        NULL,
+        NULL,
+    },
+
+
+    /*
+     * MENU_SET_PHTO_DELAY
+     */
+    {
+        MENU_SYS_SETTING,
+        {-1 ,0, 0, 8, 3, 3},
+        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_SET_PHTO_DELAY,
+        NULL,
+        NULL,
+    },
+
+#ifdef ENALEB_MENU_SET_AEB
+    /*
+     * MENU_AEB
+     */
+    {
+        MENU_SYS_SETTING,
+        {-1 ,0, 0, 8, 3, 3},
+        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        MENU_SET_AEB,
+        NULL,
+        NULL,
+    },
+#endif
+
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,
 		{0},
