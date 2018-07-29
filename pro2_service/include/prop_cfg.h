@@ -124,4 +124,28 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 #define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
 
+
+/*
+ * 各设置项的名称
+ */
+#define SET_ITEM_NAME_DHCP          "dhcp"
+#define SET_ITEM_NAME_FREQ          "freq"
+#define SET_ITEM_NAME_HDR           "hdr"
+#define SET_ITEM_NAME_RAW           "raw"
+#define SET_ITEM_NAME_AEB           "aeb"
+#define SET_ITEM_NAME_PHDEALY       "photodelay"
+#define SET_ITEM_NAME_SPEAKER       "speaker"
+#define SET_ITEM_NAME_LED           "led"
+#define SET_ITEM_NAME_AUDIO         "audio"
+#define SET_ITEM_NAME_SPAUDIO       "spaudio"
+#define SET_ITEM_NAME_FLOWSTATE     "flowstate"
+#define SET_ITEM_NAME_GYRO_CALC     "gyrocal"
+#define SET_ITEM_NAME_FAN           "fan"
+#define SET_ITEM_NAME_NOISESAM      "samplenoise"
+#define SET_ITEM_NAME_BOOTMLOGO     "bottomlogo"
+#define SET_ITEM_NAME_VIDSEG        "vidseg"
+#define SET_ITEM_NAME_STORAGE       "storage"
+#define SET_ITEM_NAME_INFO          "info"
+#define SET_ITEM_NAME_RESET         "reset"
+
 #endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */

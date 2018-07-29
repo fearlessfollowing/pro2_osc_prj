@@ -321,7 +321,7 @@ struct _action_info_;
 struct _wifi_config_;
 struct _err_type_info_;
 struct _cam_prop_;
-
+struct stSetItem;
 
 
 #define PH_DELAY_PATH "/data/etc/ph_delay"
@@ -347,18 +347,6 @@ enum {
 #define SETTING_ITEM_NAME_MAX 	32
 #define SETIING_ITEM_ICON_NUM	10
 
-/*
- * 设置项 
- */
-typedef struct stSetItem {
-	const char* pItemName;								/* 设置项的名称 */
-	int			iItemMaxVal;							/* 设置项可取的最大值 */
-	int  		iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
-	bool		bHaveSubMenu;							/* 是否含有子菜单 */
-	void 		(*pSetItemProc)(struct stSetItem*);		/* 菜单项的处理函数(当选中并按确认时被调用) */
-	ICON_INFO 	stLightIcon[SETIING_ITEM_ICON_NUM];		/* 选中时的图标列表 */
-	ICON_INFO 	stNorIcon[SETIING_ITEM_ICON_NUM];		/* 未选中时的图标列表 */
-} SettingItem;
 
 
 class MenuUI {
@@ -409,7 +397,11 @@ private:
     void disp_dev_msg_box(int bAdd,int type,bool bChange = false);
     void start_qr_func();
     void exit_qr_func();
-    struct _select_info_ * getSelectedMenuItemInfo();
+
+    /*
+     * 获取当前菜单的SECLECT_INFO
+     */
+    struct _select_info_ * getCurMenuSelectInfo();
 
 	bool check_cur_menu_support_key(int iKey);
 
@@ -417,7 +409,13 @@ private:
     void disp_calibration_res(int type,int t = -1);
     void disp_sec(int sec,int x,int y);
     bool isDevExist();
-    void disp_menu(bool dispBottom = true); //add dispBottom for menu_pic_info 170804
+    
+    /*
+     * enterMenu - 进入菜单（会根据菜单的当前状态进行绘制）
+     * dispBottom - 是否更新底部区域
+     */
+    void enterMenu(bool dispBottom = true);         //add dispBottom for menu_pic_info 170804
+
     void disp_low_protect(bool bStart = false);
     void disp_low_bat();
     void func_low_protect();
@@ -436,24 +434,22 @@ private:
     bool check_state_equal(int state);
     bool check_state_in(int state);
     bool check_live();
-    void update_menu();
+
     void update_menu_page();
     //void update_menu_sys_setting(bool bUpdateLast = false);
     void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
     void disp_scroll();
     void set_back_menu(int item,int menu);
     int get_back_menu(int item);
-    void select_up();
-    void select_down();
+
     int get_select();
     void set_menu_select_info(int menu, int iSelect);
 
 #if 0
     void disp_wifi_connect();
 #endif
-
-    int getMenuCurSelectedIndex(int menu);
-
+    int getMenuSelectIndex(int menu);
+    
     int get_last_select();
 
     void disp_org_rts(int org,int rts,int hdmi = -1);
@@ -483,7 +479,10 @@ private:
     void reset_devmanager();
     void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int exec_sh_new(const char *buf);
+    #if 0
     void disp_sys_setting(SETTING_ITEMS* pSetting);
+    #endif
+
     void disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
     void disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
     void clear_icon(u32 type);
@@ -499,7 +498,7 @@ private:
     void disp_err_str(int type);
     void disp_err_code(int code,int back_menu);
     void disp_top_info();
-    int get_setting_select(int type);
+
     void set_setting_select(int type,int val);
 
     int oled_disp_battery();
@@ -550,7 +549,7 @@ private:
     void disp_sys_info();
     void update_sys_info();
     void restore_all();
-    void set_cur_menu(int menu,int back_menu = -1);
+
     void set_cur_menu_from_exit();
     void handle_top_menu_power_key();
     void send_oled_power_action();
@@ -618,7 +617,9 @@ private:
     bool check_cam_busy();
     void set_cap_delay(int delay);
 
+#if 0
 	void update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast = false);
+#endif
 
 
 	void dispIconByLoc(const ICON_INFO* pInfo);
@@ -631,6 +632,34 @@ private:
     bool switchEtherIpMode(int iMode);
 
     void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
+
+    /************************************** 灯光管理 START *************************************************/
+    void setLightDirect(u8 val);
+    void setLight(u8 val);
+    void setLight();
+    /************************************** 灯光管理 END *************************************************/
+
+
+    /************************************** 菜单相关 START *************************************************/
+    int getCurMenuCurSelectIndex();
+    int getMenuLastSelectIndex(int menu);
+    int getCurMenuLastSelectIndex();    
+    void updateMenu();
+    void setCurMenu(int menu,int back_menu = -1);
+
+    /*
+     * 设置页部分
+     */
+    void dispSetItem(struct stSetItem* pItem, bool iSelected);
+    void procSetMenuKeyEvent();
+    void setSysMenuInit(MENU_INFO* pParentMenu);
+    void setMenuOneLevelInit(MENU_INFO* pParentMenu);
+    void updateMenuPage();
+    void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
+    void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
+    int get_setting_select(int type);
+    /************************************** 菜单相关 END *************************************************/
+
 
 	/* 
 	 * 网络接口
@@ -652,7 +681,10 @@ private:
 	void handleUpdateMid();
 	
 
-	void procBackKeyEvent();
+    /********************************************* 按键处理 ****************************************************/
+	void commUpKeyProc();
+    void commDownKeyProc();
+    void procBackKeyEvent();
 	void procPowerKeyEvent();
 	void procUpKeyEvent();
 	void procDownKeyEvent();
@@ -792,9 +824,9 @@ private:
 	 * 菜单管理相关
 	 */
 	std::vector<sp<MENU_INFO>> mMenuLists;
-    
-    /* "设置"菜单的设置项列表 */
-    std::vector<SettingItem*> mSettingItemsList;
-
+    std::vector<struct stSetItem*>  mSetItemsList;
+    std::vector<struct stSetItem*>  mPhotoDelayList;
+    std::vector<struct stSetItem*>  mAebList;
 };
+
 #endif //PROJECT_OLED_WRAPPER_H

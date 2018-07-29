@@ -282,10 +282,10 @@ void fifo::init()
     mOLEDHandle = (sp<MenuUI>)(new MenuUI(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
+    Log.d(TAG, "Init Input Manager");
 	mInputManager = sp<InputManager>(new InputManager(mOLEDHandle));
     CHECK_NE(mInputManager, nullptr);
 
-	
     //keep at end 0617 to rec fifo from python
     th_read_fifo_ = thread([this] { read_fifo_thread(); });
 
