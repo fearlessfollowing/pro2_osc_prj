@@ -87,40 +87,6 @@ enum {
 
 };
 
-#if 0
-
-enum {
-    SET_WIFI_AP,		// 1 (25, 16)
-    SET_DHCP_MODE,		// 2 (25, 32)
-    SET_FREQ,			// 3 (25, 48)50 or 60,flicker
-
-    SET_PHOTO_DELAY,	/* 4 (25, 16) 设置拍照延时: 3s,5s,10s,20s,30s,40s,50s,60s */
-    SET_SPEAK_ON,		/* 5 (25, 32) */
-    SET_BOTTOM_LOGO, 	/* 6 (25, 48) */
-
-    SET_LIGHT_ON,		/* 7 (25, 16) */
-    SET_AUD_ON,			/* 8 (25, 32) before spatial aud 170727*/
-    SET_SPATIAL_AUD,	/* 9 (25, 48) */
-
-    SET_GYRO_ON,		/* 10 (25, 16) */
-    //gyro calibration
-    SET_START_GYRO,		/* 11 (25, 32) */
-    SET_FAN_ON, 		/* 12 (25, 48) */
-
-    //sample fan nosie
-    SET_NOISE,			/* 13 (25, 16) */
-    SET_VIDEO_SEGMENT,	/* 14 (25, 32) */
-    SET_STITCH_BOX,		/* 15 (25, 48) */
-
-    //keep at end
-    SET_STORAGE,		/* 16 (25, 16) */
-    SET_INFO, 			/* 17 (25, 32) */
-    SET_RESTORE,		/* 18 (25, 48) */
-
-    SETTING_MAX
-};
-
-#endif
 
 
 
@@ -259,19 +225,6 @@ enum {
     LIVE_CUSTOM,
     LIVE_DEF_MAX,
 };
-
-
-#if 0
-typedef struct _setting_items_ {
-    int clear_icons[2];
-    int iSelect[SETTING_MAX];
-    int (*icon_normal)[2];
-    int (*icon_light)[2];
-} SETTING_ITEMS;
-#endif
-
-
-
 
 
 static MENU_INFO mMenuInfos[] = {

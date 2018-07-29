@@ -61,11 +61,11 @@ Alt+C / R / W 	    切换大小写敏感/正则表达式/全词
 多光标与选择
  Alt+Click	 插入光标
  Ctrl+Alt+ ↑ / ↓	 向上/向下插入光标
- Ctrl+U	 撤销上一个光标
- Shift+Alt+I	 在选中行的行尾插入光标
- Ctrl+I	 选择当前行
+ Ctrl+U	            撤销上一个光标
+ Shift+Alt+I	    在选中行的行尾插入光标
+ Ctrl+I	             选择当前行
  Ctrl+Shift+L	 选择当前选中项的所有匹配项
- Ctrl+F2	 选择当前单词的所有匹配项
+ Ctrl+F2	        选择当前单词的所有匹配项
  Shift+Alt+→	 扩展选择
  Shift+Alt+←	 缩小选择
  Shift+Alt + (drag mouse)	 列（框）选择

@@ -1,3 +1,10 @@
+###########################################################################################################
+# 文件名称: config.py
+# 作    者: skymixos
+# 创建日期: 2018年7月05日
+# 描    述: 辅助文件，定义一些SConstruct及SConscript使用的环境变量以及一些控制编译的选项
+# 版    本: V1.0
+##########################################################################################################
 import os
 import platform
 
@@ -38,18 +45,24 @@ COM_FLAGS += ' -I' + PRO2_SERVICE + '/include '
 
 #COM_FLAGS += $(EXTRA_INC_PATH)
 
-# enable ageing mode for factory test
+
+# 使能老化模式开关（仅用于工厂测试）
 COM_FLAGS += ' -DENABLE_AGEING_MODE '
 
-# enable led light debug
+
+# LED 调试信息开关
 COM_FLAGS += ' -DDEBUG_OLED '
 
-# enable inputmanager debug
+# 输入事件管理器调试开关
 #COMFLAGS += ' -DDEBUG_INPUT_MANAGER'
 
 COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
+# 电池调试信息开关
 COM_FLAGS += ' -DDEBUG_BATTERY '
+
+# 设置页调试信息开关
+COM_FLAGS += ' -DDEBUG_SETTING_PAGE '
 
 # diable baterry check, print too much error info
 #COM_FLAGS += ' -DDISABLE_BATTERY_CHECK'

@@ -324,29 +324,6 @@ struct _cam_prop_;
 struct stSetItem;
 
 
-#define PH_DELAY_PATH "/data/etc/ph_delay"
-#define PH_DELAY_TMP_PATH "/data/etc/ph_delay.tmp"
-
-
-enum {
-	SET_PHOTO_DELAY_3S,
-	SET_PHOTO_DELAY_5S,
-	SET_PHOTO_DELAY_10S,
-	SET_PHOTO_DELAY_20S,
-	SET_PHOTO_DELAY_30S,
-	SET_PHOTO_DELAY_40S,
-	SET_PHOTO_DELAY_50S,
-	SET_PHOTO_DELAY_60S,
-	SET_PHOTO_DELAY_MAX,
-};
-
-
-
-
-
-#define SETTING_ITEM_NAME_MAX 	32
-#define SETIING_ITEM_ICON_NUM	10
-
 
 
 class MenuUI {
@@ -363,16 +340,14 @@ public:
 
     void postUiMessage(sp<ARMessage>& msg);
 
-    //static sp<MenuUI> getSysUiObj(sp<ARMessage> msg = nullptr);
-
     explicit MenuUI(const sp<ARMessage> &notify);
     ~MenuUI();
     void handleMessage(const sp<ARMessage> &msg);
 	
     void send_disp_str(sp<struct _disp_type_> &sp_disp);
     void send_disp_err(sp<struct _err_type_info_> &sp_disp);
-	
-//    void send_disp_str(int type);
+
+
     //net type 0 -- default to wlan
     void send_disp_ip(int ip, int net_type = 0);
     void send_disp_battery(int battery, bool charge);
@@ -436,6 +411,7 @@ private:
     bool check_live();
 
     void update_menu_page();
+
     //void update_menu_sys_setting(bool bUpdateLast = false);
     void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
     void disp_scroll();
@@ -443,12 +419,13 @@ private:
     int get_back_menu(int item);
 
     int get_select();
-    void set_menu_select_info(int menu, int iSelect);
+
 
 #if 0
     void disp_wifi_connect();
 #endif
-    int getMenuSelectIndex(int menu);
+
+
     
     int get_last_select();
 
@@ -546,7 +523,7 @@ private:
     void set_tl_count(int count);
     void rm_state(int state);
     void update_disp_func(int lan);
-    void disp_sys_info();
+
     void update_sys_info();
     void restore_all();
 
@@ -617,11 +594,6 @@ private:
     bool check_cam_busy();
     void set_cap_delay(int delay);
 
-#if 0
-	void update_menu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast = false);
-#endif
-
-
 	void dispIconByLoc(const ICON_INFO* pInfo);
 
 
@@ -633,6 +605,7 @@ private:
 
     void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
 
+
     /************************************** 灯光管理 START *************************************************/
     void setLightDirect(u8 val);
     void setLight(u8 val);
@@ -641,11 +614,19 @@ private:
 
 
     /************************************** 菜单相关 START *************************************************/
+    int getMenuSelectIndex(int menu);
     int getCurMenuCurSelectIndex();
+    void updateMenuCurPageAndSelect(int menu, int iSelect);   
     int getMenuLastSelectIndex(int menu);
     int getCurMenuLastSelectIndex();    
     void updateMenu();
     void setCurMenu(int menu,int back_menu = -1);
+
+    /*
+     * 系统信息
+     */
+    void dispSysInfo();
+
 
     /*
      * 设置页部分
@@ -653,10 +634,11 @@ private:
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
     void procSetMenuKeyEvent();
     void setSysMenuInit(MENU_INFO* pParentMenu);
-    void setMenuOneLevelInit(MENU_INFO* pParentMenu);
+    void setPhotoDelayMenuInit(MENU_INFO* pParentMenu);
     void updateMenuPage();
     void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
+    void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
     int get_setting_select(int type);
     /************************************** 菜单相关 END *************************************************/
 
