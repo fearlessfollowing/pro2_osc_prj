@@ -446,6 +446,11 @@ static ICON_INFO picAllCardMenuItems[][PIC_ALLCARD_MAX] = {
 };
 
 
+/*
+ * 1.通过配置文件来生成各个Action
+ * 
+ */
+
 static ACTION_INFO mPICAction[]= {
 	{	/* 8K|3D|OF|RAW */
 		MODE_3D,
@@ -532,6 +537,7 @@ static ACTION_INFO mPICAction[]= {
 		}
     },
 };
+
 
 
 #endif /* _PIC_MODE_SELECT_H_ */

@@ -124,6 +124,19 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 #define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
 
+/*
+ * 拍照模式名称
+ */
+#define TAKE_PIC_MODE_8K_3D_OF      "8k_3d_of"
+#define TAKE_PIC_MODE_8K_3D         "8k_3d"
+#define TAKE_PIC_MODE_8K            "8k"
+#define TAKE_PIC_MODE_AEB           "aeb"
+#define TAKE_PIC_MODE_BURST         "burst"
+#define TAKE_PIC_MODE_CUSTOMER      "pic_customer"
+
+
+
+
 
 /*
  * 各设置项的名称
@@ -139,6 +152,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_AUDIO         "audio"
 #define SET_ITEM_NAME_SPAUDIO       "spaudio"
 #define SET_ITEM_NAME_FLOWSTATE     "flowstate"
+#define SET_ITEM_NAME_GYRO_ONOFF    "gyro_onoff"
 #define SET_ITEM_NAME_GYRO_CALC     "gyrocal"
 #define SET_ITEM_NAME_FAN           "fan"
 #define SET_ITEM_NAME_NOISESAM      "samplenoise"

@@ -122,6 +122,9 @@ static void powerModule(int iOnOff)
 		mI2CLight->i2c_read(0x2, &module1_val);
 		mI2CLight->i2c_read(0x3, &module2_val);		
 
+		printf("read 0x2 val = %d", module1_val);
+		printf("read 0x3 val = %d", module2_val);
+
 		/* 6号 */
 		module2_val |= (1 << 3);
 		mI2CLight->i2c_write_byte(0x3, module2_val);

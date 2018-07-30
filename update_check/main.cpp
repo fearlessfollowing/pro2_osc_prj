@@ -68,13 +68,15 @@
 
 #define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
 
-#define UPDAE_CHECK_VER		"V2.5"
+#define UPDAE_CHECK_VER		"V2.6"
 
 static const char* rm_devies_list[] = {
 	"/dev/mmcblk1", "/dev/sd",
 };
 
-static char update_image_root_path[256];
+static const char* gUpdateDevPrefix[] = { "mmcblk1", "sd"};
+static char gDevNodeFullPath[512];
+static char gUpdateImageRootPath[256];
 
 
 static bool is_removable_device(char *dev)
@@ -431,44 +433,38 @@ static bool search_updatebin_from_rmdev()
 	
 	int fd = open("/proc/mounts", O_RDONLY);
 	
-	if (fd > 0)
-	{
+	if (fd > 0) {
+
 		char buf[1024];
 		int iLen = -1;
 		char *delim = (char *)" ";
 
 		memset(buf, 0, sizeof(buf));
 		
-		while ((iLen = read_line(fd, buf, sizeof(buf))) > 0)
-		{
+		while ((iLen = read_line(fd, buf, sizeof(buf))) > 0) {
+
 			char *p = strtok(buf, delim);	/* 提取"cat /proc/mounts"的低0列(设备文件) */
-			if (p != nullptr)
-			{
+			if (p != nullptr) {
 				
-				if (is_removable_device(p))
-				{	/* 检查该设备文件是否为可移动存储设备(mmcblkX, sdX) */
+				if (is_removable_device(p)) {	/* 检查该设备文件是否为可移动存储设备(mmcblkX, sdX) */
 					p = strtok(NULL, delim);	/* 获取该移动设备的挂载点 */
-					if (p)
-					{	/* 挂载点存在 */
+					if (p) {	/* 挂载点存在 */
 						Log.d(TAG, "mount point [%s] is exist..", p);
 						
 						/* 判断挂载点的根路径下是否存在升级文件(Insta360_Pro2_Update.bin) */
 						memset(image_path, 0, sizeof(image_path));
-						memset(update_image_root_path, 0, sizeof(update_image_root_path));
-						sprintf(update_image_root_path, "%s", p);
+						memset(gUpdateImageRootPath, 0, sizeof(gUpdateImageRootPath));
+						sprintf(gUpdateImageRootPath, "%s", p);
 
 						sprintf(image_path, "%s/%s", p, UPDATE_IMAGE_FILE);
 
 						Log.i(TAG, "image_path [%s]", image_path);
-						if (access(image_path, F_OK) != 0)
-						{
+						if (access(image_path, F_OK) != 0) {
 							continue;
 						}
 
 						bRet = true;
-					}
-					else
-					{
+					} else {
 						Log.d(TAG, "no mount path?");
 					}
 				}
@@ -504,13 +500,19 @@ static bool is_fs_rw(const char* path)
 }
 
 
-const char* update_dev_prefix[] = { "mmcblk1", "sd"};
 
-char dev_node_path[512];
 
-/*
- * 检查升级设备是否已经插入
- */
+
+
+/*************************************************************************
+** 方法名称: check_update_device_insert
+** 方法功能: 检查系统中是否有可移动设备插入到系统
+** 入口参数: 
+**		无
+** 返回值: 有升级设备插入返回true;否则返回false
+** 调 用: main
+**
+*************************************************************************/
 static bool check_update_device_insert()
 {
     bool bFound = false;
@@ -535,11 +537,11 @@ static bool check_update_device_insert()
             continue;
 
         strcpy(filename, de->d_name);
-		for (u32 i = 0; i < sizeof(update_dev_prefix) / sizeof(update_dev_prefix[0]); i++) {
-			if (strstr(filename, update_dev_prefix[i]) != NULL) {
+		for (u32 i = 0; i < sizeof(gUpdateDevPrefix) / sizeof(gUpdateDevPrefix[0]); i++) {
+			if (strstr(filename, gUpdateDevPrefix[i]) != NULL) {
 				bFound = true;
-				memset(dev_node_path, 0, 512);
-				sprintf(dev_node_path, "/dev/%s", filename);
+				memset(gDevNodeFullPath, 0, 512);
+				sprintf(gDevNodeFullPath, "/dev/%s", filename);
 				break;
 			}
 		}
@@ -551,9 +553,18 @@ static bool check_update_device_insert()
 
 #define MAX_WAIT_TIMES	20
 
-/*
- * 等待指定设备文件对应的文件系统挂载成功
- */
+
+
+/*************************************************************************
+** 方法名称: wait_update_dev_mounted
+** 方法功能: 等待指定的设备节点挂载成功
+** 入口参数: 
+**		dev_node - 设备节点名称
+**		timeout - 等待超时时间（）
+** 返回值: 是否成功挂载标志
+** 调 用: main
+**
+*************************************************************************/
 static bool wait_update_dev_mounted(char* dev_node, int timeout)
 {
 	int wait_step = 500;	
@@ -605,6 +616,16 @@ static void err_reboot()
 }
 
 
+
+/*************************************************************************
+** 方法名称: set_sys_ver_prop
+** 方法功能: 检查固件的版本，并将版本号写入属性系统中
+** 入口参数: 
+**		ver_path - 固件版本文件的全路径名
+** 返回值: 无
+** 调 用: main
+**
+*************************************************************************/
 static void set_sys_ver_prop(const char* ver_path)
 {
 	char* pret = nullptr;
@@ -622,8 +643,11 @@ static void set_sys_ver_prop(const char* ver_path)
 			}
 			fclose(fp);
 		}
+	} else {
+		property_set(PROP_SYS_FIRM_VER, "0.0.0");
 	}
 }
+
 
 /*************************************************************************
 ** 方法名称: main
@@ -661,6 +685,7 @@ int main(int argc, char **argv)
 
 	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);
 
+
 	/** 读取系统的固件版本并写入到属性系统中 */
 	set_sys_ver_prop(VER_FULL_PATH);
 
@@ -685,10 +710,10 @@ int main(int argc, char **argv)
 	if (found) {	/* 升级设备存在,等待升级挂载之后再进行后续操作 */
 		
 		Log.d(TAG, "update device node exist, but need confirm it's have mounted...");
-		Log.d(TAG, "device node [%s]\n", dev_node_path);
+		Log.d(TAG, "device node [%s]\n", gDevNodeFullPath);
 
 		/** 等待SD卡挂载成功（挂载操作由systemd-udevd服务完成）*/
-		result = wait_update_dev_mounted(dev_node_path, 5000);
+		result = wait_update_dev_mounted(gDevNodeFullPath, 5000);
 		if (!result) {
 			Log.e(TAG, "wait timeout, maybe need more time to wait mounted...");
 			goto EXIT;
@@ -701,7 +726,7 @@ int main(int argc, char **argv)
 			goto EXIT;
 		}
 
-		property_set("update_image_path", update_image_root_path);
+		property_set("update_image_path", gUpdateImageRootPath);
 
 		/** 升级文件存在 */
 		init_oled_module();
@@ -710,13 +735,13 @@ int main(int argc, char **argv)
 		
 		/* 检查磁盘空间是否足够 */
 		memset(image_path, 0, sizeof(image_path));
-		sprintf(image_path, "%s/%s", update_image_root_path, UPDATE_IMAGE_FILE);
-		sprintf(upate_check_path, "%s/%s", update_image_root_path, UPDATE_APP_ZIP);
+		sprintf(image_path, "%s/%s", gUpdateImageRootPath, UPDATE_IMAGE_FILE);
+		sprintf(upate_check_path, "%s/%s", gUpdateImageRootPath, UPDATE_APP_ZIP);
 		u32 bin_file_size = get_file_size(image_path);	/* 得到升级文件的大小 */
 
 
 #if 0
-		if (!check_free_space(update_image_root_path, (u32)((bin_file_size * 3) >> 20))) {
+		if (!check_free_space(gUpdateImageRootPath, (u32)((bin_file_size * 3) >> 20))) {
 			Log.e(TAG, "free space is not enough for unzip image");
 			disp_update_error(ERR_SPACE_LIMIT);
 			err_reboot();
@@ -724,14 +749,14 @@ int main(int argc, char **argv)
 
 
 		/* 检查SD卡是否 */
-		if (is_fs_rw(update_image_root_path) == false) {
-			Log.e(TAG, "readonly fs is checked ...", update_image_root_path);
+		if (is_fs_rw(gUpdateImageRootPath) == false) {
+			Log.e(TAG, "readonly fs is checked ...", gUpdateImageRootPath);
 			disp_update_error(ERR_RDONLY_DEV);
 			err_reboot();			
 		}
 #endif
 
-        iRet = get_unzip_update_check(update_image_root_path);	/* 提取用于系统更新的应用: update_app */
+        iRet = get_unzip_update_check(gUpdateImageRootPath);	/* 提取用于系统更新的应用: update_app */
         if (iRet == 0) {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */
 			
 			/* 设置属性: "sys.uc_update_app"为true

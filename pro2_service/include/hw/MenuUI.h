@@ -633,8 +633,9 @@ private:
      */
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
     void procSetMenuKeyEvent();
+    void setMenuCfgInit();
     void setSysMenuInit(MENU_INFO* pParentMenu);
-    void setCommonMenuInit(MENU_INFO* pParentMenu);
+    void setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);    
     void updateMenuPage();
     void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
@@ -662,6 +663,11 @@ private:
 	void handleDispLightMsg(int menu, int state, int interval);
 	void handleUpdateMid();
 	
+    /********************************************* 拍照部分 ****************************************************/
+    void setTakePicDelay(int iDelay);
+    int convCapDelay2Index(int iDelay);
+    int convIndex2CapDelay(int iIndex);
+
 
     /********************************************* 按键处理 ****************************************************/
 	void commUpKeyProc();
@@ -671,6 +677,7 @@ private:
 	void procUpKeyEvent();
 	void procDownKeyEvent();
 	void procSettingKeyEvent();
+
 
 
 	/*
@@ -767,6 +774,7 @@ private:
 
     sp<dev_manager> mDevManager;
 
+    int mTakePicDelay = 0;
 
 	int	mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
 	

@@ -325,25 +325,4 @@ respone:
 1.mode: 0:非storage模式 1:storage模式
 2.storage模式的时候，camerad处于module_storage状态，此状态下不能做任何模组操作
 
-多U盘脚本：
-
-
-
-{"name":"camera._getSysSetting"}
-
-respone：
-{
-    "name":"camera._getSysSetting",
-    "state":"done",
-    "results":
-    {
-        "flicker":0,"speaker":0,"light_on":0,"fan_on":0,"aud_on":0,"aud_spatial":0,"set_logo":0,"gyro_on":0,"video_fragment",0,
-        "pic_gamma":string,
-        "vid_gamma":string,
-        "live_gamma":string
-    }
-}
-
-1) all the results set is 0 or 1
-2) aud_on is 0 or 1, when aud_on is 1, aud_spatial is 0 to indicate normal and 1 to indicate spatial
-3) light_on when get ,different from get, a history mistake
+循环往所有的模组U盘里写wenjian

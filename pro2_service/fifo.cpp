@@ -631,7 +631,12 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
                     
                         cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
+#if 0
                         cJSON_AddNumberToObject(param, "delay", mActInfo->delay);
+#else 
+                        cJSON_AddNumberToObject(param, "delay", 0);
+#endif
+
                         if (mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count > 0) {
                             cJSON *burst = cJSON_CreateObject();
                             cJSON_AddTrueToObject(burst,"enable");

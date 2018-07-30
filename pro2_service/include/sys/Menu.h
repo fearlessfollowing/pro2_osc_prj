@@ -24,44 +24,55 @@ enum {
 
 
 enum {
-    MENU_TOP ,
-    MENU_PIC_INFO,
-    MENU_VIDEO_INFO,
-    MENU_LIVE_INFO,
-    MENU_SYS_SETTING,       //5
-    MENU_PIC_SET_DEF,
-    MENU_VIDEO_SET_DEF ,
-    MENU_LIVE_SET_DEF,
-    MENU_CALIBRATION,
-    MENU_QR_SCAN,//10
+    MENU_TOP ,                  // 1
+    MENU_PIC_INFO,              // 2
+    MENU_VIDEO_INFO,            // 3
+    MENU_LIVE_INFO,             // 4
+    MENU_SYS_SETTING,           // 5
+    MENU_PIC_SET_DEF,           // 6
+    MENU_VIDEO_SET_DEF ,        // 7
+    MENU_LIVE_SET_DEF,          // 8
+    MENU_CALIBRATION,           // 9
+    MENU_QR_SCAN,               // 10
     
-	MENU_STORAGE,		//menu storage setting
+	MENU_STORAGE,		        // 11
     
-//    MENU_CALIBRATION_SETTING,
-    MENU_SYS_DEV_INFO,
-    MENU_SYS_ERR,
-    MENU_LOW_BAT,
-    MENU_GYRO_START,
-    MENU_SPEED_TEST,//15
-    MENU_RESET_INDICATION,
-    MENU_WIFI_CONNECT,
-    MENU_AGEING,
-//    MENU_LOW_PROTECT,
-    MENU_NOSIE_SAMPLE,
-    MENU_LIVE_REC_TIME,//20
+    MENU_SYS_DEV_INFO,          // 12
+    MENU_SYS_ERR,               // 13
+    MENU_LOW_BAT,               // 14
+    MENU_GYRO_START,            // 15
+    MENU_SPEED_TEST,            // 16
+    MENU_RESET_INDICATION,      // 17
 
-    MENU_STITCH_BOX,
-    MENU_FORMAT,
-    MENU_FORMAT_INDICATION,
-    
-	MENU_SET_PHOTO_DEALY,	/* add by skymixos */
-	
-#ifdef ENALEB_MENU_AEB
-    MENU_AEB,
+#ifdef ENABE_MENU_WIFI_CONNECT	    
+    MENU_WIFI_CONNECT,          // 18
+#endif    
+
+    MENU_AGEING,                // 19
+
+#ifdef ENABLE_MENU_LOW_PROTECT
+    MENU_LOW_PROTECT,         // 20
 #endif
+
+    MENU_NOSIE_SAMPLE,          // 21
+    MENU_LIVE_REC_TIME,         // 22
+
+#ifdef ENABLE_MENU_STITCH_BOX
+    MENU_STITCH_BOX,            // 23
+#endif    
+
+    MENU_FORMAT,                // 24
+    MENU_FORMAT_INDICATION,     // 25
+    
+	MENU_SET_PHOTO_DEALY,	    // 26
+	
+#ifdef ENABLE_MENU_AEB
+    MENU_SET_AEB,               // 27
+#endif
+
     //messagebox keep at the end
-    MENU_DISP_MSG_BOX,
-    MENU_MAX,
+    MENU_DISP_MSG_BOX,          // 28
+    MENU_MAX,                   // 29
 
 };
 
@@ -204,18 +215,55 @@ enum {
     LIVE_DEF_MAX,
 };
 
+#if 0 
+    MENU_TOP ,                  // 1
+    MENU_PIC_INFO,              // 2
+    MENU_VIDEO_INFO,            // 3
+    MENU_LIVE_INFO,             // 4
+    MENU_SYS_SETTING,           // 5
+    MENU_PIC_SET_DEF,           // 6
+    MENU_VIDEO_SET_DEF ,        // 7
+    MENU_LIVE_SET_DEF,          // 8
+    MENU_CALIBRATION,           // 9
+    MENU_QR_SCAN,               // 10
+    
+	MENU_STORAGE,		        // 11
+    
+    MENU_SYS_DEV_INFO,          // 12
+    MENU_SYS_ERR,               // 13
+    MENU_LOW_BAT,               // 14
+    MENU_GYRO_START,            // 15
+    MENU_SPEED_TEST,            // 16
+    MENU_RESET_INDICATION,      // 17
+    MENU_WIFI_CONNECT,          // 18
+    MENU_AGEING,                // 19
+//    MENU_LOW_PROTECT,         // 20
+    MENU_NOSIE_SAMPLE,          // 21
+    MENU_LIVE_REC_TIME,         // 22
+
+#ifdef ENABLE_MENU_STITCH_BOX
+    MENU_STITCH_BOX,            // 23
+#endif    
+
+    MENU_FORMAT,                // 24
+    MENU_FORMAT_INDICATION,     // 25
+    
+	MENU_SET_PHOTO_DEALY,	    // 26
+	
+#ifdef ENALEB_MENU_AEB
+    MENU_AEB,                   // 27
+#endif
+
+    //messagebox keep at the end
+    MENU_DISP_MSG_BOX,          // 28
+    MENU_MAX,                   // 29
+
+#endif
 
 static MENU_INFO mMenuInfos[] = {
     {	
     	-1,					/* back_menu */
-		{	
-			-1,				/* last_select */
-			0,				/* select */
-			0,				/* cur_page */
-			MAINMENU_MAX,	/* total */
-			MAINMENU_MAX,	/* page_max */
-			1				/* page_num */
-		}, 
+		{-1, 0,	0, MAINMENU_MAX, MAINMENU_MAX, 1}, 
 		{OLED_KEY_UP, OLED_KEY_DOWN,  0, OLED_KEY_SETTING, OLED_KEY_POWER},
 		MENU_TOP,           /* Menu ID: MENU_TOP */
 		NULL,
@@ -224,14 +272,7 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_TOP,
-		{
-			-1,
-			0,
-			0,
-			0,
-			0,
-			0
-		}, 
+		{-1, 0, 0, 0, 0, 0}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
 		MENU_PIC_INFO,      /* Menu ID: MENU_PIC_INFO */
 		NULL,
@@ -240,14 +281,7 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_TOP,
-		{
-            -1, 
-            0,
-            0, 
-            0, 
-            0, 
-            0
-        }, 
+		{-1, 0, 0, 0, 0, 0}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
 		MENU_VIDEO_INFO,    /* Menu ID: MENU_VIDEO_INFO */
 		NULL,
@@ -256,14 +290,7 @@ static MENU_INFO mMenuInfos[] = {
 
     {	/* MENU_LIVE_INFO */
     	MENU_TOP,
-		{
-            -1, 
-            0, 
-            0, 
-            0, 
-            0, 
-            0
-        }, 
+		{-1, 0, 0, 0, 0, 0}, 
 		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* DOWN, BACK, SETTING, POWER */
 		MENU_LIVE_INFO,     /* Menu ID: MENU_LIVE_INFO */
 		NULL,
@@ -282,14 +309,7 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_PIC_INFO,
-		{
-            -1,
-            0, 
-            0, 
-            PIC_ALLCARD_MAX, 
-            PIC_ALLCARD_MAX, 
-            1
-        },
+		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
         MENU_PIC_SET_DEF,      /* Menu ID: MENU_PIC_SET_DEF */
         NULL,
@@ -298,14 +318,7 @@ static MENU_INFO mMenuInfos[] = {
 
     {	
     	MENU_VIDEO_INFO,
-		{
-            -1, 
-            0,
-            0, 
-            VID_DEF_MAX, 
-            VID_DEF_MAX, 
-            1
-        },
+		{-1, 0, 0, VID_DEF_MAX, VID_DEF_MAX, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_VIDEO_SET_DEF,     /* Menu ID: MENU_VIDEO_SET_DEF */
         NULL,                   /* TODO */
@@ -314,14 +327,7 @@ static MENU_INFO mMenuInfos[] = {
     
     {	/* MENU_LIVE_SET_DEF */
     	MENU_LIVE_INFO,
-		{
-            -1, 
-            0, 
-            0, 
-            LIVE_DEF_MAX, 
-            LIVE_DEF_MAX, 
-            1
-        },
+		{-1, 0, 0, LIVE_DEF_MAX, LIVE_DEF_MAX, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_LIVE_SET_DEF,      /* Menu ID: MENU_LIVE_SET_DEF */
         NULL,
@@ -348,14 +354,7 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	/* MENU_STORAGE */
     	MENU_SYS_SETTING,
-		{
-            -1, 
-            0, 
-            0, 
-            SET_STORAGE_MAX, 
-            SET_STORAGE_MAX, 
-            1
-        }, 
+		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
 		{0, 0, OLED_KEY_BACK, 0, 0}	,	/* BACK */
 		MENU_STORAGE,           /* Menu ID: MENU_STORAGE */
 		NULL,
@@ -366,14 +365,7 @@ static MENU_INFO mMenuInfos[] = {
     //sys info
     {	/* MENU_SYS_DEV_INFO */
     	MENU_SYS_SETTING,
-		{
-            -1, 
-            0, 
-            0, 
-            1, 
-            PAGE_MAX, 
-            1
-        }, 
+		{-1, 0, 0, 1, PAGE_MAX, 1}, 
 		{0, 0, OLED_KEY_BACK, 0, 0},
         MENU_SYS_DEV_INFO,      /* Menu ID: MENU_SYS_DEV_INFO */
         NULL,
@@ -424,7 +416,8 @@ static MENU_INFO mMenuInfos[] = {
         NULL,
         NULL,        
 	},
-	
+
+#ifdef ENABE_MENU_WIFI_CONNECT	
     {	/* MENU_WIFI_CONNECT */
     	MENU_SYS_SETTING,
 		{0},
@@ -433,7 +426,7 @@ static MENU_INFO mMenuInfos[] = {
         NULL,
         NULL,        
 	},
-
+#endif
 		
     {	/* MENU_AGEING */
     	MENU_TOP,
@@ -444,7 +437,7 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        		
 	},
 	
-#if 0	
+#ifdef ENABLE_MENU_LOW_PROTECT	
     //low bat protect
 	{
 		MENU_TOP,
@@ -475,6 +468,7 @@ static MENU_INFO mMenuInfos[] = {
 
 	},
 
+#ifdef ENABLE_MENU_STITCH_BOX
     /*
      * MENU_STITCH_BOX
      */
@@ -486,6 +480,7 @@ static MENU_INFO mMenuInfos[] = {
         NULL,
         NULL,
     }
+#endif
 
     /*
      * MENU_FORMAT
@@ -503,7 +498,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_STORAGE,
         {0, 0, 0, 2, 2, 1}, 
-        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER}
+        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
         MENU_FORMAT,
         NULL,
         NULL,
@@ -531,12 +526,12 @@ static MENU_INFO mMenuInfos[] = {
         MENU_SYS_SETTING,
         {-1 ,0, 0, 8, 3, 3},
         {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
-        MENU_SET_PHTO_DELAY,
+        MENU_SET_PHOTO_DEALY,
         NULL,
         NULL,
     },
 
-#ifdef ENALEB_MENU_SET_AEB
+#ifdef ENABLE_MENU_AEB
     /*
      * MENU_AEB
      */
