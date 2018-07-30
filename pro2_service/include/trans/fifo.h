@@ -150,6 +150,11 @@ private:
     void send_sys_info(sp<struct _sys_info_> &mSysInfo);
     void send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
 
+    void handleStitchProgress(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void handleSetting(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void handleReqFormHttp(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void handleQrContent(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+
 
     sp<MenuUI> mOLEDHandle;
 

@@ -502,7 +502,36 @@ PicVideoCfg picCustomer = {
 };
 
 
-PicVideoCfg* gPicModeCfgList[] = {
+/*
+ * 系统含有SD卡/USB硬件及TF卡时支持的拍照模式（目前只支持该种模式）
+ */
+PicVideoCfg* gPicAllModeCfgList[] = {
+	&pic8K_3D_OF,
+	&pic8K_3D,
+	&pic8K,
+	&picAEB,
+	&picBurst,
+	&picCustomer,
+};
+
+
+/*
+ * 系统仅含SD卡/USB移动硬盘时支持的拍照规格
+ */
+PicVideoCfg* gPicSdModeCfgList[] = {
+	&pic8K_3D_OF,
+	&pic8K_3D,
+	&pic8K,
+	&picAEB,
+	&picBurst,
+	&picCustomer,
+};
+
+
+/*
+ * 系统仅含TF卡时支持的拍照规格
+ */
+PicVideoCfg* gPicTFModeCfgList[] = {
 	&pic8K_3D_OF,
 	&pic8K_3D,
 	&pic8K,

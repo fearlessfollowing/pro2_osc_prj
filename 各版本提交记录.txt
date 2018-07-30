@@ -116,3 +116,160 @@ MD5SUM：8c507fe4b92ceb5ba5433aecbef7bd14
 固件类型：临时测试
 
 MD5SUM：7a3a598812b214142d51ec5784cca44f
+
+
+拍照的流程：
+1.选中MAINMENU的MAINMENU_PIC项
+    procPowerKeyEvent
+        case MAINMENU_PIC:	/* 选择的是"拍照"项 */
+            if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
+                oled_disp_type(START_PREVIEWING);	/* 屏幕中间会显示"..." */
+                setCurMenu(MENU_PIC_INFO);	/* 设置并显示当前菜单 */
+            } else {
+                Log.d(TAG, "pic preview fail?");
+            }
+            break;
+
+
+从配置文件中解析ACTION_INFO
+[action_info@pic]   // PIC_8K_3D_OF
+name="8k_3d_of"
+mode=2              // 0 - 4
+size_per_act=20
+delay=0
+stOrgInfo={
+
+}
+stStiInfo={
+
+}
+
+[action_info@pic]
+
+
+通知UI的同步消息：
+send_sync_info
+    -> MenuUI::set_sync_info
+
+通知UI显示错误码
+send_err_type_code
+    -> MenuUI::handleDispErrMsg
+
+通知UI设置SN/UUID:
+send_sys_info
+    -> MenuUI::write_sys_info
+
+
+通知UI执行指定的动作:
+send_disp_str_type
+    -> MenuUI::handleDispStrTypeMsg
+        disp_type->qr_type  -> 指示扫描二维码的类型
+        disp_type->tl_count -> timeslapce
+        disp_type->mSysSetting -> 设置系统配置
+        disp_type->mStichProgress   -> stitchbox的进度
+
+        最终调用
+        oled_disp_type(disp_type->type);
+
+
+
+/*
+ * 拍照，录像，直播各模式参数配置
+ */
+
+[action_info@pic]   // PIC_8K_3D_OF
+name="8k_3d_of";
+mode=0;              // 0: 3D 1: PANO
+size_per_act=20;
+delay=0;
+stOrgInfo={
+	mime=1,			// mime: 
+	save_org=0,		// 0: false 1: true
+	widht=4000,		// origin width
+	height=3000,		// origin height
+	locMode=1,		// 0: nvidia; 1:camera; 2:both
+};
+stStiInfo={
+	mime=1,
+	stich_mode=,
+	width=,
+	height=,
+};
+[action_info@pic]   // PIC_8K_3D
+name="8k_3d";
+mode=0;              // 0: 3D 1: PANO
+size_per_act=20;
+delay=0;
+stOrgInfo={
+	mime=1,			// mime: 
+	save_org=0,		// 0: false 1: true
+	widht=4000,		// origin width
+	height=3000,		// origin height
+	locMode=1,		// 0: nvidia; 1:camera; 2:both
+};
+stStiInfo={
+	mime=1,
+	stich_mode=,
+	width=,
+	height=,
+};
+[action_info@pic]   // PIC_8K
+name="8k";
+mode=0;              // 0: 3D 1: PANO
+size_per_act=20;
+delay=0;
+stOrgInfo={
+	mime=1,			// mime: 
+	save_org=0,		// 0: false 1: true
+	widht=4000,		// origin width
+	height=3000,		// origin height
+	locMode=1,		// 0: nvidia; 1:camera; 2:both
+};
+stStiInfo={
+	mime=1,
+	stich_mode=,
+	width=,
+	height=,
+};
+[action_info@pic]   // PIC_AEB
+name="aeb";			
+mode=0;              // 0: 3D 1: PANO
+size_per_act=20;
+delay=0;
+stOrgInfo={
+	mime=1,			// mime: 
+	save_org=0,		// 0: false 1: true
+	widht=4000,		// origin width
+	height=3000,	// origin height
+	locMode=1,		// 0: nvidia; 1:camera; 2:both
+};
+stStiInfo={
+	mime=1,
+	stich_mode=,
+	width=,
+	height=,
+};
+[action_info@pic]   // PIC_BURST
+name="burst";			
+mode=0;              // 0: 3D 1: PANO
+size_per_act=20;
+delay=0;
+stOrgInfo={
+	mime=1,			// mime: 
+	save_org=0,		// 0: false 1: true
+	widht=4000,		// origin width
+	height=3000,	// origin height
+	locMode=1,		// 0: nvidia; 1:camera; 2:both
+	mOrgP={
+		hdr_count=,
+		min_ev=,
+		max_ev=,
+		burst_cnt=,
+	},
+};
+stStiInfo={
+	mime=1,
+	stich_mode=,
+	width=,
+	height=,
+};

@@ -1660,11 +1660,38 @@ void MenuUI::setMenuCfgInit()
 
 }
 
+enum {
+    CFG_MODE_PIC,
+    CFG_MODE_VID,
+    CFG_MODE_LIVE,
+    CFG_MODE_MAX
+};
+
+void MenuUI::cfgPicVidLiveSelectMode(int iMode)
+{
+    switch (iMode) {
+        case CFG_MODE_PIC:     /* PIC */
+            break;
+
+        case CFG_MODE_VID:     /* VID */
+            break;
+
+        case CFG_MODE_LIVE:
+            break;  /* Live */
+
+        default:
+            Log.w(TAG, "[%s:%d] Unkown mode passed[%d], Please check", __FILE__, __LINE__, iMode);
+            break;
+    }
+
+}
 
 
 void MenuUI::init_menu_select()
 {
     int val;
+
+    cfgPicVidLiveSelectMode(CFG_MODE_PIC);
 
     for (int i = MENU_PIC_SET_DEF; i <= MENU_LIVE_SET_DEF; i++) {
         switch (i) {
@@ -2602,9 +2629,9 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 			
         case ACTION_PREVIEW:
             if (check_state_preview() || check_state_equal(STATE_IDLE)) {
-//                bAllow = true;
+                bAllow = true;
             } else {
-                ERR_MENU_STATE(cur_menu,cam_state);
+                ERR_MENU_STATE(cur_menu, cam_state);
                 bAllow = false;
             }
             break;
@@ -3043,14 +3070,14 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 {
     int state = mSyncInfo->state;
 
-    snprintf(mVerInfo->a12_ver,sizeof(mVerInfo->a12_ver),"%s",mSyncInfo->a_v);
-    snprintf(mVerInfo->c_ver,sizeof(mVerInfo->c_ver),"%s",mSyncInfo->c_v);
-    snprintf(mVerInfo->h_ver,sizeof(mVerInfo->h_ver),"%s",mSyncInfo->h_v);
+    snprintf(mVerInfo->a12_ver, sizeof(mVerInfo->a12_ver),"%s", mSyncInfo->a_v);
+    snprintf(mVerInfo->c_ver, sizeof(mVerInfo->c_ver),"%s", mSyncInfo->c_v);
+    snprintf(mVerInfo->h_ver, sizeof(mVerInfo->h_ver),"%s", mSyncInfo->h_v);
 
-    Log.d(TAG,"sync state 0x%x va:%s vc %s vh %s",
-          mSyncInfo->state,mSyncInfo->a_v,
-          mSyncInfo->c_v,mSyncInfo->h_v);
-    INFO_MENU_STATE(cur_menu,cam_state);
+    Log.d(TAG, "sync state 0x%x va:%s vc %s vh %s",
+          mSyncInfo->state, mSyncInfo->a_v, mSyncInfo->c_v, mSyncInfo->h_v);
+
+    INFO_MENU_STATE(cur_menu, cam_state);
 
     if (state == STATE_IDLE) {	/* 如果相机处于Idle状态 */
 		Log.d(TAG,"set_sync_info oled_reset_disp cam_state 0x%x, cur_menu %d", cam_state, cur_menu);
@@ -3062,25 +3089,25 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
         } else {
             oled_disp_type(START_REC_SUC);
         }
-    } else if ((state& STATE_LIVE) == STATE_LIVE) {
-        if ((state& STATE_PREVIEW) == STATE_PREVIEW) {
+    } else if ((state & STATE_LIVE) == STATE_LIVE) {
+        if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_AND_PREVIEW);
         } else {
             oled_disp_type(START_LIVE_SUC);
         }
-    } else if ((state& STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) {
-        if ((state& STATE_PREVIEW) == STATE_PREVIEW) {
+    } else if ((state & STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) {
+        if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_CONNECT_AND_PREVIEW);
         } else {
             oled_disp_type(START_LIVE_CONNECTING);
         }
-    } else if ((state& STATE_CALIBRATING) == STATE_CALIBRATING) {
+    } else if ((state & STATE_CALIBRATING) == STATE_CALIBRATING) {
         oled_disp_type(START_CALIBRATIONING);
-    } else if ((state& STATE_PIC_STITCHING) == STATE_PIC_STITCHING) {
+    } else if ((state & STATE_PIC_STITCHING) == STATE_PIC_STITCHING) {
         oled_disp_type(SYNC_PIC_STITCH_AND_PREVIEW);
-    } else if ((state& STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING) {
+    } else if ((state & STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING) {
         oled_disp_type(SYNC_PIC_CAPTURE_AND_PREVIEW);
-    } else if ( (state& STATE_PREVIEW) == STATE_PREVIEW)  {
+    } else if ((state & STATE_PREVIEW) == STATE_PREVIEW)  {
         oled_disp_type(START_PREVIEW_SUC);
     }
 	
@@ -3106,10 +3133,8 @@ void MenuUI::write_sys_info(sp<SYS_INFO> &mSysInfo)
         unsigned int len = 0;
         char *val;
         lseek(fd, 0, SEEK_SET);
-        for (int i = 0; i < SYS_KEY_MAX; i++)
-        {
-            switch(i)
-            {
+        for (int i = 0; i < SYS_KEY_MAX; i++) {
+            switch (i) {
                 case SYS_KEY_SN:
                     val = mSysInfo->sn;
                     break;
@@ -3128,7 +3153,7 @@ void MenuUI::write_sys_info(sp<SYS_INFO> &mSysInfo)
         memcpy(mReadSys.get(),mSysInfo.get(),sizeof(SYS_INFO));
     }
 #else
-    Log.d(TAG,"close write sn");
+    Log.d(TAG, "close write sn");
 #endif
 }
 
@@ -3766,16 +3791,16 @@ void MenuUI::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
 
 
 
-void MenuUI::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
+void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
 {
     CHECK_NE(type,-1);
-    CHECK_NE(mAdd,nullptr);
+    CHECK_NE(mAdd, nullptr);
     int menu;
     int max;
     int key;
 
     sp<ACTION_INFO> mRes = sp<ACTION_INFO>(new ACTION_INFO());
-    memcpy(mRes.get(), mAdd.get(),sizeof(ACTION_INFO));
+    memcpy(mRes.get(), mAdd.get(), sizeof(ACTION_INFO));
 
     Log.d(TAG, "add_qr_res type (%d %d)", type, control_act);
 
@@ -3786,8 +3811,7 @@ void MenuUI::add_qr_res(int type,sp<ACTION_INFO> &mAdd,int control_act)
             mControlAct = mRes;
             //force 0 to 10
             if (mControlAct->size_per_act == 0) {
-                Log.d(TAG,"force control size_per_act is %d",
-                      mControlAct->size_per_act);
+                Log.d(TAG, "force control size_per_act is %d", mControlAct->size_per_act);
                 mControlAct->size_per_act = 10;
             }
             break;
@@ -5075,6 +5099,7 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 			
 
+        /* 模式选择菜单: 更新左下角的模式,右上方的特色以及右下角的剩余量 */
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
@@ -5083,8 +5108,8 @@ void MenuUI::enterMenu(bool dispBottom)
 		
         case MENU_QR_SCAN:
             clear_area();
-//                reset_last_info();
-//                Log.d(TAG,"disp MENU_QR_SCAN state is 0x%x",cam_state);
+//          reset_last_info();
+//          Log.d(TAG,"disp MENU_QR_SCAN state is 0x%x",cam_state);
             INFO_MENU_STATE(cur_menu,cam_state)
             if(check_state_in(STATE_START_QRING) || check_state_in(STATE_STOP_QRING)) {
                 disp_waiting();
@@ -5116,12 +5141,6 @@ void MenuUI::enterMenu(bool dispBottom)
             dispSysInfo();
             break;
 
-//            case MENU_SYS_DEV_FACTORY_DEFAULT:
-//                disp_sys_dev_fac_default();
-//                break;
-//            case MENU_CALIBRATION_SETTING:
-//                disp_cal_setting();
-//                break;
 
         case MENU_SYS_ERR:
             setLightDirect(BACK_RED|FRONT_RED);
@@ -5135,13 +5154,14 @@ void MenuUI::enterMenu(bool dispBottom)
 //            disp_icon(ICON_LOW_BAT_128_64128_64);
             disp_low_bat();
             break;
-		
-//        case MENU_LOW_PROTECT:
-//            disp_low_protect(true);
-//            break;
+
+#ifdef ENABLE_MENU_LOW_PROTECT	
+       case MENU_LOW_PROTECT:
+           disp_low_protect(true);
+           break;
+#endif
 
         case MENU_GYRO_START:
-//                CHECK_EQ(cam_state,STATE_IDLE);
             if (check_state_equal(STATE_START_GYRO)) {
                 disp_icon(ICON_GYRO_CALIBRATING128_48);
             } else {
@@ -5260,7 +5280,6 @@ void MenuUI::enterMenu(bool dispBottom)
         SWITCH_DEF_ERROR(cur_menu);
     }
 
-//    Log.d(TAG,"cur menu %d disptop %d",cur_menu,bDispTop);
     if (menuHasStatusbar(cur_menu)) {
         reset_last_info();
         bDispTop = false;
@@ -5548,14 +5567,10 @@ void MenuUI::procPowerKeyEvent()
             switch (getCurMenuCurSelectIndex()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC:	/* 选择的是"拍照"项 */
 
-					/* 对于新版版: 发送"启动预览"后,需要查询当前卡的状态
-			 		 * 6 + 1, 6, 1
-			 		 */
+
                     if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
 						
                         oled_disp_type(START_PREVIEWING);	/* 屏幕中间会显示"..." */
-
-						/* 通过查询系统存储系统来决定存储策略 */
 
 						/* 
 						 * TODO: update storage status(default 6+1)
@@ -6602,7 +6617,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
 	//original error handle
     if (err_code == -1) {
         oled_disp_type(type);
-    } else { //new error_code
+    } else { // new error_code
         int back_menu = MENU_TOP;
         tl_count = -1;
 		
@@ -6613,10 +6628,11 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 rm_state(STATE_START_PREVIEWING);
                 back_menu = get_error_back_menu();
                 break;
-				
+			
+            // #BUG1402
             case CAPTURE_FAIL:
-                rm_state(STATE_TAKE_CAPTURE_IN_PROCESS|STATE_PIC_STITCHING);
-                back_menu = get_error_back_menu(MENU_PIC_INFO);//MENU_PIC_INFO;
+                rm_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
+                back_menu = get_error_back_menu(MENU_PIC_INFO); // MENU_PIC_INFO;
                 break;
 				
             case START_REC_FAIL:
@@ -6801,6 +6817,7 @@ int MenuUI::oled_disp_type(int type)
     Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, STR(cur_menu), cam_state);
 
     rm_state(STATE_FORMAT_OVER);
+
     switch (type) {
         case START_AGEING_FAIL:
             INFO_MENU_STATE(cur_menu,cam_state)
@@ -6921,7 +6938,8 @@ int MenuUI::oled_disp_type(int type)
             }
             break;
 
-			
+
+        /************************************ 拍照相关 START **********************************************/	
         case CAPTURE:
 
             if (check_allow_pic()) {
@@ -6961,11 +6979,7 @@ int MenuUI::oled_disp_type(int type)
                 }
 				
                 add_state(STATE_TAKE_CAPTURE_IN_PROCESS);
-				add_state(STATE_PLAY_SOUND);	/* 添加播放声音状态 */
-
-				setCurMenu(MENU_PIC_INFO);
-
-				//Log.d(TAG, "CAPTURE::: set_photo_delay_index = %d, sound_id = %d", set_photo_delay_index, SND_1S_T + set_photo_delay_index);
+				setCurMenu(MENU_PIC_INFO);  /* 再次进入MENU_PIC_INFO菜单 */
 				
 				/* 第一次发送更新消息, 根据cap_delay的值来决定播放哪个声音 */
                 send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ);
@@ -6978,8 +6992,7 @@ int MenuUI::oled_disp_type(int type)
             if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
                 //disp capture suc
                 minus_cam_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
-//                Log.w(TAG,"CAPTURE_SUC cur_menu %d", cur_menu);
-                //waiting
+
                 if (cur_menu == MENU_PIC_INFO) {
                     if (mControlAct != nullptr) {
                         Log.d(TAG,"control cap suc");
@@ -7000,13 +7013,15 @@ int MenuUI::oled_disp_type(int type)
             }
             break;
 			
-        case CAPTURE_FAIL:
+        case CAPTURE_FAIL:  /*  */
             if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
-                rm_state(STATE_TAKE_CAPTURE_IN_PROCESS|STATE_PIC_STITCHING);
+                rm_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
                 disp_sys_err(type);
             }
             break;
-			
+	    /************************************ 拍照相关 END **********************************************/
+
+
         case STRAT_LIVING:
             add_state(STATE_START_LIVING);
             break;
@@ -7061,7 +7076,7 @@ int MenuUI::oled_disp_type(int type)
 			
         case PIC_ORG_FINISH:
             if (!check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
-                Log.e(TAG,"pic org finish error state 0x%x",cam_state);
+                Log.e(TAG, "pic org finish error state 0x%x", cam_state);
             } else {
                 if (!check_state_in(STATE_PIC_STITCHING)) {
                     rm_state(STATE_TAKE_CAPTURE_IN_PROCESS);
@@ -7084,7 +7099,7 @@ int MenuUI::oled_disp_type(int type)
             msg_util::sleep_ms(500);
             mProCfg->reset_all(false);
             init_cfg_select();
-            Log.d(TAG,"RESET_ALL_CFG cur_menu is %d",cur_menu);
+            Log.d(TAG, "RESET_ALL_CFG cur_menu is %d", cur_menu);
             if (cur_menu == MENU_TOP) {
                 setCurMenu(cur_menu);
             } else {
@@ -7310,7 +7325,7 @@ int MenuUI::oled_disp_type(int type)
             break;
 			
         case CAPTURE_ORG_SUC:
-            Log.d(TAG,"rec capture org suc");
+            Log.d(TAG, "rec capture org suc");
             break;
 		
         case CALIBRATION_ORG_SUC:
@@ -7320,45 +7335,48 @@ int MenuUI::oled_disp_type(int type)
         case SET_SYS_SETTING:
         case SET_CUS_PARAM:
         case STITCH_PROGRESS:
-            Log.d(TAG,"do nothing for %d",type);
+            Log.d(TAG, "do nothing for %d", type);
             break;
 		
         case TIMELPASE_COUNT:
             INFO_MENU_STATE(cur_menu, cam_state)
             Log.d(TAG, "tl_count %d", tl_count);
             if (!check_state_in(STATE_RECORD)) {
-                Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x",cam_state);
+                Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x", cam_state);
             } else {
                 disp_tl_count(tl_count);
             }
             break;
+
 //        case POWER_OFF_SUC:
 //            break;
 //        case POWER_OFF_FAIL:
 //            break;
+
         case START_GYRO:
-            if(!check_state_in(STATE_START_GYRO))
-            {
+            if (!check_state_in(STATE_START_GYRO)) {
                 add_state(STATE_START_GYRO);
             }
             break;
+
         case START_GYRO_SUC:
-            if(check_state_in(STATE_START_GYRO))
-            {
+            if (check_state_in(STATE_START_GYRO)) {
                 minus_cam_state(STATE_START_GYRO);
             }
             break;
+
         case START_GYRO_FAIL:
             rm_state(STATE_START_GYRO);
             disp_sys_err(type,get_back_menu(cur_menu));
             break;
+
         case START_NOISE:
-            if(!check_state_in(STATE_NOISE_SAMPLE))
-            {
+            if (!check_state_in(STATE_NOISE_SAMPLE)) {
                 setCurMenu(MENU_NOSIE_SAMPLE);
                 add_state(STATE_NOISE_SAMPLE);
             }
             break;
+
         case START_LOW_BAT_SUC:
             INFO_MENU_STATE(cur_menu,cam_state)
             cam_state = STATE_IDLE;
@@ -7369,6 +7387,7 @@ int MenuUI::oled_disp_type(int type)
             }
             mControlAct = nullptr;
             break;
+
         case START_LOW_BAT_FAIL:
             cam_state = STATE_IDLE;
             INFO_MENU_STATE(cur_menu,cam_state)
@@ -7388,7 +7407,7 @@ int MenuUI::oled_disp_type(int type)
 
         case START_NOISE_FAIL:
             rm_state(STATE_NOISE_SAMPLE);
-            disp_sys_err(type,get_back_menu(MENU_NOSIE_SAMPLE));
+            disp_sys_err(type, get_back_menu(MENU_NOSIE_SAMPLE));
             break;
 
         case START_BLC:
@@ -7891,7 +7910,7 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 			break;
 	}
 
-	//add param from controller or qr scan
+	// add param from controller or qr scan
 	if (disp_type->qr_type != -1) {
 		CHECK_NE(disp_type->mAct,nullptr);
 		add_qr_res(disp_type->qr_type, disp_type->mAct, disp_type->control_act);
@@ -7907,6 +7926,7 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 	} else {
 		Log.d(TAG, "nothing");
 	}
+
 	oled_disp_type(disp_type->type);
 
 }
@@ -7926,7 +7946,6 @@ void MenuUI::handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo)
 			break;
 	}
 	oled_disp_err(mErrInfo);
-
 }
 
 
