@@ -148,7 +148,7 @@ enum {
     OLED_UPDATE_CAL_LIGHT,
     OLED_CLEAR_MSG_BOX,
     UI_READ_BAT, //15
-    OLED_DISP_LIGHT,
+    UI_DISP_LIGHT,
     //disp oled info at start
     UI_DISP_INIT,
     UI_EXIT,
@@ -1203,7 +1203,7 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
     if (!bSendUpdate) {
 		
         bSendUpdate = true;
-        sp<ARMessage> msg = obtainMessage(OLED_DISP_LIGHT);
+        sp<ARMessage> msg = obtainMessage(UI_DISP_LIGHT);
         msg->set<int>("menu", menu);
         msg->set<int>("state", state);
         msg->set<int>("interval", interval);
@@ -1813,10 +1813,13 @@ void MenuUI::init()
     mSetItemsList.clear();
     mPhotoDelayList.clear();
     mAebList.clear();
+    mPicItemsList.clear();
+    mVidItemsList.clear();
+    mLiveItemsList.clear();
+
 
     Log.d(TAG, "init UI state: STATE_IDLE");
     cam_state = STATE_IDLE;
-
 
     Log.d(TAG, "Create OLED display Object...");
 	/* OLED对象： 显示系统 */
@@ -8255,7 +8258,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 灯显示
 			 */
-            case OLED_DISP_LIGHT: {
+            case UI_DISP_LIGHT: {
                 int menu;
                 int interval;
                 int state;

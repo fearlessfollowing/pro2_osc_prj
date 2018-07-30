@@ -369,6 +369,8 @@ int pro_cfg::get_val(u32 key)
 {
     if (check_key_valid(key)) {
         return mCurInfo->cfg_val[key];
+    } else {
+        Log.e(TAG, "[%s:%d] Invalid Key[%d], please check", __FILE__, __LINE__, key);
     }
     return 0;
 }

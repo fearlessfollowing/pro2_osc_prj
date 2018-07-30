@@ -805,10 +805,13 @@ private:
 	/*
 	 * 菜单管理相关
 	 */
-	std::vector<sp<MENU_INFO>> mMenuLists;
+	std::vector<sp<MENU_INFO>>      mMenuLists;
     std::vector<struct stSetItem*>  mSetItemsList;
     std::vector<struct stSetItem*>  mPhotoDelayList;
     std::vector<struct stSetItem*>  mAebList;
+    std::vector<struct stPicVideoCfg*> mPicItemsList;
+    std::vector<struct stPicVideoCfg*> mVidItemsList;   
+    std::vector<struct stPicVideoCfg*> mLiveItemsList;
 };
 
 #endif //PROJECT_OLED_WRAPPER_H
