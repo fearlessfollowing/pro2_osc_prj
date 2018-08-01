@@ -55,8 +55,17 @@
 #include <trans/fifo.h>
 
 #include <sys/Menu.h>
-#include <icon/pic_mode_select.h>
+
+
 #include <icon/setting_menu_icon.h>
+
+#if 0
+#include <icon/pic_mode_select.h>
+#else
+#include <icon/pic_video_select.h>
+#endif
+
+
 
 
 using namespace std;
@@ -1661,39 +1670,89 @@ void MenuUI::setMenuCfgInit()
 
 }
 
-enum {
-    CFG_MODE_PIC,
-    CFG_MODE_VID,
-    CFG_MODE_LIVE,
-    CFG_MODE_MAX
-};
 
-void MenuUI::cfgPicVidLiveSelectMode(int iMode)
+
+void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPicVideoCfg*>& pItemLists)
 {
-    switch (iMode) {
-        case CFG_MODE_PIC:     /* PIC */
-            break;
+    if (pParentMenu && pItemLists.size()) {
+        
+        int size = pParentMenu->mSelectInfo.total;
+        ICON_POS tmPos = {0, 32, 78, 16};
+        int iIndex = 0;
+        int iDefaultRawVal = 0;
+        int iDefaultAebVal = 0;
 
-        case CFG_MODE_VID:     /* VID */
-            break;
+        ACTION_INFO* pTmpActionInfo = NULL;
 
-        case CFG_MODE_LIVE:
-            break;  /* Live */
+        PicVideoCfg** pSetItems = static_cast<PicVideoCfg**>(pParentMenu->priv);
+        
+        iDefaultRawVal = mProCfg->get_val(KEY_RAW);     /* 0: Off Raw; 1: Open Raw */
+        iDefaultAebVal = mProCfg->get_val(KEY_AEB);  
 
-        default:
-            Log.w(TAG, "[%s:%d] Unkown mode passed[%d], Please check", __FILE__, __LINE__, iMode);
-            break;
+
+
+        switch (pParentMenu->iMenuId) {
+            case MENU_PIC_SET_DEF:       /* PIC */
+                iIndex = mProCfg->get_val(KEY_ALL_PIC_DEF); /* 当前所中的项 */
+                updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
+
+                /* 根据配置值来更新每个ACTION_INFO的值
+                 * 根据配置是否使能RAW，来选各项显示图标的索引（显示图标用）
+                 * 根据配置AEB值来选中显示图标的索引
+                 * 以及传递参数的ACTION_INFO的值
+                 */
+                for (u32 i = 0; i < size; i++) {
+                    pSetItems[i]->stPos = tmPos;
+                    
+                    const char* pItemName = pSetItems[i]->pItemName;
+                    
+                    /* TODO: 在此处为各个项设置对应的ACTION_INFO
+                     * 通过解析配置文件得到的ACTION_INFO列表(通过名称进行匹配)
+                     */
+                    if (!strcmp(pItemName, TAKE_PIC_MODE_CUSTOMER)) {   /* Customer DO nothing */
+                        /* do nothing */
+                    } else if (!strcmp(pItemName, TAKE_PIC_MODE_AEB)) {
+                        int iIndexBase = 0;
+                        /* 根据RAW和AEB当前值来决定 */
+                        if (iDefaultRawVal) {
+                            iIndexBase = 4;
+                        }
+
+                        pSetItems[i]->iCurVal = iIndexBase + iDefaultAebVal;
+                        if (pSetItems[i]->iCurVal > pSetItems[i]->iItemMaxVal) {
+                            Log.e(TAG, "[%s: %d] invalid current val [%d], max val[%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal, pSetItems[i]->iItemMaxVal);
+                        }
+                    } else {
+                        pSetItems[i]->iCurVal = iDefaultRawVal;
+                        Log.e(TAG, "[%s: %d] invalid current val [%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal);
+                    }
+                    pItemLists.push_back(pSetItems[i]);
+                }
+                break;
+
+#if 0
+            case MENU_VIDEO_SET_DEF:     /* VID */
+                iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF);
+
+                break;
+
+            case MENU_LIVE_SET_DEF:      /* LIVE */
+                iIndex = mProCfg->get_val(KEY_ALL_LIVE_DEF);
+
+                break;
+#endif
+            default:
+                Log.w(TAG, "[%s:%d] Unkown mode Please check", __FILE__, __LINE__);
+                break;
+        }
     }
-
 }
 
 
 void MenuUI::init_menu_select()
 {
-    int val;
 
-    cfgPicVidLiveSelectMode(CFG_MODE_PIC);
-
+#if 0    
     for (int i = MENU_PIC_SET_DEF; i <= MENU_LIVE_SET_DEF; i++) {
         switch (i) {
             case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
@@ -1743,9 +1802,39 @@ void MenuUI::init_menu_select()
                 break;
         }
     }
+#endif
 
-    /* MENU_PIC_DEF */
+    /*
+     * 拍照，录像，直播参数配置
+     */
+    mMenuInfos[MENU_PIC_SET_DEF].priv = static_cast<void*>(gPicAllModeCfgList);
+    mMenuInfos[MENU_PIC_SET_DEF].privList = static_cast<void*>(&mPicAllItemsList);
 
+    mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total = sizeof(gPicAllModeCfgList) / sizeof(gPicAllModeCfgList[0]);
+    mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.select = 0;
+    mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.page_max = mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total;
+    mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.page_num = 1;
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_PIC_SET_DEF], mPicAllItemsList);
+    
+
+    
+#if 0
+    mMenuInfos[MENU_VIDEO_SET_DEF].priv = static_cast<void*>(gPicAllModeCfgList);
+    mMenuInfos[MENU_VIDEO_SET_DEF].privList = static_cast<void*>(&mPicAllItemsList);
+
+    mMenuInfos[MENU_VIDEO_SET_DEF].mSelectInfo.total = sizeof(gPicAllModeCfgList) / sizeof(gPicAllModeCfgList[0]);
+    mMenuInfos[MENU_VIDEO_SET_DEF].mSelectInfo.select = 0;
+    mMenuInfos[MENU_VIDEO_SET_DEF].mSelectInfo.page_max = mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total;
+    mMenuInfos[MENU_VIDEO_SET_DEF].mSelectInfo.page_num = 1;
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_VIDEO_SET_DEF], mPicAllItemsList);
+    
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_VIDEO_SET_DEF], mVidAllItemsList);
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);    
+#endif
+
+    /*
+     * 设置系统的参数配置
+     */
     setMenuCfgInit();
 }
 
@@ -1765,7 +1854,7 @@ void MenuUI::init()
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
 
-    CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
+    // CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
     CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
     CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
@@ -1778,12 +1867,14 @@ void MenuUI::init()
      * - 设置二级页中aeb列表
      */
     mLocalStorageList.clear();
+    mRemoteStorageList.clear();
     mSetItemsList.clear();
     mPhotoDelayList.clear();
     mAebList.clear();
-    mPicItemsList.clear();
-    mVidItemsList.clear();
-    mLiveItemsList.clear();
+
+    mPicAllItemsList.clear();
+    mVidAllItemsList.clear();
+    mLiveAllItemsList.clear();
 
 
     Log.d(TAG, "init UI state: STATE_IDLE");
@@ -2022,7 +2113,7 @@ void MenuUI::updateTfStorageInfo(vector<sp<Volume>>& mStorageList)
      * 此处的访问近可能快,并且不能死锁
      */
 #else    
-    // unique_lock<mutex> lock(mRemoteDevLock);    
+    unique_lock<mutex> lock(mRemoteDevLock);    
     mRemoteStorageList.clear();
     sp<Volume> tmpVolume = NULL;
 
@@ -2034,8 +2125,8 @@ void MenuUI::updateTfStorageInfo(vector<sp<Volume>>& mStorageList)
         }
     }
 
-    /* 设置属性: PROP_EXTERN_TF_STATE,表示TF卡的状态有更新 */
-    // property_set(PROP_EXTERN_TF_STATE, "true");
+    /* 表示TF存储状态已经更新 */
+    mRemoteStorageUpdate = true;
 
 #endif
 
@@ -2533,7 +2624,12 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
         case ACTION_PIC:	/* 拍照动作 */
 
             Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
-				
+
+#if 0			
+            /*
+             * 1.根据菜单的当前值,找到链表中对应的项,在根据项中的action_info指针
+             * 得到真实拍照参数
+             */
             item = getMenuSelectIndex(MENU_PIC_SET_DEF);
             switch (item) {
 //              case PIC_8K_3D_SAVE:
@@ -2560,6 +2656,8 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 							
                     SWITCH_DEF_ERROR(item);
             }
+#endif
+
             msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
             break;
 			
@@ -3947,11 +4045,10 @@ void MenuUI::updateMenu()
 //            Log.d(TAG," pic set def item is %d", item);
             mProCfg->set_def_info(KEY_ALL_PIC_DEF, item);
 
-			//updateMenu_disp(pic_def_setting_menu[1]);
-
-			update_menu_disp(picAllCardMenuItems[1]);
-
-			
+			// update_menu_disp(picAllCardMenuItems[1]);
+            updateBottomMode(false);    /* 正常显示 */
+    
+    #if 0
             if (item < PIC_ALL_CUSTOM) {
                 disp_org_rts((int)(mPICAction[item].stOrgInfo.save_org != SAVE_OFF),
                              (int)(mPICAction[item].stStiInfo.stich_mode != STITCH_OFF));
@@ -3960,6 +4057,7 @@ void MenuUI::updateMenu()
                 disp_org_rts((int)(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stOrgInfo.save_org != SAVE_OFF),
                              (int)(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stStiInfo.stich_mode != STITCH_OFF));
             }
+    #endif
             update_bottom_space();
             break;
 			
@@ -4131,28 +4229,16 @@ void MenuUI::caculate_rest_info(u64 size)
                 } else {
 					
                     item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-                    switch (item) {
-//                          case PIC_8K_3D_SAVE:
-                        case PIC_8K_PANO_SAVE:
-                            //optical flow stich
-                        case PIC_8K_3D_SAVE_OF:
-                        case PIC_8K_PANO_SAVE_OF:
-#ifdef OPEN_HDR_RTS
-                            case PIC_HDR_RTS:
-#endif
-                        case PIC_HDR:
-                        case PIC_BURST:
-                        case PIC_RAW:
-                            mRemainInfo->remain_pic_num = size_M/mPICAction[item].size_per_act;
-                            Log.d(TAG, "1remain(%d %d %d)",
-                                  size_M, mPICAction[item].size_per_act, mRemainInfo->remain_pic_num);
-                            break;
-							
-                        case PIC_CUSTOM:
-                            mRemainInfo->remain_pic_num = size_M/mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
-                            Log.d(TAG, "3remain(%d %d)", size_M, mRemainInfo->remain_pic_num);
-                            break;
-                        SWITCH_DEF_ERROR(item)
+                    struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
+                    int iUnitSize = 30;
+                    if (pPicVidCfg) {
+                        if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+                            iUnitSize = pPicVidCfg->pStAction->size_per_act;
+                        } else {
+                            iUnitSize = mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
+                        }
+                    } else {
+                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
                     }
                 }
                 break;
@@ -4317,7 +4403,8 @@ void MenuUI::update_bottom_space()
 
 void MenuUI::disp_bottom_info(bool high)
 {
-    disp_cam_param(0);
+    // disp_cam_param(0);
+    updateBottomMode(false);
     update_bottom_space();
 }
 
@@ -4721,6 +4808,69 @@ void MenuUI::disp_qr_res(bool high)
 }
 
 
+void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
+{
+	ICON_INFO iconInfo = {0};
+
+    iconInfo.x = pCfg->stPos.xPos;
+    iconInfo.y = pCfg->stPos.yPos;
+    iconInfo.w = pCfg->stPos.iWidth;
+    iconInfo.h = pCfg->stPos.iHeight;
+
+    if (bLight) {
+        iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
+    } else {
+        iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
+    }
+
+    dispIconByLoc(&iconInfo);
+}
+
+/*
+ * 更新拍照，录像，直播，底部的模式(规格)
+ */
+void MenuUI::updateBottomMode(bool bLight)
+{
+    int item;
+    int icon = -1;
+
+    struct stPicVideoCfg* pTmpCfg = NULL;
+    ACTION_INFO* pTmpActionInfo = NULL;
+
+    INFO_MENU_STATE(cur_menu, cam_state)
+
+    switch (cur_menu) {
+        case MENU_PIC_INFO:
+        case MENU_PIC_SET_DEF:
+            if (mControlAct != nullptr) {
+                disp_org_rts(mControlAct);
+                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+            } else {
+                item = getMenuSelectIndex(MENU_PIC_SET_DEF);    /* 得到菜单的索引值 */
+                if (item > mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total || item > mPicAllItemsList.size()) {
+                    Log.e(TAG, "%s: %d] invalid index(%d) on current menu[%s]", __FILE__, __LINE__, item, getCurMenuStr(cur_menu));
+                } else {
+                    pTmpCfg = mPicAllItemsList.at(item);
+                    if (pTmpCfg) {
+                        pTmpActionInfo = pTmpCfg->pStAction;
+                        disp_org_rts((int) (pTmpActionInfo->stOrgInfo.save_org != SAVE_OFF),
+                                         (int) (pTmpActionInfo->stStiInfo.stich_mode != STITCH_OFF));
+
+                        dispPicVidCfg(pTmpCfg, bLight);
+                    } else {
+                        Log.e(TAG, "%s: %d] invalid pointer", __FILE__, __LINE__);
+                    }
+                }
+            }
+            break;
+
+        /* Video/Live */
+
+    }
+}
+
+#if 0
+
 // highlight : 0 -- normal 1 -- high
 void MenuUI::disp_cam_param(int higlight)
 {
@@ -4728,10 +4878,9 @@ void MenuUI::disp_cam_param(int higlight)
     int icon = -1;
 	ICON_INFO* pIconInfo = NULL;
 	
-//    Log.d(TAG,"disp_cam_param high %d cur_menu %d bDispControl %d",
-//          higlight,cur_menu);
+    // Log.d(TAG,"disp_cam_param high %d cur_menu %d bDispControl %d", higlight,cur_menu);
     {
-        INFO_MENU_STATE(cur_menu,cam_state)
+        INFO_MENU_STATE(cur_menu, cam_state)
         switch (cur_menu) {
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF:
@@ -4739,8 +4888,10 @@ void MenuUI::disp_cam_param(int higlight)
                     disp_org_rts(mControlAct);
                     clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
                 } else {
-                    item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-//                    Log.d(TAG, "pic def item %d", item);
+                    item = getMenuSelectIndex(MENU_PIC_SET_DEF);    /* 得到菜单的索引值 */
+
+                    /* 找到对应的项 */
+
                     switch (item) {
 
 #if 0						
@@ -4862,6 +5013,7 @@ void MenuUI::disp_cam_param(int higlight)
 		}		
     }
 }
+#endif
 
 
 void MenuUI::disp_sec(int sec,int x,int y)
@@ -5077,7 +5229,7 @@ void MenuUI::enterMenu(bool dispBottom)
         case MENU_LIVE_INFO:
             INFO_MENU_STATE(cur_menu,cam_state);
             disp_icon(ICON_LIVE_ICON_0_16_20_32);
-            disp_cam_param(0);
+            // disp_cam_param(0);
 
             if (check_state_preview()) {
                 disp_live_ready();
@@ -5137,7 +5289,8 @@ void MenuUI::enterMenu(bool dispBottom)
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
-            disp_cam_param(1);
+            // disp_cam_param(1);
+            updateBottomMode(true);
             break;
 		
         case MENU_QR_SCAN:
@@ -5600,8 +5753,7 @@ void MenuUI::procPowerKeyEvent()
 
             switch (getCurMenuCurSelectIndex()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC:	/* 选择的是"拍照"项 */
-
-
+                    /* 发送预览请求 */
                     if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
 						
                         oled_disp_type(START_PREVIEWING);	/* 屏幕中间会显示"..." */
@@ -6988,29 +7140,17 @@ int MenuUI::oled_disp_type(int type)
                     int item = getMenuSelectIndex(MENU_PIC_SET_DEF);
                     int iDelay = convIndex2CapDelay(mProCfg->get_val(KEY_PH_DELAY));
 
-                  	Log.d(TAG, "+++++++++++++++ CAPTURE def item %d", item);
-                    switch (item) {
-						
-
-						case PIC_ALL_8K_3D_OF:
-						case PIC_ALL_8K_OF:
-						case PIC_ALL_8K:
-					#ifdef ENABLE_SETTING_AEB	
-						case PIC_ALL_AEB_3579:
-					#endif
-						case PIC_ALL_BURST:							
-
-                            Log.d(TAG, ">>>>>>>>>>> delay val = %d", iDelay);	
+                    struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
+                    if (pPicVidCfg) {
+                        if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
                             setTakePicDelay(iDelay);
-                            break;
-						
-                            //user define
-                        case PIC_ALL_CUSTOM:
+                        } else {
                             setTakePicDelay(convIndex2CapDelay(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->delay));
-                            break;
-						
-                        SWITCH_DEF_ERROR(item)
-                    }
+                        }
+                    } else {
+                        Log.e(TAG, "[%s: %d] Invalid item[%d] for capture", __FILE__, __LINE__, item);
+                        setTakePicDelay(iDelay);
+                    }			
                 }
 				
                 add_state(STATE_TAKE_CAPTURE_IN_PROCESS);
@@ -7096,7 +7236,7 @@ int MenuUI::oled_disp_type(int type)
                 if (mControlAct != nullptr) {
                     mControlAct = nullptr;
                     if (cur_menu == MENU_LIVE_INFO) {
-                        disp_cam_param(0);
+                        // disp_cam_param(0);
                     } else {
                         Log.e(TAG, "error capture　suc cur_menu %d ", cur_menu);
                     }
@@ -7151,12 +7291,12 @@ int MenuUI::oled_disp_type(int type)
             break;
 
         case START_PREVIEW_SUC:		/* 启动预览成功 */
-            if (!check_state_in(STATE_PREVIEW)) {
+            if (!check_state_in(STATE_PREVIEW)) {   /*  */
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS, ENTER QUERY STORAGE STATE");
 
 #if 1
-				/* 查询状态 */							
+				/* 查询状态  */							
 				bool bStore = queryCurStorageState();
 				if (bStore) {		
 					Log.d(TAG, ">>>> queryCurStorageState return true, we can take pic, vido, live now...");
@@ -7175,6 +7315,8 @@ int MenuUI::oled_disp_type(int type)
 				add_state(STATE_PREVIEW); /* 添加"STATE_PREVIEW"后会显示"READY"字样 */
 #endif
 
+            } else {
+                Log.e(TAG, "[%s: %d] Invalid state change", __FILE__, __LINE__);
             }
             break;
 

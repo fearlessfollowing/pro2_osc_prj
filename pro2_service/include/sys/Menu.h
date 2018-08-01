@@ -9,8 +9,10 @@
 #include <sys/StorageManager.h>
 #include <sys/action_info.h>
 #include <sys/pro_cfg.h>
-#include <icon/pic_mode_select.h>
 
+#if 0
+#include <icon/pic_mode_select.h>
+#endif
 
 enum {
 
@@ -309,7 +311,7 @@ static MENU_INFO mMenuInfos[] = {
 	
     {	
     	MENU_PIC_INFO,
-		{-1, 0, 0, PIC_ALLCARD_MAX, PIC_ALLCARD_MAX, 1},
+		{-1, 0, 0, 0, 0, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
         MENU_PIC_SET_DEF,      /* Menu ID: MENU_PIC_SET_DEF */
         NULL,

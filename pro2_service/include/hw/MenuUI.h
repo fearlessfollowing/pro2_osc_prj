@@ -322,7 +322,7 @@ struct _wifi_config_;
 struct _err_type_info_;
 struct _cam_prop_;
 struct stSetItem;
-
+struct stPicVideoCfg;
 
 
 
@@ -623,7 +623,7 @@ private:
     int getCurMenuLastSelectIndex();    
     void updateMenu();
     void setCurMenu(int menu,int back_menu = -1);
-    void cfgPicVidLiveSelectMode(int iMode);
+    void cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
     /*
      * 系统信息
@@ -644,6 +644,11 @@ private:
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
     void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
     int get_setting_select(int type);
+
+    void updateBottomMode(bool bLight);
+    void dispPicVidCfg(struct stPicVideoCfg* pCfg, bool bLight);
+
+
     /************************************** 菜单相关 END *************************************************/
 
 
@@ -807,6 +812,7 @@ private:
 	u32		mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
 
 	std::mutex				mRemoteDevLock;
+    bool    mRemoteStorageUpdate = false;
 	std::vector<sp<Volume>> mRemoteStorageList;		/* 存储列表 */
 
 	std::mutex				mLocaLDevLock;
@@ -817,15 +823,15 @@ private:
 
 
 	/*
-	 * 菜单管理相关
+	 * 菜单管理相关 MENU_INFO
 	 */
-	std::vector<sp<MENU_INFO>>      mMenuLists;
-    std::vector<struct stSetItem*>  mSetItemsList;
-    std::vector<struct stSetItem*>  mPhotoDelayList;
-    std::vector<struct stSetItem*>  mAebList;
-    std::vector<struct stPicVideoCfg*> mPicItemsList;
-    std::vector<struct stPicVideoCfg*> mVidItemsList;   
-    std::vector<struct stPicVideoCfg*> mLiveItemsList;
+	std::vector<sp<MENU_INFO>>          mMenuLists;
+    std::vector<struct stSetItem*>      mSetItemsList;
+    std::vector<struct stSetItem*>      mPhotoDelayList;
+    std::vector<struct stSetItem*>      mAebList;
+    std::vector<struct stPicVideoCfg*>  mPicAllItemsList;
+    std::vector<struct stPicVideoCfg*>  mVidAllItemsList;   
+    std::vector<struct stPicVideoCfg*>  mLiveAllItemsList;
 };
 
 #endif //PROJECT_OLED_WRAPPER_H

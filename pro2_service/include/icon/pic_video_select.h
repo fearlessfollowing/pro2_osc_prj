@@ -2,7 +2,7 @@
 #define _PIC_VIDEO_SELECT_H_
 
 
-#define PIC_VIDEO_LIVE_ITEM_MAX 5
+#define PIC_VIDEO_LIVE_ITEM_MAX 10
 
 
 /*
@@ -55,6 +55,7 @@ const u8 pic8K3DRAWLight_78X16[] = {
 	0x33,0x3C,0x3F,0x3C,0x33,0x3C,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,
 	0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,
 };
+
 
 
 const u8 pic8K3DRAWNor_78X16[] = {
@@ -220,7 +221,7 @@ const u8 picAEB9_RAW_Nor_78X16[] = {
 };
 
 
-const u8 picBurst_RAW_Light_78x16[] = {
+const u8 picBurstRAWLight_78x16[] = {
 	/* 图像	   78x16	*/
 	0x00,0x00,0xFC,0x0C,0x6C,0x6C,0x6C,0x6C,0x9C,0xFC,0x3C,0xFC,0xFC,0xFC,0x3C,0xFC,
 	0x3C,0xBC,0xBC,0xFC,0x7C,0xBC,0xBC,0xBC,0x7C,0xFC,0x0C,0xBC,0xBC,0xFC,0x04,0xFC,
@@ -235,7 +236,7 @@ const u8 picBurst_RAW_Light_78x16[] = {
 };
 
 
-const u8 picBurst_RAW_Nor_78x16[] = {
+const u8 picBurstRAWNor_78x16[] = {
 	/* 图像	   78x16	*/
 	0x00,0x00,0x00,0xF0,0x90,0x90,0x90,0x90,0x60,0x00,0xC0,0x00,0x00,0x00,0xC0,0x00,
 	0xC0,0x40,0x40,0x00,0x80,0x40,0x40,0x40,0x80,0x00,0xF0,0x40,0x40,0x00,0xF8,0x00,
@@ -527,11 +528,161 @@ typedef struct stPicVideoCfg {
 	int						iItemMaxVal;							/* 设置项可取的最大值 */
 	int  					iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
 	struct stIconPos		stPos;
-    struct _action_info_    stAction;
+    struct _action_info_*   pStAction;
 	const u8 * 				stLightIcon[PIC_VIDEO_LIVE_ITEM_MAX];	/* 选中时的图标列表 */
 	const u8 * 				stNorIcon[PIC_VIDEO_LIVE_ITEM_MAX];		/* 未选中时的图标列表 */
 } PicVideoCfg;
 
+
+/*
+ * 8K|3D|OF ICON_INFO
+ */
+static ACTION_INFO pic8K3DOFDefault = {
+	MODE_3D,		/* 拼接模式 */
+	60,				/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{}
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		7680,
+		{},
+	}
+};
+
+
+
+/*
+ * 8K|3D
+ */
+static ACTION_INFO pic8K3DDefault = {
+	MODE_PANO,		/* 拼接模式 */
+	30,				/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{}
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		3840,
+		{},
+	}
+};
+
+
+
+/*
+ * 8K
+ */
+static ACTION_INFO pic8KDefault = {
+	MODE_PANO,		/* 拼接模式 */
+	30,				/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{}
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		3840,
+		{},
+	}
+};
+
+
+/*
+ * AEB
+ */
+static ACTION_INFO picAebDefault = {
+	MODE_PANO,		/* 拼接模式 */
+	30,				/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{}
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		3840,
+		{},
+	}
+};
+
+
+/*
+ * Burst
+ */
+static ACTION_INFO picBurstDefault = {
+	MODE_PANO,		/* 拼接模式 */
+	165,			/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{0,0,0,10}
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		3840,
+		{},
+	}
+};
+
+
+/*
+ * Customer
+ */
+static ACTION_INFO picCustomerDefault = {
+	MODE_PANO,		/* 拼接模式 */
+	30,			/* 每张照片的大小 */
+	0,				/* 该值现在无效,由photodelay控制 */
+	{	/* Origin */
+		EN_JPEG,	
+		SAVE_DEF,
+		4000,
+		3000,
+		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+	},
+	{	/* Stitch */
+		EN_JPEG,
+		STITCH_OPTICAL_FLOW,
+		7680,
+		3840,
+		{},
+	}
+};
 
 
 PicVideoCfg pic8K_3D_OF = {
@@ -539,14 +690,14 @@ PicVideoCfg pic8K_3D_OF = {
 	1,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&pic8K3DOFDefault,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
 	{	/* 选中时的图标列表 */
 		pic8K3DOFLight_78X16,
 		pic8K3DOFRAWLight_78X16,
 	},
 	{	/* 未选中时的图标列表 */
 		pic8K3DOFNor_78X16,
-		pic8K3DOFRAWNor_78X16,
+		pic8K3DOFNor_78X16,
 	}
 };
 
@@ -555,7 +706,7 @@ PicVideoCfg pic8K_3D = {
 	1,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&pic8K3DDefault,
 	{	/* 选中时的图标列表 */
 		pic8K3DLight_78x16,
 		pic8K3DRAWLight_78X16,
@@ -572,7 +723,7 @@ PicVideoCfg pic8K = {
 	1,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&pic8KDefault,
 	{	/* 选中时的图标列表 */
 		pic8KLight_78x16,
 		pic8KRAWLight_78X16,
@@ -585,11 +736,11 @@ PicVideoCfg pic8K = {
 
 
 PicVideoCfg picAEB = {
-	TAKE_PIC_MODE_AEB,		// pItemName
-	1,							// iItemMaxVal
+	TAKE_PIC_MODE_AEB,			// pItemName
+	7,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&picAebDefault,
 	{	/* 选中时的图标列表 */
 		picAEB3Light_78X16,
 		picAEB5Light_78X16,
@@ -618,26 +769,28 @@ PicVideoCfg picBurst = {
 	1,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&picBurstDefault,
 	{	/* 选中时的图标列表 */
-		picAEB3_RAW_Light_78X16,
+		picBurstLight_78x16,
+		picBurstRAWLight_78x16,
 	},
 	{	/* 未选中时的图标列表 */
-		picAEB3_RAW_Nor_78X16
+		picBurstNor_78x16,
+		picBurstRAWNor_78x16,
 	}
 };
 
 PicVideoCfg picCustomer = {
 	TAKE_PIC_MODE_CUSTOMER,		// pItemName
-	1,							// iItemMaxVal
+	0,							// iItemMaxVal
 	0,							// iCurVal
 	{0},						// stPos
-	{0},						// stAction
+	&picCustomerDefault,
 	{	/* 选中时的图标列表 */
-		picAEB3_RAW_Light_78X16,
+		picCustmLight_78x16,
 	},
 	{	/* 未选中时的图标列表 */
-		picAEB3_RAW_Nor_78X16
+		picCustmNor_78x16,
 	}
 };
 
