@@ -94,11 +94,12 @@ typedef struct stVol {
 typedef struct stVol {
     //"usb","sd" or "internal"
     char 	dev_type[8];
-    char 	path[128];
+    char 	path[128];		/* 挂载路径 */
     char 	src[256];
-    char 	name[128];
-    u64 	total;
-    u64 	avail;
+    char 	name[128];		/* 设备名称 */
+    u64 	total;			/* 总容量 */
+    u64 	avail;			/* 剩余容量 */
+	int		iIndex;			/* 索引号 */
 } Volume;
 
 

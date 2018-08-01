@@ -44,8 +44,8 @@ typedef enum _type_ {
     START_CALIBRATIONING = 27 ,// 27,
     CALIBRATION_SUC,
     CALIBRATION_FAIL,
-    START_PREVIEWING ,// 30,
-    START_PREVIEW_SUC,
+    START_PREVIEWING ,  // 30,
+    START_PREVIEW_SUC,  
     START_PREVIEW_FAIL,
     STOP_PREVIEWING,
     STOP_PREVIEW_SUC,
@@ -363,6 +363,8 @@ public:
 
     //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
 
+    void updateTfStorageInfo(std::vector<sp<Volume>>& mStorageList);
+
 private:
 
     MenuUI();
@@ -621,6 +623,7 @@ private:
     int getCurMenuLastSelectIndex();    
     void updateMenu();
     void setCurMenu(int menu,int back_menu = -1);
+    void cfgPicVidLiveSelectMode(int iMode);
 
     /*
      * 系统信息
@@ -792,15 +795,18 @@ private:
 	 */
 	bool	mHaveConfigSSID = false;
 
-	/*
+	/*------------------------------------------------------------------------------
 	 * 存储管理部分
 	 */
+
 
 	u32 	mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
 
 	u32		mCanTakePicNum;							/* 可拍照的张数 */
 	u32		mCanTakeVidTime;						/* 可录像的时长(秒数) */
 	u32		mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
+
+	std::mutex				mRemoteDevLock;
 	std::vector<sp<Volume>> mRemoteStorageList;		/* 存储列表 */
 
 	std::mutex				mLocaLDevLock;

@@ -22,7 +22,6 @@
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
 #include <common/common.h>
-#include <util/cJSON.h>
 #include <util/bytes_int_convert.h>
 #include <hw/MenuUI.h>
 
@@ -397,6 +396,8 @@ void fifo::send_disp_str_type(sp<DISP_TYPE> &dis_type)
 }
 
 
+
+
 /*************************************************************************
 ** 方法名称: write_fifo
 ** 方法功能: 发送数据到给osc
@@ -538,6 +539,11 @@ const char* getActionStr(int iAction)
 	return pRet;
 }
 
+
+
+
+
+
 static char save_path[512] = {0};
 
 
@@ -568,7 +574,7 @@ static char save_path[512] = {0};
     *		}
     * }
     */	
-void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
+void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
 {
     Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
 
@@ -653,7 +659,7 @@ void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
 
 }
 
-void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
+void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
 {
     cJSON *org = cJSON_CreateObject();
     cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
@@ -734,7 +740,7 @@ void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
 }
 
 
-void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
+void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param)
 {
 
     cJSON *org = cJSON_CreateObject();
@@ -844,7 +850,7 @@ void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *param)
 
 
 
-void fifo::handleUiReqWithNoAction(cJSON *root)
+void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg)
 {
     cJSON *param = nullptr;
     switch (action) {
@@ -1106,12 +1112,12 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 			/* 查看msg的"action_info" */
             if (msg->find<sp<ACTION_INFO>>("action_info", &mActInfo)) {
-                cJSON *org = cJSON_CreateObject();
+                // cJSON *org = cJSON_CreateObject();
                 cJSON *param = cJSON_CreateObject();
 
-
+                #if 0
                 switch (action) {
-                    #if 0
+                    
                     case ACTION_PIC:
 
                         Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
@@ -1307,15 +1313,15 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 #else
                 switch (action) {
                     case ACTION_PIC:
-                        handleUiTakePicReq(mActInfo, org, param);
+                        handleUiTakePicReq(mActInfo, root, param);
                         break;
 
                     case ACTION_VIDEO:
-                        handleUiTakeVidReq(mActInfo, org, param);
+                        handleUiTakeVidReq(mActInfo, root, param);
                         break;
 
                     case ACTION_LIVE:
-                        handleUiTakeLiveReq(mActInfo, org, param);
+                        handleUiTakeLiveReq(mActInfo, root, param);
                         break;
                     
                     default:
@@ -1543,7 +1549,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                     cJSON_AddItemToObject(root, "parameters", param);
                 }
                 #else 
-                handleUiReqWithNoAction(root);
+                handleUiReqWithNoAction(root, action, msg);
                 #endif
             }
 
@@ -1736,6 +1742,13 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 
 		#endif
 		
+        #if 0
+            case MSG_TRAN_INNER_UPDATE_TF: {
+                mOLEDHandle->updateTfStorageInfo(disp_type);
+                break;
+            }
+        #endif
+
 			/* OSC -> FIFO -> UI 
 			 * 通知UI进入某个显示界面
 			 */
@@ -1801,8 +1814,9 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 	            sp<SYNC_INIT_INFO> mSyncInfo;
 	            CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
 	            mOLEDHandle->send_sync_init_info(mSyncInfo);
+                break;
 	        }
-	                    break;
+	                    
 			SWITCH_DEF_ERROR(what)
 		    }
         }
@@ -1865,6 +1879,10 @@ const char* getRecvCmdType(int iType)
 		pRet = "CMD_EXIT";
 		break;
 
+    case CMD_WEB_UI_TF_NOTIFY:
+        pRet = "CMD_WEB_UI_TF_NOTIFY";
+        break;
+
 	default:
 		pRet = "Unkown Cmd recv";
 		break;
@@ -1875,14 +1893,15 @@ const char* getRecvCmdType(int iType)
 
 
 
-void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON *subNode)
+void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode)
 {
 	int iArraySize = cJSON_GetArraySize(subNode);
 	int qr_version;
 	int qr_index = -1;
 	int qr_action_index;
 	int sti_res;
-	
+	cJSON *child = nullptr;
+
 	subNode = subNode->child;
 	CHECK_EQ(subNode->type, cJSON_Number);
 	qr_version = subNode->valueint;
@@ -2276,7 +2295,7 @@ void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 
 
 
-void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *subNode)
+void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *root, cJSON *subNode)
 {
     cJSON *child = nullptr;
 
@@ -2542,6 +2561,8 @@ void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 
 void fifo::handleSetting(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 {
+
+    cJSON *child = nullptr;
     mDispType->mSysSetting = sp<SYS_SETTING>(new SYS_SETTING());
 
     memset(mDispType->mSysSetting.get(), -1, sizeof(SYS_SETTING));
@@ -2572,6 +2593,8 @@ void fifo::handleSetting(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 
 void fifo::handleStitchProgress(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 {
+    cJSON *child = nullptr;
+
     mDispType->mStichProgress = sp<STICH_PROGRESS>(new STICH_PROGRESS());
     //finish
     GET_CJSON_OBJ_ITEM_INT(child, subNode, "task_over", mDispType->mStichProgress->task_over);
@@ -3053,7 +3076,7 @@ void fifo::read_fifo_thread()
                                     mDispType->type = QR_FINISH_UNRECOGNIZE;
                                 }
                             #else
-                                handleQrContent(mDispType, subNode);
+                                handleQrContent(mDispType, root, subNode);
                             #endif
                             } else {
                                 subNode = cJSON_GetObjectItem(root, "req");
@@ -3332,7 +3355,7 @@ void fifo::read_fifo_thread()
                                         SWITCH_DEF_ERROR(mDispType->type);
                                     }
                                 #else
-                                    handleReqFormHttp(mDispType, subNode);
+                                    handleReqFormHttp(mDispType, root, subNode);
                                 #endif
                                 } else {
                                     //{"flicker":0,"speaker":0,"led_on":0,"fan_on":0,"aud_on":0,"aud_spatial":0,"set_logo":0,}};
@@ -3392,8 +3415,8 @@ void fifo::read_fifo_thread()
                             }
                             // Log.d(TAG, "mDispType type (%d %d %d)",  mDispType->type, mDispType->qr_type, mDispType->control_act);
                             send_disp_str_type(mDispType);
-                        }
                             break;
+                        }
 						
 
                         /* 设置SN/UUID
@@ -3475,6 +3498,61 @@ void fifo::read_fifo_thread()
                             send_wifi_config(ssid, pwd);
 							#endif
 							break;
+                        }
+
+                        /* 发送通知TF的状态 */
+                        case CMD_WEB_UI_TF_NOTIFY: {
+                            #if 1
+                            Log.d(TAG, "[%s:%d] get notify form server for TF info", __FILE__, __LINE__);
+                            char cStoragePath[64] = {0};
+                            int iModuleArray = 0;
+                            std::vector<sp<Volume>> storageList;
+                            
+                            cJSON* tmpJsonNode = NULL;
+                            cJSON* tmpJsonIndex = NULL;
+                            cJSON* tmpJsonTotalSpace = NULL;
+                            cJSON* tmpJsonLeftSpace = NULL;
+
+                            storageList.clear();
+
+                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "storagePath", cStoragePath, sizeof(cStoragePath));
+                            Log.d(TAG, "[%s:%d] get local device mount path [%s]", __FILE__, __LINE__, cStoragePath);
+
+                            subNode = cJSON_GetObjectItem(root, "module");
+                            if (subNode) {
+                                iModuleArray = cJSON_GetArraySize(subNode);
+                                for (u32 i = 0; i < iModuleArray; i++) {
+                                    tmpJsonNode = cJSON_GetArrayItem(subNode, i);
+                                    if (tmpJsonNode) {
+                                        sp<Volume> tmpVol = (sp<Volume>)(new Volume());
+
+                                        tmpJsonIndex = cJSON_GetObjectItem(tmpJsonNode, "index");
+                                        tmpJsonTotalSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_total");
+                                        tmpJsonLeftSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_left");
+
+                                        Log.d(TAG, "[%s: %d] TF card node info index[%d], total space[%d]M, left space[%d]",
+                                                    __FILE__, __LINE__, tmpJsonIndex->valueint, tmpJsonTotalSpace->valueint, tmpJsonLeftSpace->valueint);
+                                        tmpVol->iIndex = tmpJsonIndex->valueint;
+                                        tmpVol->total  = tmpJsonTotalSpace->valueint;
+                                        tmpVol->avail  = tmpJsonLeftSpace->valueint;
+
+                                        /* 类型为"SD"
+                                         * 外部TF卡的命名规则
+                                         * 名称: "tf-1","tf-2","tf-3"....
+                                         */
+                                        sprintf(tmpVol->name, "tf-%d", tmpJsonIndex->valueint);
+                                        storageList.push_back(tmpVol);
+                                    }
+                                }
+
+                                /* 直接将消息丢入UI线程的消息队列中 */
+                                mOLEDHandle->updateTfStorageInfo(storageList);
+
+                            } else {
+                                Log.d(TAG, "[%s:%d] get module json node[module] failed", __FILE__, __LINE__);
+                            }
+                            #endif
+                            break;
                         }
 
 						/*

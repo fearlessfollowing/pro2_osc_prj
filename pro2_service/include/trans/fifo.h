@@ -3,6 +3,7 @@
 
 #include <hw/InputManager.h>
 #include <common/sp.h>
+#include <util/cJSON.h>
 
 class ARLooper;
 class ARHandler;
@@ -21,6 +22,10 @@ struct _sync_init_info_;
 #define  FIFO_HEAD_LEN (8)
 #define  FIFO_DATA_LEN_OFF (FIFO_HEAD_LEN - 4)
 
+
+/*
+ * FIFO与UI线程交互的消息
+ */
 enum {
 //    MSG_POLL_TIMER,
     MSG_GET_OLED_KEY,
@@ -39,22 +44,32 @@ enum {
 
     // while boot with usb inserted
     MSG_INIT_SCAN,
+
+    MSG_TRAN_INNER_UPDATE_TF,
     MSG_EXIT,
 };
 
-//rec from controller
+
+/*
+ * 接收来自Http服务器的消息
+ */
 enum {
-    CMD_OLED_DISP_TYPE,
-    CMD_OLED_SYNC_INIT,
-//    CMD_OLED_POWER_OFF = 17,
+    CMD_OLED_DISP_TYPE = 0,
+    CMD_OLED_SYNC_INIT = 1,
 
     CMD_OLED_DISP_TYPE_ERR = 16,
+
+    CMD_OLED_POWER_OFF = 17,
+
     CMD_OLED_SET_SN = 18,
+
     CMD_CONFIG_WIFI = 19,
     //clear all camera state
     
-    //for kill self
-	CMD_EXIT = 20
+	CMD_EXIT = 20,
+    
+    CMD_WEB_UI_TF_NOTIFY = 30,
+
 };
 
 
@@ -152,9 +167,15 @@ private:
 
     void handleStitchProgress(sp<struct _disp_type_>& mDispType, cJSON *subNode);
     void handleSetting(sp<struct _disp_type_>& mDispType, cJSON *subNode);
-    void handleReqFormHttp(sp<struct _disp_type_>& mDispType, cJSON *subNode);
-    void handleQrContent(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void handleReqFormHttp(sp<struct _disp_type_>& mDispType, cJSON *root, cJSON *subNode);
+    void handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode);
+    
+    void handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
+    void handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param);
+    void handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
 
+
+    void handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg);
 
     sp<MenuUI> mOLEDHandle;
 

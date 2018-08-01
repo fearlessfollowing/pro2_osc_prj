@@ -76,6 +76,10 @@
 #define PROP_SYS_DEV_DISK9			"sys.disk9"
 
 
+#define PROP_SYS_FILE_LIST_ROOT     "sys.list_root"
+
+#define PROP_EXTERN_TF_STATE        "sys.tf_info"
+
 #define PROP_MAX_DISK_SLOT_NUM	    10
 
 
@@ -123,6 +127,8 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 
 #define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
+
+#define HTTP_APP_LOG_PATH       "/home/nvidia/insta360/log/http_log"
 
 /*
  * 拍照模式名称

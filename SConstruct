@@ -80,6 +80,9 @@ com_env.Program('./out/update_app', udisk_app_obj)
 udisk_test_obj = SConscript('./pro2_service/udisk/SConscript')
 com_env.Program('./out/udisk_test', udisk_test_obj)
 
+############################ mongoose ##################################
+mongoose_obj = SConscript('./mongoose_new/SConscript')
+com_env.Program('./out/mongoose', mongoose_obj)
 
 
 

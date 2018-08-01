@@ -37,8 +37,13 @@ import time
 _name = config._NAME
 _state = config._STATE
 _param = config.PARAM
+_result = config._RESULTS
+
+
 KEY_ID = 'id'
-MOUNT_ROOT = '/mnt/media_rw'
+#MOUNT_ROOT = '/mnt/media_rw'
+MOUNT_ROOT = '/mnt'
+
 
 # 连接超时的值 - 10s
 POLL_TO = 30000
@@ -101,17 +106,17 @@ class control_center:
 
         #func with camera operation
         self.camera_cmd_func = OrderedDict({
-            config._START_RECORD: self.camera_rec,
-            config._STOP_RECORD: self.camera_rec_stop,
-            config._START_LIVE: self.camera_live,
-            config._STOP_LIVE: self.camera_stop_live,
+            config._START_RECORD:   self.camera_rec,
+            config._STOP_RECORD:    self.camera_rec_stop,
+            config._START_LIVE:     self.camera_live,
+            config._STOP_LIVE:      self.camera_stop_live,
             # config._START_STICH_VIDEO: self.camera_start_compose_video,
             # config._STOP_STICH_VIDEO: self.camera_stop_compose_video,
             # config._START_STICH_PIC: self.camera_start_compose_pic,
-            config._START_PREVIEW: self.camera_start_preview,
-            config._STOP_PREVIEW: self.camera_stop_preview,
-            config._TAKE_PICTURE: self.camera_take_pic,
-            config._SET_NTSC_PAL:self.camera_set_ntsc_pal,
+            config._START_PREVIEW:  self.camera_start_preview,
+            config._STOP_PREVIEW:   self.camera_stop_preview,
+            config._TAKE_PICTURE:   self.camera_take_pic,
+            config._SET_NTSC_PAL:   self.camera_set_ntsc_pal,
             config._GET_NTSC_PAL: self.camera_get_ntsc_pal,
             # config._SET_HDMI_ON: self.camera_hdmi_on,
             # config._SET_HDMI_OFF: self.camera_hdmi_off,
@@ -144,16 +149,16 @@ class control_center:
         })
 
         self.camera_cmd_done = OrderedDict({
-            config._START_RECORD: self.camera_rec_done,
-            config._STOP_RECORD: self.camera_rec_stop_done,
-            config._START_LIVE: self.camera_live_done,
-            config._STOP_LIVE: self.camera_stop_live_done,
+            config._START_RECORD:   self.camera_rec_done,
+            config._STOP_RECORD:    self.camera_rec_stop_done,
+            config._START_LIVE:     self.camera_live_done,
+            config._STOP_LIVE:      self.camera_stop_live_done,
             # config._START_STICH_VIDEO: self.camera_start_compose_video_done,
             # config._STOP_STICH_VIDEO: self.camera_stop_compose_video_done,
             # config._START_STICH_PIC: self.camera_start_compose_pic_done,
-            config._START_PREVIEW: self.camera_start_preview_done,
-            config._STOP_PREVIEW: self.camera_stop_preview_done,
-            config._TAKE_PICTURE: self.camera_take_pic_done,
+            config._START_PREVIEW:  self.camera_start_preview_done,
+            config._STOP_PREVIEW:   self.camera_stop_preview_done,
+            config._TAKE_PICTURE:   self.camera_take_pic_done,
             # config._SET_NTSC_PAL: self.camera_set_ntsc_pal_done,
             # config._GET_NTSC_PAL: self.camera_get_ntsc_pal_done,
             # config._SET_HDMI_ON: self.camera_hdmi_on_done,
@@ -225,17 +230,17 @@ class control_center:
         })
 
         self.non_camera_cmd_func = OrderedDict({
-            config._GET_RESULTS:self.camera_get_result,
-            # config._SET_WIFI_CONFIG: self.set_wifi_config,
-            config.LIST_FILES: self.camera_list_files,
-            config.DELETE: self.camera_delete,
-            config.GET_IMAGE: self.camera_get_image,
-            config.GET_META_DATA: self.camera_get_meta_data,
+            config._GET_RESULTS:        self.camera_get_result,
+            # config._SET_WIFI_CONFIG:  self.set_wifi_config,
+            config.LIST_FILES:          self.camera_list_files,
+            config.DELETE:              self.camera_delete,
+            config.GET_IMAGE:           self.camera_get_image,
+            config.GET_META_DATA:       self.camera_get_meta_data,
             # config._TEST_RW_SPEED: self.test_rw_speed,
-            config._DISCONNECT: self.camera_disconnect,
-            config._SET_CUSTOM: self.set_custom,
-            config._SET_SN:self.set_sn,
-            config._START_SHELL:self.start_shell,
+            config._DISCONNECT:         self.camera_disconnect,
+            config._SET_CUSTOM:         self.set_custom,
+            config._SET_SN:             self.set_sn,
+            config._START_SHELL:        self.start_shell,
 
             config._QUERY_GPS_STATE: self.queryGpsState,
 
@@ -251,8 +256,10 @@ class control_center:
         })
 
         self.osc_path_func = OrderedDict({
-            config.PATH_STATE:self.get_osc_state,
-            config.PATH_INFO:self.get_osc_info,
+            
+            # 查询心跳包的状态函数
+            config.PATH_STATE:  self.get_osc_state,   
+            config.PATH_INFO:   self.get_osc_info,
         })
 
         self.osc_stitch_path_func = OrderedDict({
@@ -261,27 +268,29 @@ class control_center:
 
         self.oled_func = OrderedDict(
             {
-                ACTION_PIC:self.camera_oled_pic,
-                ACTION_VIDEO: self.camera_oled_rec,
-                ACTION_REQ_SYNC:self.start_oled_syn_state,
-                ACTION_LIVE: self.camera_oled_live,
-                ACTION_PREVIEW:self.camera_oled_preview,
-                #ACTION_HDMI: self.camera_oled_hdmi,
-                ACTION_CALIBRATION:self.camera_oled_calibration,
-                ACTION_QR:self.camera_oled_qr,
-                ACTION_SET_OPTION:self.camera_oled_set_option,
-                ACTION_LOW_BAT:self.camera_oled_low_bat,
-                ACTION_SPEED_TEST:self.camera_oled_speed_test,
-                ACTION_POWER_OFF:self.camera_oled_power_off,
-                ACTION_GYRO:self.camera_oled_gyro,
-                ACTION_AGEING:self.camera_oled_aging,
+                ACTION_PIC:                 self.camera_oled_pic,
+                ACTION_VIDEO:               self.camera_oled_rec,
+                ACTION_REQ_SYNC:            self.start_oled_syn_state,
+                ACTION_LIVE:                self.camera_oled_live,
+                ACTION_PREVIEW:             self.camera_oled_preview,
+                #ACTION_HDMI:               self.camera_oled_hdmi,
+                ACTION_CALIBRATION:         self.camera_oled_calibration,
+                ACTION_QR:                  self.camera_oled_qr,
+                ACTION_SET_OPTION:          self.camera_oled_set_option,
+                ACTION_LOW_BAT:             self.camera_oled_low_bat,
+                ACTION_SPEED_TEST:          self.camera_oled_speed_test,
+                ACTION_POWER_OFF:           self.camera_oled_power_off,
+                ACTION_GYRO:                self.camera_oled_gyro,
+                ACTION_AGEING:              self.camera_oled_aging,
                 # ACTION_LOW_PROTECT:self.camera_low_protect,
-                ACTION_NOISE:self.camera_oled_noise,
-                ACTION_LIVE_ORIGIN:self.camera_oled_live_origin,
-                ACTION_CUSTOM_PARAM:self.camera_oled_custom_param,
-                ACTION_SET_STICH:self.camera_oled_set_stitch,
+                ACTION_NOISE:               self.camera_oled_noise,
+                ACTION_LIVE_ORIGIN:         self.camera_oled_live_origin,
+                ACTION_CUSTOM_PARAM:        self.camera_oled_custom_param,
+                ACTION_SET_STICH:           self.camera_oled_set_stitch,
                 ACTION_AWB:                 self.camera_old_factory_awb,
-                ACTION_QUERY_STORAGE: self.camera_oled_query_storage,
+
+                # 查询TF卡信息
+                ACTION_QUERY_STORAGE:       self.cameraUiQueryTfInfo,
 
             }
         )
@@ -311,6 +320,8 @@ class control_center:
             config._BLC_FINISH:             self.calibration_blc_notify,
             config._BPC_FINISH:             self.calibration_bpc_notify,
             
+            #通知TF卡状态的变化
+            config._TF_NOTIFY:              self.tf_state_notify,
             # config._STOP_REC_FINISH:self.handle_stop_rec_finish,
             # config._STOP_LIVE_FINISH:self.handle_stop_live_finish,
         })
@@ -445,18 +456,33 @@ class control_center:
         os.system("factory_test awb");
         
 
-        # 给camerad发送录像
-        #read_info = self.write_and_read(content)
-        #Info('start_ageing_test result {}'.format(read_info))
+    # 给camerad发送录像
+    # read_info = self.write_and_read(content)
+    # Info('start_ageing_test result {}'.format(read_info))
 
 
-
-    def camera_oled_query_storage(self):
-        Info('>>>>camera_oled_query_storage')
-        info = self.write_and_read(self.get_req(config._QUERY_STORAGE), True)
-        Info('resut info is {}'.format(info))
+    # 方法名称: cameraUiQueryTfInfo
+    # 功能: 查询TF信息
+    # 参数: 无
+    # 返回值: 无
+    # 当相机处于预览或空闲状态时都可以查询卡的状态，查询的结果用来更新osc状态机器
+    def cameraUiQueryTfInfo(self):
         
-        pass
+        # 返回info为json字符串
+        info = self.write_and_read(self.get_req(config._QUERY_STORAGE))
+        ret = json.loads(info)
+        Info('resut info is {}'.format(info))
+        if ret['state'] == config.DONE:
+            Info('>>>>>> query storage is ok.....')
+            # 将查询到的小卡的信息发送到心跳包
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_TF_INFO, ret['results']))
+        else:
+            Info('++++++++>>> query storage bad......')
+            # 查询失败，将心跳包中小卡的信息去除
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TF_INFO))
+
+        # 将卡的信息发送给UI
+        self.sendQueryStorageResults(ret['results'])
 
 
     def camera_get_result(self,req):
@@ -497,21 +523,6 @@ class control_center:
             read_info = cmd_exception(str(e),config._GET_RESULTS)
         Info('camera_get_result read_info {}'.format(read_info))
         return read_info
-
-    # def add_reset_exception_to_poll(self):
-    #     self.add_cmd_id_queue(config.CAMERA_RESET,1)
-
-    # def add_id_result_by_name(self,name,content):
-    #     Info('self._id_list is {}'.format(self._id_list))
-    #     for id_dict in self._id_list:
-    #         if id_dict[_name] == name and id_dict[config._STATE] == 0:
-    #             Info(' found id result name {} id_dict {} content {}'.format(name,id_dict,content))
-    #             osc_state_handle.add_res_id(id_dict[KEY_ID])
-    #             id_dict[config.RESULTS] = content
-    #             id_dict[config._STATE] = 1
-    #             break
-    #     else:
-    #         Warn('not found id result name {}'.format(name))
 
     def get_err_code(self,content):
         err_code = -1
@@ -636,6 +647,22 @@ class control_center:
         Info('snd_notify param {}'.format(param))
         self.set_snd_state(param)
 
+
+    # 方法名称: tf_state_notify - TF状态变化通知（必须在预览状态，即模组上电的状态）
+    # 功能: 通知TF卡状态
+    # 参数: 通知信息
+    # 返回值: 无
+    # 需要将信息传递给UI(有TF卡被移除))
+    def tf_state_notify(self, param):
+        Info('tf_state_notify param {}'.format(param))
+
+        # 将更新的信息发给状态机
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.TF_STATE_CHANGE, param['module']))
+        
+        # 将更新的信息发给UI
+
+        pass
+
     def stitch_notify(self,param):
         Info('stitch_notify param {}'.format(param))
         res = OrderedDict({'stitch_progress':param})
@@ -720,12 +747,6 @@ class control_center:
             return False
 
 
-
-
-    def queryStorage(self):
-        Info('queryStorage a')
-        info = self.write_and_read(self.get_req(config._QUERY_STORAGE), True)
-        Info('queryStorage result {}'.format(info))        
 
 
     # def check_bat_protect(self):
@@ -843,6 +864,7 @@ class control_center:
                             #     ret = cmd_exception(error_dic('disabledCommand', 'bat low protect'), req)
                             # else:
                             ret = self.start_camera_cmd_func(name, req)
+                            
                     else:
                         Err('error fingerprint fp {} req {}'.format(fp, req))
                         if fp is None:
@@ -871,7 +893,7 @@ class control_center:
 
     def start_stitch_req(self,req):
         read_info = self.write_and_read(req)
-        return read_info;
+        return read_info
 
     def start_non_stich_camera_func(self,name,req):
         try:
@@ -903,60 +925,6 @@ class control_center:
             ret = cmd_exception(str(e),name)
         return ret
 
-    # @time_util.timethis2
-    # def flask_start(self,path,fp = None,req = None):
-    #     try:
-    #         # Info('req path {}'.format(path))
-    #         state = self.get_connect()
-    #         # Info('connected state {}'.format(state))
-    #         if path == config.PATH_CMD_EXECUTE and req[_name] == config._CONNECT:
-    #             if state:
-    #                 ret = cmd_exception(error_dic('connect error','already connected by another'),req[_name])
-    #             else:
-    #                 Info('req 2 {}'.format(req))
-    #                 ret = self.func_flask[path](req)
-    #                 Info('req 3 {}'.format(req))
-    #         else:
-    #             if state:
-    #                 # Info('fingerprint {} fp {} type fp {}'.
-    #                 #      format(self.finger_print, fp, type(fp)))
-    #                 assert_not_none(fp,'fingerprint')
-    #                 random = self.fp_decode(fp)
-    #                 if self.random_data == random or fp == 'test':
-    #                     Info('a req path {}'.format(path))
-    #                     ret = self.func_flask[path](req)
-    #                     Info('b req path {}'.format(path))
-    #                 else:
-    #                     if req is None:
-    #                         ret = cmd_exception(error_dic('invalidParameterValue',join_str_list(['error fingerprint ',fp])), path)
-    #                     else:
-    #                         ret = cmd_exception(error_dic('invalidParameterValue',join_str_list(['error fingerprint ',fp])), req[_name])
-    #             else:
-    #                 Info('rec {} but already disconnected'.format(path))
-    #                 if req is None:
-    #                     ret = cmd_exception(error_dic('disabledCommand','camera not connected'), path)
-    #                 else:
-    #                     ret = cmd_exception(error_dic('disabledCommand','camera not connected'), req[_name])
-    #     except Exception as e:
-    #         if req != None:
-    #             Err('flask_start e {} path {} req {}'.format(e, path,req))
-    #         else:
-    #             Err('flask_start e {} path {}'.format(e, path))
-    #         ret = cmd_exception(error_dic('flask_start',str(e)),path)
-    #     return ret
-
-    # def check_id_valid(self,id):
-    #     if check_dic_key_exist(self.progress_cmd_id,id):
-    #         return True
-    #     else:
-    #         Err("{0} {1} id {2} keys {3}".format(sys._getframe().f_lineno, sys._getframe().f_code.co_filename,id,self.progress_cmd_id.keys()))
-    #         return False
-
-    # def add_id(self,id,name):
-    #     self.progress_cmd_id[id] = name
-    #
-    # def rm_id(self,name,id):
-    #     del self.progress_cmd_id[id]
 
     # @lazy_property
     def get_write_fd(self):
@@ -1103,13 +1071,13 @@ class control_center:
     #     self.send_oled_disp(0, 0, str)
 
     #send req to pro service
-    def send_req(self,req):
+    def send_req(self, req):
         try:
             self._fifo_write_handle.send_req(req)
         except Exception as e:
             Err('send req exception {}'.format(e))
 
-    def get_write_req(self,msg_what,args):
+    def get_write_req(self, msg_what, args):
         req = OrderedDict()
         req['msg_what'] = msg_what
         req['args'] = args
@@ -1149,6 +1117,7 @@ class control_center:
                 req_dict['stitch_progress'] = req['stitch_progress']
             else:
                 Info('nothing found')
+
         # Info("2send_oled_type type is {}".format(type))
         self.send_req(self.get_write_req(config.OLED_DISP_TYPE, req_dict))
 
@@ -1164,9 +1133,19 @@ class control_center:
     def send_set_sn(self,req):
         self.send_req(self.get_write_req(config.OLED_SET_SN, req))
 
-    def send_wifi_config(self,req):
+    def send_wifi_config(self, req):
         Info('wifi req'.format(req))
         self.send_req(self.get_write_req(config.OLED_CONIFIG_WIFI, req))
+
+
+    # 方法名称: sendQueryStorageResults
+    # 功能: 将查询到的卡信息发送给UI
+    # 参数: results - 查询的结果信息
+    # 返回值: 无
+    def sendQueryStorageResults(self, results):
+        Info('---> send query storage results to UI {}'.format(results))
+        self.send_req(self.get_write_req(config.UI_NOTIFY_STORAGE_STATE, results))
+
 
     # def send_start_power_off(self):
     #     #self.send_req(self.get_write_req(config.OLED_POWER_OFF, req))
@@ -1186,49 +1165,6 @@ class control_center:
 
     def set_snd_state(self,param):
         osc_state_handle.set_snd_state(param)
-
-    # def send_start_rec(self, width=3840, height=1920, mode='pano', prefix='in'):
-    #     self.send_http_req({'cmd': config.CMD_START_RECORD})
-    #
-    # def send_stop_rec(self):
-    #     self.send_http_req({'cmd': config.CMD__STOP_RECORD})
-    #
-    # def send_start_compose(self, width=3840, height=1920, mode='pano', prefix='in'):
-    #     self.send_http_req({'cmd': config.CMD_START_COMPOSE})
-    #
-    # def send_stop_compose(self, width=3840, height=1920, mode='pano', prefix='in'):
-    #     self.send_http_req({'cmd': config.CMD_STOP_COMPOSE})
-    #
-    # def send_start_photo(self, width=3840, height=1920, mode='pano', prefix='in'):
-    #     self.send_http_req({'cmd': config.CMD_START_PHOTO})
-    #
-    # def send_get_status(self, id=0):
-    #     self.send_http_req({'cmd': config.CMD_GET_STATUS, 'id': id})
-
-    # def send_http_req(self, req):
-    #     req['seq'] = self._seq
-    #     # self._queue.put(req)
-    #     self._seq += 1
-    #     self.write_req(req)
-    #     return self.read_response()
-
-    # def osc_set_all_options(self):
-    #     all_options = osc_option.get_all_options()
-    #
-    #     dict_param = OrderedDict();
-    #     dict_param['options'] = all_options
-    #
-    #     req= OrderedDict({_name:config.SET_OPTIONS,config.PARAM:dict_param})
-    #     # Print('set all opt req ', dict_to_jsonstr(req))
-    #     # if platform.machine() != 'x86_64':
-    #     self.write_req(req)
-    #     read_info = self.read_response()
-    #     assert_match(read_info[_name], req[_name])
-    #     if read_info[_state] == config.DONE:
-    #         cmd_suc(config.SET_OPTIONS)
-    #         # options = req[_param]['options']
-    #     else:
-    #         assert_key(read_info, config.ERROR)
 
     def close_read_reset(self):
         Info('close_read_reset control self._read_fd {}'.format(self._reset_read_fd))
@@ -1266,16 +1202,20 @@ class control_center:
     def get_osc_info(self):
         return osc_info.get_osc_info()
 
-    #normal http req
+
+    # 方法名称: get_osc_state
+    # 功能: 查询心跳包信息(由http client发送)
+    # 参数: 无
+    # 
     def get_osc_state(self):
-        # Print('get osc state start time {}'.format(get_local_date_time()))
+        # 停止轮询定时器
         self.stop_poll_timer()
-        # Print('2get osc state start time {}'.format(get_local_date_time()))
-        # self.get_timer_stop_cost()
+        
+        # 获取状态osc_state
         ret_state = osc_state_handle.get_osc_state(False)
-        # Print('3get osc state start time {}'.format(get_local_date_time()))
+        
+        # 重新启动定时器
         self.start_poll_timer()
-        # Info('get_osc_state is {}'.format(ret_state))
         return ret_state
 
     def get_osc_stich_state(self):
@@ -1289,29 +1229,30 @@ class control_center:
 
     # 暂时添加同步锁操作
     def write_and_read(self,req,from_oled = False):
-        self.syncWriteReadSem.acquire()
+        #self.syncWriteReadSem.acquire()
         try:
             name = req[_name]
-            # Info('write_and_read req {}'.format(req))
+            Info('write_and_read req {}'.format(req))
             read_seq = self.write_req(req, self.get_write_fd())
             
             #write fifo suc
-            ret = self.read_response(read_seq,self.get_read_fd())
+            ret = self.read_response(read_seq, self.get_read_fd())
             if ret[_state] == config.DONE:
                 #some cmd doesn't need done operationc
                 if check_dic_key_exist(self.camera_cmd_done, name):
                     #send err is False, so rec or live is sent from http controller -- old
                     # add old = from_oled to judge whether http req from controlled or oled 171204
-                    if name in (config._START_LIVE,config._START_RECORD,config._CALIBTRATE_BLC):
+                    if name in (config._START_LIVE, config._START_RECORD, config._CALIBTRATE_BLC):
                         if check_dic_key_exist(ret,config.RESULTS):
                             self.camera_cmd_done[name](ret[config.RESULTS],req,oled = from_oled)
                         else:
                             self.camera_cmd_done[name](None,req,oled = from_oled)
                     else:
-                        if check_dic_key_exist(ret,config.RESULTS):
+                        if check_dic_key_exist(ret, config.RESULTS):
                             self.camera_cmd_done[name](ret[config.RESULTS])
                         else:
                             self.camera_cmd_done[name]()
+
                 #send err indentify that req is from http controller
                 # Info('from_oled is {} name {}'.format(from_oled,name))
                 if from_oled is False and name in self.async_cmd:
@@ -1322,6 +1263,8 @@ class control_center:
                     err_code = self.get_err_code(ret)
                     Err('name {} err_code {}'.format(name,err_code))
                     self.camera_cmd_fail[name](err_code)
+                    
+            # write_and_read - 返回的是字符串
             ret = dict_to_jsonstr(ret)
         except FIFOSelectException as e:
             Err('FIFOSelectException name {} e {}'.format(req[_name], str(e)))
@@ -1360,7 +1303,7 @@ class control_center:
             self.reset_all()
 
        
-        self.syncWriteReadSem.release()
+        #self.syncWriteReadSem.release()
         return ret
 
     def write_req_reset(self, req, write_fd):
@@ -1622,7 +1565,7 @@ class control_center:
     def camera_sys_time_change_done(self,res = None):
         Info('sys time change done')
 
-    def camera_sys_time_change(self,req):
+    def camera_sys_time_change(self, req):
         read_info = self.write_and_read(req)
         return read_info
 
@@ -1668,8 +1611,9 @@ class control_center:
     #"MMDDhhmm[[CC]YY][.ss]"
     #091713272014.30
     #usage: hwSetTime year month day hour minute second
-    def set_hw_set_cmd(self,str):
+    def set_hw_set_cmd(self, str):
         try:
+            Info('get hw_time is {}'.format(str))
             if file_exist('/system/bin/hwSetTime'):
                 Info('hw_time is {}'.format(str))
                 mon = str[0:2]
@@ -1688,7 +1632,7 @@ class control_center:
 
     def set_sys_time_change(self):
         Info('set_sys_time_change a')
-        self.start_camera_cmd_func(config._SYS_TIME_CHANGE,self.get_req(config._SYS_TIME_CHANGE))
+        self.start_camera_cmd_func(config._SYS_TIME_CHANGE, self.get_req(config._SYS_TIME_CHANGE))
         Info('set_sys_time_change b')
 
     def set_sys_time(self,req):
@@ -2262,10 +2206,11 @@ class control_center:
     def camera_preview_fail(self,err):
         self.send_oled_type_err(config.START_PREVIEW_FAIL,err)
 
-    def camera_start_preview_done(self,res):
+    def camera_start_preview_done(self, res):
         self.set_cam_state(self.get_cam_state() | config.STATE_PREVIEW)
-        if check_dic_key_exist(res,config.PREVIEW_URL):
+        if check_dic_key_exist(res, config.PREVIEW_URL):
             self.set_preview_url(res[config.PREVIEW_URL])
+
         self.send_oled_type(config.START_PREVIEW_SUC)
 
     def start_preview(self,req,from_oled = False):
@@ -2465,7 +2410,7 @@ class control_center:
         return file_list
 
     #file type is “image”, ”video”, ”all” ,added for google osc 170914
-    def list_path_and_file(self, rootDir,startPos = -1, entryCount = 0,fileType = None,maxThumbSize = None):
+    def list_path_and_file(self, rootDir,startPos = -1, entryCount = 0, fileType = None, maxThumbSize = None):
         file_list = []
         list_dirs = os.walk(rootDir)
         # Info('list_dirs rootDir {} {} startPos {} entryCount {}'.format(list_dirs, rootDir, startPos,entryCount))
@@ -2780,7 +2725,7 @@ class control_center:
         # param[config.PICTURE_INTER] = 5
         return param
 
-    def camera_oled_pic(self,req = None):
+    def camera_oled_pic(self, req = None):
         name = config._TAKE_PICTURE
         try:
             #take pic only appear while idle or preview ,which differ from controller http request ,for can't takepic when in live,rec with oled button
@@ -2792,18 +2737,18 @@ class control_center:
                     res = self.take_pic(self.get_req(name, self.get_pic_param()),True)
                 else:
                     Info('oled req {}'.format(req))
-                    if check_dic_key_exist(req,'delay'):
-                        if req['delay'] == 0:
-                            req['delay'] = 5
-                    else:
-                        req['delay'] = 5
+                    #if check_dic_key_exist(req,'delay'):
+                    #    if req['delay'] == 0:
+                    #        req['delay'] = 5
+                    #else:
+                    #    req['delay'] = 5
                     # if check_dic_key_exist(req, config.STICH) and req[config.STICH][
                     #     config.MODE] in ['3d', '3d_top_left']:
                     #     req[KEY_STABLIZATION] = False
                     # else:
                     #     req[KEY_STABLIZATION] = True
                     res = self.take_pic(self.get_req(name,req),True)
-            else if self.get_cam_state() == config.STATE_TAKE_CAPTURE_IN_PROCESS:
+            elif self.get_cam_state() == config.STATE_TAKE_CAPTURE_IN_PROCESS:
                 Info('camerad is taking picture in processing....')
             else:
                 Err('oled pic:error state {}'.format(self.get_cam_state()))
@@ -3626,13 +3571,15 @@ class control_center:
         # Info('start_change_save_path new')
 
     def handle_oled_key(self, content):
-        # Info('handle_oled_key start')
+        Info('+++++++++++++++ handle_oled_key start')
         self.acquire_sem_camera()
         try:
             # Info('handle_oled_key start2 content {}'.format(content))
             action = content['action']
             Info('handle_oled_key action {}'.format(action))
-            if check_dic_key_exist(self.oled_func,action):
+            
+            # 如果该action对应的处理函数存在
+            if check_dic_key_exist(self.oled_func, action):
                 if check_dic_key_exist(content, _param):
                     res = self.oled_func[action](content[_param])
                 else:
@@ -3643,8 +3590,12 @@ class control_center:
         except Exception as e:
             Err('handle_oled_key exception {}'.format(e))
         self.release_sem_camera()
-        Info('handle_oled_key over')
+        Info('+++++++++++++++++++++ handle_oled_key over')
 
+    # 方法名称: handle_notify_from_camera
+    # 功能: 处理来自camerad的通知
+    # 参数: content - 传递的参数
+    # 返回值: 无
     def handle_notify_from_camera(self, content):
         Info('handle notify content {}'.format(content))
         self.acquire_sem_camera()
@@ -3660,6 +3611,7 @@ class control_center:
                     self.add_async_finish(content)
             else:
                 Info("notify name {} not found".format(name))
+
         except Exception as e:
             Err('handle_notify_from_camera exception {}'.format(e))
         self.release_sem_camera()

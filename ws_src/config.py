@@ -163,7 +163,10 @@ _STITCH_STOP = 'stitcher.stop_stitching_box'
 # 老化测试结果
 _AGEINT_RESULT = 'camera._record_finish_'
 
+# TF卡的状态通知
+_TF_NOTIFY = 'camera._storage_state_'
 
+_RESULTS = 'results'
 
 
 #path
@@ -373,6 +376,7 @@ OLED_CONIFIG_WIFI = 'oled_config_wifi'
 OLED_SET_SN = 'oled_set_sn'
 # OLED_POWER_OFF = 'oled_power_off'
 OLED_SYNC_INIT = 'oled_sync_init'
+UI_NOTIFY_STORAGE_STATE = 'tf_storage_info'
 
 # STR_START_REC = 1
 # STR_START_REC = 1
@@ -488,8 +492,6 @@ START_FORCE_IDLE = 99
 RESET_ALL = 100
 WRITE_FOR_BROKEN = 101
 RESET_ALL_CFG = 102
-
-
 
 
 HTTP_ASYNC=True

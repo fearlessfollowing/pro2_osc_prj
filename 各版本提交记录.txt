@@ -118,6 +118,43 @@ MD5SUM：8c507fe4b92ceb5ba5433aecbef7bd14
 MD5SUM：7a3a598812b214142d51ec5784cca44f
 
 
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+提交日期：2018年08月01日
+
+版本号：V0.1.21
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+- 修改IQ
+- UI设置页修改
+- 新增mongoose http服务器用于文件下载
+- 修改60FPS的录像码率为120M
+
+
+
+测试风险点：
+- 升级811问题
+- 网络对时而引起的音视频不同步问题
+
+
+遗留问题：
+
+1.HDMI直播会报错453
+2.录像/拍照后大卡立即拔卡，文件没存或损坏
+3.长时间录像、直播会卡死
+4.Flat Color功能未完善
+5.手动曝光拍照会有概率性出现异常
+6.sharpness设置无效果
+7.手动WB效果不对（WB颜色的Gain值待确认）
+8.录像，直播，设置页面UI没有修改
+
+固件类型：临时测试
+
+MD5SUM: bb2dee18fb0254bf4f438ff27c42ba24
+
+
 拍照的流程：
 1.选中MAINMENU的MAINMENU_PIC项
     procPowerKeyEvent
@@ -273,3 +310,34 @@ stStiInfo={
 	width=,
 	height=,
 };
+
+
+
+同步时间设置：
+camera_connect
+	-> set_sys_time(req[_param])
+
+
+
+monitor_event::handle_oled_key
+	-> control_center::handle_oled_key
+
+
+
+
+get_osc_state
+	osc_state_handle.get_osc_state(False)
+		osc_state.get_osc_state
+			osc_state.get_poll_info(bStitch)
+
+osc_state.get_poll_info
+	st = self.poll_info[CAM_STATE]
+
+ 	# 检查存储空间
+	self.check_storage_space()
+
+self.check_storage_space()
+	get_storage_info(dev_info['path'],dev_type = dev_info['type'],dev_name = dev_info['name'])
+
+osc_state线程会轮询设备的信息：
+check_storage_space

@@ -18,6 +18,27 @@ respone:
 {"name":"camera._reset", "state":"done","error":{"code":int, "description":string}}
 
 
+容量查询
+camera._queryStorage
+{"name":"camera._queryStorage"}
+
+respone:
+{
+    "name":"camera._queryStorage",
+    "state":"done", "error":{"code":int, "description":string}
+    "results":{
+        "storagePath":string //nvidia上的存储路径
+        "module":[{"index":int, "storage_total":int, "storage_left":int}] //6个模组上的存储容量
+    }
+}
+
+indication:
+{
+    "name":"camera._storage_state_",
+    "parameters": {
+        "module":{"index":int, "storage_total":int, "storage_left":int}
+    }
+}
 
 camera._queryState
 request:
@@ -324,5 +345,20 @@ respone:
 说明：
 1.mode: 0:非storage模式 1:storage模式
 2.storage模式的时候，camerad处于module_storage状态，此状态下不能做任何模组操作
+
+
+模组存储设备信息
+--------------------------------------------------------------------------------------------------------------
+camera._storage_state_
+indication:
+{
+    "name":"camera._storage_state_",
+    "parameters": {
+        "module":{"index":int, "storage_total":int, "storage_left":int}
+    }
+}
+--------------------------------------------------------------------------------------------------------------
+
+
 
 循环往所有的模组U盘里写wenjian

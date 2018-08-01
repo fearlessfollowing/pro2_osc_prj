@@ -152,6 +152,7 @@ enum {
     UI_DISP_LIGHT,
     //disp oled info at start
     UI_DISP_INIT,
+    UI_UPDATE_TF,   /* TF卡状态消息 */
     UI_EXIT,
 };
 
@@ -449,7 +450,7 @@ static const ACTION_INFO mVIDAction[] = {
 #if 1
 			1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
-			{ALL_FR_30, 80}	/* bitrate: 40 -> 80 */
+			{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
         },	
         {	/* STI_INFO */
 	        EN_H264,
@@ -502,7 +503,7 @@ static const ACTION_INFO mVIDAction[] = {
             1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 #endif
 			
-            { ALL_FR_120, 80}	// 40 -> 80
+            { ALL_FR_120, 120}	// 40 -> 80
         },
         {
 	        EN_H264,
@@ -2006,6 +2007,39 @@ void MenuUI::sendExit()
     Log.d(TAG, "sendExit2");
 }
 
+
+/*
+ * 更新TF卡存储信息
+ */
+void MenuUI::updateTfStorageInfo(vector<sp<Volume>>& mStorageList)
+{
+#if 0    
+    sp<ARMessage> msg = obtainMessage(UI_UPDATE_TF);
+    msg->set<vector<sp<Volume>>>("tf_info", mStorageList);
+    msg->post();
+
+    /* Warnning: 加访问外部存储设备列表锁 
+     * 此处的访问近可能快,并且不能死锁
+     */
+#else    
+    // unique_lock<mutex> lock(mRemoteDevLock);    
+    mRemoteStorageList.clear();
+    sp<Volume> tmpVolume = NULL;
+
+    for (u32 i = 0; i < mStorageList.size(); i++) {
+        tmpVolume = mStorageList.at(i);
+        if (tmpVolume) {
+            mRemoteStorageList.push_back(tmpVolume);
+            Log.d(TAG, "Volume[%s] add to remote storage list", tmpVolume->name);
+        }
+    }
+
+    /* 设置属性: PROP_EXTERN_TF_STATE,表示TF卡的状态有更新 */
+    // property_set(PROP_EXTERN_TF_STATE, "true");
+
+#endif
+
+}
 
 void MenuUI::send_disp_str(sp<DISP_TYPE> &sp_disp)
 {
@@ -6770,7 +6804,7 @@ bool MenuUI::queryCurStorageState()
 			}
 		}
 		
-		add_state(STATE_QUERY_STORAGE);
+		// add_state(STATE_QUERY_STORAGE);
 
 		send_option_to_fifo(ACTION_QUERY_STORAGE);
 		return true;		
@@ -6794,6 +6828,7 @@ int MenuUI::convCapDelay2Index(int iDelay)
         return 1;   /* 默认返回5s */
     }
 }
+
 
 
 int MenuUI::convIndex2CapDelay(int iIndex)
@@ -6939,7 +6974,7 @@ int MenuUI::oled_disp_type(int type)
             break;
 
 
-        /************************************ 拍照相关 START **********************************************/	
+/************************************ 拍照相关 START **********************************************/	
         case CAPTURE:
 
             if (check_allow_pic()) {
@@ -7019,7 +7054,7 @@ int MenuUI::oled_disp_type(int type)
                 disp_sys_err(type);
             }
             break;
-	    /************************************ 拍照相关 END **********************************************/
+/************************************ 拍照相关 END **********************************************/
 
 
         case STRAT_LIVING:
@@ -7109,7 +7144,7 @@ int MenuUI::oled_disp_type(int type)
 
 
 
-		/*********************************  预览相关状态 START ********************************************/
+/*********************************  预览相关状态 START ********************************************/
 			
         case START_PREVIEWING:
             add_state(STATE_START_PREVIEWING);
@@ -7120,7 +7155,7 @@ int MenuUI::oled_disp_type(int type)
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS, ENTER QUERY STORAGE STATE");
 
-#if 0
+#if 1
 				/* 查询状态 */							
 				bool bStore = queryCurStorageState();
 				if (bStore) {		
@@ -7188,7 +7223,7 @@ int MenuUI::oled_disp_type(int type)
 		
 			break;
 			
-		/*********************************	预览相关状态 START ********************************************/
+/*********************************	预览相关状态 START ********************************************/
 
 
 
@@ -8218,8 +8253,13 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 				handleLongKeyMsg(key, ts);
 				 break;
             }
-               
 
+#if 0
+            case UI_UPDATE_TF: {
+                CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_info", &key), true);
+                break;
+            }               
+#endif
             case OLED_DISP_IP: {	/* 更新IP */
 				sp<DEV_IP_INFO> tmpIpInfo;
 				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);

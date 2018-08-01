@@ -28,9 +28,7 @@ EVENT_QUERY_STORAGE = 6
 
 
 
-#write to pro service
-# CMD_OLED_DISP_EXT = 1
-# CMD_OLED_KEY_RES = 2
+# 发送给UI的通知/指示
 CMD_OLED_DISP_TYPE = 0
 CMD_OLED_SYNC_INIT = 1
 
@@ -38,6 +36,9 @@ CMD_OLED_DISP_TYPE_ERR = 16
 CMD_OLED_POWER_OFF = 17
 CMD_OLED_SET_SN = 18
 CMD_CONFIG_WIFI = 19
+
+# Add by skymixos 2018年8月1日
+CMD_WEB_UI_TF_NOTIFY   = 30
 
 
 
@@ -90,23 +91,17 @@ class monitor_fifo_write(threading.Thread):
             bytes_cmd = int_to_bytes(cmd)
             bytes_content_len = int_to_bytes(contet_len)
             bytes_content = str_to_bytes(content)
+
             # Print('write {} {} {}'.format(bytes_cmd,bytes_content_len,bytes_content))
             content = join_byte_list((bytes_cmd, bytes_content_len,bytes_content))
             # contet_len = len(content)
+            
             write_len = fifo_wrapper.write_fifo(self._write_fd,content)
             # Print('fifo monitor write req:{} content len {} write len {}'.format(content, contet_len, write_len))
             # assert_match(write_len, contet_len)
         else:
             Info('x86 rec req {}'.format(req))
 
-    # def handle_disp_oled_str(self,req):
-    #     self.start_write(CMD_OLED_DISP,req)
-    #
-    # def handle_disp_oled_ext(self,req):
-    #     self.start_write(CMD_OLED_DISP_EXT,req)
-    #
-    # def handle_oled_key_res(self,req):
-    #     self.start_write(CMD_OLED_KEY_RES, req)
 
     def handle_disp_oled_type(self,req):
         #just reopen fifo write fd
@@ -128,22 +123,32 @@ class monitor_fifo_write(threading.Thread):
         self.start_write(CMD_OLED_SYNC_INIT, req)
 
     def handle_set_sn(self,req):
-        self.start_write(CMD_OLED_SET_SN,req)
+        self.start_write(CMD_OLED_SET_SN, req)
 
     # def handle_power_off(self,req):
     #     self.start_write(CMD_OLED_POWER_OFF, req)
 
+
+
+    # 方法名称: handle_notify_tf_state
+    # 功能: 处理发送TF信息状态給UI
+    # 参数: req - 发送的通知数据
+    # 返回值: 无
+    def handle_notify_tf_state(self, req):
+        self.start_write(CMD_WEB_UI_TF_NOTIFY, req)
+
     def run(self):
         self.func = OrderedDict({
-            # config.OLED_DISP_STR:self.handle_disp_oled_str,
-            # config.OLED_DISP_EXT:self.handle_disp_oled_ext,
-            # config.OLED_KEY_RES:self.handle_oled_key_res,
-            config.OLED_DISP_TYPE_ERR:self.handle_disp_oled_type_err,
-            config.OLED_DISP_TYPE:self.handle_disp_oled_type,
-            config.OLED_SET_SN:self.handle_set_sn,
-            # config.OLED_POWER_OFF:self.handle_power_off,
-            config.OLED_CONIFIG_WIFI:self.handle_set_wifi_config,
-            config.OLED_SYNC_INIT:self.handle_sync_init
+            # config.OLED_DISP_STR:         self.handle_disp_oled_str,
+            # config.OLED_DISP_EXT:         self.handle_disp_oled_ext,
+            # config.OLED_KEY_RES:          self.handle_oled_key_res,
+            config.OLED_DISP_TYPE_ERR:      self.handle_disp_oled_type_err,
+            config.OLED_DISP_TYPE:          self.handle_disp_oled_type,
+            config.OLED_SET_SN:             self.handle_set_sn,
+            # config.OLED_POWER_OFF:        self.handle_power_off,
+            config.OLED_CONIFIG_WIFI:       self.handle_set_wifi_config,
+            config.OLED_SYNC_INIT:          self.handle_sync_init,
+            config.UI_NOTIFY_STORAGE_STATE: self.handle_notify_tf_state,
         })
         while self._exit is False:
             try:
@@ -213,7 +218,11 @@ class monitor_fifo_read(threading.Thread):
         # Print('handler net content {}'.format(content))
         #osc_state.handle_net_change(content)
 
-    def handle_oled_key(self,content):
+    # handle_oled_key
+    # 处理来自UI的事件
+    # content - 接收的数据
+    #
+    def handle_oled_key(self, content):
         # Print('handle oled content {}'.format(content))
         self.control_obj.handle_oled_key(content)
 
@@ -251,11 +260,11 @@ class monitor_fifo_read(threading.Thread):
         
 
     def handle_ageing_test(self, content):
-        self.control_obj.start_ageing_test(content);
+        self.control_obj.start_ageing_test(content)
 
 
     def handle_query_storage(self, content):
-        self.control_obj.queryStorage();
+        self.control_obj.queryStorage()
 
     def run(self):
         self.func = OrderedDict({
@@ -349,7 +358,7 @@ class monitor_camera_active(threading.Thread):
     def start_read(self,len):
         return fifo_wrapper.read_fifo(self.read_fd,len)
 
-    def handle_camera_notify(self,content):
+    def handle_camera_notify(self, content):
         self.control_obj.handle_notify_from_camera(content)
 
     def run(self):
