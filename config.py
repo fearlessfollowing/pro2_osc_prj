@@ -56,7 +56,7 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 
 
 # 使能老化模式开关（仅用于工厂测试）
-COM_FLAGS += ' -DENABLE_AGEING_MODE '
+#COM_FLAGS += ' -DENABLE_AGEING_MODE '
 
 
 # LED 调试信息开关

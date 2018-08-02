@@ -29,7 +29,7 @@ const u8 pic8K3DOFRAWLight_78X16[] = {
 	0x33,0x3C,0x3F,0x3C,0x33,0x3C,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,
 };
 
-const u8 pic8K3DOFRAWNor_78x16[] = {
+const u8 pic8K3DOF_RAW_Nor_78x16[] = {
 	0x00,0x00,0x00,0x60,0x90,0x90,0x90,0x60,0x00,0xF0,0x80,0x40,0x20,0x10,0x00,0xF8,
 	0x00,0x10,0x90,0x90,0x90,0x60,0x00,0xF0,0x10,0x10,0x10,0x10,0x20,0xC0,0x00,0xF8,
 	0x00,0xC0,0x20,0x10,0x10,0x10,0x20,0xC0,0x00,0xF0,0x90,0x90,0x90,0x10,0x00,0xF8,
@@ -527,6 +527,7 @@ typedef struct stPicVideoCfg {
 	const char* 			pItemName;								/* 设置项的名称 */
 	int						iItemMaxVal;							/* 设置项可取的最大值 */
 	int  					iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
+	int						iRawStorageRatio;	/* 使能RAW时的存储比例 */					
 	struct stIconPos		stPos;
     struct _action_info_*   pStAction;
 	const u8 * 				stLightIcon[PIC_VIDEO_LIVE_ITEM_MAX];	/* 选中时的图标列表 */
@@ -539,7 +540,7 @@ typedef struct stPicVideoCfg {
  */
 static ACTION_INFO pic8K3DOFDefault = {
 	MODE_3D,		/* 拼接模式 */
-	60,				/* 每张照片的大小 */
+	40,				/* 每张照片的大小: 36M, 180M */
 	0,				/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
@@ -565,7 +566,7 @@ static ACTION_INFO pic8K3DOFDefault = {
  */
 static ACTION_INFO pic8K3DDefault = {
 	MODE_PANO,		/* 拼接模式 */
-	30,				/* 每张照片的大小 */
+	30,				/* 每张照片的大小: 30M, 170M */
 	0,				/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
@@ -579,11 +580,10 @@ static ACTION_INFO pic8K3DDefault = {
 		EN_JPEG,
 		STITCH_OPTICAL_FLOW,
 		7680,
-		3840,
+		7680,
 		{},
 	}
 };
-
 
 
 /*
@@ -591,7 +591,7 @@ static ACTION_INFO pic8K3DDefault = {
  */
 static ACTION_INFO pic8KDefault = {
 	MODE_PANO,		/* 拼接模式 */
-	30,				/* 每张照片的大小 */
+	25,				/* 每张照片的大小: 25M, 160M */
 	0,				/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
@@ -615,20 +615,20 @@ static ACTION_INFO pic8KDefault = {
  * AEB
  */
 static ACTION_INFO picAebDefault = {
-	MODE_PANO,		/* 拼接模式 */
-	30,				/* 每张照片的大小 */
-	0,				/* 该值现在无效,由photodelay控制 */
+	MODE_PANO,				/* 拼接模式 */
+	30,						/* 每张照片的大小: 40M, 80M, 120M, 160M */
+	0,						/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
 		SAVE_DEF,
 		4000,
 		3000,
-		0,			/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
-		{}
+		0,					/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
+		{3, -64, 64, 0}		/* AEB:3, 5, 7, 9 */
 	},
 	{	/* Stitch */
 		EN_JPEG,
-		STITCH_OPTICAL_FLOW,
+		STITCH_OFF,
 		7680,
 		3840,
 		{},
@@ -641,7 +641,7 @@ static ACTION_INFO picAebDefault = {
  */
 static ACTION_INFO picBurstDefault = {
 	MODE_PANO,		/* 拼接模式 */
-	165,			/* 每张照片的大小 */
+	150,			/* 每张照片的大小 */
 	0,				/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
@@ -653,7 +653,7 @@ static ACTION_INFO picBurstDefault = {
 	},
 	{	/* Stitch */
 		EN_JPEG,
-		STITCH_OPTICAL_FLOW,
+		STITCH_OFF,
 		7680,
 		3840,
 		{},
@@ -666,7 +666,7 @@ static ACTION_INFO picBurstDefault = {
  */
 static ACTION_INFO picCustomerDefault = {
 	MODE_PANO,		/* 拼接模式 */
-	30,			/* 每张照片的大小 */
+	30,				/* 每张照片的大小 */
 	0,				/* 该值现在无效,由photodelay控制 */
 	{	/* Origin */
 		EN_JPEG,	
@@ -689,6 +689,7 @@ PicVideoCfg pic8K_3D_OF = {
 	TAKE_PIC_MODE_8K_3D_OF,		// pItemName
 	1,							// iItemMaxVal
 	0,							// iCurVal
+	5,							// 5倍
 	{0},						// stPos
 	&pic8K3DOFDefault,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
 	{	/* 选中时的图标列表 */
@@ -697,7 +698,7 @@ PicVideoCfg pic8K_3D_OF = {
 	},
 	{	/* 未选中时的图标列表 */
 		pic8K3DOFNor_78X16,
-		pic8K3DOFNor_78X16,
+		pic8K3DOF_RAW_Nor_78x16,
 	}
 };
 
@@ -705,6 +706,7 @@ PicVideoCfg pic8K_3D = {
 	TAKE_PIC_MODE_8K_3D,		// pItemName
 	1,							// iItemMaxVal
 	0,							// iCurVal
+	5,							// 5倍	
 	{0},						// stPos
 	&pic8K3DDefault,
 	{	/* 选中时的图标列表 */
@@ -722,6 +724,7 @@ PicVideoCfg pic8K = {
 	TAKE_PIC_MODE_8K,		// pItemName
 	1,							// iItemMaxVal
 	0,							// iCurVal
+	5,							// 5倍	
 	{0},						// stPos
 	&pic8KDefault,
 	{	/* 选中时的图标列表 */
@@ -739,6 +742,7 @@ PicVideoCfg picAEB = {
 	TAKE_PIC_MODE_AEB,			// pItemName
 	7,							// iItemMaxVal
 	0,							// iCurVal
+	10,							// 10倍
 	{0},						// stPos
 	&picAebDefault,
 	{	/* 选中时的图标列表 */
@@ -765,9 +769,10 @@ PicVideoCfg picAEB = {
 
 
 PicVideoCfg picBurst = {
-	TAKE_PIC_MODE_AEB,		// pItemName
+	TAKE_PIC_MODE_BURST,		// pItemName
 	1,							// iItemMaxVal
 	0,							// iCurVal
+	10,							// 10倍	
 	{0},						// stPos
 	&picBurstDefault,
 	{	/* 选中时的图标列表 */
@@ -780,10 +785,12 @@ PicVideoCfg picBurst = {
 	}
 };
 
+
 PicVideoCfg picCustomer = {
 	TAKE_PIC_MODE_CUSTOMER,		// pItemName
 	0,							// iItemMaxVal
 	0,							// iCurVal
+	10,
 	{0},						// stPos
 	&picCustomerDefault,
 	{	/* 选中时的图标列表 */

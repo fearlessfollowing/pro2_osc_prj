@@ -2294,12 +2294,14 @@ void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode
 }
 
 
-
+/*
+ * 处理来自HTTP的请求
+ */
 void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *root, cJSON *subNode)
 {
     cJSON *child = nullptr;
 
-	Log.d(TAG, "rec req type %d", mDispType->type);
+	Log.d(TAG, "rec req type %d", mDispType->type);     // rec req type 6
 	GET_CJSON_OBJ_ITEM_INT(child, subNode, "action", mDispType->qr_type)
 
 	/* 获取"param"子节点 */

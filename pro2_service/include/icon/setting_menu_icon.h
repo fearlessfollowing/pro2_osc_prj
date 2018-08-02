@@ -2408,7 +2408,11 @@ SettingItem* gSettingItems[] = {
 	&setAudioItem,
 
 	&setSpatialAudioItem,
+
+#ifdef ENABLE_FLOWSTATE
 	&setFlowStateItem,
+#endif
+	
 	&setGyroOnOffItem,
 	&setGyroCalItem,
 

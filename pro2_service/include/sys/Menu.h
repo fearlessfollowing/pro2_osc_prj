@@ -410,7 +410,7 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        
 	},
 	
-    {	/* MENU_RESET_INDICATION */
+    {	/* MENU_RESET_INDICATION STATE_IDLE*/
     	MENU_SYS_SETTING,
 		{0},
 		{OLED_KEY_UP, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},

@@ -1672,12 +1672,47 @@ void MenuUI::setMenuCfgInit()
 
 
 
+void MenuUI::cfgPicModeItemCurVal(PicVideoCfg* pPicCfg)
+{
+    int iRawVal = 0;
+    int iAebVal = 0;
+
+    iRawVal = mProCfg->get_val(KEY_RAW);     /* 0: Off Raw; 1: Open Raw */
+    iAebVal = mProCfg->get_val(KEY_AEB);  
+
+    if (pPicCfg) {
+        const char* pItemName = pPicCfg->pItemName;
+
+        if (!strcmp(pItemName, TAKE_PIC_MODE_CUSTOMER)) {   /* Customer DO nothing */
+            pPicCfg->iCurVal = 0;
+        } else if (!strcmp(pItemName, TAKE_PIC_MODE_AEB)) {
+            int iIndexBase = 0;
+            /* 根据RAW和AEB当前值来决定 */
+            if (iRawVal) {
+                iIndexBase = 4;
+            }
+
+            pPicCfg->iCurVal = iIndexBase + iAebVal;
+            if (pPicCfg->iCurVal > pPicCfg->iItemMaxVal) {
+                Log.e(TAG, "[%s: %d] Current val [%d], max val[%d]", __FILE__, __LINE__, pPicCfg->iCurVal, pPicCfg->iItemMaxVal);
+            }
+        } else {
+            pPicCfg->iCurVal = iRawVal;
+            Log.e(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pPicCfg->iCurVal);
+        }
+
+    } else {
+        Log.e(TAG, "[%s: %d] Invalid Argument passed", __FILE__, __LINE__);
+    }
+}
+
+
 void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPicVideoCfg*>& pItemLists)
 {
-    if (pParentMenu && pItemLists.size()) {
+    if (pParentMenu && !pItemLists.size()) {
         
         int size = pParentMenu->mSelectInfo.total;
-        ICON_POS tmPos = {0, 32, 78, 16};
+        ICON_POS tmPos = {0, 48, 78, 16};
         int iIndex = 0;
         int iDefaultRawVal = 0;
         int iDefaultAebVal = 0;
@@ -1703,12 +1738,15 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                  */
                 for (u32 i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
-                    
-                    const char* pItemName = pSetItems[i]->pItemName;
-                    
+
                     /* TODO: 在此处为各个项设置对应的ACTION_INFO
                      * 通过解析配置文件得到的ACTION_INFO列表(通过名称进行匹配)
                      */
+
+                    #if 0                    
+                    const char* pItemName = pSetItems[i]->pItemName;
+                    
+
                     if (!strcmp(pItemName, TAKE_PIC_MODE_CUSTOMER)) {   /* Customer DO nothing */
                         /* do nothing */
                     } else if (!strcmp(pItemName, TAKE_PIC_MODE_AEB)) {
@@ -1720,12 +1758,16 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
 
                         pSetItems[i]->iCurVal = iIndexBase + iDefaultAebVal;
                         if (pSetItems[i]->iCurVal > pSetItems[i]->iItemMaxVal) {
-                            Log.e(TAG, "[%s: %d] invalid current val [%d], max val[%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal, pSetItems[i]->iItemMaxVal);
+                            Log.e(TAG, "[%s: %d] Current val [%d], max val[%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal, pSetItems[i]->iItemMaxVal);
                         }
                     } else {
                         pSetItems[i]->iCurVal = iDefaultRawVal;
-                        Log.e(TAG, "[%s: %d] invalid current val [%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal);
+                        Log.e(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal);
                     }
+                    #else 
+                    cfgPicModeItemCurVal(pSetItems[i]);
+                    #endif
+
                     pItemLists.push_back(pSetItems[i]);
                 }
                 break;
@@ -1745,6 +1787,8 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                 Log.w(TAG, "[%s:%d] Unkown mode Please check", __FILE__, __LINE__);
                 break;
         }
+    } else {
+        Log.e(TAG, "[%s: %d] Invalid Arguments Please check", __FILE__, __LINE__);
     }
 }
 
@@ -1805,6 +1849,11 @@ void MenuUI::init_menu_select()
 #endif
 
     /*
+     * 设置系统的参数配置(优先于菜单初始化)
+     */
+    setMenuCfgInit();
+
+    /*
      * 拍照，录像，直播参数配置
      */
     mMenuInfos[MENU_PIC_SET_DEF].priv = static_cast<void*>(gPicAllModeCfgList);
@@ -1816,7 +1865,14 @@ void MenuUI::init_menu_select()
     mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.page_num = 1;
     cfgPicVidLiveSelectMode(&mMenuInfos[MENU_PIC_SET_DEF], mPicAllItemsList);
     
+    Log.d(TAG, "[%s:%d] mPicAllItemsList size = %d", __FILE__, __LINE__, mPicAllItemsList.size());
 
+    Log.d(TAG, "MENU_PIC_SET_DEF Menu Info: total items [%d], page count[%d], cur page[%d], select [%d]", 
+                mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total,
+                mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.page_num,
+                mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.cur_page,
+                mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.select
+                );
     
 #if 0
     mMenuInfos[MENU_VIDEO_SET_DEF].priv = static_cast<void*>(gPicAllModeCfgList);
@@ -1832,10 +1888,6 @@ void MenuUI::init_menu_select()
     cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);    
 #endif
 
-    /*
-     * 设置系统的参数配置
-     */
-    setMenuCfgInit();
 }
 
 /*************************************************************************
@@ -2049,7 +2101,6 @@ void MenuUI::init()
  */
 void MenuUI::uiShowStatusbarIp()
 {
-	Log.e(TAG, "uiShowStatusbarIp --->");
 	if (check_allow_update_top()) {
 		if (!strlen(mLocalIpAddr)) {
 			strcpy(mLocalIpAddr, "0.0.0.0");
@@ -2539,8 +2590,7 @@ bool MenuUI::check_live_save(ACTION_INFO *mAct)
 
     Log.d(TAG, "check_live_save is %d %d ret %d",
           mAct->stOrgInfo.save_org ,
-          mAct->stStiInfo.stStiAct.mStiL.file_save,
-          ret);
+          mAct->stStiInfo.stStiAct.mStiL.file_save, ret);
     return ret;
 }
 
@@ -2548,7 +2598,7 @@ bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
 {
     bool bAllow = false;
 	
-    if (!check_save_path_none()) {
+    if (!checkHaveLocalSavePath()) {
 		
 		/* 去掉直播录像,必须录制在U盘的限制 */
 		if (/* check_save_path_usb() */ 1) {
@@ -2618,52 +2668,63 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
     bool bAllow = true;
     sp<ARMessage> msg = mNotify->dup();
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
-    int item = 0;
+    int iIndex = 0, item = 0;
+    struct stPicVideoCfg* pTmpPicVidCfg = NULL;
 
     switch (option) {
         case ACTION_PIC:	/* 拍照动作 */
 
             Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
 
-#if 0			
-            /*
-             * 1.根据菜单的当前值,找到链表中对应的项,在根据项中的action_info指针
-             * 得到真实拍照参数
-             */
-            item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-            switch (item) {
-//              case PIC_8K_3D_SAVE:
-                case PIC_8K_PANO_SAVE:
-                case PIC_8K_3D_SAVE_OF:
-                            //optical flow stich
-                case PIC_8K_PANO_SAVE_OF:
-#ifdef OPEN_HDR_RTS
-                case PIC_HDR_RTS:
-#endif
-                case PIC_HDR:
-                case PIC_BURST:
-                case PIC_RAW:							
-                    memcpy(mActionInfo.get(), &mPICAction[item], sizeof(ACTION_INFO));
-                    break;
-							
-                case PIC_CUSTOM:
+            /* customer和非customer */
+            iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
+            pTmpPicVidCfg = mPicAllItemsList.at(iIndex);
+            if (pTmpPicVidCfg) {
+                
+                Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+
+                if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+                    Log.d(TAG, "[%s: %d] Customer mode Take Pic", __FILE__, __LINE__);
                     memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_PIC_DEF), sizeof(ACTION_INFO));
+                
                     if (strlen(mActionInfo->stProp.len_param) > 0 || strlen(mActionInfo->stProp.mGammaData) > 0) {
                         mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stProp.audio_gain = -1;
                         send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stProp);
                     }
-                    break;
-							
-                    SWITCH_DEF_ERROR(item);
-            }
-#endif
+                } else {    /* 非Customer模式 */
 
-            msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                    /* 根据是否开启RAW来设置 */
+                    int iRaw = mProCfg->get_val(KEY_RAW);
+                    int iAebVal = mProCfg->get_val(KEY_AEB);
+
+                    if (iRaw) {
+                        pTmpPicVidCfg->pStAction->stOrgInfo.mime = EN_JPEG_RAW;
+                    } else {
+                        pTmpPicVidCfg->pStAction->stOrgInfo.mime = EN_JPEG;
+                    }
+
+                    if (strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_AEB) == 0) {
+                        pTmpPicVidCfg->pStAction->stOrgInfo.stOrgAct.mOrgP.hdr_count = convIndex2AebNum(iAebVal);
+                    }
+
+                    Log.d(TAG, "[%s:%d] Raw [%d] stitch mode [%d], aeb[%d]", 
+                            __FILE__, __LINE__, iRaw, pTmpPicVidCfg->pStAction->mode,
+                            iAebVal);
+                    
+                    memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
+                }
+
+                msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+            } else {
+                Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
+                abort();
+            }
             break;
 			
+
         case ACTION_VIDEO:
             if ( check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
-//                Log.d(TAG,"stop rec ");
+//                Log.d(TAG,"stop rec "); CAPTURE
                 oled_disp_type(STOP_RECING);
             } else if (check_state_preview()) {
                 if (check_dev_exist(option)) {
@@ -2809,7 +2870,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 //        case ACTION_LOW_PROTECT:
 //            break;
         case ACTION_SPEED_TEST:
-            if (check_save_path_none()) {
+            if (checkHaveLocalSavePath()) {
                 Log.e(TAG, "action speed test mSavePathIndex -1");
                 bAllow = false;
             } else {
@@ -2963,7 +3024,7 @@ void MenuUI::send_save_path_change()
         case MENU_VIDEO_SET_DEF:
             //make update bottom before sent it to ws 20170710
             if (!check_cam_busy())  {	//not statfs while busy ,add 20170804
-                update_bottom_space();
+                updateBottomSpace();
             }
             break;
 			
@@ -2975,10 +3036,10 @@ void MenuUI::send_save_path_change()
     msg->set<int>("what", SAVE_PATH_CHANGE);
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 	
-    if (!check_save_path_none()) {
-        snprintf(mSavePath->path,sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->path);
+    if (!checkHaveLocalSavePath()) {
+        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->path);
     } else {
-        snprintf(mSavePath->path,sizeof(mSavePath->path), "%s", NONE_PATH);
+        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", NONE_PATH);
     }
 	
     msg->set<sp<SAVE_PATH>>("save_path", mSavePath);
@@ -4041,12 +4102,14 @@ void MenuUI::updateMenu()
 #endif
 
 
+        /* 更新: MENU_PIC_SET_DEF菜单的值(高亮显示) */
         case MENU_PIC_SET_DEF:
-//            Log.d(TAG," pic set def item is %d", item);
+
+            Log.d(TAG, "[%s: %d] Update SET_PIC_DEF val[%d]", __FILE__, __LINE__, item);
             mProCfg->set_def_info(KEY_ALL_PIC_DEF, item);
 
 			// update_menu_disp(picAllCardMenuItems[1]);
-            updateBottomMode(false);    /* 正常显示 */
+            updateBottomMode(true);    /* 正常显示 */
     
     #if 0
             if (item < PIC_ALL_CUSTOM) {
@@ -4058,9 +4121,10 @@ void MenuUI::updateMenu()
                              (int)(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stStiInfo.stich_mode != STITCH_OFF));
             }
     #endif
-            update_bottom_space();
+            updateBottomSpace();
             break;
 			
+
         case MENU_VIDEO_SET_DEF:
 //            Log.d(TAG," vid set def item is %d", item);
             mProCfg->set_def_info(KEY_ALL_VIDEO_DEF,item);
@@ -4072,7 +4136,7 @@ void MenuUI::updateMenu()
                 disp_org_rts((int)(mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stOrgInfo.save_org != SAVE_OFF),
                              (int)(mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stStiInfo.stich_mode != STITCH_OFF));
             }
-           	update_bottom_space();
+           	updateBottomSpace();
             break;
 			
         case MENU_LIVE_SET_DEF:
@@ -4147,7 +4211,7 @@ void MenuUI::get_storage_info()
 bool MenuUI::get_save_path_avail()
 {
     bool ret = false;
-    if (!check_save_path_none()) {
+    if (!checkHaveLocalSavePath()) {
         int times = 3;
         int i = 0;
         for (i = 0; i < times; i++) {
@@ -4164,21 +4228,17 @@ bool MenuUI::get_save_path_avail()
                 mLocalStorageList.at(mSavePathIndex)->avail = diskInfo.f_bavail *diskInfo.f_bsize;
 				#endif
 				
-                Log.d(TAG, "remain ( %s %llu)\n",
-                      mLocalStorageList.at(mSavePathIndex)->path,
-                      mLocalStorageList.at(mSavePathIndex)->avail);
+                Log.d(TAG, "remain ( %s %llu)\n", mLocalStorageList.at(mSavePathIndex)->path, mLocalStorageList.at(mSavePathIndex)->avail);
                 break;
             }  else {
-                Log.d(TAG,"fail to access(%d) %s",i,
-                      mLocalStorageList.at(mSavePathIndex)->path);
+                Log.d(TAG, "fail to access(%d) %s", i, mLocalStorageList.at(mSavePathIndex)->path);
                 msg_util::sleep_ms(10);
             }
         }
 
         if (i == times) {
-            Log.d(TAG,"still fail to access %s",
-                  mLocalStorageList.at(mSavePathIndex)->path);
-            mLocalStorageList.at(mSavePathIndex)->avail = 0;
+            Log.d(TAG, "still fail to access %s", mLocalStorageList.at(mSavePathIndex)->path);
+                mLocalStorageList.at(mSavePathIndex)->avail = 0;
         }
         ret = true;
     }
@@ -4186,7 +4246,7 @@ bool MenuUI::get_save_path_avail()
     return ret;
 }
 
-void MenuUI::get_save_path_remain()
+void MenuUI::calcRemainSpace()
 {
     if (get_save_path_avail()) {
         caculate_rest_info(mLocalStorageList.at(mSavePathIndex)->avail);
@@ -4200,7 +4260,7 @@ void MenuUI::get_save_path_remain()
 ** 函数功能: 计算剩余空间信息(可拍照片的张数,可录像的时长,可直播存储的时长)
 ** 入口参数: 存储容量的大小(单位为M)
 ** 返 回 值: 无(计算出的值来更新mRemainInfo对象)
-** 调     用: get_save_path_remain
+** 调     用: calcRemainSpace
 **
 *********************************************************************************************/
 void MenuUI::caculate_rest_info(u64 size)
@@ -4208,8 +4268,7 @@ void MenuUI::caculate_rest_info(u64 size)
     INFO_MENU_STATE(cur_menu, cam_state);
     int size_M = (int)(size >> 20);
 	
-//        Log.d(TAG,"size M %d %d",size_M);
-    if (size_M >  AVAIL_SUBSTRACT) {
+    if (size_M > AVAIL_SUBSTRACT) {
 		
         int rest_sec = 0;
         int rest_min = 0;
@@ -4218,28 +4277,39 @@ void MenuUI::caculate_rest_info(u64 size)
         size_M -= AVAIL_SUBSTRACT;;
         int item = 0;
 		
-        Log.d(TAG, " curmenu %d item %d", getCurMenuStr(cur_menu), item);
-		
         switch (cur_menu) {
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF:
                 if (mControlAct != nullptr) {
-                    mRemainInfo->remain_pic_num = size_M/mControlAct->size_per_act;
-                    Log.d(TAG, "0remain(%d %d)", size_M, mRemainInfo->remain_pic_num);
+                    mCanTakePicNum = size_M / mControlAct->size_per_act;
+                    Log.d(TAG, "0remain(%d %d)", size_M, mCanTakePicNum);
                 } else {
-					
+					/*
+                     * 使能RAW和没有使能RAW
+                     */
                     item = getMenuSelectIndex(MENU_PIC_SET_DEF);
+                    int iRawVal = mProCfg->get_val(KEY_RAW);
+
+                    Log.d(TAG, "[%s: %d] Raw[%d]", __FILE__, __LINE__, iRawVal);
+                    
                     struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
                     int iUnitSize = 30;
                     if (pPicVidCfg) {
                         if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
                             iUnitSize = pPicVidCfg->pStAction->size_per_act;
+                            if (iRawVal) {
+                                iUnitSize = iUnitSize * pPicVidCfg->iRawStorageRatio;
+                            }
+                            Log.d(TAG, "[%s:%d] One Group Picture size [%d]M", __FILE__, __LINE__, iUnitSize);
+
                         } else {
                             iUnitSize = mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
                         }
                     } else {
                         Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
                     }
+                    
+                    mCanTakePicNum = size_M / iUnitSize;
                 }
                 break;
 				
@@ -4294,10 +4364,10 @@ void MenuUI::convert_space_to_str(u64 size, char *str, int len)
     }
 }
 
-bool MenuUI::check_save_path_none()
+bool MenuUI::checkHaveLocalSavePath()
 {
     bool bRet = false;
-	
+
     if (mSavePathIndex == -1) {
         bRet = true;
     }
@@ -4320,23 +4390,36 @@ bool MenuUI::check_save_path_usb()
 
 
 
-void MenuUI::disp_bottom_space()
+void MenuUI::dispBottomLeftSpace()
 {
-    if (!check_save_path_none()) {	/* 存储设备存在 */
+
+    if (!checkHaveLocalSavePath()) {	/* 存储设备存在 */
+        
         char disk_info[16];
         switch (cur_menu) {
             case MENU_PIC_INFO:		/* 拍照界面: 显示剩余可用的空间(张数) */
             case MENU_PIC_SET_DEF:
 				
-                //keep show in middle,easily to add two blanks
-                snprintf(disk_info, sizeof(disk_info), "  %d", mRemainInfo->remain_pic_num);
-                disp_str_fill((const u8 *) disk_info, 78, 48);
+                /* 如果系统处于启动预览状态下或者正在查询系统存储的状态下,显示"..." */
+                INFO_MENU_STATE(cur_menu, cam_state)
+                
+                if (cam_state == STATE_START_PREVIEWING || cam_state == STATE_START_LIVING || cam_state == STATE_START_RECORDING) {
+                    /* 此时不显示剩余量 */
+                    Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
+                    clear_area(78, 48);
+                } else {
+                    //keep show in middle,easily to add two blanks
+                    /* 拍照的话直接显示: mCanTakePicNum 的值 */
+                    snprintf(disk_info, sizeof(disk_info), "  %d", mCanTakePicNum);
+                    disp_str_fill((const u8 *) disk_info, 78, 48);
+                }
                 break;
+
 
 			/* 录像界面: */				
             case MENU_VIDEO_INFO:
             case MENU_VIDEO_SET_DEF:
-//                Log.d(TAG,"tl_count %d",tl_count);
+
                 if (tl_count == -1) {
                     if (check_rec_tl()) {
                         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
@@ -4395,17 +4478,17 @@ void MenuUI::disp_bottom_space()
 	
 }
 
-void MenuUI::update_bottom_space()
+void MenuUI::updateBottomSpace()
 {
-    get_save_path_remain();
-    disp_bottom_space();
+    calcRemainSpace();     /* 计算剩余空间 */
+    dispBottomLeftSpace();      /* 显示底部空间 */
 }
 
-void MenuUI::disp_bottom_info(bool high)
+
+void MenuUI::dispBottomInfo(bool high, bool bTrueLeftSpace)
 {
-    // disp_cam_param(0);
-    updateBottomMode(false);
-    update_bottom_space();
+    updateBottomMode(false);    /* 更新底部的挡位及附加参数 */
+    updateBottomSpace();        /* 更新底部的剩余空间 */
 }
 
 struct _select_info_ * MenuUI::getCurMenuSelectInfo()
@@ -4413,45 +4496,7 @@ struct _select_info_ * MenuUI::getCurMenuSelectInfo()
     return (SELECT_INFO *)&(mMenuInfos[cur_menu].mSelectInfo);
 }
 
-#if 0
 
-void MenuUI::disp_sys_setting(SETTING_ITEMS* pSetting)
-{
-    SELECT_INFO * mSelect = getCurMenuSelectInfo();
-
-    int start = mSelect->cur_page * mSelect->page_max;
-    const int end = start + mSelect->page_max;
-    
-    const int select = getMenuSelectIndex(cur_menu);
-
-    int item = 0;
-	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
-    Log.d(TAG, "start %d end  %d select %d ", start,end,select);
-
-
-    while (start < end) {
-        if (start < mSelect->total) {
-            int val = get_setting_select(start);
-            if (start == select) {
-//                Log.d(TAG,"select %d high icon %d",select, mSettingItems.icon_light[start][val]);
-                disp_icon(pSetting->icon_light[start][val]);
-            } else {
-//                Log.d(TAG,"start %d normal icon %d",start, mSettingItems.icon_normal[start][val]);
-                disp_icon(pSetting->icon_normal[start][val]);
-            }
-        }
-		/*
-        else
-        {
-//            Log.d(TAG,"item is %d", item);
-            clear_icon(pSetting->clear_icons[(item - 1)]);
-        }
-        */
-        start++;
-        item++;
-    }
-}
-#endif
 
 /*************************************************************************
 ** 方法名称: dispSettingPage
@@ -4744,7 +4789,7 @@ void MenuUI::disp_storage_setting()
 void MenuUI::disp_org_rts(sp<struct _action_info_> &mAct,int hdmi)
 {
     disp_org_rts((int) (mAct->stOrgInfo.save_org != SAVE_OFF),
-                 (int) (mAct->stStiInfo.stich_mode != STITCH_OFF),hdmi);
+                 (int) (mAct->stStiInfo.stich_mode != STITCH_OFF), hdmi);
 }
 
 
@@ -4765,10 +4810,8 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
             new_org_rts = 3;
         }
     }
-    //force update even not change 0623
-//    if(last_org_rts != new_org_rts)
+
     {
-//        last_org_rts = new_org_rts;
         switch (new_org_rts) {
             case 0:
                 disp_icon(ICON_INFO_ORIGIN32_16);
@@ -4789,13 +4832,12 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
             SWITCH_DEF_ERROR(new_org_rts)
         }
     }
+
     if (hdmi == 0)  {
         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
     } else if (hdmi == 1) {
-//        disp_str_fill((const u8 *)"  HDMI",bottom_info_start,48,0);
         disp_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
     }
-//    Log.d(TAG,"disp_org_rts org %d rts %d hdmi %d",org,rts,hdmi);
 }
 
 void MenuUI::disp_qr_res(bool high)
@@ -4812,22 +4854,31 @@ void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
 {
 	ICON_INFO iconInfo = {0};
 
+    Log.d(TAG, "[%s: %d] dispPicVidCfg Current val[%d]", __FILE__, __LINE__, pCfg->iCurVal);
+
     iconInfo.x = pCfg->stPos.xPos;
     iconInfo.y = pCfg->stPos.yPos;
     iconInfo.w = pCfg->stPos.iWidth;
     iconInfo.h = pCfg->stPos.iHeight;
 
-    if (bLight) {
-        iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
+    if (pCfg->iCurVal > pCfg->iItemMaxVal) {
+        Log.e(TAG, "[%s: %d] Invalid Current val[%d], Max val[%d]", __FILE__, __LINE__, pCfg->iCurVal, pCfg->iItemMaxVal);
+        Log.e(TAG, "Can't show bottom Mode!!!!!");
     } else {
-        iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
+        if (bLight) {
+            iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
+        } else {
+            iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
+        }
+        dispIconByLoc(&iconInfo);
     }
 
-    dispIconByLoc(&iconInfo);
 }
 
 /*
  * 更新拍照，录像，直播，底部的模式(规格)
+ * - 底部显示的挡位（以及对应右上角的参数<Origin/RTS>）
+ * 
  */
 void MenuUI::updateBottomMode(bool bLight)
 {
@@ -4847,24 +4898,41 @@ void MenuUI::updateBottomMode(bool bLight)
                 clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
             } else {
                 item = getMenuSelectIndex(MENU_PIC_SET_DEF);    /* 得到菜单的索引值 */
-                if (item > mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total || item > mPicAllItemsList.size()) {
-                    Log.e(TAG, "%s: %d] invalid index(%d) on current menu[%s]", __FILE__, __LINE__, item, getCurMenuStr(cur_menu));
+
+                Log.d(TAG, "[%s: %d] menu[%s] current selected index[%d]", __FILE__, __LINE__, getCurMenuStr(MENU_PIC_SET_DEF), item);
+                
+                Log.d(TAG, "[%s: %d] menu[%s] total[%d] pic cfg list len[%d]", __FILE__, __LINE__, 
+                            getCurMenuStr(MENU_PIC_SET_DEF), mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total, mPicAllItemsList.size());
+
+                if (item >= mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total || item >= mPicAllItemsList.size()) {
+                    Log.e(TAG, "[%s: %d] invalid index(%d) on current menu[%s]", __FILE__, __LINE__, item, getCurMenuStr(cur_menu));
                 } else {
                     pTmpCfg = mPicAllItemsList.at(item);
                     if (pTmpCfg) {
+
+                        Log.d(TAG, "------->>> Current PicVidCfg name [%s]", pTmpCfg->pItemName);
+
+                        cfgPicModeItemCurVal(pTmpCfg);  /* 更新拍照各项的当前值(根据设置系统的值，比如RAW, AEB) */
+
                         pTmpActionInfo = pTmpCfg->pStAction;
-                        disp_org_rts((int) (pTmpActionInfo->stOrgInfo.save_org != SAVE_OFF),
+                        if (pTmpActionInfo) {
+                            disp_org_rts((int) (pTmpActionInfo->stOrgInfo.save_org != SAVE_OFF),
                                          (int) (pTmpActionInfo->stStiInfo.stich_mode != STITCH_OFF));
 
-                        dispPicVidCfg(pTmpCfg, bLight);
+                        } else {
+                            Log.e(TAG, "[%s:%d] Invalid pTmpActionInfo pointer", __FILE__, __LINE__);
+                        }
+
+                        dispPicVidCfg(pTmpCfg, bLight); /* 显示配置 */
                     } else {
-                        Log.e(TAG, "%s: %d] invalid pointer", __FILE__, __LINE__);
+                        Log.e(TAG, "[%s: %d] invalid pointer pTmpCfg", __FILE__, __LINE__);
                     }
                 }
             }
             break;
 
         /* Video/Live */
+
 
     }
 }
@@ -5178,12 +5246,13 @@ void MenuUI::enterMenu(bool dispBottom)
 			
             disp_icon(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
 
-            Log.d(TAG, "disp_bottom_info %d", dispBottom);
+            Log.d(TAG, "dispBottomInfo %d", dispBottom);
 
+#if 1
             if (dispBottom) {	/* 显示底部和右侧信息 */
-                disp_bottom_info();
+                dispBottomInfo();
             }
-			
+#endif			
             if (check_state_preview()) {	/* 启动预览成功,显示"Ready" */
                 disp_ready_icon();
             } else if (check_state_equal(STATE_START_PREVIEWING) || check_state_in(STATE_STOP_PREVIEWING)) {
@@ -5207,7 +5276,7 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_VIDEO_INFO:
             disp_icon(ICON_VIDEO_ICON_0_16_20_32);
-            disp_bottom_info();
+            dispBottomInfo();
             if (check_state_preview()) {
                 disp_ready_icon();
             } else if (check_state_equal(STATE_START_PREVIEWING) ||
@@ -5289,7 +5358,7 @@ void MenuUI::enterMenu(bool dispBottom)
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
-            // disp_cam_param(1);
+            // disp_cam_param(1)
             updateBottomMode(true);
             break;
 		
@@ -5358,7 +5427,7 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_SPEED_TEST: {
 //          Log.d(TAG,"mSavePathIndex is %d",mSavePathIndex);
-            if (!check_save_path_none()) {
+            if (!checkHaveLocalSavePath()) {
                 int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
 
                 if (check_state_in(STATE_SPEED_TEST)) {
@@ -5486,17 +5555,18 @@ void MenuUI::disp_wifi_connect()
 bool MenuUI::check_dev_exist(int action)
 {
     bool bRet = false;
-    Log.d(TAG,"check_dev_exist (%d %d)",mLocalStorageList.size(),mSavePathIndex);
 
-    if (!check_save_path_none()) {
+    Log.d(TAG, "check_dev_exist (%d %d)", mLocalStorageList.size(), mSavePathIndex);
+
+    if (!checkHaveLocalSavePath()) {
         switch (action) {
 //            case ACTION_CALIBRATION:
             case ACTION_PIC:
-                if (mRemainInfo->remain_pic_num > 0) {
+                if (mCanTakePicNum > 0) {
                     bRet = true;
                 } else {
                     //disp full
-                    Log.e(TAG,"pic dev full");
+                    Log.e(TAG, "pic dev full");
                     disp_msg_box(DISP_DISK_FULL);
                 }
                 break;
@@ -5603,7 +5673,7 @@ void MenuUI::procSetMenuKeyEvent()
         } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_RAW)) {
 
             iVal = ((~iVal) & 0x00000001);
-            mProCfg->set_val(KEY_HDR, iVal);
+            mProCfg->set_val(KEY_RAW, iVal);
             pCurItem->iCurVal = iVal;
             dispSetItem(pCurItem, true);
 
@@ -5827,8 +5897,10 @@ void MenuUI::procPowerKeyEvent()
 		case MENU_SET_PHOTO_DEALY: 
             /* 获取MENU_SET_PHOTO_DELAY的Select_info.select的全局索引值,用该值来更新 */
             iIndex = getMenuSelectIndex(MENU_SET_PHOTO_DEALY);
-            Log.d(TAG, "[%s: %d] get photo delay index[%d]", __FILE__, __LINE__, iIndex);
+
+            Log.d(TAG, "[%s: %d] set photo delay index[%d]", __FILE__, __LINE__, iIndex);
             updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_PHDEALY, iIndex);
+
             mProCfg->set_val(KEY_PH_DELAY, iIndex);
             procBackKeyEvent();
 			break;
@@ -5838,6 +5910,9 @@ void MenuUI::procPowerKeyEvent()
         case MENU_SET_AEB:
             /* 获取MENU_SET_PHOTO_DELAY的Select_info.select的全局索引值,用该值来更新 */
             iIndex = getMenuSelectIndex(MENU_SET_AEB);
+
+            Log.d(TAG, "[%s: %d] set aeb index[%d]", __FILE__, __LINE__, iIndex);
+
             updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AEB, iIndex);
             mProCfg->set_val(KEY_AEB, iIndex);
             procBackKeyEvent();
@@ -6045,29 +6120,29 @@ void MenuUI::procUpKeyEvent()
 *************************************************************************/
 void MenuUI::procDownKeyEvent()
 {
-    switch (cur_menu) {	/* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
-    case MENU_PIC_INFO:
-	    if (check_state_preview()) {
-		    setCurMenu(MENU_PIC_SET_DEF);
-	    }
-	    break;
+    switch (cur_menu) { /* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
+        case MENU_PIC_INFO:
+	        if (check_state_preview()) {
+		        setCurMenu(MENU_PIC_SET_DEF);
+	        }
+	        break;
 		
-    case MENU_VIDEO_INFO:
-        if (check_state_preview()) {
-            setCurMenu(MENU_VIDEO_SET_DEF);
+        case MENU_VIDEO_INFO:
+            if (check_state_preview()) {
+                setCurMenu(MENU_VIDEO_SET_DEF);
+            }
+            break;
+		
+        case MENU_LIVE_INFO:
+            if (check_state_preview()) {
+                setCurMenu(MENU_LIVE_SET_DEF);
+            }
+            break;
+		
+	    default:
+	        commDownKeyProc();
+	        break;
         }
-        break;
-		
-    case MENU_LIVE_INFO:
-        if (check_state_preview()) {
-            setCurMenu(MENU_LIVE_SET_DEF);
-        }
-        break;
-		
-	default:
-	    commDownKeyProc();
-	    break;
-    }
 }
 
 
@@ -6252,13 +6327,13 @@ void MenuUI::disp_live_ready()
         case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI:
         case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI:
         case VID_ARIAL:
-            if (mLiveAction[item].stOrgInfo.save_org != SAVE_OFF && check_save_path_none()) {
+            if (mLiveAction[item].stOrgInfo.save_org != SAVE_OFF && checkHaveLocalSavePath()) {
                 bReady = false;
             }
             break;
 			
         case LIVE_CUSTOM:
-            if (check_live_save(mProCfg->get_def_info(KEY_ALL_LIVE_DEF)) && check_save_path_none()) {
+            if (check_live_save(mProCfg->get_def_info(KEY_ALL_LIVE_DEF)) && checkHaveLocalSavePath()) {
                 bReady = false;
             }
             break;
@@ -6277,7 +6352,7 @@ void MenuUI::disp_live_ready()
 void MenuUI::disp_ready_icon(bool bDispReady)
 {
 	/* 调用存储管理器来判断显示图标 */
-    if (!check_save_path_none()) {
+    if (!checkHaveLocalSavePath()) {
         disp_icon(ICON_CAMERA_READY_20_16_76_32);
     } else {
         disp_icon(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);
@@ -6287,11 +6362,8 @@ void MenuUI::disp_ready_icon(bool bDispReady)
 
 void MenuUI::disp_shooting()
 {
-//    if(!check_save_path_none())
-//    {
-    Log.d(TAG, "check_save_path_none() is %d", check_save_path_none());
+    Log.d(TAG, "checkHaveLocalSavePath() is %d", checkHaveLocalSavePath());
     disp_icon(ICON_CAMERA_SHOOTING_2016_76X32);
-//    }
     setLight(fli_light);
 }
 
@@ -6348,9 +6420,12 @@ void MenuUI::add_state(int state)
 	
     switch (state) {
 		
+        #if 0
 		case STATE_QUERY_STORAGE:
+            disp_waiting();		/* 屏幕中间显示"..." */
 			break;
-	
+        #endif
+
         case STATE_STOP_RECORDING:
             disp_saving();
             break;
@@ -6490,8 +6565,6 @@ void MenuUI::add_state(int state)
         case STATE_FORMATING:
             break;
 
-		case STATE_PLAY_SOUND:
-			break;
 			
         case STATE_FORMAT_OVER:
             break;
@@ -6945,7 +7018,15 @@ bool MenuUI::queryCurStorageState()
 {
 	sp<Volume> tmpVol;
 	
-	if (mLocalStorageList.size() == 0) {
+    #if 0
+    /* 添加查询状态 */
+    // add_state(STATE_QUERY_STORAGE);
+    #endif
+
+    send_option_to_fifo(ACTION_QUERY_STORAGE);
+    return getQueryResult(2000);    /* 超时时间,单位为ms,最长为2000ms */
+#if 0
+	if (mLocalStorageList.size() == 0) {    /* 没有大的存储卡 */
 		return false;
 	} else {	
 		for (u32 i = 0; i < mLocalStorageList.size(); i++) {
@@ -6956,11 +7037,10 @@ bool MenuUI::queryCurStorageState()
 			}
 		}
 		
-		// add_state(STATE_QUERY_STORAGE);
-
-		send_option_to_fifo(ACTION_QUERY_STORAGE);
 		return true;		
 	}
+#endif
+
 }
 
 
@@ -6997,11 +7077,47 @@ int MenuUI::convIndex2CapDelay(int iIndex)
 }
 
 
+int MenuUI::convAebNumber2Index(int iAebNum)
+{
+    int iAebNumArry[] = {3, 5, 7, 9}; 
+
+    int iSize = sizeof(iAebNumArry) / sizeof(iAebNumArry[0]);
+    int iIndex = 0;
+    for (iIndex = 0; iIndex < iSize; iIndex++) {
+        if (iAebNum == iAebNumArry[iIndex])
+            break;
+    }
+
+    if (iIndex < iSize) {
+        return iIndex;
+    } else {
+        return 1;   /* 默认返回5s */
+    }
+
+
+}
+
+int MenuUI::convIndex2AebNum(int iIndex)
+{
+    int iAebNumArry[] = {3, 5, 7, 9}; 
+    int iSize = sizeof(iAebNumArry) / sizeof(iAebNumArry[0]);   
+
+    if (iIndex < 0 || iIndex > iSize - 1) {
+        Log.e(TAG, "[%s: %d] Invalid index gived [%d]", __FILE__, __LINE__, iIndex);
+        return 5;   /* 默认为5s */
+    } else {
+        return iAebNumArry[iIndex];
+    }
+
+}
+
+
+
 
 //all disp is at bottom
 int MenuUI::oled_disp_type(int type)
 {
-    Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, STR(cur_menu), cam_state);
+    Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, getCurMenuStr(cur_menu), cam_state);
 
     rm_state(STATE_FORMAT_OVER);
 
@@ -7105,7 +7221,7 @@ int MenuUI::oled_disp_type(int type)
                 mControlAct = nullptr;
                 //fix select for changed by controller or timelapse
                 if (cur_menu == MENU_VIDEO_INFO)  {
-                    disp_bottom_info();
+                    dispBottomInfo();
                 } else {
                     Log.e(TAG, "error cur_menu %d ", cur_menu);
                 }
@@ -7130,13 +7246,23 @@ int MenuUI::oled_disp_type(int type)
         case CAPTURE:
 
             if (check_allow_pic()) {
-                if (mControlAct != nullptr) {
+                /* mControlAct不为NULL,有两种情况 
+                 * - 来自客户端的拍照请求
+                 * - 识别二维码的请求
+                 */
+                if (mControlAct != nullptr) {   
                 	Log.d(TAG, "+++++++++++++++>>>> CAPTURE mControlAct != nullptr");
                     // set_cap_delay(mControlAct->delay);
+                    mNeedSendAction = false;
+                    /* - 
+                     * 不发送请求 
+                     */
                     setTakePicDelay(mControlAct->delay);
-                    mProCfg->set_val(KEY_PH_DELAY, convCapDelay2Index(mControlAct->delay));
-                    updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_PHDEALY, convCapDelay2Index(mControlAct->delay));
+
+                    // mProCfg->set_val(KEY_PH_DELAY, convCapDelay2Index(mControlAct->delay));
+                    // updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_PHDEALY, convCapDelay2Index(mControlAct->delay));
                 } else {
+                    mNeedSendAction = true;
                     int item = getMenuSelectIndex(MENU_PIC_SET_DEF);
                     int iDelay = convIndex2CapDelay(mProCfg->get_val(KEY_PH_DELAY));
 
@@ -7172,13 +7298,13 @@ int MenuUI::oled_disp_type(int type)
                     if (mControlAct != nullptr) {
                         Log.d(TAG,"control cap suc");
                         mControlAct = nullptr;
-                        disp_bottom_info();
+                        dispBottomInfo();
                     } else {
-                        Log.d(TAG,"org remain pic %d",mRemainInfo->remain_pic_num);
-                        if (mRemainInfo->remain_pic_num > 0) {
-                            mRemainInfo->remain_pic_num--;
+                        Log.d(TAG,"org remain pic %d", mCanTakePicNum);
+                        if (mCanTakePicNum > 0) {
+                            mCanTakePicNum--;
                         }
-                        disp_bottom_space();
+                        dispBottomLeftSpace();
                     }
                 } else {
                     mControlAct = nullptr;
@@ -7294,13 +7420,17 @@ int MenuUI::oled_disp_type(int type)
             if (!check_state_in(STATE_PREVIEW)) {   /*  */
 
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS, ENTER QUERY STORAGE STATE");
-
 #if 1
 				/* 查询状态  */							
 				bool bStore = queryCurStorageState();
 				if (bStore) {		
 					Log.d(TAG, ">>>> queryCurStorageState return true, we can take pic, vido, live now...");
+                    
+                    /** 计算剩余量,更新底部信息 */
+                    calcRemainSpace();
 					add_state(STATE_PREVIEW); /* 添加"STATE_PREVIEW"后会显示"READY"字样 */
+                    dispBottomLeftSpace();
+
 				} else {
 					/* 显示无存储设备 */
 					Log.d(TAG, ">>>> queryCurStorageState return false, baddly...");					
@@ -8146,14 +8276,12 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 	switch (menu) {
 		case MENU_PIC_INFO:
 			if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
-				if (check_state_in(STATE_PLAY_SOUND)) {
-					/* 播放声音,去除STATE_PLAY_SOUND状态 */
-					rm_state(STATE_PLAY_SOUND);
-				}
-						
+	
 				if (mTakePicDelay == 0) {
 
-                    send_option_to_fifo(ACTION_PIC);
+                    if (mNeedSendAction) {  /* 暂时用于处理客户端发送拍照请求时，UI不发送拍照请求给camerad */
+                        send_option_to_fifo(ACTION_PIC);
+                    }
                     if (menu == cur_menu) {
 						disp_shooting();
 					}
@@ -8290,6 +8418,30 @@ void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
 }
 
 
+bool MenuUI::getQueryResult(int iTimeout)
+{
+    int  iStepTime = 50;     // 50Ms
+    bool bQueryResult = false;
+    while (iTimeout > 0) {
+        {
+            unique_lock<mutex> lock(mRemoteDevLock);
+            bQueryResult = mRemoteStorageUpdate;
+        }
+
+        if (bQueryResult == true) {
+            {
+                unique_lock<mutex> lock(mRemoteDevLock);
+                mRemoteStorageUpdate = false;               
+            }
+            break;    
+        } else {
+            msg_util::sleep_ms(iStepTime);
+        }
+        iTimeout -= iStepTime;
+    }    
+    return bQueryResult;
+}
+
 
 void MenuUI::handleUpdateMid()
 {
@@ -8307,7 +8459,7 @@ void MenuUI::handleUpdateMid()
                                 //hide while stop recording
                     if (cur_menu == MENU_VIDEO_INFO) {  /* 如果是在录像界面,更新录像时间和剩余时间到UI */
                         disp_mid();
-                        disp_bottom_space();
+                        dispBottomLeftSpace();
                     }
                 }
             }
@@ -8338,7 +8490,7 @@ void MenuUI::handleUpdateMid()
 ** 方法功能: 消息处理
 ** 入口参数: msg - 消息对象强指针引用
 ** 返 回 值: 无 
-** 调     用: 消息处理线程
+** 调     用: 消息处理线程 MENU_TOP
 **
 *************************************************************************/
 void MenuUI::handleMessage(const sp<ARMessage> &msg)
@@ -8405,8 +8557,10 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
             case OLED_DISP_IP: {	/* 更新IP */
 				sp<DEV_IP_INFO> tmpIpInfo;
 				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
-				Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
 
+#ifdef ENABLE_DEBUG_NET
+				Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
+#endif
 				procUpdateIp(tmpIpInfo->ipAddr);
                	break;
             }

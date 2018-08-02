@@ -113,20 +113,20 @@ class control_center:
             # config._START_STICH_VIDEO: self.camera_start_compose_video,
             # config._STOP_STICH_VIDEO: self.camera_stop_compose_video,
             # config._START_STICH_PIC: self.camera_start_compose_pic,
-            config._START_PREVIEW:  self.camera_start_preview,
-            config._STOP_PREVIEW:   self.camera_stop_preview,
-            config._TAKE_PICTURE:   self.camera_take_pic,
-            config._SET_NTSC_PAL:   self.camera_set_ntsc_pal,
-            config._GET_NTSC_PAL: self.camera_get_ntsc_pal,
-            # config._SET_HDMI_ON: self.camera_hdmi_on,
-            # config._SET_HDMI_OFF: self.camera_hdmi_off,
-            config._SETOFFSET: self.set_offset,
-            config._GETOFFSET: self.get_offset,
-            config._SET_IMAGE_PARAM: self.camera_set_image_param,
-            config.SET_OPTIONS:self.camera_set_options,
-            config.GET_OPTIONS: self.camera_get_options,
-            config._GET_IMAGE_PARAM: self.camera_get_image_param,
-            config._SET_STORAGE_PATH: self.set_storage_path,
+            config._START_PREVIEW:      self.camera_start_preview,
+            config._STOP_PREVIEW:       self.camera_stop_preview,
+            config._TAKE_PICTURE:       self.camera_take_pic,
+            config._SET_NTSC_PAL:       self.camera_set_ntsc_pal,
+            config._GET_NTSC_PAL:       self.camera_get_ntsc_pal,
+            # config._SET_HDMI_ON:      self.camera_hdmi_on,
+            # config._SET_HDMI_OFF:     self.camera_hdmi_off,
+            config._SETOFFSET:          self.set_offset,
+            config._GETOFFSET:          self.get_offset,
+            config._SET_IMAGE_PARAM:    self.camera_set_image_param,
+            config.SET_OPTIONS:         self.camera_set_options,
+            config.GET_OPTIONS:         self.camera_get_options,
+            config._GET_IMAGE_PARAM:    self.camera_get_image_param,
+            config._SET_STORAGE_PATH:   self.set_storage_path,
             config._CALIBRATION:self.camera_start_calibration,
             config._QUERY_STATE:self.camera_query_state,
             config._START_GYRO:self.camera_start_gyro,
@@ -2098,7 +2098,10 @@ class control_center:
     def camera_take_pic(self,req):
         Info('take pic req {} state {}'.format(req,self.get_cam_state()))
         if self.check_allow_pic():
+
             self.send_oled_type(config.CAPTURE, req)
+            
+            # 自己又单独给Camerad发拍照请求??
             read_info = self.take_pic(req)
         else:
             Info('not allow take pic')

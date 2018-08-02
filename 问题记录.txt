@@ -16,3 +16,89 @@
 
 
 
+
+
+日期：2018年8月2日
+问题：1402问题追踪
+流程：
+1.Web接收到客户端的请求：camera._takePicture
+config._TAKE_PICTURE:   self.camera_take_pic,   /* Web调用 */
+
+
+D/fifo    ( 1565): ReadFifoThread Msg From Http(CMD_OLED_DISP_TYPE) fifo test {"type": 6, "req": {"action": 1, "param": {"stabilization": false, "origin": {"height": 3000, "mime": "jpeg", "width": 4000, "saveOrigin": true}, "stiching": {"height": 3840, "mode": "pano", "mime": "jpeg", "algorithm": "opticalFlow", "width": 7680}, "delay": 0}}}
+D/fifo    ( 1565): rec req type 6
+D/fifo    ( 1565): bSave org 0
+D/fifo    ( 1565): org 4000 3000
+D/fifo    ( 1565): qr type 1
+D/fifo    ( 1565): stStiInfo.sti_res is (7680 3840)
+D/fifo    ( 1565):  mode (1 0)
+D/fifo    ( 1565): tl type size (0 6 30)
+D/MenuUI  ( 1565): OLED_DISP_STR_TYPE (1 6 -1 1 0x8)
+D/MenuUI  ( 1565): add_qr_res type (1 1)
+D/MenuUI  ( 1565): oled_disp_type (6 cur_menu 0x8)
+D/MenuUI  ( 1565): +++++++++++++++>>>> CAPTURE mControlAct != nullptr
+D/MenuUI  ( 1565): >>>>>>>>>>> setTakePicDelay 0
+
+
+def camera_take_pic(self,req):
+    Info('take pic req {} state {}'.format(req,self.get_cam_state()))
+    if self.check_allow_pic():
+        self.send_oled_type(config.CAPTURE, req)
+        #read_info = self.take_pic(req)
+    else:
+        Info('not allow take pic')
+        read_info = cmd_error_state(req[_name], self.get_cam_state())
+
+    Info('take pic read_info {}'.format(read_info))
+    return read_info
+
+原因：既自己给Camerad发送拍照请求，又通知UI发送拍照请求
+解决方法：
+在oled_disp_type的CAPTURE中：
+if (mControlAct != nullptr) { 
+    mNeedSendAction = false;    // mNeedSendAction 使用该标志来区分是否需要给camerad发送实际请求
+} else {
+    mNeedSendAction = true;
+    ......
+}
+然后在handleDispLightMsg中的倒计时为0判断mNeedSendAction标志来发ACTION
+if (mTakePicDelay == 0) {
+
+    if (mNeedSendAction) {  /* 暂时用于处理客户端发送拍照请求时，UI不发送拍照请求给camerad */
+        send_option_to_fifo(ACTION_PIC);
+    }
+    if (menu == cur_menu) {
+        disp_shooting();
+    }
+
+} else {
+    ......
+}
+
+
+照片全部存储在大卡上，各种规格拍一组照片需要的存储空间：
+8K_3D_OF        36M
+8K_3D_OF_RAW    180M
+
+8K_3D_OF        33M
+8K_3D_OF_RAW    180M
+
+8K              25M
+8K_RAW          160M
+
+AEB9            135M
+AEB9_RAW        1.4G
+
+AEB7            110M
+AEB7_RAW        1.1G
+
+AEB5            80M
+AEB5_RAW        780M
+
+AEB3            45M
+AEB3_RAW        460M
+
+BURST           150M
+BURST_RAW       1.5G
+
+CUSTOMER

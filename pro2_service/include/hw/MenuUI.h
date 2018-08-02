@@ -544,13 +544,13 @@ private:
     void sys_reboot(int cmd = REBOOT_SHUTDOWN);
 
 	void disp_cam_param(int higlight);
-    void disp_bottom_info(bool high = false);
-    bool check_save_path_none();
+
+    bool checkHaveLocalSavePath();
+
     bool check_save_path_usb();
     int get_dev_type_index(char *dev_type);
     void get_storage_info();
-    void disp_bottom_space();
-    void update_bottom_space();
+
     bool get_save_path_avail();
     void get_save_path_remain();
     bool check_dev_exist(int action = -1);
@@ -625,11 +625,22 @@ private:
     void setCurMenu(int menu,int back_menu = -1);
     void cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
+    bool getQueryResult(int iTimeout);
     /*
      * 系统信息
      */
     void dispSysInfo();
 
+    /*
+     * 计算剩余空间
+     */
+    void calcRemainSpace();
+    void dispBottomLeftSpace();
+
+    /*
+     * 拍照部分
+     */
+    void cfgPicModeItemCurVal(struct stPicVideoCfg* pPicCfg);
 
     /*
      * 设置页部分
@@ -646,14 +657,23 @@ private:
     int get_setting_select(int type);
 
     void updateBottomMode(bool bLight);
+
+    /* 显示底部的规格模式 */
     void dispPicVidCfg(struct stPicVideoCfg* pCfg, bool bLight);
 
+    /*
+     * 显示底部信息: 
+     * high - 表示是否高亮显示规格
+     * bTrueLeftSpace - 是否真实的显示剩余空间,默认为true
+     */
+    void dispBottomInfo(bool high = false, bool bTrueLeftSpace = true);
+    void updateBottomSpace();
 
     /************************************** 菜单相关 END *************************************************/
 
 
 	/* 
-	 * 网络接口
+	 * 网络接口 PicVideoCfg
 	 */
 	void sendWifiConfig(sp<WifiConfig> &mConfig);
 	void handleorSetWifiConfig(sp<WifiConfig> &mConfig);
@@ -675,6 +695,10 @@ private:
     void setTakePicDelay(int iDelay);
     int convCapDelay2Index(int iDelay);
     int convIndex2CapDelay(int iIndex);
+
+    int convAebNumber2Index(int iAebNum);
+    int convIndex2AebNum(int iIndex);
+
 
 
     /********************************************* 按键处理 ****************************************************/
@@ -763,8 +787,8 @@ private:
 
 	
     sp<SYS_INFO> mReadSys;
-    sp<struct _ver_info_> mVerInfo;
-    sp<struct _wifi_config_> mWifiConfig;
+    sp<struct _ver_info_>       mVerInfo;
+    sp<struct _wifi_config_>    mWifiConfig;
 
     bool bDispTop = false;
     bool bRoot = false;
@@ -778,52 +802,61 @@ private:
     int64 last_key_ts = 0;
 	
 
-	sp<NetManager> mNetManager;
+	sp<NetManager>              mNetManager;            /* 网络管理器对象强指针 */
 
-    sp<dev_manager> mDevManager;
+    sp<dev_manager>             mDevManager;            /* 设备管理器对象强指针 */
 
-    int mTakePicDelay = 0;
+    int                         mTakePicDelay = 0;      /* 拍照倒计时 */  
 
-	int	mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
+	int	                        mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
 	
-    bool bLiveSaveOrg = false;
+    bool                        bLiveSaveOrg = false;
     int pipe_sound[2]; // 0 -- read , 1 -- write
 
     // during stiching and not receive stich finish
-    bool bStiching = false;
+    bool                        bStiching = false;
 
-    char mLocalIpAddr[32];        /* UI本地保存的IP地址 */
+    char                        mLocalIpAddr[32];        /* UI本地保存的IP地址 */
 
 
 	/*
 	 * 是否已经配置SSID
 	 */
-	bool	mHaveConfigSSID = false;
+	bool	                    mHaveConfigSSID = false;
 
 	/*------------------------------------------------------------------------------
 	 * 存储管理部分
 	 */
 
 
-	u32 	mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
+	u32 	                    mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
 
-	u32		mCanTakePicNum;							/* 可拍照的张数 */
-	u32		mCanTakeVidTime;						/* 可录像的时长(秒数) */
-	u32		mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
+    /* 目前拍照都存储在大卡里
+     * 步骤:
+     * 根据mSavePathIndex从mLocalStorageList列表中取出对应的Volume,将该值除以当前配置ACTION_INFO.size_per_byte
+     * 什么时候需要更新剩余空间
+     * 1. 进入该菜单
+     * 2. 以该规格拍完一张照片时
+     * 3. 调整拍照规格时
+     */
+	u32		                mCanTakePicNum;							/* 可拍照的张数 */
+	u32		                mCanTakeVidTime;						/* 可录像的时长(秒数) */
+	u32		                mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
 
 	std::mutex				mRemoteDevLock;
-    bool    mRemoteStorageUpdate = false;
-	std::vector<sp<Volume>> mRemoteStorageList;		/* 存储列表 */
+    bool                    mRemoteStorageUpdate = false;
+	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
 
 	std::mutex				mLocaLDevLock;
-	std::vector<sp<Volume>> mLocalStorageList;		/* 存储列表 */
+	std::vector<sp<Volume>> mLocalStorageList;		                /* 存储列表 */
 
-	bool	bFirstDev = true;
-	int		mSavePathIndex = -1;
-
+	bool	                bFirstDev = true;
+	int		                mSavePathIndex = -1;
+    
+    bool                    mNeedSendAction = true;                        /* 是否需要发真实的请求给Camerad */
 
 	/*
-	 * 菜单管理相关 MENU_INFO
+	 * 菜单管理相关 MENU_INFO stPicVideoCfg
 	 */
 	std::vector<sp<MENU_INFO>>          mMenuLists;
     std::vector<struct stSetItem*>      mSetItemsList;

@@ -74,7 +74,7 @@ static const char *key[] = {
 
     "raw:",
     "aeb:",
-    "ph_delay",
+    "ph_delay:",
     
     "speaker:",
     "light_on:",
