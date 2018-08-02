@@ -2393,7 +2393,10 @@ SettingItem setResetItem = {
 SettingItem* gSettingItems[] = {
 	&setDhcpItem,
 	&setFreqItem,
+
+#ifdef ENABLE_FEATURE_HDR
 	&setHDRItem,
+#endif
 
 	&setRawPhotoItem,
 

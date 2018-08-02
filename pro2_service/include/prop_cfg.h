@@ -141,8 +141,14 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define TAKE_PIC_MODE_CUSTOMER      "pic_customer"
 
 
+/*
+ * 录像模式名称
+ */
 
-
+#define TAKE_LIVE_MODE_4K_30F            "live_4k_30f"
+#define TAKE_LIVE_MODE_4K_30F_HDMI       "live_4k_30f"
+#define TAKE_LIVE_MODE_4K_30F_3D         "live_4k_3d"
+#define TAKE_LIVE_MODE_4K_30F_3D_HDMI    "live_4k_3d_hdmi"
 
 /*
  * 各设置项的名称 MENU_INFO

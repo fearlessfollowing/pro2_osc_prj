@@ -1742,34 +1742,20 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                     /* TODO: 在此处为各个项设置对应的ACTION_INFO
                      * 通过解析配置文件得到的ACTION_INFO列表(通过名称进行匹配)
                      */
-
-                    #if 0                    
-                    const char* pItemName = pSetItems[i]->pItemName;
-                    
-
-                    if (!strcmp(pItemName, TAKE_PIC_MODE_CUSTOMER)) {   /* Customer DO nothing */
-                        /* do nothing */
-                    } else if (!strcmp(pItemName, TAKE_PIC_MODE_AEB)) {
-                        int iIndexBase = 0;
-                        /* 根据RAW和AEB当前值来决定 */
-                        if (iDefaultRawVal) {
-                            iIndexBase = 4;
-                        }
-
-                        pSetItems[i]->iCurVal = iIndexBase + iDefaultAebVal;
-                        if (pSetItems[i]->iCurVal > pSetItems[i]->iItemMaxVal) {
-                            Log.e(TAG, "[%s: %d] Current val [%d], max val[%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal, pSetItems[i]->iItemMaxVal);
-                        }
-                    } else {
-                        pSetItems[i]->iCurVal = iDefaultRawVal;
-                        Log.e(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pSetItems[i]->iCurVal);
-                    }
-                    #else 
                     cfgPicModeItemCurVal(pSetItems[i]);
-                    #endif
-
                     pItemLists.push_back(pSetItems[i]);
                 }
+                break;
+            
+            case MENU_LIVE_SET_DEF:
+            case MENU_VIDEO_SET_DEF:
+                iIndex = mProCfg->get_val(KEY_ALL_LIVE_DEF); /* 当前所中的项 */
+                updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
+                for (u32 i = 0; i < size; i++) {
+                    pSetItems[i]->stPos = tmPos;
+                    pSetItems[i]->iCurVal = 0;
+                    pItemLists.push_back(pSetItems[i]);
+                }                
                 break;
 
 #if 0
@@ -1886,6 +1872,30 @@ void MenuUI::init_menu_select()
     
     cfgPicVidLiveSelectMode(&mMenuInfos[MENU_VIDEO_SET_DEF], mVidAllItemsList);
     cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);    
+
+#else
+
+    mMenuInfos[MENU_LIVE_SET_DEF].priv = static_cast<void*>(gLiveAllModeCfgList);
+    mMenuInfos[MENU_LIVE_SET_DEF].privList = static_cast<void*>(&mLiveAllItemsList);
+
+    mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.total = sizeof(gLiveAllModeCfgList) / sizeof(gLiveAllModeCfgList[0]);
+    mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.select = 0;
+    mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.page_max = mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.total;
+    mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.page_num = 1;
+
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);
+    
+    Log.d(TAG, "[%s:%d] mPicAllItemsList size = %d", __FILE__, __LINE__, mLiveAllItemsList.size());
+
+    Log.d(TAG, "MENU_LIVE_SET_DEF Menu Info: total items [%d], page count[%d], cur page[%d], select [%d]", 
+                mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.total,
+                mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.page_num,
+                mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.cur_page,
+                mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.select
+                );
+
+    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);
+
 #endif
 
 }
@@ -1908,7 +1918,7 @@ void MenuUI::init()
 
     // CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
     CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
-    CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
+    // CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
 
     /*
@@ -5296,7 +5306,9 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 			
         case MENU_LIVE_INFO:
+
             INFO_MENU_STATE(cur_menu,cam_state);
+            
             disp_icon(ICON_LIVE_ICON_0_16_20_32);
             // disp_cam_param(0);
 
@@ -7320,6 +7332,7 @@ int MenuUI::oled_disp_type(int type)
                 disp_sys_err(type);
             }
             break;
+
 /************************************ 拍照相关 END **********************************************/
 
 

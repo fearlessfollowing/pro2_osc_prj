@@ -62,6 +62,10 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 # LED 调试信息开关
 COM_FLAGS += ' -DDEBUG_OLED '
 
+# 是否支持HDR（默认不支持）
+#COM_FLAGS += ' -DENABLE_FEATURE_HDR '
+
+
 # 输入事件管理器调试开关
 #COMFLAGS += ' -DDEBUG_INPUT_MANAGER'
 

@@ -102,3 +102,6 @@ BURST           150M
 BURST_RAW       1.5G
 
 CUSTOMER
+
+
+TAKE_VIDEO部分修改
