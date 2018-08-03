@@ -1,7 +1,7 @@
 #ifndef INC_360PRO_SERVICE_FIFO_H
 #define INC_360PRO_SERVICE_FIFO_H
 
-#include <hw/InputManager.h>
+#include <hw/MenuUI.h>
 #include <common/sp.h>
 #include <util/cJSON.h>
 
@@ -178,8 +178,6 @@ private:
     void handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg);
 
     sp<MenuUI> mOLEDHandle;
-
-	sp<InputManager> mInputManager;
 	
     bool bWFifoStop = false;
 

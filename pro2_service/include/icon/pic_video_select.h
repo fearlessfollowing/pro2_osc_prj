@@ -494,7 +494,7 @@ const u8 picBurstNor_78x16[] = {
 };
 
 
-const u8 picCustmLight_78x16[ ] =  {
+const u8 picVidCustmLight_78x16[ ] =  {
 	0x00, 0x00, 0xfc, 0x7c, 0xbc, 0xbc, 0xbc, 0xfc, 0x3c, 0xfc, 0xfc, 0xfc, 0x3c, 0xfc, 0x7c, 0xbc,
 	0xbc, 0xbc, 0x7c, 0xfc, 0x0c, 0xbc, 0xbc, 0xfc, 0x7c, 0xbc, 0xbc, 0xbc, 0x7c, 0xfc, 0x3c, 0xbc,
 	0xbc, 0x7c, 0xbc, 0xbc, 0x7c, 0xfc, 0x2c, 0xfc, 0xbc, 0xbc, 0xbc, 0xbc, 0x3c, 0xfc, 0x7c, 0xbc,
@@ -507,7 +507,7 @@ const u8 picCustmLight_78x16[ ] =  {
 	0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 
 };
 
-const u8  picCustmNor_78x16[ ] =  {
+const u8  picVidCustmNor_78x16[ ] =  {
 	0x00, 0x00, 0x00, 0x80, 0x40, 0x40, 0x40, 0x00, 0xc0, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x80, 0x40,
 	0x40, 0x40, 0x80, 0x00, 0xf0, 0x40, 0x40, 0x00, 0x80, 0x40, 0x40, 0x40, 0x80, 0x00, 0xc0, 0x40,
 	0x40, 0x80, 0x40, 0x40, 0x80, 0x00, 0xd0, 0x00, 0x40, 0x40, 0x40, 0x40, 0xc0, 0x00, 0x80, 0x40,
@@ -796,10 +796,10 @@ PicVideoCfg picCustomer = {
 	{0},						// stPos
 	&picCustomerDefault,
 	{	/* 选中时的图标列表 */
-		picCustmLight_78x16,
+		picVidCustmLight_78x16,
 	},
 	{	/* 未选中时的图标列表 */
-		picCustmNor_78x16,
+		picVidCustmNor_78x16,
 	}
 };
 
@@ -936,6 +936,33 @@ const u8 vid_4K30F3D_Nor_78x16[] = {
 	0x00,0x00,0x1F,0x00,0x08,0x08,0x08,0x08,0x07,0x00,0x0F,0x08,0x08,0x08,0x08,0x04,
 	0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
+
+const u8 vid_4K120F3D_Light_78x16[] = {
+	0x00,0x00,0xFC,0xFC,0x3C,0xDC,0xEC,0x0C,0xFC,0xFC,0x0C,0x7C,0xBC,0xDC,0xEC,0xFC,
+	0x04,0xFC,0xEC,0xEC,0x0C,0xFC,0xFC,0xFC,0xDC,0xEC,0xEC,0xEC,0x1C,0xFC,0x1C,0xEC,
+	0xEC,0xEC,0x1C,0xFC,0x0C,0x6C,0x6C,0x6C,0xEC,0xFC,0x04,0xFC,0xEC,0x6C,0x6C,0x6C,
+	0x9C,0xFC,0x0C,0xEC,0xEC,0xEC,0xEC,0xDC,0x3C,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,
+	0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0xFC,0x00,0x00,
+	0x3F,0x3C,0x3D,0x3D,0x3D,0x30,0x3D,0x3F,0x30,0x3E,0x3D,0x3B,0x37,0x3F,0x20,0x3F,
+	0x37,0x37,0x30,0x37,0x37,0x3F,0x37,0x33,0x35,0x36,0x37,0x3F,0x38,0x37,0x37,0x37,
+	0x38,0x3F,0x30,0x3F,0x3F,0x3F,0x3F,0x3F,0x20,0x3F,0x37,0x37,0x37,0x37,0x38,0x3F,
+	0x30,0x37,0x37,0x37,0x37,0x3B,0x3C,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,
+	0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,0x3F,
+};
+
+const u8 vid_4K120F3D_Nor_78x16[] = {
+	0xFF,0xFF,0x03,0x03,0xC3,0x23,0x13,0xF3,0x03,0x03,0xF3,0x83,0x43,0x23,0x13,0x03,
+	0xFB,0x03,0x13,0x13,0xF3,0x03,0x03,0x03,0x23,0x13,0x13,0x93,0xE3,0x03,0xE3,0x13,
+	0x13,0x13,0xE3,0x03,0xF3,0x93,0x93,0x93,0x13,0x03,0xFB,0x03,0x13,0x93,0x93,0x93,
+	0x63,0x03,0xF3,0x13,0x13,0x13,0x13,0x23,0xC3,0x03,0x03,0x03,0x03,0x03,0x03,0x03,
+	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0xFF,0xFF,
+	0xC0,0xC3,0xC2,0xC2,0xC2,0xCF,0xC2,0xC0,0xCF,0xC1,0xC2,0xC4,0xC8,0xC0,0xDF,0xC0,
+	0xC8,0xC8,0xCF,0xC8,0xC8,0xC0,0xC8,0xCC,0xCB,0xC9,0xC8,0xC0,0xC7,0xC8,0xC8,0xC8,
+	0xC7,0xC0,0xCF,0xC0,0xC0,0xC0,0xC0,0xC0,0xDF,0xC0,0xC8,0xC8,0xC8,0xC8,0xC7,0xC0,
+	0xCF,0xC8,0xC8,0xC8,0xC8,0xC4,0xC3,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,
+	0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,0xC0,
 };
 
 
@@ -1198,18 +1225,322 @@ const u8 vid_8K60F_Nor_78x16[] = {
 
 
 
+/*
+ * 8K_30F_3D
+ */
+static ACTION_INFO vid8K_30F_3D_Action = {
+	MODE_PANO,
+	24,
+	0,
+	
+	{	/* for test version: ORG_INFO */
+		EN_H264,
+		SAVE_DEF,
+		3840,		/* 3840 */
+		2880,		/* 2160 -> 2880 */
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+	},	
+	{	/* STI_INFO */
+		EN_H264,
+		STITCH_OFF,
+		7680,
+		3840,
+		{}
+	},
+	{},
+	{}
+};
+
+static ACTION_INFO vid8K_60F_Action = {
+	MODE_PANO,
+	24,
+	0,
+	
+	{	/* for test version: ORG_INFO */
+		EN_H264,
+		SAVE_DEF,
+		3840,		/* 3840 */
+		2880,		/* 2160 -> 2880 */
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+	},	
+	{	/* STI_INFO */
+		EN_H264,
+		STITCH_OFF,
+		7680,
+		3840,
+		{}
+	},
+	{},
+	{}
+};
+
+static ACTION_INFO vid8K_5F_Action = {
+	MODE_PANO,
+	24,
+	0,
+	
+	{	/* for test version: ORG_INFO */
+		EN_H264,
+		SAVE_DEF,
+		3840,		/* 3840 */
+		2880,		/* 2160 -> 2880 */
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+	},	
+	{	/* STI_INFO */
+		EN_H264,
+		STITCH_OFF,
+		7680,
+		3840,
+		{}
+	},
+	{},
+	{}
+};
+
+static ACTION_INFO vid6K_60F_3D_Action = {
+	MODE_3D,
+	25,
+	0,
+	{
+		EN_H264,
+		SAVE_DEF,
+		3200,			/* 3840x2880 -> 3200x2400 */
+		2400,
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_60, 60}
+	},
+	{
+		EN_H264,
+		STITCH_OFF,
+		5760,
+		5760,
+		{}
+	},
+	{},
+	{}
+};
+
+
+/*
+ * 4K_120F
+ */
+static ACTION_INFO vid4K_120F_3D_Action = {
+	MODE_PANO,
+	25,
+	0,		// 
+	{
+		EN_H264,
+		SAVE_DEF,
+		1920,
+		1440, 		// 1080 -> 1440
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_120, 120}	// 40 -> 80
+	},
+	{
+		EN_H264,
+		STITCH_OFF,
+		3840,
+		1920,
+		{}
+	},
+	{},
+	{}
+};
+
+static ACTION_INFO vid4K_30F_RTS_Action = {
+	MODE_PANO,
+	20,
+	0,
+	{
+		EN_H264,
+		SAVE_DEF,
+		3840,			/* 根据肖神的提示修改: 4K|PANO 3200x2400@30fps    60M 2018年7月24日 */
+		2160,
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
+		{ALL_FR_30, 60}
+	},
+	{
+		EN_H264,
+		STITCH_NORMAL,
+		3840,
+		1920,
+		{ALL_FR_30, 50}
+	},
+	{},
+	{}
+
+};
+
+static ACTION_INFO vid4K_30F_3D_RTS_Action = {
+	MODE_3D,
+	20,
+	0,
+	{
+		EN_H264,
+		SAVE_DEF,
+		3200,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
+		2400,
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */		
+		{ALL_FR_30, 60}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
+	},
+	{
+		EN_H264,
+		STITCH_NORMAL,
+		3840,
+		3840,
+		{ALL_FR_30, 50}
+	},
+	{},
+	{}
+
+};
+
+static ACTION_INFO vid_Customer_Action = {
+
+};
+
+
+static PicVideoCfg vid8K_30F_3D_Cfg = {
+	TAKE_VID_MODE_8K_30F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid8K_30F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_8K30F3D_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_8K30F3D_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid8K_60F_Cfg = {
+	TAKE_VID_MODE_8K_60F,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid8K_60F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_8K60F_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_8K60F_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid8K_5F_Cfg = {
+	TAKE_VID_MODE_8K_5F,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid8K_5F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_8K5F_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_8K5F_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid6K_60F_3D_Cfg = {
+	TAKE_VID_MODE_6K_60F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid6K_60F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_6K60F3D_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_6K60F3D_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid4K_120F_3D_Cfg = {
+	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid4K_120F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_4K120F3D_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_4K120F3D_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid4K_30F_RTS_Cfg = {
+	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid4K_30F_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_4K30F_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_4K30F_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
+	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid4K_30F_3D_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		vid_4K30F3D_Light_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		vid_4K30F3D_Nor_78x16,
+	}
+};
+
+static PicVideoCfg vid_Customer_Cfg = {
+	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	0,								// 5倍
+	{0},							// stPos
+	&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		picVidCustmLight_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		picVidCustmNor_78x16,
+	}
+};
+
 
 PicVideoCfg* gVidAllModeCfgList[] = {
-	&pic8K_3D_OF,
-	&pic8K_3D,
-	&pic8K,
-	&picAEB,
-	&picBurst,
-	&picCustomer,
+	&vid8K_30F_3D_Cfg,
+	&vid8K_60F_Cfg,
+	&vid8K_5F_Cfg,
+	&vid6K_60F_3D_Cfg,
+	&vid4K_120F_3D_Cfg,
+	&vid4K_30F_RTS_Cfg,
+	&vid4K_30F_3D_RTS_Cfg,
+	&vid_Customer_Cfg,
 };
 
 
 /******************************** 录像部分：END **************************************/
+
+
+
+
 
 
 /******************************** 直播部分：START **************************************/
@@ -1328,7 +1659,7 @@ const u8 live4K_30F_HDMI_Nor_78x16[] = {
 
 
 /*
- * ACTIONs
+ * 4K_30F
  */
 static ACTION_INFO live4K_30F_ActionInfo = {
 	MODE_PANO,
@@ -1339,13 +1670,12 @@ static ACTION_INFO live4K_30F_ActionInfo = {
 		SAVE_OFF,
 		2560,
 		1440,
-			0,		// test
-		
+		0,			// test
 		{ALL_FR_30, 20}
 	},
 	{
 		EN_H264,
-		STITCH_NORMAL,
+		STITCH_NORMAL,	/* 不拼接 */
 		3840,
 		1920,
 		{
@@ -1361,7 +1691,9 @@ static ACTION_INFO live4K_30F_ActionInfo = {
 	{}
 };
 
-
+/*
+ * 4K_30F_HDMI
+ */
 static ACTION_INFO live4K_30F_HDMI_ActionInfo = {
 	MODE_PANO,
 	0,
@@ -1371,7 +1703,7 @@ static ACTION_INFO live4K_30F_HDMI_ActionInfo = {
 		SAVE_OFF,
 		2560,
 		1440,
-			0,		// test
+		0,		// test
 		
 		{ALL_FR_30, 20}
 	},
@@ -1383,7 +1715,7 @@ static ACTION_INFO live4K_30F_HDMI_ActionInfo = {
 		{
 			ALL_FR_30,
 			20,
-			HDMI_OFF,
+			HDMI_ON,
 			0,
 			{0},
 			{0},
@@ -1393,7 +1725,9 @@ static ACTION_INFO live4K_30F_HDMI_ActionInfo = {
 	{}
 };
 
-
+/*
+ * 4K_3D
+ */
 static ACTION_INFO live4K_30D_ActionInfo = {
 	MODE_3D,
 	0,
@@ -1403,7 +1737,7 @@ static ACTION_INFO live4K_30D_ActionInfo = {
 		SAVE_OFF,
 		1920,
 		1440,
-			0,		// test
+		0,		// test
 		
 		{ALL_FR_30, 20}
 	},
@@ -1425,7 +1759,49 @@ static ACTION_INFO live4K_30D_ActionInfo = {
 	{}
 };
 
+/*
+ * 4K_3D_HDMI
+ */
 static ACTION_INFO live4K_30D_HDMI_ActionInfo = {
+	MODE_3D,			// mode - 拼接模式
+	0,					// size_per_sec
+	0,					// delay
+	{	/* Origin */
+		EN_H264,		// mime
+		SAVE_OFF,		// save_mode
+		1920,			// w
+		1440,			// h
+		0,				// storage loc
+		{
+			ALL_FR_30,	// org_fr
+			20			// org_br
+		}
+	},
+	{	/* Stitch */
+		EN_H264,		// mime
+		STITCH_NORMAL,	// stitch_mode
+		3840,			// w
+		1920,			// h
+		{
+			{
+				ALL_FR_30,	// sti_fr
+				20,			// sti_br
+				HDMI_ON,	// hdmi_on
+				0,			// 
+				{0},
+				{0}
+			},
+		}
+	},
+	{},		// CAM_PROP
+	{}		// AUD_INFO
+};
+
+
+/*
+ * Customer
+ */
+static ACTION_INFO live_Customer_ActionInfo = {
 	MODE_3D,
 	0,
 	0,
@@ -1435,7 +1811,6 @@ static ACTION_INFO live4K_30D_HDMI_ActionInfo = {
 		2560,
 		1440,
 		0,		// test
-		
 		{ALL_FR_30, 20}
 	},
 	{
@@ -1450,10 +1825,12 @@ static ACTION_INFO live4K_30D_HDMI_ActionInfo = {
 				HDMI_ON,
 				0,
 				{0},
-				{0}},
-				}
-		},
-		{},
+				{0}
+			},
+		}
+	},
+	{},
+	{}
 };
 
 
@@ -1521,11 +1898,28 @@ PicVideoCfg live4K_30F_3D_HDMI_Cfg = {
 };
 
 
+PicVideoCfg live_Customer_Cfg = {
+	TAKE_LIVE_MODE_CUSTOMER,		// pItemName
+	0,								// iItemMaxVal
+	0,								// iCurVal
+	5,								// 5倍
+	{0},							// stPos
+	&live4K_30D_HDMI_ActionInfo,	/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	{	/* 选中时的图标列表 */
+		picVidCustmLight_78x16,
+	},
+	{	/* 未选中时的图标列表 */
+		picVidCustmNor_78x16,
+	}
+};
+
+
 PicVideoCfg* gLiveAllModeCfgList[] = {
 	&live4K_30F_Cfg,
 	&live4K_30F_HDMI_Cfg,
 	&live4K_30F_3D_Cfg,
 	&live4K_30F_3D_HDMI_Cfg,
+	&live_Customer_Cfg,
 };
 
 

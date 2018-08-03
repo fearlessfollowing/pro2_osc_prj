@@ -27,7 +27,7 @@ set_logo:000
 video_fragment:000
 wifi_on:000
 pic_all_mode:001
-pic_all_size_per_act:60
+pic_all_size_per_act:40
 pic_all_delay:5
 pic_all_org_mime:2
 pic_all_save_org:0

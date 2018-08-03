@@ -15,6 +15,7 @@
 #include <sys/Menu.h>
 
 
+
 typedef enum _type_ {
     START_RECING ,              // 0,
     START_REC_SUC,
@@ -324,7 +325,7 @@ struct _cam_prop_;
 struct stSetItem;
 struct stPicVideoCfg;
 
-
+class InputManager;
 
 class MenuUI {
 public:
@@ -745,7 +746,8 @@ private:
 	
     int cam_state = 0;
 
-    int cur_menu = -1;
+    int     cur_menu = -1;
+    int     iLastEnterMenu;
     int last_err = -1;
 
 	int set_photo_delay_index = 0;
@@ -846,15 +848,20 @@ private:
 	std::mutex				mRemoteDevLock;
     bool                    mRemoteStorageUpdate = false;
 	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
+    u64                     mReoteRecLiveLeftTime;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
 	std::mutex				mLocaLDevLock;
 	std::vector<sp<Volume>> mLocalStorageList;		                /* 存储列表 */
+    u64                     mLocalRecLiveLeftTime;                  /* 本地存储设备,录像,直播的剩余时间 */
+
 
 	bool	                bFirstDev = true;
 	int		                mSavePathIndex = -1;
     
     bool                    mNeedSendAction = true;                        /* 是否需要发真实的请求给Camerad */
 
+
+	sp<InputManager>        mInputManager;                          /* 按键输入管理器 */
 	/*
 	 * 菜单管理相关 MENU_INFO stPicVideoCfg
 	 */

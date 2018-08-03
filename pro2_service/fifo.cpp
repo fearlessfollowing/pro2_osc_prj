@@ -275,9 +275,6 @@ void fifo::init()
     mOLEDHandle = (sp<MenuUI>)(new MenuUI(notify)); //oled_handler::getSysUiObj(notify);
     CHECK_NE(mOLEDHandle, nullptr);
 
-    Log.d(TAG, "Init Input Manager");
-	mInputManager = sp<InputManager>(new InputManager(mOLEDHandle));
-    CHECK_NE(mInputManager, nullptr);
 
     //keep at end 0617 to rec fifo from python
     th_read_fifo_ = thread([this] { read_fifo_thread(); });
@@ -743,6 +740,7 @@ void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *par
 void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param)
 {
 
+
     cJSON *org = cJSON_CreateObject();
     cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
     cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgL.org_fr]));
@@ -757,6 +755,8 @@ void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *pa
         cJSON_AddTrueToObject(org, "saveOrigin");
     }
     
+
+
     cJSON_AddNumberToObject(org, "width", mActInfo->stOrgInfo.w);
     cJSON_AddNumberToObject(org, "height", mActInfo->stOrgInfo.h);
 
@@ -2533,7 +2533,7 @@ void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *root, cJSON *subNo
 		}
 	}
 									
-	Log.d(TAG,"tl type size (%d %d %d)",
+	Log.d(TAG, "tl type size (%d %d %d)",
                                     mAI->stOrgInfo.stOrgAct.mOrgV.tim_lap_int,
                                     mDispType->type,mAI->size_per_act);
 

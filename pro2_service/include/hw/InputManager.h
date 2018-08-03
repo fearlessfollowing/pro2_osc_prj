@@ -23,7 +23,7 @@
 class InputManager {
 
 public:
-    InputManager(const sp<MenuUI> &handler);
+    InputManager(const sp<ARMessage>& msg);
     virtual ~InputManager() {}
 	
 	/* 
@@ -60,8 +60,9 @@ private:
 	void reportEvent(int iKey);
 	void reportLongPressEvent(int iKey, int64 iTs);
 	
-	sp<MenuUI> mHander;		/* 得到消息后,通过hander投递消息 */
-    std::thread loopThread;			/* 循环线程 */
+	sp<ARMessage>	mNotify;
+
+    std::thread 	loopThread;			/* 循环线程 */
 };
 
 #endif /* _INPUT_MANAGER_H_ */

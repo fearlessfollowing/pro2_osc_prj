@@ -53,7 +53,7 @@ enum {
 
 
 
-InputManager::InputManager(const sp<MenuUI> &handler): mHander(handler)
+InputManager::InputManager(const sp<ARMessage> &notify): mNotify(notify)
 {
 	/* 构造一个线程对象 */
     if (!haveInstance) {
@@ -212,30 +212,20 @@ int InputManager::getKey(u16 code)
 
 void InputManager::reportEvent(int iKey)
 {	
-    if (mHander) {
-		sp<ARMessage> msg = mHander->obtainMessage(2);
-		msg->set<int>("oled_key", iKey);
-		msg->post();
-
-    } else {
-		Log.e(TAG, "invalid mHander, can not send key evnet, please check!!!\n");
-	}
+    sp<ARMessage> msg = mNotify->dup();
+    msg->set<int>("oled_key", iKey);
+	msg->post();
 }
 
 
 void InputManager::reportLongPressEvent(int iKey, int64 iTs)
 {
-    if (mHander) {
-		sp<ARMessage> msg = mHander->obtainMessage(3);		
-		Log.d(TAG, "last_key_ts is %lld last_down_key %d", iTs, iKey);
-		
-		msg->set<int>("key", iKey);
-		msg->set<int64>("ts", iTs);
-		msg->postWithDelayMs(LONG_PRESS_MSEC);
-
-    } else {
-		Log.e(TAG, "invalid mHander, can not send key long press evnet, please check!!!\n");
-	}
+    sp<ARMessage> msg = mNotify->dup();
+    Log.d(TAG, "last_key_ts is %lld last_down_key %d", iTs, iKey);
+    
+    msg->set<int>("key", iKey);
+    msg->set<int64>("ts", iTs);
+    msg->postWithDelayMs(LONG_PRESS_MSEC);
 }
 
 

@@ -149,6 +149,17 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define TAKE_LIVE_MODE_4K_30F_HDMI       "live_4k_30f"
 #define TAKE_LIVE_MODE_4K_30F_3D         "live_4k_3d"
 #define TAKE_LIVE_MODE_4K_30F_3D_HDMI    "live_4k_3d_hdmi"
+#define TAKE_LIVE_MODE_CUSTOMER          "live_customer"
+
+
+#define TAKE_VID_MODE_8K_30F_3D         "vid_8k_30f_3d"
+#define TAKE_VID_MODE_8K_60F            "vid_8k_60f"
+#define TAKE_VID_MODE_8K_5F             "vid_8k_5f"
+#define TAKE_VID_MODE_6K_60F_3D         "vid_6k_60f_3d"
+#define TAKE_VID_MODE_4K_120F_3D        "vid_4k_120f_3d"
+#define TAKE_VID_4K_30F_RTS             "vid_4k_30f_rts"
+#define TAKE_VID_4K_30F_3D_RTS          "vid_4k_30f_3d_rts"
+#define TAKE_VID_MOD_CUSTOMER           "vid_customer"
 
 /*
  * 各设置项的名称 MENU_INFO
@@ -173,6 +184,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_STORAGE       "storage"
 #define SET_ITEM_NAME_INFO          "info"
 #define SET_ITEM_NAME_RESET         "reset"
+#define SET_ITEM_NAME_STITCH_BOX    "stitch_box"
 
 
 

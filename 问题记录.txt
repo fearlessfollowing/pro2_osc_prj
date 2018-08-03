@@ -105,3 +105,74 @@ CUSTOMER
 
 
 TAKE_VIDEO部分修改
+
+
+直播流程分析：
+1.主菜单中选中直播项
+procPowerKeyEvent
+    case MAINMENU_LIVE:
+        - 发送预览请求: send_option_to_fifo(ACTION_PREVIEW)
+        - 进入菜单MENU_LIVE_INFO
+
+setCurMenu(MENU_LIVE_INFO)
+    enterMenu(MENU_LIVE_INFO):
+        case MENU_LIVE_INFO:
+            - 显示左侧图标：disp_icon(ICON_LIVE_ICON_0_16_20_32);
+            - 显示底部的挡位及规格
+
+
+
+
+保存自定义参数处理流程：
+UI端：
+handleReqFormHttp   fifo.cpp
+    send_disp_str_type
+        mOLEDHandle->send_disp_str(disp_type);
+            handleDispStrTypeMsg        // MenuUI.cpp
+                add_qr_res
+                    mProCfg->set_def_info       // 保存自定义参数到user_cfg文件中
+                oled_disp_type(SET_CUSTOMER)    // 可以考虑在此处修改剩余空间（按照Customer的参数重新计算）
+
+拍照得到的Customer:
+{
+	"type": 46, 
+	"req": {
+		"action": 1, 
+		"param": {
+			"stabilization": false, 
+			"origin": {
+				"height": 3000, 
+				"mime": "jpeg", 
+				"width": 4000, 
+				"saveOrigin": true
+			}, 
+			"delay": 0, 
+			"properties": {
+				"gamma_param": 
+					"AAAFAAsAEAAWABwAIQAnAC0AMgA4AD4ARABJAE8AVQBbAGEAZwBsAHIAeAB+AIQAigCQAJYAnACiAKgArgC0ALoAwADGAMwA0gDYAN4A5ADqAPAA9gD8AAIBCAEOARUBGwEgAScBLQEzATkBPwFFAUsBUQFXAV0BYwFpAW8BdQF7AYEBhwGMAZMBmAGeAaQBqgGwAbYBuwHBAccBzQHTAdgB3gHkAeoB7wH1AfoBAAIGAgsCEQIWAhwCIQInAiwCMQI3AjwCQgJHAkwCUQJWAlwCYQJmAmsCcAJ1AnoCfwKEAokCjQKSApcCnAKgAqUCqQKuArICtwK7Ar8CxALIAswC0QLVAtkC3QLhAuUC6QLsAvAC9AL4AvsC/wICAwYDCQMNAxADFAMXAxoDHQMgAyMDJwMqAy0DMAMzAzUDOAM7Az4DQQNDA0YDSANLA04DUANTA1UDWANaA1wDXwNhA2MDZgNoA2oDbANuA3EDcwN1A3cDeQN7A30DfwOBA4MDhQOHA4kDiwONA44DkAOSA5QDlgOYA5kDmwOdA58DoQOiA6QDpgOoA6kDqwOtA68DsAOyA7QDtgO3A7kDuwO9A78DwAPCA8QDxgPHA8kDywPNA88D0QPTA9UD1gPYA9oD3APeA+AD4gPkA+YD6APrA+0D7wPxA/MD9QP4A/oD/AM=", 
+				"audio_gain": 0, 
+				"len_param": {
+					"stabilization": 1, 
+					"aaa_mode": 1, 
+					"iso_value": 0, 
+					"brightness": 0, 
+					"shutter_value": 0, 
+					"contrast": 64, 
+					"ev_bias": 0, 
+					"saturation": 64, 
+					"wb": 0, 
+					"sharpness": 0, 
+					"hue": 0
+				}
+			}, 
+			"stiching": {
+				"height": 3840, 
+				"mode": "pano", 
+				"mime": 
+				"jpeg", 
+				"algorithm": "opticalFlow", 
+				"width": 7680
+			}
+		}
+	}
+}

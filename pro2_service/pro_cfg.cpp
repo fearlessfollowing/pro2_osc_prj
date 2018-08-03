@@ -394,8 +394,8 @@ void pro_cfg::update_act_info(int iIndex)
     int fd = -1;
 
     char buf[FILE_SIZE];
-    char val[4096];
-    char write_buf[8192];
+    char val[8192] = {0};
+    char write_buf[8192] = {0};
 
     unsigned int write_len = -1;
     unsigned int len = 0;
@@ -404,11 +404,13 @@ void pro_cfg::update_act_info(int iIndex)
     fd = open(USER_CFG_PARAM_PATH, O_RDWR);
     CHECK_NE(fd, -1);
 
-    read_len = read(fd, buf, sizeof(buf));
     memset(buf, 0, sizeof(buf));
 
+    read_len = read(fd, buf, sizeof(buf));
+
+
     Log.d(TAG, " update_act_info iIndex %d　"
-                  "read_len %d strlen buf %d", iIndex, read_len,strlen(buf));
+                  "read_len %d strlen buf %d", iIndex, read_len, strlen(buf));
 
 
     if (read_len <= 0) {
@@ -522,7 +524,7 @@ void pro_cfg::update_act_info(int iIndex)
 
         Log.d(TAG, "start is %d end %d", start, end);
 
-        for (int type = start; type < end; type++ ) {
+        for (int type = start; type < end; type++) {
             switch (type) {
                 case KEY_ALL_PIC_MODE:
                     int_to_str_val(mCurInfo->mActInfo[KEY_ALL_PIC_DEF].mode,val,max);
@@ -571,20 +573,20 @@ void pro_cfg::update_act_info(int iIndex)
                     break;
                 case KEY_ALL_PIC_LEN_PARAM:
                     memset(val,0,sizeof(val));
-                    if(strlen(mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param) > 0)
-                    {
+                    if (strlen(mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param) > 0) {
                         snprintf(val,max,"%s",mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param);
                         Log.d(TAG,"val %s\nmCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param %s ",
-                              val,mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param);
+                              val, mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.len_param);
                     }
                     break;
+
                 case KEY_ALL_PIC_GAMMA:
-                    memset(val,0,sizeof(val));
+                    memset(val, 0, sizeof(val));
                     memcpy(val,mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_ALL_PIC_DEF].stProp.mGammaData));
                     break;
                     
 
-
+#if 0
                 case KEY_SD_PIC_MODE:
                     int_to_str_val(mCurInfo->mActInfo[KEY_SD_PIC_DEF].mode,val,max);
                     break;
@@ -701,6 +703,8 @@ void pro_cfg::update_act_info(int iIndex)
                     memset(val,0,sizeof(val));
                     memcpy(val,mCurInfo->mActInfo[KEY_TF_PIC_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_TF_PIC_DEF].stProp.mGammaData));
                     break;
+#endif
+
 
                     //video
                 case KEY_ALL_VIDEO_MODE:
@@ -783,7 +787,7 @@ void pro_cfg::update_act_info(int iIndex)
                     memcpy(val,mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.mGammaData));
                     break;
 
-
+#if 0
                 case KEY_SD_VIDEO_MODE:
                     int_to_str_val(mCurInfo->mActInfo[KEY_SD_VIDEO_DEF].mode,val,max);
                     break;
@@ -944,7 +948,7 @@ void pro_cfg::update_act_info(int iIndex)
                     memset(val,0,sizeof(val));
                     memcpy(val,mCurInfo->mActInfo[KEY_TF_VIDEO_DEF].stProp.mGammaData,strlen(mCurInfo->mActInfo[KEY_TF_VIDEO_DEF].stProp.mGammaData));
                     break;
-
+#endif
 
 
                     //live
@@ -1042,6 +1046,7 @@ void pro_cfg::update_act_info(int iIndex)
                     break;
 
 
+#if 0
                 case KEY_SD_LIVE_MODE:
                     int_to_str_val(mCurInfo->mActInfo[KEY_SD_LIVE_DEF].mode,val,max);
                     break;
@@ -1229,14 +1234,15 @@ void pro_cfg::update_act_info(int iIndex)
                     memset(val,0,sizeof(val));
                     memcpy(val, mCurInfo->mActInfo[KEY_TF_LIVE_DEF].stProp.mGammaData, strlen(mCurInfo->mActInfo[KEY_TF_LIVE_DEF].stProp.mGammaData));
                     break;
-
+#endif
 
 
                 SWITCH_DEF_ERROR(type)
             }
+
             strcat(write_buf, key[type]);
             if (strlen(val) > 0) {
-                strcat(write_buf,val);
+                strcat(write_buf, val);
             }
             strcat(write_buf, new_line);
         }
@@ -1324,6 +1330,10 @@ struct _action_info_ *pro_cfg::get_def_info(int type)
 	return NULL;
 }
 
+
+/*
+ * 设置指定的ACTION
+ */
 void pro_cfg::set_def_info(int type, int val, sp<struct _action_info_> mActInfo)
 {
     if (val != -1) {
@@ -1331,11 +1341,8 @@ void pro_cfg::set_def_info(int type, int val, sp<struct _action_info_> mActInfo)
     }
 	
     if (mActInfo != nullptr) {
-        memcpy(&mCurInfo->mActInfo[type],
-               mActInfo.get(),
-               sizeof(ACTION_INFO));
-		
-        update_act_info(type);
+        memcpy(&mCurInfo->mActInfo[type], mActInfo.get(), sizeof(ACTION_INFO)); /* 内存中存一份 */
+        update_act_info(type);      /* 配置文件中保存一份 */
     }
 }
 
