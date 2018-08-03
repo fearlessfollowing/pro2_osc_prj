@@ -1789,21 +1789,7 @@ void MenuUI::init_menu_select()
 #if 0    
     for (int i = MENU_PIC_SET_DEF; i <= MENU_LIVE_SET_DEF; i++) {
         switch (i) {
-            case MENU_PIC_SET_DEF:	/* 为菜单MENU_PIC_SET_DEF设置拍照的默认配置 */
-                val = mProCfg->get_val(KEY_ALL_PIC_DEF);
-//                Log.d(TAG,"pic set def %d", val);
-                switch (val) {
-                    case PIC_ALL_CUSTOM:
-                    case PIC_ALL_8K_3D_OF:
-                    case PIC_ALL_8K_OF:
-                    case PIC_ALL_8K:
-                    case PIC_ALL_BURST:
-                        updateMenuCurPageAndSelect(i, val);
-                        break;
-                        //user define
-                    SWITCH_DEF_ERROR(val)
-                }
-                break;
+
 				
             case MENU_VIDEO_SET_DEF:
                 val = mProCfg->get_val(KEY_ALL_VIDEO_DEF);
@@ -1901,8 +1887,6 @@ void MenuUI::init_menu_select()
                 mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.cur_page,
                 mMenuInfos[MENU_LIVE_SET_DEF].mSelectInfo.select
                 );
-
-    cfgPicVidLiveSelectMode(&mMenuInfos[MENU_LIVE_SET_DEF], mLiveAllItemsList);
 }
 
 /*************************************************************************
@@ -1921,7 +1905,6 @@ void MenuUI::init()
     CHECK_EQ(sizeof(mMenuInfos) / sizeof(mMenuInfos[0]), MENU_MAX);
     CHECK_EQ(mControlAct, nullptr);
 
-    // CHECK_EQ(sizeof(mPICAction) / sizeof(mPICAction[0]), PIC_ALL_CUSTOM);
     // CHECK_EQ(sizeof(mVIDAction) / sizeof(mVIDAction[0]), VID_CUSTOM);
     // CHECK_EQ(sizeof(mLiveAction) / sizeof(mLiveAction[0]), LIVE_CUSTOM);
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
@@ -2636,7 +2619,7 @@ bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
                     disp_icon(ICON_LIVE_REC_TIME_128_64128_64);
                     char disp[32];
                     if (mAct->size_per_act > 0) {
-                        if (get_save_path_avail()) {
+                        if (localStorageAvail()) {
                             int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->avail >> 20);
                             if (size_M > AVAIL_SUBSTRACT) {
                                 size_M -= AVAIL_SUBSTRACT;
@@ -4325,7 +4308,7 @@ void MenuUI::get_storage_info()
 
 
 
-bool MenuUI::get_save_path_avail()
+bool MenuUI::localStorageAvail()
 {
     bool ret = false;
     if (!checkHaveLocalSavePath()) {
@@ -4364,30 +4347,60 @@ bool MenuUI::get_save_path_avail()
     return ret;
 }
 
+
+void MenuUI::calcRemoteRemainSpace()
+{
+    int iTmpMinSize = ~0L;
+    for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+        if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
+            iTmpMinSize = mRemoteStorageList.at(i)->avail;
+        }
+    }
+    mReoteRecLiveLeftSize = iTmpMinSize;
+    Log.d(TAG, "[%s: %d] remote left space [%d]M", __FILE__, __LINE__, mReoteRecLiveLeftSize);
+
+}
+
+
 void MenuUI::calcRemainSpace()
 {
     /* 计算出各种模式下的剩余容量:
      * 对于拍照: 计算出大卡的剩余容量 / 当前模式下没组照片的大小 - 将结果保存在mCanTakePicNum中
      * 对于录像: 首先计算出容量最小的小卡, 然后按照当前的码率
      */
-    if (get_save_path_avail()) {
-        caculate_rest_info(mLocalStorageList.at(mSavePathIndex)->avail);
+    if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF) {    /* 拍照模式下计算剩余空间: 只计算大卡的即可 */
+        if (localStorageAvail()) {
+            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
+        }
+    } else {
+        /* 计算出大卡和小卡的剩余空间 
+         * 暂时不计算大卡的 get_cam_state()
+         */
+        #if 0
+        if (cam_state = STATE_PREVIEW || cam_state == STATE_IDLE ) {
+            bool result = queryCurStorageState();
+            if (result) {
+                calcRemoteRemainSpace();
+                convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
+            } else {
+                Log.d(TAG, "Query failed...");
+            }
+        } 
+        #endif
     }
-
-
 }
 
 
 
 /********************************************************************************************
-** 函数名称: caculate_rest_info
+** 函数名称: convSize2LeftNumTime
 ** 函数功能: 计算剩余空间信息(可拍照片的张数,可录像的时长,可直播存储的时长)
 ** 入口参数: 存储容量的大小(单位为M)
 ** 返 回 值: 无(计算出的值来更新mRemainInfo对象)
 ** 调     用: calcRemainSpace
 **
 *********************************************************************************************/
-void MenuUI::caculate_rest_info(u64 size)
+void MenuUI::convSize2LeftNumTime(u64 size)
 {
     INFO_MENU_STATE(cur_menu, cam_state);
     int size_M = (int)(size >> 20);
@@ -4453,20 +4466,20 @@ void MenuUI::caculate_rest_info(u64 size)
                         if (pPicVidCfg) {
                             if (strcmp(pPicVidCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
                                 rest_sec = size_M / pPicVidCfg->pStAction->size_per_act;
-                        } else {
-                            Log.d(TAG, "3vid size_per_act %d",
-                                  mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act);
-                            rest_sec = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
-                        }
+                            } else {
+                                Log.d(TAG, "3vid size_per_act %d",
+                                    mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act);
+                                rest_sec = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
+                            }
                         } else {
                             Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
                         }
+
                         rest_min = rest_sec / 60;
                         mRemainInfo->remain_sec = rest_sec % 60;
                         mRemainInfo->remain_hour = rest_min / 60;
                         mRemainInfo->remain_min = rest_min % 60;
-                        Log.d(TAG, "remain( %d %d %d  %d )",
-                                    size_M,
+                        Log.d(TAG, "remain( %d %d %d  %d )", size_M,
                                 mRemainInfo->remain_hour,
                                 mRemainInfo->remain_min,
                                 mRemainInfo->remain_sec);
@@ -4526,6 +4539,8 @@ bool MenuUI::checkHaveLocalSavePath()
 }
 
 
+
+
 bool MenuUI::check_save_path_usb()
 {
     bool bRet = false;
@@ -4561,7 +4576,9 @@ void MenuUI::dispBottomLeftSpace()
         } else {
             /* 如果系统处于启动预览状态下或者正在查询系统存储的状态下,显示"..." */
             INFO_MENU_STATE(cur_menu, cam_state)
-                
+
+
+
             if (cam_state == STATE_START_PREVIEWING || cam_state == STATE_START_LIVING || cam_state == STATE_START_RECORDING) {
                 /* 此时不显示剩余量 */
                 Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
@@ -4574,7 +4591,8 @@ void MenuUI::dispBottomLeftSpace()
             }
         }
     } else {    /* 录像或拍照页面 */
-        if (checkHaveLocalSavePath() && 1 /* checkHaveRemoteSavePath()*/) {
+        #if 1
+        if (!checkHaveLocalSavePath() && 1 /* checkHaveRemoteSavePath()*/) {
             switch (cur_menu) {
 			    /* 录像界面: */				
                 case MENU_VIDEO_INFO:
@@ -4650,6 +4668,7 @@ void MenuUI::dispBottomLeftSpace()
             memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
             disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);
         }
+        #endif
     }	
 }
 
@@ -7304,33 +7323,29 @@ void MenuUI::set_oled_power(unsigned int on)
 
 
 
-bool MenuUI::queryCurStorageState()
+bool MenuUI::queryCurStorageState(int iTimeout)
 {
 	sp<Volume> tmpVol;
 	
-    #if 0
-    /* 添加查询状态 */
-    // add_state(STATE_QUERY_STORAGE);
-    #endif
+    int  iStepTime = 50;     // 50Ms
+    bool bQueryResult = false;
 
     send_option_to_fifo(ACTION_QUERY_STORAGE);
-    return getQueryResult(2000);    /* 超时时间,单位为ms,最长为2000ms */
 
-#if 0
-	if (mLocalStorageList.size() == 0) {    /* 没有大的存储卡 */
-		return false;
-	} else {	
-		for (u32 i = 0; i < mLocalStorageList.size(); i++) {
-			tmpVol = mLocalStorageList.at(i);
-			Log.d(TAG, "Local device [%s], remain size [%ld]M", tmpVol->name, tmpVol->avail);
-			if (tmpVol->avail < mMinStorageSpce) {
-				mMinStorageSpce = tmpVol->avail;
-			}
-		}
-		
-		return true;		
-	}
-#endif
+    while (iTimeout > 0) {
+        {
+            // unique_lock<mutex> lock(mRemoteDevLock);
+            bQueryResult = mRemoteStorageUpdate;
+        }
+
+        if (bQueryResult == true) {
+            break;    
+        } else {
+            msg_util::sleep_ms(iStepTime);
+        }
+        iTimeout -= iStepTime;
+    }    
+    return bQueryResult;
 
 }
 
@@ -7714,7 +7729,7 @@ int MenuUI::oled_disp_type(int type)
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS, ENTER QUERY STORAGE STATE");
 
 				/* 查询状态  */							
-				bool bStore = queryCurStorageState();
+				bool bStore = queryCurStorageState(2000);
 				if (bStore) {		
 					Log.d(TAG, ">>>> queryCurStorageState return true, we can take pic, vido, live now...");
                     
@@ -8717,26 +8732,7 @@ void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
 
 bool MenuUI::getQueryResult(int iTimeout)
 {
-    int  iStepTime = 50;     // 50Ms
-    bool bQueryResult = false;
-    while (iTimeout > 0) {
-        {
-            unique_lock<mutex> lock(mRemoteDevLock);
-            bQueryResult = mRemoteStorageUpdate;
-        }
 
-        if (bQueryResult == true) {
-            {
-                unique_lock<mutex> lock(mRemoteDevLock);
-                mRemoteStorageUpdate = false;               
-            }
-            break;    
-        } else {
-            msg_util::sleep_ms(iStepTime);
-        }
-        iTimeout -= iStepTime;
-    }    
-    return bQueryResult;
 }
 
 

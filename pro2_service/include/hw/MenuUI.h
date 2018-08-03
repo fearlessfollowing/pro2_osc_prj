@@ -552,7 +552,7 @@ private:
     int get_dev_type_index(char *dev_type);
     void get_storage_info();
 
-    bool get_save_path_avail();
+
     void get_save_path_remain();
     bool check_dev_exist(int action = -1);
     void convert_space_to_str(u64 size,char *str, int len);
@@ -600,6 +600,9 @@ private:
 	void dispIconByLoc(const ICON_INFO* pInfo);
 
 
+
+
+
 	void setGyroCalcDelay(int iDelay);
 	
 	// void set_disp_control(bool state);
@@ -633,10 +636,13 @@ private:
     void dispSysInfo();
 
     /*
-     * 计算剩余空间
+     * 存储相关: 计算剩余空间
      */
+    bool localStorageAvail();
+    void convSize2LeftNumTime(u64 size);        
     void calcRemainSpace();
     void dispBottomLeftSpace();
+    void calcRemoteRemainSpace();
 
     /*
      * 拍照部分
@@ -723,7 +729,7 @@ private:
 	/*
 	 * 存储管理器
 	 */
-	bool queryCurStorageState();
+	bool queryCurStorageState(int iTimeout);
 
 
 	sp<ARLooper> mLooper;
@@ -848,7 +854,7 @@ private:
 	std::mutex				mRemoteDevLock;
     bool                    mRemoteStorageUpdate = false;
 	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
-    u64                     mReoteRecLiveLeftTime;                  /* 远端设备(小卡)的录像,直播剩余时间 */
+    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
 	std::mutex				mLocaLDevLock;
 	std::vector<sp<Volume>> mLocalStorageList;		                /* 存储列表 */
