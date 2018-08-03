@@ -2735,7 +2735,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
         case ACTION_VIDEO:
         #if 1
-            if ( check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
+            if (check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
                 oled_disp_type(STOP_RECING);
             } else if (check_state_preview()) {
                 #if 0
@@ -5591,10 +5591,9 @@ void MenuUI::enterMenu(bool dispBottom)
 
             dispBottomInfo(false, true);
 
-            if (check_state_preview()) {
-                disp_ready_icon();
-            } else if (check_state_equal(STATE_START_PREVIEWING) ||
-                    (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING)) {
+            if (check_state_preview()) {    /* 此时处于预览状态,显示就绪 */
+                disp_ready_icon();  /* 有存储条件显示就绪,否则返回NO_SD_CARD */
+            } else if (check_state_equal(STATE_START_PREVIEWING) || (check_state_in(STATE_STOP_PREVIEWING)) || check_state_in(STATE_START_RECORDING)) {
                 disp_waiting();
             } else if (check_state_in(STATE_RECORD)) {
                 Log.d(TAG, "do nothing in rec cam state 0x%x", cam_state);
@@ -5602,12 +5601,13 @@ void MenuUI::enterMenu(bool dispBottom)
                     clear_ready();
                 }
             } else {
-                Log.d(TAG,"vid menu error state 0x%x menu %d",cam_state,cur_menu);
+                Log.d(TAG, "vid menu error state 0x%x menu %d", cam_state, cur_menu);
                 if (check_state_equal(STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
             break;
+
 
         /* 进入直播页面 */	
         case MENU_LIVE_INFO:
@@ -6194,7 +6194,7 @@ void MenuUI::procPowerKeyEvent()
             break;
 		
         case MENU_VIDEO_INFO:	/* 录像子菜单 */
-            send_option_to_fifo(ACTION_VIDEO);
+            send_option_to_fifo(ACTION_VIDEO);  /* 录像/停止录像 */
             break;
 		
         case MENU_LIVE_INFO:	/* 直播子菜单 */
@@ -6661,7 +6661,7 @@ void MenuUI::disp_live_ready()
 void MenuUI::disp_ready_icon(bool bDispReady)
 {
 	/* 调用存储管理器来判断显示图标 */
-    if (!checkHaveLocalSavePath()) {
+    if (!checkHaveLocalSavePath()) {    /* TODO: 必须要有内部还外部卡 */
         disp_icon(ICON_CAMERA_READY_20_16_76_32);
     } else {
         disp_icon(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);
@@ -6754,7 +6754,7 @@ void MenuUI::add_state(int state)
             setCurMenu(MENU_PIC_INFO);
             break;
 		
-        case STATE_RECORD:
+        case STATE_RECORD:  /* 添加录像状态(取出正在启动录像状态) */
             rm_state(STATE_START_RECORDING);
             break;
 		
@@ -6857,6 +6857,7 @@ void MenuUI::add_state(int state)
             mProCfg->reset_all();
             msg_util::sleep_ms(500);
             rm_state(STATE_RESTORE_ALL);
+
 //            Log.d(TAG,"bDispTop %d",bDispTop);
             init_cfg_select();
             Log.d(TAG,"STATE_RESTORE_ALL cur_menu is %d cam_state 0x%x",MENU_TOP,cam_state);
@@ -6890,14 +6891,14 @@ void MenuUI::rm_state(int state)
 
 void MenuUI::set_tl_count(int count)
 {
-//    Log.d(TAG,"set tl count %d",count);
+    Log.d(TAG, "set tl count %d", count);
     tl_count = count;
 }
 
 void MenuUI::disp_tl_count(int count)
 {
     if (count < 0) {
-        Log.e(TAG,"error tl count %d", tl_count);
+        Log.e(TAG, "error tl count %d", tl_count);
     } else if (count == 0) {
         clear_ready();
         char buf[32];
@@ -7451,17 +7452,17 @@ int MenuUI::oled_disp_type(int type)
 		 */
         case START_REC_SUC:	/* 发送显示录像成功 */
             if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
-                if (check_rec_tl()) {
+                if (check_rec_tl()) {   /* 检查是否为非timelapse */
                     tl_count = 0;
                     //disable update_light
                     disp_tl_count(tl_count);
-                } else {
+                } else {    /* 非timelapse录像 */
                     //before send for disp_mid
                     set_update_mid();
                 }
 				
                 INFO_MENU_STATE(cur_menu, cam_state)
-                add_state(STATE_RECORD);
+                add_state(STATE_RECORD);    /* 添加正在录像状态(去除正在启动录像状态) */
                 setCurMenu(MENU_VIDEO_INFO);
             } else {
                 Log.e(TAG, "START_REC_SUC error state 0x%x\n", cam_state);
@@ -7513,7 +7514,7 @@ int MenuUI::oled_disp_type(int type)
 		 * 停止录像
 		 */
         case STOP_RECING:
-            add_state(STATE_STOP_RECORDING);
+            add_state(STATE_STOP_RECORDING);    /* 添加STATE_STOP_RECORDING状态 */
             break;
 
 		/*
@@ -7980,6 +7981,7 @@ int MenuUI::oled_disp_type(int type)
         case TIMELPASE_COUNT:
             INFO_MENU_STATE(cur_menu, cam_state)
             Log.d(TAG, "tl_count %d", tl_count);
+            
             if (!check_state_in(STATE_RECORD)) {
                 Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x", cam_state);
             } else {
@@ -8349,6 +8351,9 @@ void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
 }
 
 
+/*
+ * 剩余时间减1
+ */
 bool MenuUI::decrease_rest_time()
 {
     bool bRet = true;
@@ -8363,7 +8368,7 @@ bool MenuUI::decrease_rest_time()
             mRemainInfo->remain_hour -= 1;
         } else {
             Log.d(TAG, "no space to rec\n");
-            memset(mRemainInfo.get(),0, sizeof(REMAIN_INFO));
+            memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
             //waitting for rec no space from camerad
             bRet = false;
         }
@@ -8371,6 +8376,10 @@ bool MenuUI::decrease_rest_time()
     return bRet;
 }
 
+
+/*
+ * increase_rec_time - 录像时间增加1s
+ */
 void MenuUI::increase_rec_time()
 {
     mRecInfo->rec_sec += 1;
@@ -8386,7 +8395,7 @@ void MenuUI::increase_rec_time()
 
 void MenuUI::flick_light()
 {
-	Log.d(TAG, "last_light 0x%x fli_light 0x%x", last_light, fli_light);
+	// Log.d(TAG, "last_light 0x%x fli_light 0x%x", last_light, fli_light);
 	
     if ((last_light & 0xf8) != fli_light) {
         setLight(fli_light);
@@ -8417,7 +8426,7 @@ void MenuUI::disp_mid()
     snprintf(disp, sizeof(disp), "%02d:%02d:%02d", mRecInfo->rec_hour, mRecInfo->rec_min, mRecInfo->rec_sec);
 
 //    Log.d(TAG," disp rec mid %s tl_count %d",disp,tl_count);
-    if (tl_count == -1) {
+    if (tl_count == -1) {   /* 非timelapse模式,显示已经录像的时间 */
         disp_str((const u8 *)disp, 37, 24);
     }
 }
@@ -8594,11 +8603,13 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
                     if (mNeedSendAction) {  /* 暂时用于处理客户端发送拍照请求时，UI不发送拍照请求给camerad */
                         send_option_to_fifo(ACTION_PIC);
                     }
+
                     if (menu == cur_menu) {
 						disp_shooting();
 					}
 
 				} else {
+
 					if (menu == cur_menu) {
 						disp_sec(mTakePicDelay, 52, 24);	/* 显示倒计时的时间 */
 					}
@@ -8746,13 +8757,16 @@ void MenuUI::handleUpdateMid()
     unique_lock<mutex> lock(mutexState);
 
     if (check_state_in(STATE_RECORD)) {         /* 录像状态 */
-        send_update_mid_msg(INTERVAL_1HZ);
+
+        send_update_mid_msg(INTERVAL_1HZ);  /* 1s后发送更新灯消息 */
+
         if (!check_state_in(STATE_STOP_RECORDING)) {    /* 非录像停止状态 */
-            if (tl_count == -1) {       /* tl_count 用来干嘛? */
-                increase_rec_time();    /* 增加已录像的时间 +1s */
+            if (tl_count == -1) {               /* 非timelpase拍摄 */
+
+                increase_rec_time();            /* 增加已录像的时间 +1s */
                                 
-                if (decrease_rest_time()) { /* 录像剩余时间减1s */
-                                //hide while stop recording
+                if (decrease_rest_time()) {     /* 录像剩余时间减1s */
+                    // hide while stop recording
                     if (cur_menu == MENU_VIDEO_INFO) {  /* 如果是在录像界面,更新录像时间和剩余时间到UI */
                         disp_mid();
                         dispBottomLeftSpace();
@@ -8780,6 +8794,7 @@ void MenuUI::handleUpdateMid()
         setLight();
     }
 }
+
 
 /*************************************************************************
 ** 方法名称: handleMessage
@@ -8867,9 +8882,9 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
             case UI_CONFIG_WIFI:  {	/* On/Off Wifi AP */
                 sp<WifiConfig> mConfig;
                 CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
-                handleorSetWifiConfig(mConfig);
+                handleorSetWifiCbreak;onfig(mConfig);
             }
-                break;
+                
 
 			/*
 			 * 写SN (UI-CORE处理)

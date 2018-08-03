@@ -1,12 +1,12 @@
-//
-// Created by vans on 17-4-20.
-//
+
 #include <common/include_common.h>
 #include <update/dbg_util.h>
 #include <hw/battery_interface.h>
 
 #define TAG "update_util"
 
+
+#define ENABLE_BAT_CHECK
 
 //#define ENABLE_DUMP
 static bool check_path_access(const char *path,int mode)
@@ -327,25 +327,6 @@ int tar_zip(const char *zip_name, const char* dest_path)
     return iRet;
 }
 
-int kill_app(const char *app_name)
-{
-    int iRet = -1;
-
-    char cmd[512];
-
-    snprintf(cmd,sizeof(cmd),"pkill %s",app_name);
-//    DBG_PRINT("kill app %s\n",app_name);
-    iRet = exec_sh(cmd);
-//    DBG_PRINT("2 kill app %s iRet %d\n",app_name, iRet);
-    if (iRet != 0) {
-    #ifdef __ANDROID__
-        Log.e(TAG,"%s \n",cmd);
-	#else
-        DBG_ERR("%s \n",cmd);
-	#endif
-    }
-    return iRet;
-}
 
 
 /*
@@ -481,10 +462,11 @@ int update_test_itself()
     return ret;
 }
 
-#define ENABLE_BAT_CHECK
+
+
 bool is_bat_enough()
 {
-#ifdef __ANDROID__
+
 #ifdef ENABLE_BAT_CHECK
     bool ret = false;
     sp<battery_interface> mBat = sp<battery_interface>(new battery_interface());
@@ -506,7 +488,4 @@ bool is_bat_enough()
     return true;
 #endif
 
-#else
-    return true;
-#endif
 }
