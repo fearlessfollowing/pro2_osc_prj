@@ -12,6 +12,7 @@
 ** 修改记录:
 ** V1.0			Wans			2016-12-01		创建文件
 ** V2.0			Skymixos		2018-06-05		添加注释
+** V3.0         skymixos        2018年8月5日     修改存储逻辑及各种模式下的处理方式
 ******************************************************************************************************/
 #include <future>
 #include <vector>
@@ -61,17 +62,9 @@
 
 #include <icon/setting_menu_icon.h>
 
-#if 0
-#include <icon/pic_mode_select.h>
-#else
 #include <icon/pic_video_select.h>
-#endif
-
-
-
 
 using namespace std;
-
 
 #define TAG "MenuUI"
 
@@ -81,14 +74,14 @@ using namespace std;
 
 #define ENABLE_SOUND
 
-#define CAL_DELAY (5)
-#define SN_LEN (14)
+#define CAL_DELAY       (5)
+#define SN_LEN          (14)
 
 //sometimes met bat jump to 3 ,but in fact not
-#define BAT_LOW_VAL (3)
+#define BAT_LOW_VAL     (3)
 
 //#define BAT_LOW_PROTECT (5)
-#define MAX_ADB_TIMES (5)
+#define MAX_ADB_TIMES   (5)
 #define LONG_PRESS_MSEC (2000)
 
 #define OPEN_BAT_LOW
@@ -107,8 +100,9 @@ Log.d(TAG,"line:%d menu state (%d 0x%x)",__LINE__, menu,state);
 //#define ONLY_PIC_FLOW
 //#define ENABLE_ADB_OFF
 //#define LIVE_ORG
-enum
-{
+
+
+enum {
     PRINT_DEVICE_ERRORS     = 1U << 0,
     PRINT_DEVICE            = 1U << 1,
     PRINT_DEVICE_NAME       = 1U << 2,
@@ -121,8 +115,7 @@ enum
     PRINT_LABELS            = 1U << 16,
 };
 
-enum
-{
+enum {
     DISP_DISK_FULL,
     DISP_NO_DISK,
     DISP_SDCARD_ATTACH,
@@ -141,6 +134,10 @@ enum
     DISP_USB_CONNECTED,
 };
 
+
+/*
+ * UI线程使用的消息
+ */
 enum {
     OLED_DISP_STR_TYPE,//0
     OLED_DISP_ERR_TYPE,
@@ -150,7 +147,7 @@ enum {
     OLED_DISP_BATTERY,//5
     
     //set config wifi same thread as oled wifi key action
-    UI_CONFIG_WIFI,		/* 配置WIFI参数 */
+    UI_CONFIG_WIFI,		        /* 配置WIFI参数 */
 
     OLED_SET_SN,
     OLED_SYNC_INIT_INFO,
@@ -165,12 +162,11 @@ enum {
     UI_DISP_LIGHT,
     //disp oled info at start
     UI_DISP_INIT,
-    UI_UPDATE_TF,   /* TF卡状态消息 */
-    UI_EXIT,
+    UI_UPDATE_TF,               /* TF卡状态消息 */
+    UI_EXIT,                    /* 退出消息循环 */
 };
 
-enum
-{
+enum {
     ERR_PIC,
     ERR_START_PREVIEW,
     ERR_STOP_PREVIEW,
@@ -179,7 +175,6 @@ enum
     ERR_START_LIVE,
     ERR_STOP_LIVE,
 };
-
 
 /*
  *  org res start
@@ -206,9 +201,6 @@ typedef struct _ver_info_ {
 } VER_INFO;
 
 
-//#define GOOGLE_8K_5F
-
-
 typedef struct _sys_read_ {
     const char *key;
     const char *header;
@@ -219,9 +211,6 @@ static const SYS_READ astSysRead[] = {
     { "sn", "sn=", "/home/nvidia/insta360/etc/sn"},
     { "uuid", "uuid=", "/home/nvidia/insta360/etc/uuid"},
 };
-
-
-
 
 
 /* Slave Addr: 0x77 Reg Addr: 0x02
@@ -256,7 +245,7 @@ enum {
 };
 
 
-#define INTERVAL_1HZ 	(1000)
+#define INTERVAL_1HZ 	    (1000)
 
 //#define INTERVAL_3HZ (333)
 #define INTERVAL_5HZ 		(200)
@@ -265,6 +254,10 @@ enum {
 #define BAT_INTERVAL		(5000)
 #define AVAIL_SUBSTRACT		(1024)
 
+
+/*
+ * 声音索引
+ */
 enum {
     SND_SHUTTER,
     SND_COMPLE,
@@ -299,10 +292,9 @@ typedef struct _area_info_ {
     u8 h;
 } AREA_INFO;
 
-static const AREA_INFO storage_area[] =
-{
-	{25,16,103,16},
-	{25,32,103,16}
+static const AREA_INFO storage_area[] = {
+	{25, 16, 103, 16},
+	{25, 32, 103, 16}
 };
 
 typedef struct _rec_info_ {
@@ -311,10 +303,6 @@ typedef struct _rec_info_ {
     int rec_sec;
 } REC_INFO;
 
-
-/*
- * 在进入设置菜单时,以Photo delay: Xs的索引来初始化MENU_SET_PHOTO_DELAY菜单的SELECT_INFO对象
- */
 
 
 static int main_icons[][MAINMENU_MAX] = {
@@ -358,422 +346,6 @@ static int main_menu[][MAINMENU_MAX] = {
 		ICON_INDEX_SET_LIGHT_52_40_24_24,
 	}
 };
-
-
-static const int vid_def_setting_menu[][VID_DEF_MAX] =
-{
-    {
-        ICON_VIDEO_INFO02_NORMAL_0_48_78_1678_16,
-#ifdef GOOGLE_8K_5F
-//                ICON_8K_5FS_78_1678_16,
-                ICON_8K_5FS_78_1678_16,
-#endif
-                ICON_VIDEO_INFO01_NORMAL_0_48_78_1678_16,
-//                ICON_VIDEO_INFO03_NORMAL_0_48_78_1678_16,//100FPS
-                ICON_VIDEO_INFO06_NORMAL_0_48_78_1678_16,
-                ICON_VIDEO_INFO07_NORMAL_0_48_78_1678_16,
-                ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
-                ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
-                ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
-        },
-        {
-                ICON_VIDEO_INFO02_LIGHT_0_48_78_1678_16,
-#ifdef GOOGLE_8K_5F
-//                ICON_8K_5FPS_HIGH_78_1678_16,
-                ICON_8K_5FPS_HIGH_78_1678_16,
-#endif
-                ICON_VIDEO_INFO01_LIGHT_0_48_78_1678_16,
-//                ICON_VIDEO_INFO03_LIGHT_0_48_78_1678_16,
-                ICON_VIDEO_INFO06_LIGHT_0_48_78_1678_16,
-                ICON_VIDEO_INFO07_LIGHT_0_48_78_1678_16,
-                ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
-                ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
-                ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16,
-        }
-};
-
-
-
-#if 0
-
-static const int live_def_setting_menu[][LIVE_DEF_MAX] = {
-    {
-#ifdef LIVE_ORG
-        ICON_ORIGIN_NORMAL_78_1678_16,
-#endif
-        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
-        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
-        ICON_VIDEO_INFO04_NORMAL_0_48_78_1678_16,
-        ICON_VIDEO_INFO05_NORMAL_0_48_78_1678_16,
-        ICON_VIDEO_INFO08_NORMAL_0_48_78_1678_16,
-        ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16,
-     },
-    {
-#ifdef LIVE_ORG
-        ICON_ORIGIN_HIGH_78_1678_16,
-#endif
-        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
-        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
-        ICON_VIDEO_INFO04_LIGHT_0_48_78_1678_16,
-        ICON_VIDEO_INFO05_LIGHT_0_48_78_1678_16,
-        ICON_VIDEO_INFO08_LIGHT_0_48_78_1678_16,
-        ICON_VINFO_CUSTOMIZE_LIGHT_0_48_78_1678_16,
-    }
-};
-#endif
-
-#if 0
-typedef struct _action_info_ {
-    int mode;
-    // pic size or rec M/s
-    int size_per_act;
-    int delay;
-    ORG_INFO stOrgInfo;
-    STI_INFO stStiInfo;
-    CAM_PROP stProp;
-    AUD_INFO stAudInfo;
-    // 0 -- normal 1 -- cube ,2 optical flow
-} ACTION_INFO;
-
-#endif
-
-#if 0
-static const ACTION_INFO mVIDAction[] = {
-	//8k/30F
-	{
-		MODE_PANO,
-		24,
-		0,
-		
-		{	/* for test version: ORG_INFO */
-			EN_H264,
-			SAVE_DEF,
-			3840,		/* 3840 */
-			2880,		/* 2160 -> 2880 */
-#if 1
-			1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-			{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
-        },	
-        {	/* STI_INFO */
-	        EN_H264,
-	        STITCH_OFF,
-	        7680,
-	        3840,
-	        {}
-        },
-        {},
-        {}
-    },
-
-		
-    //6k/30F/3D
-    {
-	    MODE_3D,
-	    25,
-	    0,
-	    {
-	        EN_H264,
-	        SAVE_DEF,
-	        3200,			/* 3840x2880 -> 3200x2400 */
-	        2400,
-#if 1
-            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-	        
-	        {ALL_FR_30, 60}
-        },
-		{
-			EN_H264,
-			STITCH_OFF,
-			5760,
-			5760,
-			{}
-		},
-        {},
-        {}
-    },
-    
-	//4K/120F
-	{
-	    MODE_PANO,25,0,		// 
-		{
-			EN_H264,
-			SAVE_DEF,
-			1920,
-			1440, 		// 1080 -> 1440
-#if 1
-            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-			
-            { ALL_FR_120, 120}	// 40 -> 80
-        },
-        {
-	        EN_H264,
-	        STITCH_OFF,
-	        3840,
-	        1920,
-	        {}
-        },
-        {},
-        {}
-    },
-
-    //4K/60F/3D
-    {
-		MODE_3D,25,0,
-		{
-			EN_H264,
-			SAVE_DEF,
-			1920,
-			1440,
-#if 1
-			1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-			
-			{
-		        ALL_FR_60,
-		        40
-			}
-		},
-		{
-			EN_H264,
-			STITCH_OFF,
-			3840,
-			3840,
-			{}
-		},
-		{},
-		{}
-	},
-	
-    //4K/30F/3D(org &rts)
-    {
-		MODE_3D,
-		20,
-		0,
-		{
-	        EN_H264,
-	        SAVE_DEF,
-	        3200,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
-	        2400,
-#if 1
-            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-	        
-	        {ALL_FR_30, 60}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
-        },
-		{
-			EN_H264,
-			STITCH_NORMAL,
-			3840,
-			3840,
-			{ALL_FR_30, 50}
-		},
-		{},
-		{}
-    },
-    
-	//4K/30F(org &rts)
-	{
-		MODE_PANO,
-		20,
-		0,
-		{
-			EN_H264,
-			SAVE_DEF,
-			3840,			/* 根据肖神的提示修改: 4K|PANO 3200x2400@30fps    60M 2018年7月24日 */
-			2160,
-#if 1
-            1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-#endif
-			
-			{ALL_FR_30, 60}
-        },
-		{
-			EN_H264,
-			STITCH_NORMAL,
-			3840,
-			1920,
-			{ALL_FR_30, 50}
-		},
-	    {},
-	    {}
-    },
-    
-#ifndef ARIAL_LIVE
-	{
-	},
-#endif
-};
-#endif
-
-
-
-#if 0
-static const ACTION_INFO mLiveAction[] = {
-
-	//live
-	{
-	    MODE_3D,
-	    0,
-	    0,
-		{
-			EN_H264,
-			SAVE_OFF,
-			1920,
-			1440,
-				0,		// test
-			
-			{ALL_FR_30, 20}
-		},
-		{
-	        EN_H264,
-	        STITCH_NORMAL,
-	        3840,
-	        3840,
-			{
-				ALL_FR_30,
-				30,
-				HDMI_OFF,
-				0,
-				{0},
-				{0},
-			}
-        },
-        {},
-        {}
-    },
-
-    {
-		MODE_PANO,
-		0,
-		0,
-		{
-			EN_H264,
-			SAVE_OFF,
-			2560,
-			1440,
-				0,		// test
-			
-			{ALL_FR_30, 20}
-		},
-		{
-			EN_H264,
-			STITCH_NORMAL,
-			3840,
-			1920,
-			{
-				ALL_FR_30,
-				20,
-				HDMI_OFF,
-				0,
-				{0},
-				{0},
-			}
-		},
-		{},
-		{}
-	},
-	{
-		MODE_3D,
-		0, 0,
-		{
-			EN_H264,
-			SAVE_OFF,
-			1920,
-			1440,
-				0,		// test
-			
-			{ALL_FR_30, 20}
-		},
-		{
-			EN_H264,
-			STITCH_NORMAL,
-			3840,
-			3840,
-			{
-				{
-					ALL_FR_30,
-				    30,
-					HDMI_ON,
-					0,
-			 		{0},
-			  		{0}
-				}
-			}
-        },
-		{},
-		{}
-    },
-	{
-		MODE_PANO,
-		0,
-		0,
-		{
-			EN_H264,
-			SAVE_OFF,
-			2560,
-			1440,
-				0,		// test
-			
-			{ALL_FR_30, 20}
-        },
-        {
-	        EN_H264,
-	        STITCH_NORMAL,
-	        3840,
-	        1920,
-	        {
-	        	{
-	        		ALL_FR_30,
-			        20,
-		            HDMI_ON,
-					0,
-					{0},
-					{0}},
-                 }
-            },
-            {},
-            {}
-        },
-        //arial
-//        "origin":
-//        {"mime":"h264","width":2560,"height":1440,"framerate":30,"bitrate":20000, "saveOrigin":true},
-//        "stiching":{"mode":"pano","mime":"h264","width":1920,"height":960, "liveOnHdmi":true}}}
-#ifdef ARIAL_LIVE
-        {
-                    MODE_PANO,
-                    20,
-                    0,
-                    {
-                            EN_H264,
-                            SAVE_DEF,
-                            2560,
-                            1440,
-                            
-							0,		// test
-                            {ALL_FR_30,
-                             25}
-                    },
-                    {
-                            EN_H264,
-                            STITCH_NORMAL,
-                            1920,
-                            960,
-                            {ALL_FR_30,
-                             20,
-                             HDMI_ON,
-                             0,
-                             {0}}
-                    },
-                    {},
-                    {}
-        }
-#endif
-};
-#endif
-
 
 
 typedef struct _sys_error_ {
@@ -926,13 +498,13 @@ static ERR_CODE_DETAIL mErrDetails[] = {
 };
 
 static SYS_ERROR mSysErr[] = {
-    {START_PREVIEW_FAIL,    "1401"},
-    {CAPTURE_FAIL,          "1402"},
-    {START_REC_FAIL,        "1403"},
-    {START_LIVE_FAIL,       "1404"},
-    {START_QR_FAIL,         "1405"},
-    {CALIBRATION_FAIL,      "1406"},
-    {QR_FINISH_ERROR,       "1407"},
+    {START_PREVIEW_FAIL,    "1401"},    /* 启动预览失败 */
+    {CAPTURE_FAIL,          "1402"},    /* 拍照失败 */
+    {START_REC_FAIL,        "1403"},    /* 录像失败 */
+    {START_LIVE_FAIL,       "1404"},    /* 直播失败 */
+    {START_QR_FAIL,         "1405"},    /* 启动二维码扫描失败 */
+    {CALIBRATION_FAIL,      "1406"},    /* 矫正失败 */
+    {QR_FINISH_ERROR,       "1407"},    /* 扫描二维码结束失败 */
     {START_GYRO_FAIL,       "1408"},
     {START_STA_WIFI_FAIL,   "1409"},
     {START_AP_WIFI_FAIL,    "1410"},
@@ -967,23 +539,40 @@ private:
 };
 
 
-MenuUI::MenuUI(const sp<ARMessage> &notify):mNotify(notify)
+
+/*************************************************************************
+** 方法名称: MenuUI
+** 方法功能: 构造函数,UI对象
+** 入口参数: 无
+** 返 回 值: 无 
+** 调     用: 
+**
+*************************************************************************/
+MenuUI::MenuUI(const sp<ARMessage> &notify): mNotify(notify)
 {
     Log.d(TAG, "MenuUI contructr......");
 
 
-    init_handler_thread();	/* 初始化消息处理线程 */
+    init_handler_thread();	    /* 初始化消息处理线程 */
 
     Log.d(TAG, "Core UI thread created ... ");
 
-    init();					/* MenuUI内部成员初始化 */
+    init();					    /* MenuUI内部成员初始化 */
 
     Log.d(TAG, "Send Init display Msg");
-    send_init_disp();		/* 给消息处理线程发送初始化显示消息 */
+    send_init_disp();		    /* 给消息处理线程发送初始化显示消息 */
 
 }
 
 
+/*************************************************************************
+** 方法名称: ~MenuUI
+** 方法功能: 析构函数,UI对象
+** 入口参数: 无
+** 返 回 值: 无 
+** 调     用: 
+**
+*************************************************************************/
 MenuUI::~MenuUI()
 {
     deinit();
@@ -992,10 +581,10 @@ MenuUI::~MenuUI()
 
 /*************************************************************************
 ** 方法名称: send_init_disp
-** 方法功能: 发送初始化显示消息
+** 方法功能: 发送初始化显示消息(给UI消息循环中投递消息)
 ** 入口参数: 无
-** 返 回 值: 无 
-** 调     用: MenuUI
+** 返回值:   无 
+** 调 用: MenuUI构造函数
 **
 *************************************************************************/
 void MenuUI::send_init_disp()
@@ -1006,32 +595,12 @@ void MenuUI::send_init_disp()
 
 
 
-#if 1
-int MenuUI::get_setting_select(int type)
-{
-    #if 0
-    return mSettingItems.iSelect[type];
-    #else 
-    return 0;
-    #endif
-}
-
-
-#endif
-
-
 void MenuUI::set_setting_select(int type,int val)
 {
     #if 0
     mSettingItems.iSelect[type] = val;
     #endif
-
 }
-
-
-#if 0
-void Menu::setSettingItemVal()
-#endif
 
 
 void MenuUI::disp_top_info()
@@ -1047,16 +616,19 @@ void MenuUI::disp_top_info()
 
     //disp battery icon
     oled_disp_battery();
+    
     bDispTop = true;
 }
+
+
 
 
 /*************************************************************************
 ** 方法名称: init_cfg_select
 ** 方法功能: 根据配置初始化选择项
 ** 入口参数: 无
-** 返 回 值: 无 START_REC_SUC
-** 调     用: oled_init_disp
+** 返回值:   无 
+** 调 用:    oled_init_disp
 **
 *************************************************************************/
 void MenuUI::init_cfg_select()
@@ -1097,8 +669,6 @@ void MenuUI::init_cfg_select()
     NetManager::getNetManagerInstance()->postNetMessage(msg);
 
 }
-
-
 
 
 /*************************************************************************
@@ -1223,8 +793,19 @@ void MenuUI::init_sound_thread()
 }
 
 
+
+
+/*************************************************************************
+** 方法名称: commUpKeyProc
+** 方法功能: 方向上键的通用处理
+** 入口参数: 
+** 返回值: 无 
+** 调 用: procUpKeyEvent
+**
+*************************************************************************/
 void MenuUI::commUpKeyProc()
 {
+
     bool bUpdatePage = false;
 
 #ifdef DEBUG_INPUT_KEY	
@@ -1276,19 +857,28 @@ void MenuUI::commUpKeyProc()
           mSelect->cur_page, mSelect->page_max, mSelect->total);
 #endif
 
-    if (bUpdatePage) {
+    if (bUpdatePage) {  /* 更新菜单页 */
         if (mMenuInfos[cur_menu].privList) {
             vector<struct stSetItem*>* pSetItemLists = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
             dispSettingPage(*pSetItemLists);
         } else {
             Log.e(TAG, "[%s:%d] Current Menu[%s] havn't privList ????, Please check", __FILE__, __LINE__, getCurMenuStr(cur_menu));
         }        
-    } else {
+    } else {    /* 更新菜单(页内更新) */
         updateMenu();
     }
 }
 
 
+
+/*************************************************************************
+** 方法名称: commDownKeyProc
+** 方法功能: 方向下键的通用处理
+** 入口参数: 
+** 返回值: 无 
+** 调 用: procDownKeyEvent
+**
+*************************************************************************/
 void MenuUI::commDownKeyProc()
 {
     bool bUpdatePage = false;
@@ -1320,10 +910,7 @@ void MenuUI::commDownKeyProc()
         }
     }
 
-
-
-//#ifdef DEBUG_INPUT_KEY	
-#if 1
+#ifdef DEBUG_INPUT_KEY	
     Log.d(TAG," commDownKeyProc select %d mSelect->last_select %d "
                   "mSelect->page_num %d mSelect->cur_page %d "
                   "mSelect->page_max %d mSelect->total %d over bUpdatePage %d",
@@ -1368,11 +955,13 @@ void MenuUI::init_handler_thread()
 }
 
 
+
 int MenuUI::getMenuLastSelectIndex(int menu)
 {
     int val = mMenuInfos[menu].mSelectInfo.last_select + mMenuInfos[menu].mSelectInfo.cur_page * mMenuInfos[menu].mSelectInfo.page_max;
     return val;
 }
+
 
 int MenuUI::getMenuSelectIndex(int menu)
 {
@@ -1397,10 +986,15 @@ void MenuUI::updateMenuCurPageAndSelect(int menu, int iSelect)
 }
 
 
-/*
- * 设置系统菜单页初始化
- * 设置页包含一级菜单和二级菜单
- */
+
+/*************************************************************************
+** 方法名称: setSysMenuInit
+** 方法功能: 设置子菜单下的设置子项初始化
+** 入口参数: pParentMenu - 父菜单对象指针
+** 返回值: 无 
+** 调 用: init_menu_select
+**
+*************************************************************************/
 void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
 {
     Log.d(TAG, "[%s:%d] Init System Setting subsyste Menu...", __FILE__, __LINE__);
@@ -1418,26 +1012,22 @@ void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
 		int pos = i % pParentMenu->mSelectInfo.page_max;		// 3
 		switch (pos) {
 			case 0:
-				tmPos.xPos 		= 32;
 				tmPos.yPos 		= 16;
-				tmPos.iWidth	= 96;
-				tmPos.iHeight   = 16;
 				break;
 
 			case 1:
-				tmPos.xPos 		= 32;
 				tmPos.yPos 		= 32;
-				tmPos.iWidth	= 96;
-				tmPos.iHeight   = 16;
 				break;
 			
 			case 2:
-				tmPos.xPos 		= 32;
 				tmPos.yPos 		= 48;
-				tmPos.iWidth	= 96;
-				tmPos.iHeight   = 16;
 				break;
 		}
+
+        tmPos.xPos 		= 32;
+        tmPos.iWidth	= 96;
+        tmPos.iHeight   = 16;
+
         pSetItem[i]->stPos = tmPos;
 
 
@@ -1579,8 +1169,6 @@ void MenuUI::setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetI
     }
 }
 
-
-
 void MenuUI::setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists)
 {
     Log.d(TAG, "[%s:%d] Init Set Photo Delay Menu...", __FILE__, __LINE__);
@@ -1716,7 +1304,6 @@ void MenuUI::setMenuCfgInit()
     setCommonMenuInit(&mMenuInfos[MENU_SET_AEB], mAebList);   /* 设置系统菜单初始化 */
 #endif
 
-#if 1
 
     mMenuInfos[MENU_STORAGE].priv = static_cast<void*>(gStorageSetItems);
     mMenuInfos[MENU_STORAGE].privList = static_cast<void*>(&mStorageList);
@@ -1747,7 +1334,6 @@ void MenuUI::setMenuCfgInit()
                 );
 
     setStorageMenuInit(&mMenuInfos[MENU_STORAGE], mStorageList);   /* 设置系统菜单初始化 */
-#endif
 
 }
 
@@ -2334,6 +1920,7 @@ void MenuUI::set_update_mid()
     }
 }
 
+
 int MenuUI::oled_reset_disp(int type)
 {
     //reset to original
@@ -2641,21 +2228,26 @@ void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
     }
 }
 
-bool MenuUI::check_live_save(ACTION_INFO *mAct)
+
+
+/*
+ * 检查直播是否需要存文件
+ */
+bool MenuUI::check_live_save(ACTION_INFO* mAct)
 {
     bool ret = false;
-    if (mAct->stOrgInfo.save_org != SAVE_OFF ||
-            mAct->stStiInfo.stStiAct.mStiL.file_save ) {
+    if (mAct->stOrgInfo.save_org != SAVE_OFF || mAct->stStiInfo.stStiAct.mStiL.file_save ) {
         ret = true;
     }
 
     Log.d(TAG, "check_live_save is %d %d ret %d",
-          mAct->stOrgInfo.save_org ,
-          mAct->stStiInfo.stStiAct.mStiL.file_save, ret);
+          mAct->stOrgInfo.save_org, mAct->stStiInfo.stStiAct.mStiL.file_save, ret);
     return ret;
 }
 
-bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
+
+
+bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest)
 {
     bool bAllow = false;
 	
@@ -2710,9 +2302,10 @@ bool MenuUI::start_live_rec(const struct _action_info_ *mAct,ACTION_INFO *dest)
             }
         }
     }
-
     return bAllow;
 }
+
+
 
 void MenuUI::setGyroCalcDelay(int iDelay)
 {
@@ -3417,17 +3010,17 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
     snprintf(mVerInfo->c_ver, sizeof(mVerInfo->c_ver),"%s", mSyncInfo->c_v);
     snprintf(mVerInfo->h_ver, sizeof(mVerInfo->h_ver),"%s", mSyncInfo->h_v);
 
-    Log.d(TAG, "sync state 0x%x va:%s vc %s vh %s",
-          mSyncInfo->state, mSyncInfo->a_v, mSyncInfo->c_v, mSyncInfo->h_v);
+    Log.d(TAG, "[%s: %d] sync state 0x%x va:%s vc %s vh %s",
+          __FILE__, __LINE__, mSyncInfo->state, mSyncInfo->a_v, mSyncInfo->c_v, mSyncInfo->h_v);
 
     INFO_MENU_STATE(cur_menu, cam_state);
 
     if (state == STATE_IDLE) {	/* 如果相机处于Idle状态 */
-		Log.d(TAG,"set_sync_info oled_reset_disp cam_state 0x%x, cur_menu %d", cam_state, cur_menu);
+		Log.d(TAG, "set_sync_info oled_reset_disp cam_state 0x%x, cur_menu %d", cam_state, cur_menu);
         cam_state = STATE_IDLE;
         setCurMenu(MENU_TOP);	/* 初始化显示为顶级菜单 */
     } else if ((state & STATE_RECORD) == STATE_RECORD) {
-        if ((state & STATE_PREVIEW )== STATE_PREVIEW) {
+        if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_REC_AND_PREVIEW);
         } else {
             oled_disp_type(START_REC_SUC);
@@ -3450,7 +3043,7 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
         oled_disp_type(SYNC_PIC_STITCH_AND_PREVIEW);
     } else if ((state & STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING) {
         oled_disp_type(SYNC_PIC_CAPTURE_AND_PREVIEW);
-    } else if ((state & STATE_PREVIEW) == STATE_PREVIEW)  {
+    } else if ((state & STATE_PREVIEW) == STATE_PREVIEW)  { /* 启动预览状态 */
         oled_disp_type(START_PREVIEW_SUC);
     }
 	
@@ -3458,12 +3051,7 @@ void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 
 void MenuUI::write_sys_info(sp<SYS_INFO> &mSysInfo)
 {
-    //open to allow write once in future
-//    if(check_path_exist(sys_file_name))
-//    {
-//        Log.d(TAG,"%s already exists",sys_file_name);
-//    }
-//    else
+
 #if 0
     {
         const char *new_line = "\n";
@@ -3604,14 +3192,9 @@ void MenuUI::handleWifiAction()
 
         mProCfg->set_val(KEY_WIFI_ON, iSetVal);
         disp_wifi(bShowWifiIcon, 1);
-
-#if 1
     }	
-#endif
 
 }
-
-
 
 
 int MenuUI::get_back_menu(int item)
@@ -3624,7 +3207,7 @@ int MenuUI::get_back_menu(int item)
     }
 }
 
-void MenuUI::set_back_menu(int item,int menu)
+void MenuUI::set_back_menu(int item, int menu)
 {
     if (menu == -1) {
         if (cur_menu == -1) {
@@ -3699,7 +3282,7 @@ void MenuUI::procBackKeyEvent()
                 set_cur_menu_from_exit();
                 break;
 			
-            case STATE_PREVIEW:
+            case STATE_PREVIEW:     /* 预览状态下,按返回键 */
                 switch (cur_menu) {
                     case MENU_PIC_INFO:
                     case MENU_VIDEO_INFO:
@@ -3835,26 +3418,6 @@ void MenuUI::set_mainmenu_item(int item,int val)
     }
 }
 
-#if 0
-void MenuUI::updateMenu_sys_setting(SETTING_ITEMS* pSetting, bool bUpdateLast)
-{
-    int last_select = getCurMenuLastSelectIndex();
-    int cur= getMenuSelectIndex(cur_menu);
-	
-    //sometimes force last_select to -1 to avoid update last select
-//    Log.d(TAG,"cur %d last %d",cur,last_select);
-    if (bUpdateLast) {
-        if (last_select != -1) {
-            SELECT_INFO * mSelect = getCurMenuSelectInfo();
-            int last = last_select + mSelect->cur_page * mSelect->page_max;
-//            Log.d(TAG,"last %d",last);
-            disp_icon(pSetting->icon_normal[last][get_setting_select(last)]);
-        }
-    }
-    disp_icon(pSetting->icon_light[cur][get_setting_select(cur)]);
-}
-#endif
-
 
 
 /********************************************************************************************
@@ -3931,21 +3494,19 @@ void MenuUI::updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, co
 }
 
 
-
-
 void MenuUI::update_sys_cfg(int item, int val)
 {
-    val = val&0x00000001;
+    val = val & 0x00000001;
     Log.d(TAG," update_sys_cfg item %d val %d",item,val);
     switch(item) {
         case SET_FREQ:
             mProCfg->set_val(KEY_PAL_NTSC, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FREQ, val);
             break;
 
         case SET_SPEAK_ON:
             mProCfg->set_val(KEY_SPEAKER, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPEAKER, val);
             break;
 
         case SET_BOTTOM_LOGO:
@@ -4058,67 +3619,69 @@ void MenuUI::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 #endif
 
 
-void MenuUI::set_sys_setting(sp<struct _sys_setting_> &mSysSetting)
-{
-    CHECK_NE(mSysSetting,nullptr);
 
-    Log.d(TAG,"%s %d %d %d %d %d %d %d %d %d %d",__FUNCTION__,
-          mSysSetting->flicker,
-          mSysSetting->speaker,
-          mSysSetting->led_on,
-          mSysSetting->fan_on,
-          mSysSetting->aud_on,
-          mSysSetting->aud_spatial,
-          mSysSetting->set_logo,
-          mSysSetting->gyro_on,
-          mSysSetting->video_fragment);
+void MenuUI::set_sys_setting(sp<struct _sys_setting_> & mSysSetting)
+{
+    CHECK_NE(mSysSetting, nullptr);
+
+    Log.d(TAG, "%s %d %d %d %d %d %d %d %d %d %d", __FUNCTION__,
+                                                    mSysSetting->flicker,
+                                                    mSysSetting->speaker,
+                                                    mSysSetting->led_on,
+                                                    mSysSetting->fan_on,
+                                                    mSysSetting->aud_on,
+                                                    mSysSetting->aud_spatial,
+                                                    mSysSetting->set_logo,
+                                                    mSysSetting->gyro_on,
+                                                    mSysSetting->video_fragment);
 
     {
 
-        #if 0
+        #if 1
         if (mSysSetting->flicker != -1) {
             update_sys_cfg(SET_FREQ, mSysSetting->flicker);
         }
 
         if (mSysSetting->speaker != -1) {
-            update_sys_cfg(SET_SPEAK_ON,mSysSetting->speaker);
+            update_sys_cfg(SET_SPEAK_ON, mSysSetting->speaker);
         }
 
         if (mSysSetting->aud_on != -1) {
-            update_sys_cfg(SET_AUD_ON,mSysSetting->aud_on);
+            update_sys_cfg(SET_AUD_ON, mSysSetting->aud_on);
         }
 
         if (mSysSetting->aud_spatial != -1) {
-            update_sys_cfg(SET_SPATIAL_AUD,mSysSetting->aud_spatial);
+            update_sys_cfg(SET_SPATIAL_AUD, mSysSetting->aud_spatial);
         }
 
         if (mSysSetting->fan_on != -1)  {
-            update_sys_cfg(SET_FAN_ON,mSysSetting->fan_on);
+            update_sys_cfg(SET_FAN_ON, mSysSetting->fan_on);
         }
 
         if (mSysSetting->set_logo != -1) {
-            update_sys_cfg(SET_BOTTOM_LOGO,mSysSetting->set_logo);
+            update_sys_cfg(SET_BOTTOM_LOGO, mSysSetting->set_logo);
         }
 
         if (mSysSetting->led_on != -1) {
-            update_sys_cfg(setLight_ON,mSysSetting->led_on);
+            update_sys_cfg(setLight_ON, mSysSetting->led_on);
         }
 
         if (mSysSetting->gyro_on != -1) {
-            update_sys_cfg(SET_GYRO_ON,mSysSetting->gyro_on);
+            update_sys_cfg(SET_GYRO_ON, mSysSetting->gyro_on);
         }
 
         if (mSysSetting->video_fragment != -1)  {
-            update_sys_cfg(SET_VIDEO_SEGMENT,mSysSetting->video_fragment);
+            update_sys_cfg(SET_VIDEO_SEGMENT, mSysSetting->video_fragment);
         }
         #endif
 
         //update current menu
-        if (cur_menu == MENU_SYS_SETTING) {
+        if (cur_menu == MENU_SYS_SETTING) { /* 如果当前的菜单为设置菜单,重新进入设置菜单(以便更新各项) */
             setCurMenu(MENU_SYS_SETTING);
         }
     }
 }
+
 
 
 void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
@@ -8601,8 +8164,11 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 		add_qr_res(disp_type->qr_type, disp_type->mAct, disp_type->control_act);
 	} else if (disp_type->tl_count != -1) {
 		set_tl_count(disp_type->tl_count);
-	} else if (disp_type->mSysSetting != nullptr) {
-		set_sys_setting(disp_type->mSysSetting);
+
+	} else if (disp_type->mSysSetting != nullptr) { /* 系统设置不为空 */
+
+		set_sys_setting(disp_type->mSysSetting);    /* 更新设置(来自客户端) */
+
 
 #ifdef ENABLE_MENU_STITCH_BOX        
 	} else if (disp_type->mStichProgress != nullptr) {
