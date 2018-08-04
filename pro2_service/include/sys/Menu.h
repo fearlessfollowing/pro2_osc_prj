@@ -71,7 +71,8 @@ enum {
 #ifdef ENABLE_MENU_AEB
     MENU_SET_AEB,               // 27
 #endif
-
+    MENU_SHOW_SPACE,
+    
     //messagebox keep at the end
     MENU_DISP_MSG_BOX,          // 28
     MENU_MAX,                   // 29
@@ -357,7 +358,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_STORAGE */
     	MENU_SYS_SETTING,
 		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, 0}	,	/* BACK */
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
 		MENU_STORAGE,           /* Menu ID: MENU_STORAGE */
 		NULL,
         NULL,        
@@ -498,7 +499,7 @@ static MENU_INFO mMenuInfos[] = {
     },
 #else
     {
-        MENU_STORAGE,
+        MENU_SHOW_SPACE,
         {0, 0, 0, 2, 2, 1}, 
         {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
         MENU_FORMAT,
@@ -546,6 +547,15 @@ static MENU_INFO mMenuInfos[] = {
         NULL,
     },
 #endif
+
+    {	/* MENU_SHOW_SPACE */
+    	MENU_STORAGE,
+		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		MENU_SHOW_SPACE,           /* Menu ID: MENU_SHOW_SPACE */
+		NULL,
+        NULL,        
+	},
 
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,

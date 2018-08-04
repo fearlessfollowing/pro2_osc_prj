@@ -21,9 +21,10 @@ using namespace std;
 /*
  * 调试开关
  */
-//#define DEBUG_BATTERY
+#define DEBUG_BATTERY
 
 #define OLD_BAT
+
 
 #define BATTERY_I2C_BUS 		2	
 #define BATTERY_I2C_SLAVE_ADDR	0x55
@@ -468,7 +469,7 @@ int battery_interface::read_FullChargeCapacity_mAh(u16 *val)
 
 int battery_interface::read_RelativeStateOfCharge(u16 *val)
 {
-    int ret = read_value(READ_RELATIVE_STATE_OF_CHARGE,val);
+    int ret = read_value(READ_RELATIVE_STATE_OF_CHARGE, val);
     if (ret == 0) {
 		Log.d(TAG, "read_RelativeStateOfCharge *val 0x%x %d", *val, *val);
     }

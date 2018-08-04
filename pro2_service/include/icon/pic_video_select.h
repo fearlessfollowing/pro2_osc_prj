@@ -626,7 +626,7 @@ static ACTION_INFO picAebDefault = {
 		4000,
 		3000,
 		0,					/* 原片的存储位置: 0: nvidia; 1: module; 2: both */
-		{3, -64, 64, 0}		/* AEB:3, 5, 7, 9 */
+		{3, -64, 64, 0}		/* AEB:3, 5, 7, 9 EV及步进值 */
 	},
 	{	/* Stitch */
 		EN_JPEG,
@@ -792,7 +792,7 @@ PicVideoCfg picCustomer = {
 	TAKE_PIC_MODE_CUSTOMER,		// pItemName
 	0,							// iItemMaxVal
 	0,							// iCurVal
-	10,
+	20,
 	{0},						// stPos
 	&picCustomerDefault,
 	{	/* 选中时的图标列表 */
@@ -1229,8 +1229,8 @@ const u8 vid_8K60F_Nor_78x16[] = {
  * 8K_30F_3D
  */
 static ACTION_INFO vid8K_30F_3D_Action = {
-	MODE_PANO,
-	24,
+	MODE_3D,
+	15,
 	0,
 	
 	{	/* for test version: ORG_INFO */
@@ -1254,16 +1254,16 @@ static ACTION_INFO vid8K_30F_3D_Action = {
 
 static ACTION_INFO vid8K_60F_Action = {
 	MODE_PANO,
-	24,
+	15,
 	0,
 	
 	{	/* for test version: ORG_INFO */
 		EN_H264,
 		SAVE_DEF,
 		3840,		/* 3840 */
-		2880,		/* 2160 -> 2880 */
+		2160,		/* 2160 -> 2880 */
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+		{ALL_FR_60, 120}	/* bitrate: 40 -> 80 -> 120 */
 	},	
 	{	/* STI_INFO */
 		EN_H264,
@@ -1278,16 +1278,16 @@ static ACTION_INFO vid8K_60F_Action = {
 
 static ACTION_INFO vid8K_5F_Action = {
 	MODE_PANO,
-	24,
+	18,
 	0,
 	
 	{	/* for test version: ORG_INFO */
 		EN_H264,
 		SAVE_DEF,
 		3840,		/* 3840 */
-		2880,		/* 2160 -> 2880 */
+		2160,		/* 2160 -> 2880 */
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+		{ALL_FR_5, 10}	/* bitrate: 40 -> 80 -> 120 */
 	},	
 	{	/* STI_INFO */
 		EN_H264,
@@ -1302,7 +1302,7 @@ static ACTION_INFO vid8K_5F_Action = {
 
 static ACTION_INFO vid6K_60F_3D_Action = {
 	MODE_3D,
-	25,
+	10,
 	0,
 	{
 		EN_H264,
@@ -1310,7 +1310,7 @@ static ACTION_INFO vid6K_60F_3D_Action = {
 		3200,			/* 3840x2880 -> 3200x2400 */
 		2400,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_60, 60}
+		{ALL_FR_60, 90}
 	},
 	{
 		EN_H264,
@@ -1329,7 +1329,7 @@ static ACTION_INFO vid6K_60F_3D_Action = {
  */
 static ACTION_INFO vid4K_120F_3D_Action = {
 	MODE_PANO,
-	25,
+	12,
 	0,		// 
 	{
 		EN_H264,
@@ -1360,14 +1360,14 @@ static ACTION_INFO vid4K_30F_RTS_Action = {
 		3840,			/* 根据肖神的提示修改: 4K|PANO 3200x2400@30fps    60M 2018年7月24日 */
 		2160,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_30, 60}
+		{ALL_FR_30, 90}
 	},
 	{
 		EN_H264,
 		STITCH_NORMAL,
 		3840,
 		1920,
-		{ALL_FR_30, 50}
+		{ALL_FR_30, 40}
 	},
 	{},
 	{}
@@ -1381,8 +1381,32 @@ static ACTION_INFO vid4K_30F_3D_RTS_Action = {
 	{
 		EN_H264,
 		SAVE_DEF,
-		3200,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
+		3200,		
 		2400,
+		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */		
+		{ALL_FR_30, 60}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
+	},
+	{
+		EN_H264,
+		STITCH_NORMAL,
+		3840,
+		3840,
+		{ALL_FR_30, 80}
+	},
+	{},
+	{}
+
+};
+
+static ACTION_INFO vid_Customer_Action = {
+	MODE_PANO,
+	10,
+	0,
+	{
+		EN_H264,
+		SAVE_DEF,
+		1920,		/* 根据肖神的提示修改: 4K|3D 1920X1440 - > 3200x2400@30fps    60M */
+		1440,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */		
 		{ALL_FR_30, 60}		/* ALL_FR_24 -> ALL_FR_30 2018-06-01 */
 	},
@@ -1395,11 +1419,6 @@ static ACTION_INFO vid4K_30F_3D_RTS_Action = {
 	},
 	{},
 	{}
-
-};
-
-static ACTION_INFO vid_Customer_Action = {
-
 };
 
 
@@ -1479,7 +1498,7 @@ static PicVideoCfg vid4K_120F_3D_Cfg = {
 };
 
 static PicVideoCfg vid4K_30F_RTS_Cfg = {
-	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	TAKE_VID_4K_30F_RTS,		// pItemName
 	0,								// iItemMaxVal
 	0,								// iCurVal
 	0,								// 5倍
@@ -1494,7 +1513,7 @@ static PicVideoCfg vid4K_30F_RTS_Cfg = {
 };
 
 static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
-	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	TAKE_VID_4K_30F_3D_RTS,		// pItemName
 	0,								// iItemMaxVal
 	0,								// iCurVal
 	0,								// 5倍
@@ -1509,7 +1528,7 @@ static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
 };
 
 static PicVideoCfg vid_Customer_Cfg = {
-	TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	TAKE_VID_MOD_CUSTOMER,		// pItemName
 	0,								// iItemMaxVal
 	0,								// iCurVal
 	0,								// 5倍
@@ -1532,6 +1551,7 @@ PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid4K_120F_3D_Cfg,
 	&vid4K_30F_RTS_Cfg,
 	&vid4K_30F_3D_RTS_Cfg,
+
 	&vid_Customer_Cfg,
 };
 

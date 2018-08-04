@@ -629,6 +629,7 @@ private:
     void setCurMenu(int menu,int back_menu = -1);
     void cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
+ 
     bool getQueryResult(int iTimeout);
     /*
      * 系统信息
@@ -663,6 +664,7 @@ private:
     void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
     int get_setting_select(int type);
 
+   void setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
     void updateBottomMode(bool bLight);
 
     /* 显示底部的规格模式 */
@@ -674,7 +676,7 @@ private:
      * bTrueLeftSpace - 是否真实的显示剩余空间,默认为true
      */
     void dispBottomInfo(bool high = false, bool bTrueLeftSpace = true);
-    void updateBottomSpace();
+    void updateBottomSpace(bool bNeedCalc);
 
     /************************************** 菜单相关 END *************************************************/
 
@@ -875,6 +877,8 @@ private:
     std::vector<struct stSetItem*>      mSetItemsList;
     std::vector<struct stSetItem*>      mPhotoDelayList;
     std::vector<struct stSetItem*>      mAebList;
+    std::vector<struct stSetItem*>      mStorageList;
+
     std::vector<struct stPicVideoCfg*>  mPicAllItemsList;
     std::vector<struct stPicVideoCfg*>  mVidAllItemsList;   
     std::vector<struct stPicVideoCfg*>  mLiveAllItemsList;

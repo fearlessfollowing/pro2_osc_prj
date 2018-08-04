@@ -468,6 +468,7 @@ bool is_bat_enough()
 {
 
 #ifdef ENABLE_BAT_CHECK
+
     bool ret = false;
     sp<battery_interface> mBat = sp<battery_interface>(new battery_interface());
     if (mBat == nullptr) {

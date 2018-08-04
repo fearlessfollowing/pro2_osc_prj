@@ -104,9 +104,9 @@ int move_cmd(const char *src,const char *dest)
     return exec_sh(cmd);
 }
 
-//#define ENABLE_SPEED_TEST
+// #define ENABLE_SPEED_TEST
 #define SDCARD_TEST_SUC "/.pro_suc"
-//#define SDCARD_TEST_FAIL "/pro_test_fail"
+#define SDCARD_TEST_FAIL "/pro_test_fail"
 
 
 

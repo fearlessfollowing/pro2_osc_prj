@@ -78,7 +78,7 @@ pic_tf_sti_h:7680
 pic_tf_len_param:
 pic_tf_gamma:
 vid_all_mode:1
-vid_all_size_per_act:25
+vid_all_size_per_act:18
 vid_all_delay:0
 vid_all_org_mime:0
 vid_all_save_org:0
