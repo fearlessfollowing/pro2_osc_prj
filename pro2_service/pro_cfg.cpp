@@ -2429,6 +2429,7 @@ void pro_cfg::update_val(int type, const char *val)
         }
     }
     close(fd);
+    system("sync");
 }
 
 void pro_cfg::deinit()
