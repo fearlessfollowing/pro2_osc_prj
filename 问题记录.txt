@@ -258,3 +258,14 @@ oled_disp_type(START_PREVIEW_FAIL)
 	disp_sys_err(type, MENU_TOP);		显示系统错误,将返回菜单设置为MENU_TOP
 
 
+
+
+日期：2018年8月6日
+
+
+多U盘问题：
+1.现在USB设备只是2.0设备非3.0设备？
+
+
+
+

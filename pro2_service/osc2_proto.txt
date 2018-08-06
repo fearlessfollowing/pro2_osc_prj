@@ -331,6 +331,7 @@ respone:
 
 
 
+# 让模组变成U盘模式
 camera._change_module_usb_mode
 request:
 { "name":"camera._change_module_usb_mode","parameters":{"mode":1} }

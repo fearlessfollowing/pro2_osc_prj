@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import util.ins_util
 import os,base64
 from util.log_util import *

@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 # all the imports
 import os
 import platform

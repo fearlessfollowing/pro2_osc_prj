@@ -27,7 +27,7 @@
 #define OFF_IP								"0.0.0.0"
 
 /*
- * Prop system
+ * 系统使用的属性
  */
 #define PROP_SYS_AP_SSID			"sys.wifi_ssid"
 #define PROP_SYS_AP_PESUDO_SN		"sys.wifi_pesu_sn"
@@ -51,6 +51,8 @@
 #define PROP_SYS_UA_VER 			"sys.ua_ver"
 
 #define PROP_PWR_FIRST      	    "sys.hub_reset_first"
+
+#define PROP_KEY_RESPRATE           "sys.key_resprate"
 
 /*
  * 启动动画属性

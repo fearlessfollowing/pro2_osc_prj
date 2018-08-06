@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import osc_protocol.ins_osc_globo
 import json
 from collections import OrderedDict

@@ -66,6 +66,7 @@
 
 using namespace std;
 
+#undef TAG
 #define TAG "MenuUI"
 
 
@@ -1005,7 +1006,7 @@ void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
     int val = 0;
     SettingItem** pSetItem = static_cast<SettingItem**>(pParentMenu->priv);
 
-    for (u32 i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
 
         /*
          * 坐标的设置
@@ -1139,7 +1140,7 @@ void MenuUI::setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetI
         ICON_POS tmPos;
         SettingItem** pSetItem = static_cast<SettingItem**>(pParentMenu->priv);
 
-        for (u32 i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
 
             /*
             * 坐标的设置
@@ -1179,7 +1180,7 @@ void MenuUI::setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSet
         ICON_POS tmPos;
         SettingItem** pSetItem = static_cast<SettingItem**>(pParentMenu->priv);
 
-        for (u32 i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
 
             /*
             * 坐标的设置
@@ -1389,16 +1390,9 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
         int size = pParentMenu->mSelectInfo.total;
         ICON_POS tmPos = {0, 48, 78, 16};
         int iIndex = 0;
-        int iDefaultRawVal = 0;
-        int iDefaultAebVal = 0;
-
-        ACTION_INFO* pTmpActionInfo = NULL;
 
         PicVideoCfg** pSetItems = static_cast<PicVideoCfg**>(pParentMenu->priv);
         
-        iDefaultRawVal = mProCfg->get_val(KEY_RAW);     /* 0: Off Raw; 1: Open Raw */
-        iDefaultAebVal = mProCfg->get_val(KEY_AEB);  
-
         switch (pParentMenu->iMenuId) {
             case MENU_PIC_SET_DEF:       /* PIC */
                 iIndex = mProCfg->get_val(KEY_ALL_PIC_DEF); /* 当前所中的项 */
@@ -1409,7 +1403,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                  * 根据配置AEB值来选中显示图标的索引
                  * 以及传递参数的ACTION_INFO的值
                  */
-                for (u32 i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
 
                     /* TODO: 在此处为各个项设置对应的ACTION_INFO
@@ -1423,7 +1417,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
             case MENU_VIDEO_SET_DEF:
                 iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF); /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
-                for (u32 i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
                     pSetItems[i]->iCurVal = 0;
 
@@ -1443,7 +1437,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
             case MENU_LIVE_SET_DEF:
                 iIndex = mProCfg->get_val(KEY_ALL_LIVE_DEF); /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
-                for (u32 i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
                     pSetItems[i]->iCurVal = 0;
 
@@ -2325,7 +2319,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
     bool bAllow = true;
     sp<ARMessage> msg = mNotify->dup();
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
-    int iIndex = 0, item = 0;
+    int iIndex = 0;
     struct stPicVideoCfg* pTmpPicVidCfg = NULL;
 
     switch (option) {
@@ -3620,6 +3614,7 @@ void MenuUI::set_sys_setting(sp<struct _sys_setting_> & mSysSetting)
 {
     CHECK_NE(mSysSetting, nullptr);
 
+#if 0
     Log.d(TAG, "%s %d %d %d %d %d %d %d %d %d %d", __FUNCTION__,
                                                     mSysSetting->flicker,
                                                     mSysSetting->speaker,
@@ -3676,6 +3671,8 @@ void MenuUI::set_sys_setting(sp<struct _sys_setting_> & mSysSetting)
             setCurMenu(MENU_SYS_SETTING);
         }
     }
+#endif
+
 }
 
 
@@ -3947,7 +3944,7 @@ bool MenuUI::localStorageAvail()
 
 void MenuUI::calcRemoteRemainSpace()
 {
-    int iTmpMinSize = ~0L;
+    u64 iTmpMinSize = ~0UL;
     for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
         if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
             iTmpMinSize = mRemoteStorageList.at(i)->avail;
@@ -3961,7 +3958,6 @@ void MenuUI::calcRemoteRemainSpace()
 
 void MenuUI::calcRemainSpace()
 {
-    u32 i = 0;
     Log.d(TAG, "Calc Remian Space now ......");
 
     /* 计算出各种模式下的剩余容量:
@@ -6520,7 +6516,8 @@ void MenuUI::disp_tl_count(int count)
 void MenuUI::minus_cam_state(int state)
 {
     rm_state(state);
-    set_cap_delay(0);
+
+    // set_cap_delay(0);
 
 //    Log.d(TAG,"after minus_cam_state cam_state 0x%x "
 //                  "cur_menu %d state 0x%x",

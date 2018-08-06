@@ -31,10 +31,13 @@
 #include <hw/InputManager.h>
 #include <util/util.h>
 
+#include <prop_cfg.h>
+#include <system_properties.h>
+
 using namespace std;
 
 
-#undef TAG
+#undef  TAG
 #define TAG "InputManager"
 
 #define POLL_FD_NUM (2)
@@ -51,16 +54,25 @@ enum {
  */
 #define SHORT_PRESS_THOR	(100)	// 100ms
 
-
+static int gIKeyRespRate = 100;      /* 按键的灵敏度,默认为100ms */
 
 InputManager::InputManager(const sp<ARMessage> &notify): mNotify(notify)
 {
+    const char* pRespRate = NULL;
+
 	/* 构造一个线程对象 */
     if (!haveInstance) {
 		haveInstance = true;
     	init_pipe(mCtrlPipe);
 		loopThread = thread([this]{ inputEventLoop();});
 	}
+
+    pRespRate = property_get(PROP_KEY_RESPRATE);
+    if (pRespRate) {
+        Log.d(TAG, "[%s: %d] Get prop key response rate: %s", __FILE__, __LINE__, pRespRate);
+        gIKeyRespRate = atoi(pRespRate);
+    }
+
 }
 
 
@@ -233,8 +245,6 @@ int InputManager::inputEventLoop()
 {
 	int res;
 	struct input_event event;
-	bool bExit = false;
-	int iKey;
 	int64 key_ts;
 	int64 key_interval = 0;
 	
@@ -312,7 +322,7 @@ int InputManager::inputEventLoop()
 							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, iIntervalMs);
                             switch (event.value) {
 								case UP:
-                                    if ((iIntervalMs > SHORT_PRESS_THOR ) && (iIntervalMs <  (LONG_PRESS_MSEC * 1000))) {
+                                    if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < (LONG_PRESS_MSEC * 1000))) {
 										if (event.code == last_down_key) {
                                             Log.d(TAG, "---> OK report key code [%d]", event.code); 
 											reportEvent(event.code);

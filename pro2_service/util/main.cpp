@@ -305,7 +305,7 @@ static int read_line(int fd, void *vptr, int maxlen)
 			
         if ((rc = read(fd, &c, 1)) == 1) {
             //not add '\n' to buf
-            if (c == '\n')
+            if (c == '\n' || c == '\r')
                 break;
             *ptr++ = c;
 
