@@ -564,7 +564,7 @@ static ACTION_INFO pic8K3DOFDefault = {
 
 
 /*
- * 8K|3D
+ * 8K|OF
  */
 static ACTION_INFO pic8K3DDefault = {
 	MODE_PANO,		/* 拼接模式 */
@@ -582,7 +582,7 @@ static ACTION_INFO pic8K3DDefault = {
 		EN_JPEG,
 		STITCH_OPTICAL_FLOW,
 		7680,
-		7680,
+		3840,
 		{},
 	}
 };
@@ -605,9 +605,9 @@ static ACTION_INFO pic8KDefault = {
 	},
 	{	/* Stitch */
 		EN_JPEG,
-		STITCH_OPTICAL_FLOW,
-		7680,
-		3840,
+		STITCH_OFF,
+		0,
+		0,
 		{},
 	}
 };
@@ -631,8 +631,8 @@ static ACTION_INFO picAebDefault = {
 	{	/* Stitch */
 		EN_JPEG,
 		STITCH_OFF,
-		7680,
-		3840,
+		0,
+		0,
 		{},
 	}
 };
@@ -656,8 +656,8 @@ static ACTION_INFO picBurstDefault = {
 	{	/* Stitch */
 		EN_JPEG,
 		STITCH_OFF,
-		7680,
-		3840,
+		0,
+		0,
 		{},
 	}
 };
@@ -679,9 +679,9 @@ static ACTION_INFO picCustomerDefault = {
 	},
 	{	/* Stitch */
 		EN_JPEG,
-		STITCH_OPTICAL_FLOW,
-		7680,
-		3840,
+		STITCH_OFF,
+		0,
+		0,
 		{},
 	}
 };
@@ -1278,7 +1278,7 @@ static ACTION_INFO vid8K_60F_Action = {
 
 static ACTION_INFO vid8K_5F_Action = {
 	MODE_PANO,
-	18,
+	1,
 	0,
 	
 	{	/* for test version: ORG_INFO */
@@ -1287,7 +1287,7 @@ static ACTION_INFO vid8K_5F_Action = {
 		3840,		/* 3840 */
 		2160,		/* 2160 -> 2880 */
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_5, 10}	/* bitrate: 40 -> 80 -> 120 */
+		{ALL_FR_5, 10}	/* bitrate: 10Mbit */
 	},	
 	{	/* STI_INFO */
 		EN_H264,
@@ -1300,6 +1300,7 @@ static ACTION_INFO vid8K_5F_Action = {
 	{}
 };
 
+
 static ACTION_INFO vid6K_60F_3D_Action = {
 	MODE_3D,
 	10,
@@ -1310,7 +1311,7 @@ static ACTION_INFO vid6K_60F_3D_Action = {
 		3200,			/* 3840x2880 -> 3200x2400 */
 		2400,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_60, 90}
+		{ALL_FR_60, 120}
 	},
 	{
 		EN_H264,
@@ -1913,7 +1914,7 @@ PicVideoCfg live4K_30F_3D_HDMI_Cfg = {
 		live4K_30F_3D_HDMI_Light_78x16,
 	},
 	{	/* 未选中时的图标列表 */
-		live4K_30F_HDMI_Nor_78x16,
+		live4K_30F_3D_HDMI_Nor_78x16,
 	}
 };
 

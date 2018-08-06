@@ -4,3 +4,62 @@
 默认的属性文件:default.prop中添加一项（目前改为50ms）
 sys.key_resprate=50
 
+
+
+2.修改拍照时各挡位的拍照及拼接后的分辨率及拼接开关（包括默认的配置文件：def_cfg及user_cfg文件）
+BUG #11440=>罗品京 【拍照】【必现】拍照相机机身Pano实时拼接的档位，拍出来的pano照片比例不对 
+已解决
+
+
+BUG #11441=>罗品京 【相机重启】相机插电源线录像，没插电池，相机自动重启。文件损坏。同时也会出现相机在20%~30的电量时，直接关机的情况 
+需要硬件确认？
+
+
+
+BUG #11444=>罗品京 【直播/UI】直播不存片（比如机身的档位），不插卡时右下角不能显示None；直播如果存片的话，要计算出剩余可录时长，在右下角显示；详情如下： 
+直播不存片（比如机身的档位），不插卡时右下角显示None。不存片时，右下角不显示卡的信息
+直播如果存片的话，要计算出剩余可录时长，并在右下角显示
+
+
+3.Direct模式下网络不畅问题？
+在hardware_init.sh中禁止掉NetWorkManager服务
+
+service avahi-daemon stop
+service NetworkManager.service stop
+
+修改net_manager.cpp,网卡工作在Direct模式下会kill掉dhclient
+
+void NetManager::handleMessage(const sp<ARMessage> &msg)
+    case NETM_SET_NETDEV_IP:
+        ...... 
+        /* 使用Direct方式时，先杀掉dhclient进程  - 2018年8月6日 */
+		system("killall dhclient");
+		msg_util::sleep_ms(1000);
+        break;
+
+
+4.客户端连接拼接校正问题？
+UI拼接校准的流程：
+    procPowerKeyEvent
+        handleGyroCalcEvent
+            if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
+		        setGyroCalcDelay(5);
+		        oled_disp_type(START_CALIBRATIONING);
+	        } else {
+		        Log.e(TAG, "handleGyroCalcEvent: calibration happen cam_state 0x%x", cam_state);
+	        }
+
+客户端现在的拼接校准调用过程：
+进入预览状态：
+    拼接校准
+        开始
+            
+
+
+
+
+
+2.USB UDC变成3.0
+echo 0x1 > /sys/class/extcon/extcon0/state
+目前来看好像是机器的问题？
+

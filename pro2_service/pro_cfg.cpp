@@ -1741,15 +1741,15 @@ void pro_cfg::read_cfg(const char *name)
                         break;
 					
                     case KEY_ALL_VIDEO_AUD_MIME:
-                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.mime,sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.mime),"%s",pStr);
+                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.mime, sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.mime), "%s", pStr);
                         break;
 					
                     case KEY_ALL_VIDEO_AUD_SAMPLE_FMT:
-                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.sample_fmt,sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.sample_fmt),"%s",pStr);
+                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.sample_fmt, sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.sample_fmt), "%s", pStr);
                         break;
 					
                     case KEY_ALL_VIDEO_AUD_CH_LAYOUT:
-                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.ch_layout,sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.ch_layout),"%s",pStr);
+                        snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.ch_layout, sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stAudInfo.ch_layout), "%s", pStr);
                         break;
 					
                     case KEY_ALL_VIDEO_AUD_SR:
@@ -1761,7 +1761,7 @@ void pro_cfg::read_cfg(const char *name)
                         break;
 
 					case KEY_ALL_VIDEO_LEN_PARAM:
-						snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.len_param,sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.len_param),"%s",pStr);
+						snprintf(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.len_param,sizeof(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.len_param), "%s", pStr);
 						break;
 					case KEY_ALL_VIDEO_GAMMA:
 						memcpy(mCurInfo->mActInfo[KEY_ALL_VIDEO_DEF].stProp.mGammaData,pStr,strlen(pStr));

@@ -37,7 +37,7 @@ typedef union _org_act_ {
 
 
 /*
- * 原片信息
+ * 原片信息 SAVE_DEF
  */
 typedef struct _org_info_ {
     //jpeg,

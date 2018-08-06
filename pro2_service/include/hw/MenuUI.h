@@ -42,7 +42,7 @@ typedef enum _type_ {
     START_LIVE_CONNECTING ,     // 22,
 
 
-    START_CALIBRATIONING = 27 ,// 27,
+    START_CALIBRATIONING = 27 , // 27,
     CALIBRATION_SUC,
     CALIBRATION_FAIL,
     START_PREVIEWING ,  // 30,
@@ -868,7 +868,7 @@ private:
 	int		                mSavePathIndex = -1;
     
     bool                    mNeedSendAction = true;                        /* 是否需要发真实的请求给Camerad */
-
+    bool                    mCalibrateSrc;
 
 	sp<InputManager>        mInputManager;                          /* 按键输入管理器 */
 	/*

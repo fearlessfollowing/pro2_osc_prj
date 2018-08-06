@@ -844,6 +844,11 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
             tmpNetDev = getNetDevByType(tmpIpInfo->iDevType);
             if (tmpNetDev) {
 				if (tmpIpInfo->iDhcp == GET_IP_STATIC) {	/* Static */
+				
+					/* 使用Direct方式时，先杀掉dhclient进程  - 2018年8月6日 */
+					system("killall dhclient");
+					msg_util::sleep_ms(1000);
+
 					tmpNetDev->setNetDevIp2Phy(tmpIpInfo->ipAddr);
 					tmpNetDev->setCurGetIpMode(GET_IP_STATIC);
 				} else {	/* DHCP */

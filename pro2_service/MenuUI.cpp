@@ -3240,6 +3240,7 @@ void MenuUI::reset_last_info()
 
 
 
+
 void MenuUI::procBackKeyEvent()
 {
     INFO_MENU_STATE(cur_menu, cam_state)
@@ -4109,7 +4110,6 @@ void MenuUI::convert_space_to_str(u64 size, char *str, int len)
     double size_b = (double)size;
     double info_G = (size_b/1024/1024/1024);
 
-//    Log.d(TAG,"info_G is %.1f ",info_G);
     if (info_G >= 100.0) {
         snprintf(str,len,"%ldG",(int64_t)info_G);
     } else {
@@ -4130,8 +4130,6 @@ bool MenuUI::checkHaveLocalSavePath()
     }
     return bRet;
 }
-
-
 
 
 bool MenuUI::check_save_path_usb()
@@ -4175,13 +4173,13 @@ void MenuUI::dispBottomLeftSpace()
                 Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
                 clear_area(78, 48);
             } else {
-                //keep show in middle,easily to add two blanks
                 /* 拍照的话直接显示: mCanTakePicNum 的值 */
                 snprintf(disk_info, sizeof(disk_info), "  %d", mCanTakePicNum);
                 disp_str_fill((const u8 *) disk_info, 78, 48);
             }
         }
     } else {    /* 录像或拍照页面 */
+
         #if 1
         if (!checkHaveLocalSavePath() && 1 /* checkHaveRemoteSavePath()*/) {
             switch (cur_menu) {
@@ -4217,20 +4215,69 @@ void MenuUI::dispBottomLeftSpace()
                             clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
                         }
                     } else {
-                        int item = getMenuSelectIndex(MENU_LIVE_SET_DEF);
 
-                        if (cam_state == STATE_START_PREVIEWING || cam_state == STATE_START_RECORDING) {
+                        int iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
+                        bool bShowLefSpace = false;
+
+                        struct stPicVideoCfg* pTmpCfg = mLiveAllItemsList.at(iIndex);
+                        if (pTmpCfg) {
+                            if (!strcmp(pTmpCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
+                                if (check_live_save(pTmpCfg->pStAction)) {
+                                    bShowLefSpace = true;
+                                }
+                            }
+                        }
+
+                        if (cam_state == STATE_START_PREVIEWING || cam_state == STATE_START_LIVING) {
                             /* 此时不显示剩余量 */
                             Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
                             clear_area(78, 48);
+                        } else {
+                            if (bShowLefSpace) {    /* 需要显示剩余空间 */
+                                snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", 
+                                                        mRemainInfo->remain_hour, 
+                                                        mRemainInfo->remain_min, 
+                                                        mRemainInfo->remain_sec);
+                                disp_str_fill((const u8 *) disk_info, 78, 48);
+                            } else {
+                                clear_area(78, 48);
+                            }
                         }
                     }
                     break;
             }
-        } else {
+        } else {    /* 存储设备不存在 */
+            
+            /* 对于直播模式,需要根据当前是否需要存储来显示"None"或者不显示 */
+
             Log.d(TAG, "[%s:%d] Local or Remote Storage Device Not exist....", __FILE__, __LINE__);
             memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
-            disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);
+            
+            bool bShowLefSpace = true;
+
+            /* 对于直播模式 */
+            if (cur_menu == MENU_LIVE_INFO || cur_menu == MENU_LIVE_SET_DEF) {
+                int iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
+
+                struct stPicVideoCfg* pTmpCfg = mLiveAllItemsList.at(iIndex);
+                if (pTmpCfg) {
+                    if (!strcmp(pTmpCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
+                        if (check_live_save(pTmpCfg->pStAction)) {
+                            bShowLefSpace = true;
+                        } else {
+                            bShowLefSpace = false;
+                        }
+                    } else {    /* 非Customer模式,不显示 */
+                        bShowLefSpace = false;
+                    }
+                }             
+            }
+            
+            if (bShowLefSpace) {
+                disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);
+            } else {
+                clear_area(78, 48);
+            }
         }
         #endif
     }	
@@ -4660,6 +4707,7 @@ void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
     }
 
 }
+
 
 /*
  * 计算出最先录满卡的时间
@@ -5155,7 +5203,6 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_VIDEO_INFO:   /* 录像菜单 */
 
-            // clear_area(0, 16);
             disp_icon(ICON_VIDEO_ICON_0_16_20_32);
 
             dispBottomInfo(false, false);
@@ -5189,9 +5236,7 @@ void MenuUI::enterMenu(bool dispBottom)
 
             if (check_state_preview()) {
                 disp_live_ready();
-            } else if (check_state_equal(STATE_START_PREVIEWING) ||
-                        check_state_in(STATE_STOP_PREVIEWING) ||
-                        check_state_in(STATE_START_LIVING)) {
+            } else if (check_state_equal(STATE_START_PREVIEWING) || check_state_in(STATE_STOP_PREVIEWING) || check_state_in(STATE_START_LIVING)) {
                 disp_waiting();
             } else if (check_state_in(STATE_LIVE)) {
                 Log.d(TAG, "do nothing in live cam state 0x%x", cam_state);
@@ -5205,17 +5250,13 @@ void MenuUI::enterMenu(bool dispBottom)
             }
             break;
 
+
         case MENU_STORAGE:      /* 存储菜单 */
             clear_area(0, 16);
             disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);
 
-            #if 1
             /* 进入存储页 */
             dispSettingPage(mStorageList);					/* 显示"右侧"的项 */
-            #else
-            get_storage_info();
-            disp_storage_setting();
-            #endif
             break;
 
         case MENU_SHOW_SPACE:   /* 显示存储设备菜单 */
@@ -5490,12 +5531,17 @@ bool MenuUI::check_dev_exist(int action)
 void MenuUI::handleGyroCalcEvent()
 {
 	Log.d(TAG, ">>>> handleGyroCalcEvent START");
+    #if 0
 	if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
 		setGyroCalcDelay(5);
 		oled_disp_type(START_CALIBRATIONING);
 	} else {
 		Log.e(TAG, "handleGyroCalcEvent: calibration happen cam_state 0x%x", cam_state);
 	}
+    #else 
+    mCalibrateSrc = true;   /* 表示发起拼接动作来自UI */
+    oled_disp_type(START_CALIBRATIONING);
+    #endif
 }
 
 
@@ -5733,7 +5779,7 @@ void MenuUI::procPowerKeyEvent()
                     handleWifiAction();
                     break;
 				
-                case MAINMENU_CALIBRATION:		/* 陀螺仪校正 */
+                case MAINMENU_CALIBRATION:		/* 拼接校准 */
 					handleGyroCalcEvent();
                     break;
 				
@@ -6404,6 +6450,7 @@ void MenuUI::add_state(int state)
 //                setCurMenu(MENU_CALIBRATION);
 //            }
             break;
+
         case STATE_START_QRING:
             if (cur_menu != MENU_QR_SCAN) {
                 setCurMenu(MENU_QR_SCAN);
@@ -6780,6 +6827,9 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
     Log.d(TAG, "oled_disp_err type %d err_code %d cur_menu %d cam_state 0x%x",
           type, err_code, cur_menu, cam_state);
 
+    if (err_code == -460) { /* 模组打开失败 */
+        system("power_manager power_off");  /* 关闭模组，已免下次打开失败 */
+    }
 	//original error handle
     if (err_code == -1) {
         oled_disp_type(type);
@@ -7390,17 +7440,25 @@ int MenuUI::oled_disp_type(int type)
 
 /*********************************	陀螺仪相关状态 START ********************************************/
 			
-        case START_CALIBRATIONING:
-            Log.d(TAG, "gyro calc delay %d cur_menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
-            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_1HZ);
+        case START_CALIBRATIONING: {
+
+            Log.d(TAG, "START_CALIBRATIONING calc delay %d cur_menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
+            if (mGyroCalcDelay <= 0) {
+                mGyroCalcDelay = 5;
+            }
+
             if (cur_menu != MENU_CALIBRATION) {		/* 进入陀螺仪校正菜单 */
                 setCurMenu(MENU_CALIBRATION);
             }
             add_state(STATE_CALIBRATING);
+            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_1HZ);
+
             break;
+        }
 
 			
         case CALIBRATION_SUC:
+            mCalibrateSrc = false;
             if (check_state_in(STATE_CALIBRATING)) {
                 disp_calibration_res(0);
                 msg_util::sleep_ms(1000);
@@ -7409,6 +7467,7 @@ int MenuUI::oled_disp_type(int type)
             break;
 			
         case CALIBRATION_FAIL:
+            mCalibrateSrc = false;
             rm_state(STATE_CALIBRATING);
             disp_sys_err(type,get_back_menu(cur_menu));
             break;
@@ -8014,7 +8073,11 @@ void MenuUI::func_low_bat()
 
 void MenuUI::setLightDirect(u8 val)
 {
+
+#ifdef ENABLE_DEBUG_LIGHT
     Log.d(TAG, "[%s:%d] last_light 0x%x val 0x%x", __FILE__, __LINE__, last_light, val);
+#endif
+
     if (last_light != val) {
         last_light = val;
         mOLEDLight->set_light_val(val);
@@ -8023,8 +8086,10 @@ void MenuUI::setLightDirect(u8 val)
 
 void MenuUI::setLight(u8 val)
 {
+#ifdef ENABLE_DEBUG_LIGHT
     Log.d(TAG, "[%s:%d] setLight 0x%x  front_light 0x%x", __FILE__, __LINE__, val, front_light);
- 
+#endif
+
     if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
         setLightDirect(val | front_light);
     }
@@ -8241,7 +8306,10 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 					if (mGyroCalcDelay == 0) {
 						if (cur_menu == menu) {	/* 当倒计时完成后才会给Camerad发送"校验消息" */
 							disp_calibration_res(2);
-							send_option_to_fifo(ACTION_CALIBRATION);
+
+                            if (mCalibrateSrc) {    /* 来自UI的拼接请求来需要发送 */
+							    send_option_to_fifo(ACTION_CALIBRATION);
+                            }
 						}
 					}
 				} else {	/* 大于0时,显示倒计时 */
@@ -8418,11 +8486,11 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                     CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
 					
                     Log.d(TAG, "OLED_DISP_STR_TYPE (%d %d %d %d 0x%x)",
-								disp_type->qr_type, 
-								disp_type->type, 
-								disp_type->tl_count, 
-								cur_menu, 
-								cam_state);
+								disp_type->qr_type,         // -1 
+								disp_type->type,            // START_CALIBRATIONING
+								disp_type->tl_count,        // -1
+								cur_menu,                   // 1
+								cam_state);                 // 0X8
 					
 					handleDispStrTypeMsg(disp_type);
                 }

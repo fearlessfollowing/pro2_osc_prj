@@ -366,6 +366,7 @@ static int configUdisk(int iDiskCnt)
 
 				}	
 			}	
+			
 
 			pTmpDiskPath = "/dev/sde1";
 			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
@@ -390,7 +391,8 @@ static int configUdisk(int iDiskCnt)
 			}
 
 
-			pTmpDiskPath = "/dev/sde1";
+
+			pTmpDiskPath = "/dev/sdf1";
 			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
 				if (checkDiskPathValid(pTmpDiskPath)) {
 					string storagePath = USB_GADGET_FUNCTION_BASE;
@@ -409,30 +411,7 @@ static int configUdisk(int iDiskCnt)
 					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
 					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
 
-				}	
-			}	
-
-
-			pTmpDiskPath = "/dev/sdf1";
-			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
-				if (checkDiskPathValid(pTmpDiskPath)) {
-					string storagePath = USB_GADGET_FUNCTION_BASE;
-					string storageDir = "mass_storage.";
-					storageDir += '5';
-					storagePath += storageDir;
-
-					Log.d(TAG, ">> storage path [%s]", storagePath.c_str());
-
-					string cfgLinkPath = USB_GADGET_CONFIG1_PATH;
-					cfgLinkPath += ("/" + storageDir);
-
-					Log.d(TAG, ">> link path [%s]", cfgLinkPath.c_str());
-
-					createDir(storagePath.c_str());		// /sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0
-					symlink(storagePath.c_str(), cfgLinkPath.c_str());	// create link
-					writeConfigFile((storagePath + "/lun.0/file").c_str(), pTmpDiskPath);	// fill device file
-
-				}	
+				}		
 			}	
 		
 		// }													
