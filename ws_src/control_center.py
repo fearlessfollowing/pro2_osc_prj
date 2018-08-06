@@ -270,7 +270,10 @@ class control_center:
             {
                 ACTION_PIC:                 self.camera_oled_pic,
                 ACTION_VIDEO:               self.camera_oled_rec,
+                
+                # 请求同步
                 ACTION_REQ_SYNC:            self.start_oled_syn_state,
+                
                 ACTION_LIVE:                self.camera_oled_live,
                 ACTION_PREVIEW:             self.camera_oled_preview,
                 #ACTION_HDMI:               self.camera_oled_hdmi,
@@ -3045,7 +3048,7 @@ class control_center:
         Info('sync state param {}'.format(param))
         self.sync_param = param
 
-    def start_oled_syn_state(self,param):
+    def start_oled_syn_state(self, param):
         self.set_cam_state(config.STATE_TEST)
         name = config._QUERY_STATE
         self.set_sync_para(param)

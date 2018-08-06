@@ -140,24 +140,24 @@ enum {
  */
 enum {
     OLED_DISP_STR_TYPE,//0
-    OLED_DISP_ERR_TYPE,
-    OLED_GET_KEY,
-    OLED_GET_LONG_PRESS_KEY,
-    OLED_DISP_IP,
-    OLED_DISP_BATTERY,//5
+    UI_MSG_DISP_ERR_MSG,
+    UI_MSG_KEY_EVENT,
+    UI_MSG_LONG_KEY_EVENT,
+    UI_MSG_UPDATE_IP,
+    UI_DISP_BATTERY,//5
     
     //set config wifi same thread as oled wifi key action
-    UI_CONFIG_WIFI,		        /* 配置WIFI参数 */
+    UI_MSG_CONFIG_WIFI,		        /* 配置WIFI参数 */
 
-    OLED_SET_SN,
-    OLED_SYNC_INIT_INFO,
+    UI_MSG_SET_SN,
+    UI_MSG_SET_SYNC_INFO,
 //    OLED_CHECK_LIVE_OR_REC,
     OLED_UPDATE_DEV_INFO,
     UI_UPDATE_MID, //10
     OLED_DISP_BAT_LOW,
     OLED_UPDATE_CAPTURE_LIGHT,
     OLED_UPDATE_CAL_LIGHT,
-    OLED_CLEAR_MSG_BOX,
+    UI_CLEAR_MSG__BOX,
     UI_READ_BAT, //15
     UI_DISP_LIGHT,
     //disp oled info at start
@@ -247,7 +247,7 @@ enum {
 
 #define INTERVAL_1HZ 	    (1000)
 
-//#define INTERVAL_3HZ (333)
+//#define INTERVAL_3HZ      (333)
 #define INTERVAL_5HZ 		(200)
 
 #define FLASH_LIGHT			BACK_BLUE
@@ -560,6 +560,7 @@ MenuUI::MenuUI(const sp<ARMessage> &notify): mNotify(notify)
     init();					    /* MenuUI内部成员初始化 */
 
     Log.d(TAG, "Send Init display Msg");
+
     send_init_disp();		    /* 给消息处理线程发送初始化显示消息 */
 
 }
@@ -695,7 +696,7 @@ void MenuUI::oled_init_disp()
     bDispTop = true;				/* 显示顶部标志设置为true */
 
 	check_battery_change(true);		/* 检查电池的状态 */
-	set_oled_power(1);
+	// set_oled_power(1);
 }
 
 
@@ -1731,7 +1732,7 @@ void MenuUI::init()
 #if 1
 
     Log.d(TAG, "Init Input Manager");
-    sp<ARMessage> inputNotify = obtainMessage(OLED_GET_KEY);
+    sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
 	mInputManager = sp<InputManager>(new InputManager(inputNotify));
     CHECK_NE(mInputManager, nullptr);
 
@@ -1838,28 +1839,28 @@ void MenuUI::send_disp_str(sp<DISP_TYPE> &sp_disp)
 
 void MenuUI::send_disp_err(sp<struct _err_type_info_> &mErrInfo)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_DISP_ERR_TYPE);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_DISP_ERR_MSG);
     msg->set<sp<ERR_TYPE_INFO>>("err_type_info", mErrInfo);
     msg->post();
 }
 
 void MenuUI::send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_SYNC_INIT_INFO);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_SET_SYNC_INFO);
     msg->set<sp<SYNC_INIT_INFO>>("sync_info", mSyncInfo);
     msg->post();
 }
 
 void MenuUI::send_get_key(int key)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_GET_KEY);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_KEY_EVENT);
     msg->set<int>("oled_key", key);
     msg->post();
 }
 
 void MenuUI::send_long_press_key(int key,int64 ts)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_GET_LONG_PRESS_KEY);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_LONG_KEY_EVENT);
     msg->set<int>("key", key);
     msg->set<int64>("ts", ts);
     msg->postWithDelayMs(LONG_PRESS_MSEC);
@@ -1867,14 +1868,14 @@ void MenuUI::send_long_press_key(int key,int64 ts)
 
 void MenuUI::send_disp_ip(int ip, int net_type)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_DISP_IP);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_UPDATE_IP);
     msg->set<int>("ip", ip);
     msg->post();
 }
 
 void MenuUI::send_disp_battery(int battery, bool charge)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_DISP_BATTERY);
+    sp<ARMessage> msg = obtainMessage(UI_DISP_BATTERY);
     msg->set<int>("battery", battery);
     msg->set<bool>("charge", charge);
     msg->post();
@@ -1882,7 +1883,7 @@ void MenuUI::send_disp_battery(int battery, bool charge)
 
 void MenuUI::sendWifiConfig(sp<WifiConfig> &mConfig)
 {
-    sp<ARMessage> msg = obtainMessage(UI_CONFIG_WIFI);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_CONFIG_WIFI);
     msg->set<sp<WifiConfig>>("wifi_config", mConfig);
     msg->post();
 }
@@ -1890,7 +1891,7 @@ void MenuUI::sendWifiConfig(sp<WifiConfig> &mConfig)
 
 void MenuUI::send_sys_info(sp<SYS_INFO> &mSysInfo)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_SET_SN);
+    sp<ARMessage> msg = obtainMessage(UI_MSG_SET_SN);
     msg->set<sp<SYS_INFO>>("sys_info",mSysInfo);
     msg->post();
 }
@@ -2236,7 +2237,8 @@ void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 bool MenuUI::check_live_save(ACTION_INFO* mAct)
 {
     bool ret = false;
-    if (mAct->stOrgInfo.save_org != SAVE_OFF || mAct->stStiInfo.stStiAct.mStiL.file_save ) {
+
+    if (mAct->stOrgInfo.save_org != SAVE_OFF || mAct->stStiInfo.stStiAct.mStiL.file_save) {
         ret = true;
     }
 
@@ -2594,12 +2596,12 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
             }
             break;
 			
-        case ACTION_REQ_SYNC: {
+        case ACTION_REQ_SYNC: {     /* 请求同步ACTION */
             sp<REQ_SYNC> mReqSync = sp<REQ_SYNC>(new REQ_SYNC());
-            snprintf(mReqSync->sn,sizeof(mReqSync->sn),"%s",mReadSys->sn);
-            snprintf(mReqSync->r_v,sizeof(mReqSync->r_v),"%s",mVerInfo->r_ver);
-            snprintf(mReqSync->p_v,sizeof(mReqSync->p_v),"%s",mVerInfo->p_ver);
-            snprintf(mReqSync->k_v,sizeof(mReqSync->k_v),"%s",mVerInfo->k_ver);
+            snprintf(mReqSync->sn, sizeof(mReqSync->sn), "%s", mReadSys->sn);
+            snprintf(mReqSync->r_v, sizeof(mReqSync->r_v), "%s", mVerInfo->r_ver);
+            snprintf(mReqSync->p_v, sizeof(mReqSync->p_v), "%s", mVerInfo->p_ver);
+            snprintf(mReqSync->k_v, sizeof(mReqSync->k_v), "%s", mVerInfo->k_ver);
             msg->set<sp<REQ_SYNC>>("req_sync", mReqSync);
 			break;
         }
@@ -2811,7 +2813,7 @@ void MenuUI::send_read_bat()
 
 void MenuUI::send_clear_msg_box(int delay)
 {
-    sp<ARMessage> msg = obtainMessage(OLED_CLEAR_MSG_BOX);
+    sp<ARMessage> msg = obtainMessage(UI_CLEAR_MSG__BOX);
     msg->postWithDelayMs(delay);
 }
 
@@ -2824,15 +2826,6 @@ void MenuUI::send_update_dev_list(std::vector<sp<Volume>> &mList)
     msg->set<std::vector<sp<Volume>>>("dev_list", mList);
     msg->post();
 }
-
-#if 0
-const u8* MenuUI::get_disp_str(int str_index)
-{
-    const u8 *str = mProCfg->get_str(str_index);
-    Log.d(TAG,"333 get disp str[%d] %s\n",str_index,str);
-    return str;
-}
-#endif
 
 
 
@@ -2998,52 +2991,53 @@ bool MenuUI::read_sys_info(int type)
 ** 方法名称: set_sync_info
 ** 方法功能: 保存同步信息
 ** 入口参数: mSyncInfo - 同步初始化信息对象强指针引用
-** 返 回 值: 无
-** 调     用: handleMessage
+** 返回值: 无
+** 调 用: handleMessage
 **
 *************************************************************************/
 void MenuUI::set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo)
 {
     int state = mSyncInfo->state;
 
-    snprintf(mVerInfo->a12_ver, sizeof(mVerInfo->a12_ver),"%s", mSyncInfo->a_v);
-    snprintf(mVerInfo->c_ver, sizeof(mVerInfo->c_ver),"%s", mSyncInfo->c_v);
-    snprintf(mVerInfo->h_ver, sizeof(mVerInfo->h_ver),"%s", mSyncInfo->h_v);
+    snprintf(mVerInfo->a12_ver, sizeof(mVerInfo->a12_ver), "%s", mSyncInfo->a_v);
+    snprintf(mVerInfo->c_ver, sizeof(mVerInfo->c_ver), "%s", mSyncInfo->c_v);
+    snprintf(mVerInfo->h_ver, sizeof(mVerInfo->h_ver), "%s", mSyncInfo->h_v);
 
     Log.d(TAG, "[%s: %d] sync state 0x%x va:%s vc %s vh %s",
           __FILE__, __LINE__, mSyncInfo->state, mSyncInfo->a_v, mSyncInfo->c_v, mSyncInfo->h_v);
 
     INFO_MENU_STATE(cur_menu, cam_state);
+    Log.d(TAG, "[%s: %d] SET SYNC INFO: get state[%d]", __FILE__, __LINE__, state);
 
-    if (state == STATE_IDLE) {	/* 如果相机处于Idle状态 */
+    if (state == STATE_IDLE) {	            /* 如果相机处于Idle状态: 显示主菜单 */
 		Log.d(TAG, "set_sync_info oled_reset_disp cam_state 0x%x, cur_menu %d", cam_state, cur_menu);
         cam_state = STATE_IDLE;
         setCurMenu(MENU_TOP);	/* 初始化显示为顶级菜单 */
-    } else if ((state & STATE_RECORD) == STATE_RECORD) {
+    } else if ((state & STATE_RECORD) == STATE_RECORD) {    /* 录像状态 */
         if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_REC_AND_PREVIEW);
         } else {
             oled_disp_type(START_REC_SUC);
         }
-    } else if ((state & STATE_LIVE) == STATE_LIVE) {
+    } else if ((state & STATE_LIVE) == STATE_LIVE) {        /* 直播状态 */
         if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_AND_PREVIEW);
         } else {
             oled_disp_type(START_LIVE_SUC);
         }
-    } else if ((state & STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) {
+    } else if ((state & STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) {  /* 直播连接状态 */
         if ((state & STATE_PREVIEW) == STATE_PREVIEW) {
             oled_disp_type(SYNC_LIVE_CONNECT_AND_PREVIEW);
         } else {
             oled_disp_type(START_LIVE_CONNECTING);
         }
-    } else if ((state & STATE_CALIBRATING) == STATE_CALIBRATING) {
+    } else if ((state & STATE_CALIBRATING) == STATE_CALIBRATING) {          /* 拼接校正状态 */
         oled_disp_type(START_CALIBRATIONING);
-    } else if ((state & STATE_PIC_STITCHING) == STATE_PIC_STITCHING) {
+    } else if ((state & STATE_PIC_STITCHING) == STATE_PIC_STITCHING) {      /* 图像拼接状态 */
         oled_disp_type(SYNC_PIC_STITCH_AND_PREVIEW);
     } else if ((state & STATE_TAKE_CAPTURE_IN_PROCESS) == STATE_CALIBRATING) {
         oled_disp_type(SYNC_PIC_CAPTURE_AND_PREVIEW);
-    } else if ((state & STATE_PREVIEW) == STATE_PREVIEW)  { /* 启动预览状态 */
+    } else if ((state & STATE_PREVIEW) == STATE_PREVIEW)  {                 /* 启动预览状态 */
         oled_disp_type(START_PREVIEW_SUC);
     }
 	
@@ -3511,12 +3505,12 @@ void MenuUI::update_sys_cfg(int item, int val)
 
         case SET_BOTTOM_LOGO:
             mProCfg->set_val(KEY_SET_LOGO, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_BOOTMLOGO, val);
             break;
 
         case SET_LIGHT_ON:
             mProCfg->set_val(KEY_LIGHT_ON, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_LED, val);
             if (val == 1) {
                 setLight();
             } else {
@@ -3534,9 +3528,10 @@ void MenuUI::update_sys_cfg(int item, int val)
 //                Log.e(TAG,"SET_RESTORE error cam_state 0x%x",cam_state);
 //            }
 //            break;
+
         case SET_SPATIAL_AUD:
             mProCfg->set_val(KEY_AUD_SPATIAL, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPAUDIO, val);
             break;
 
 #if 0
@@ -3548,17 +3543,18 @@ void MenuUI::update_sys_cfg(int item, int val)
 
         case SET_FAN_ON:
             mProCfg->set_val(KEY_FAN, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FAN, val);
+
             break;
 
         case SET_AUD_ON:
             mProCfg->set_val(KEY_AUD_ON, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AUDIO, val);
             break;
 
         case SET_VIDEO_SEGMENT:
             mProCfg->set_val(KEY_VID_SEG, val);
-            set_setting_select(item, val);
+            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_VIDSEG, val);
             break;
 
             SWITCH_DEF_ERROR(item)
@@ -3709,42 +3705,44 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
             }
             break;
 
+        /* 设置Customer模式的值 */
         case CONTROL_SET_CUSTOM:
             switch (type) {
-                case ACTION_PIC:
+                case ACTION_PIC:        /* 设置拍照模式的Customer */
                     key = KEY_ALL_PIC_DEF;
                     if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "force CONTROL_SET_CUSTOM pic size_per_act is %d", mRes->size_per_act);
+                        Log.d(TAG, "[%s:%d] CONTROL_SET_CUSTOM pic size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
 
-                case ACTION_VIDEO:
+                case ACTION_VIDEO:      /* 设置录像模式下的Customer */
                     key = KEY_ALL_VIDEO_DEF;
                     if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "force CONTROL_SET_CUSTOM video size_per_act is %d", mRes->size_per_act);
+                        Log.d(TAG, "[%s: %d] CONTROL_SET_CUSTOM video size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
 
-                case ACTION_LIVE:
+                case ACTION_LIVE:       /* 直播模式下的Customer */
                     key = KEY_ALL_LIVE_DEF;
                     fix_live_save_per_act(mRes.get());
                     break;
 
                 SWITCH_DEF_ERROR(type);
             }
-            mProCfg->set_def_info(key, -1, mRes);
+            mProCfg->set_def_info(key, -1, mRes);   /* 将Customer模式的参数设置保存到文件中 */
             break;
 
-        default:
-        {
+        /* 传递的是啥 ?????? */
+        default: {
+            /*  */
             //only save one firstly
             switch (type)  {
                 case ACTION_PIC:
                     menu = MENU_PIC_SET_DEF;
                     key = KEY_ALL_PIC_DEF;
-                    max = PIC_CUSTOM;
+                    // max = PIC_CUSTOM;
                     if (mRes->size_per_act == 0) {
                         Log.d(TAG, "force qr pic size_per_act is %d", mRes->size_per_act);
                         mRes->size_per_act = 10;
@@ -3754,7 +3752,7 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
                 case ACTION_VIDEO:
                     key = KEY_ALL_VIDEO_DEF;
                     menu = MENU_VIDEO_SET_DEF;
-                    max = VID_CUSTOM;
+                    // max = VID_CUSTOM;
                     if (mRes->size_per_act == 0) {
                         Log.d(TAG,"force qr video size_per_act is %d",
                               mRes->size_per_act);
@@ -3765,13 +3763,13 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
                 case ACTION_LIVE:
                     key = KEY_ALL_LIVE_DEF;
                     menu = MENU_LIVE_SET_DEF;
-                    max = LIVE_CUSTOM;
+                    // max = LIVE_CUSTOM;
                     fix_live_save_per_act(mRes.get());
                     break;
 
                 SWITCH_DEF_ERROR(type);
             }
-            mProCfg->set_def_info(key, max, mRes);
+            mProCfg->set_def_info(key, -1, mRes);      // max -> -1
             updateMenuCurPageAndSelect(menu, max);
         }
     }
@@ -3782,6 +3780,7 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
 void MenuUI::updateMenu()
 {
     int item = getMenuSelectIndex(cur_menu);
+
     switch (cur_menu) {
         case MENU_TOP:
             update_menu_disp(main_menu[1], main_menu[0]);
@@ -3804,43 +3803,16 @@ void MenuUI::updateMenu()
 
         /* 更新: MENU_PIC_SET_DEF菜单的值(高亮显示) */
         case MENU_PIC_SET_DEF:
-
             Log.d(TAG, "[%s: %d] Update SET_PIC_DEF val[%d]", __FILE__, __LINE__, item);
             mProCfg->set_def_info(KEY_ALL_PIC_DEF, item);   /* 设置当前选中的项到mProcCfg */
-
-			// update_menu_disp(picAllCardMenuItems[1]);
-            updateBottomMode(true);    /* 正常显示 */
-    
-    #if 0
-            if (item < PIC_ALL_CUSTOM) {
-                disp_org_rts((int)(mPICAction[item].stOrgInfo.save_org != SAVE_OFF),
-                             (int)(mPICAction[item].stStiInfo.stich_mode != STITCH_OFF));
-            } else {
-                disp_qr_res();
-                disp_org_rts((int)(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stOrgInfo.save_org != SAVE_OFF),
-                             (int)(mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stStiInfo.stich_mode != STITCH_OFF));
-            }
-    #endif
-            updateBottomSpace(true);
+            dispBottomInfo(true, true);
             break;
 			
 
-        case MENU_VIDEO_SET_DEF:
-        #if 0
-//            Log.d(TAG," vid set def item is %d", item);
-            mProCfg->set_def_info(KEY_ALL_VIDEO_DEF,item);
-            update_menu_disp(vid_def_setting_menu[1]);
-            if (item < VID_CUSTOM) {
-                disp_org_rts((int)(mVIDAction[item].stOrgInfo.save_org != SAVE_OFF),
-                             (int)(mVIDAction[item].stStiInfo.stich_mode != STITCH_OFF));
-            } else {
-                disp_org_rts((int)(mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stOrgInfo.save_org != SAVE_OFF),
-                             (int)(mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stStiInfo.stich_mode != STITCH_OFF));
-            }
-           	updateBottomSpace();
-        #endif    
-            updateBottomMode(true);    /* 正常显示 */     
-            updateBottomSpace(true);          
+        case MENU_VIDEO_SET_DEF:   
+            Log.d(TAG, "[%s: %d] Update SET_PIC_DEF val[%d]", __FILE__, __LINE__, item);
+            mProCfg->set_def_info(KEY_ALL_VIDEO_DEF, item);   /* 设置当前选中的项到mProcCfg */
+            dispBottomInfo(true, true);   
             break;
 			
 
@@ -4278,13 +4250,35 @@ void MenuUI::updateBottomSpace(bool bNeedCalc)
 }
 
 
+
+
+/*************************************************************************
+** 方法名称: dispBottomInfo
+** 方法功能: 显示一个菜单的底部信息(包括底部的挡位及对应参数<如: RTS, Origin等>
+** 入口参数: 
+**		high  - 是否高亮显示底部的挡位
+**      bTrueLeftSpace - 是否显示底部的剩余空间值
+** 返回值: 无
+** 调 用: 
+** 
+*************************************************************************/
 void MenuUI::dispBottomInfo(bool high, bool bTrueLeftSpace)
 {
-    updateBottomMode(false);    /* 更新底部的挡位及附加参数 */
-    
+    updateBottomMode(high);                  /* 更新底部的挡位及附加参数 */
     updateBottomSpace(bTrueLeftSpace);        /* 更新底部的剩余空间 */
 }
 
+
+
+
+/*************************************************************************
+** 方法名称: getCurMenuSelectInfo
+** 方法功能: 获取当前菜单的选择信息(当前菜单选择的是第几项等)
+** 入口参数: 
+** 返回值: 无
+** 调 用: 
+** 
+*************************************************************************/
 struct _select_info_ * MenuUI::getCurMenuSelectInfo()
 {
     return (SELECT_INFO *)&(mMenuInfos[cur_menu].mSelectInfo);
@@ -4296,9 +4290,9 @@ struct _select_info_ * MenuUI::getCurMenuSelectInfo()
 ** 方法名称: dispSettingPage
 ** 方法功能: 显示一个设置页面
 ** 入口参数: 
-**		dispBottom  - 是否显示底部信息
-** 返 回 值: 无
-** 调     用: 
+**		setItemsList  - 设置页元素列表
+** 返回值: 无
+** 调 用: 
 ** 
 *************************************************************************/
 void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
@@ -4693,15 +4687,17 @@ void MenuUI::updateBottomMode(bool bLight)
     switch (cur_menu) {
         case MENU_PIC_INFO:
         case MENU_PIC_SET_DEF:
-            if (mControlAct != nullptr) {
+            if (mControlAct != nullptr) {   /* 客户端有传递ACTION_INFO, 显示客户端传递的ACTION_INFO */
                 disp_org_rts(mControlAct);
-                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);    /* 清除Customer图标 */
             } else {
+
+                /* 根据当前选择的挡位进行显示 */
                 iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);    /* 得到菜单的索引值 */
 
                 Log.d(TAG, "[%s: %d] menu[%s] current selected index[%d]", __FILE__, __LINE__, getCurMenuStr(MENU_PIC_SET_DEF), iIndex);
                 
-                Log.d(TAG, "[%s: %d] menu[%s] total[%d] pic cfg list len[%d]", __FILE__, __LINE__, 
+                Log.d(TAG, "[%s: %d] menu[%s] total[%d] PIC cfg list len[%d]", __FILE__, __LINE__, 
                             getCurMenuStr(MENU_PIC_SET_DEF), mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total, mPicAllItemsList.size());
 
                 if (iIndex >= mMenuInfos[MENU_PIC_SET_DEF].mSelectInfo.total || iIndex >= mPicAllItemsList.size()) {
@@ -4723,7 +4719,7 @@ void MenuUI::updateBottomMode(bool bLight)
                             Log.e(TAG, "[%s:%d] Invalid pTmpActionInfo pointer", __FILE__, __LINE__);
                         }
 
-                        dispPicVidCfg(pTmpCfg, bLight); /* 显示配置 */
+                        dispPicVidCfg(pTmpCfg, bLight); /* 显示拍照的挡位 */
                     } else {
                         Log.e(TAG, "[%s: %d] invalid pointer pTmpCfg", __FILE__, __LINE__);
                     }
@@ -4735,14 +4731,15 @@ void MenuUI::updateBottomMode(bool bLight)
         /* Video/Live */
         case MENU_VIDEO_INFO:
         case MENU_VIDEO_SET_DEF:
-            if (tl_count != -1) {
-                    disp_org_rts(0,0);
-                    clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+            if (tl_count != -1) {   /* timelapse拍摄 */
+                disp_org_rts(0, 0);
+                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
             } else if (mControlAct != nullptr) {   /* 来自客户端直播请求 */
                 disp_org_rts(mControlAct);
                 clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
-
             } else {
+
+                /* 根据菜单中选择的挡位进行显示 */
                 iIndex = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
 
                 Log.d(TAG, "[%s: %d] menu[%s] current selected index[%d]", __FILE__, __LINE__, getCurMenuStr(MENU_VIDEO_SET_DEF), iIndex);
@@ -5127,20 +5124,17 @@ void MenuUI::enterMenu(bool dispBottom)
 	Log.d(TAG, "enterMenu is [%s]", getCurMenuStr(cur_menu));
 
     switch (cur_menu) {
-        case MENU_TOP:
+        case MENU_TOP:      /* 主菜单 */
             disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][getCurMenuCurSelectIndex()]);
             break;
 		
-        /* 进入拍照菜单 */
-        case MENU_PIC_INFO:
+        case MENU_PIC_INFO: /* 拍照菜单 */
 			
             disp_icon(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
 
-            Log.d(TAG, "dispBottomInfo %d", dispBottom);
-
-            if (dispBottom) {	/* 显示底部和右侧信息 */
+            // if (dispBottom) {	                 /* 显示底部和右侧信息 */
                 dispBottomInfo(false, false);    /* 正常显示底部规格,不更新剩余空间 */
-            }
+            // }
 
             if (check_state_preview()) {	/* 启动预览成功,显示"Ready" */
                 disp_ready_icon();
@@ -5155,7 +5149,7 @@ void MenuUI::enterMenu(bool dispBottom)
             } else if (check_state_in(STATE_PIC_STITCHING)) {	/* 如果正在拼接,显示"processing" */
                 disp_processing();
             } else {
-                Log.d(TAG,"pic menu error state 0x%x", cam_state);
+                Log.d(TAG, "pic menu error state 0x%x", cam_state);
                 if (check_state_equal(STATE_IDLE)) {
                     procBackKeyEvent();
                 }
@@ -5163,7 +5157,7 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 			
 
-        case MENU_VIDEO_INFO:
+        case MENU_VIDEO_INFO:   /* 录像菜单 */
 
             // clear_area(0, 16);
             disp_icon(ICON_VIDEO_ICON_0_16_20_32);
@@ -5215,7 +5209,7 @@ void MenuUI::enterMenu(bool dispBottom)
             }
             break;
 
-        case MENU_STORAGE:
+        case MENU_STORAGE:      /* 存储菜单 */
             clear_area(0, 16);
             disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);
 
@@ -5228,7 +5222,7 @@ void MenuUI::enterMenu(bool dispBottom)
             #endif
             break;
 
-        case MENU_SHOW_SPACE:
+        case MENU_SHOW_SPACE:   /* 显示存储设备菜单 */
             clear_area(0, 16);
             disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);
             
@@ -5239,11 +5233,11 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
 
-		/* 进入MENU_SET_PHOTO_DELAY菜单 */
-		case MENU_SET_PHOTO_DEALY:
+		case MENU_SET_PHOTO_DEALY:  /* 显示PhotoDelay菜单 */
             Log.d(TAG, "[%s:%d] +++++>>> enter Set Photo Delay Menu now .... ", __FILE__, __LINE__);
 
 			clear_area(0, 16);									/* 清除真个区域 */
+
             dispIconByLoc(&setPhotoDelayNv);
 
             /* 进入设置"Set Photo Delay" */
@@ -5269,14 +5263,13 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 			
 
-        /* 模式选择菜单: 更新左下角的模式,右上方的特色以及右下角的剩余量 */
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF:
-            // disp_cam_param(1)
-            updateBottomMode(true);
+            updateBottomMode(true); /* 从MENU_PIC_INFO/MENU_VIDE_INFO/MENU_LIVE_INFO进入到MENU_PIC_SET_DEF/MENU_VIDEO_SET_DEF/MENU_LIVE_SET_DEF只需高亮显示挡位即可 */
             break;
 		
+
         case MENU_QR_SCAN:
             clear_area();
 //          reset_last_info();
@@ -5313,7 +5306,7 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
 
-        case MENU_SYS_ERR:
+        case MENU_SYS_ERR:          /* 显示系统错误菜单 */
             setLightDirect(BACK_RED|FRONT_RED);
             disp_icon(ICON_ERROR_128_64128_64);
             break;
@@ -5341,7 +5334,6 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
         case MENU_SPEED_TEST: {
-//          Log.d(TAG,"mSavePathIndex is %d",mSavePathIndex);
             if (!checkHaveLocalSavePath()) {
                 int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
 
@@ -5689,21 +5681,6 @@ void MenuUI::procSetMenuKeyEvent()
         }
         
     }
-    #if 0
-    int val = get_setting_select(item);
-    switch (item) {
-	
-
-                // case SET_START_GYRO:
-                //     setCurMenu(MENU_GYRO_START);
-                    // break;
-                case SET_NOISE:
-
-                    break;
-
-                SWITCH_DEF_ERROR(getMenuSelectIndex(cur_menu))
-            }
-    #endif
 }
 
 
@@ -5833,13 +5810,7 @@ void MenuUI::procPowerKeyEvent()
 //            break;
 
         case MENU_PIC_SET_DEF:
-            procBackKeyEvent();
-            break;
-		
         case MENU_VIDEO_SET_DEF:
-            procBackKeyEvent();
-            break;
-		
         case MENU_LIVE_SET_DEF:
             procBackKeyEvent();
             break;
@@ -5942,18 +5913,15 @@ int MenuUI::getCurMenuLastSelectIndex()
 
 
 /*************************************************************************
-** 方法名称: func_up
-** 方法功能: 按键事件处理
+** 方法名称: procSettingKeyEvent
+** 方法功能: 设置键的处理
 ** 入口参数: 
-**		iKey - 键值
-** 返 回 值: 无 
-** 调     用: 
+** 返回值: 无 
+** 调 用: 
 **
 *************************************************************************/
 void MenuUI::procSettingKeyEvent()
 {
-//    Log.d(TAG," func_setting cur_menu %d cam_state %d", cur_menu, cam_state);
-
     switch (cur_menu) {
         case MENU_TOP:	/* 如果当前处于主界面 */
             if (getCurMenuCurSelectIndex() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
@@ -6034,16 +6002,17 @@ void MenuUI::procUpKeyEvent()
 
 
 /*************************************************************************
-** 方法名称: func_down
+** 方法名称: procDownKeyEvent
 ** 方法功能: 按键事件处理(方向下)
 ** 入口参数: 
-** 返 回 值: 无 
-** 调     用: handle_oled_key
+** 返回值: 无 
+** 调 用: 
 **
 *************************************************************************/
 void MenuUI::procDownKeyEvent()
 {
     switch (cur_menu) { /* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
+    
         case MENU_PIC_INFO:
 	        if (check_state_preview()) {
 		        setCurMenu(MENU_PIC_SET_DEF);
@@ -6098,18 +6067,18 @@ bool MenuUI::check_cur_menu_support_key(int iKey)
 
 
 /*************************************************************************
-** 方法名称: handle_oled_key
+** 方法名称: handleKeyMsg
 ** 方法功能: 按键事件处理
 ** 入口参数: 
 **		iKey - 键值
-** 返 回 值: 无 
-** 调     用: 
+** 返回值: 无 
+** 调 用: 
 **
 *************************************************************************/
 void MenuUI::handleKeyMsg(int iKey)
 {
     if (cur_menu == -1) {
-        Log.d(TAG,"pro_service not finish yet");
+        Log.d(TAG, "[%s: %d] Menu System not Inited Yet!!!!", __FILE__, __LINE__);
         return;
     }
 
@@ -6153,7 +6122,6 @@ void MenuUI::handleKeyMsg(int iKey)
 }
 
 
-
 void MenuUI::clear_area(u8 x,u8 y,u8 w,u8 h)
 {
     mOLEDModule->clear_area(x,y,w,h);
@@ -6171,29 +6139,36 @@ bool MenuUI::check_allow_update_top()
 
 
 
+/*************************************************************************
+** 方法名称: oled_disp_battery
+** 方法功能: 显示电池信息
+** 入口参数: 
+** 返回值: 0
+** 调 用: 
+**
+*************************************************************************/
 int MenuUI::oled_disp_battery()
 {
 
 #ifdef DEBUG_BATTERY
-    Log.d(TAG,"mBatInterface->isSuc()  %d "
+    Log.d(TAG, "mBatInterface->isSuc()  %d "
                   "m_bat_info_->bCharge %d "
                   "m_bat_info_->battery_level %d",
-          mBatInterface->isSuc(),
-          m_bat_info_->bCharge,
-          m_bat_info_->battery_level);
+                mBatInterface->isSuc(), m_bat_info_->bCharge, m_bat_info_->battery_level);
 #endif
 
-    if (mBatInterface->isSuc()) {
+    if (mBatInterface->isSuc()) {   /* 电池存在 */
         int icon;
         const int x = 110;
         u8 buf[16];
-        if (m_bat_info_->bCharge && m_bat_info_->battery_level < 100) {
-            icon = ICON_BATTERY_IC_CHARGE_103_0_6_166_16;
+
+        if (m_bat_info_->bCharge && m_bat_info_->battery_level < 100) { /* 电池正在充电并且没有充满 */
+            icon = ICON_BATTERY_IC_CHARGE_103_0_6_166_16;   
         } else {
             icon = ICON_BATTERY_IC_FULL_103_0_6_166_16;
         }
 		
-        if (check_allow_update_top()) {
+        if (check_allow_update_top()) { /* 允许更新电池信息到屏幕上 */
             if (m_bat_info_->battery_level == 1000) {
                 m_bat_info_->battery_level = 0;
             }
@@ -6204,15 +6179,15 @@ int MenuUI::oled_disp_battery()
                 snprintf((char *)buf, sizeof(buf), "%d", m_bat_info_->battery_level);
             }
 			
-            disp_str_fill(buf, x, 0);
+            disp_str_fill(buf, x, 0);   /* 显示电池图标及电量信息 */
             disp_icon(icon);
         }
     } else {
         //disp nothing while no bat
-        clear_area(103,0,25,16);
+        clear_area(103, 0, 25, 16);
     }
 	
-    setLight();
+    setLight(); /* 设置灯 */
     return 0;
 }
 
@@ -6358,7 +6333,6 @@ void MenuUI::add_state(int state)
         case STATE_START_PREVIEWING:
         case STATE_STOP_PREVIEWING:
         case STATE_START_RECORDING:
-//        case STATE_STOP_RECORDING:
         case STATE_START_LIVING:
         case STATE_STOP_LIVING:
             disp_waiting();		/* 屏幕中间显示"..." */
@@ -6723,6 +6697,7 @@ bool MenuUI::check_cam_busy()
                               STATE_LIVE,
                               /*STATE_LIVE_CONNECTING,*/
                               STATE_CALIBRATING};
+
     for (u32 i = 0; i < sizeof(busy_state)/sizeof(busy_state[0]); i++) {
         if (check_state_in(busy_state[i])) {
             bRet = true;
@@ -6798,6 +6773,7 @@ int MenuUI::get_error_back_menu(int force_menu)
     Log.d(TAG, "get_error_back_menu state 0x%x back_menu %d", cam_state, back_menu);
     return back_menu;
 }
+
 
 int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
 {
@@ -6914,6 +6890,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
     }
     return 0;
 }
+
 
 void MenuUI::set_led_power(unsigned int on)
 {
@@ -7042,8 +7019,6 @@ int MenuUI::convIndex2AebNum(int iIndex)
     }
 
 }
-
-
 
 
 //all disp is at bottom
@@ -7356,8 +7331,11 @@ int MenuUI::oled_disp_type(int type)
         case START_PREVIEW_SUC:		/* 启动预览成功 */
             if (!check_state_in(STATE_PREVIEW)) {   /*  */
 
+                /* TODO: 考虑先更新底部存储,添加STATE_PREVIEW状态
+                 * 在进入STATE_PREVIEW之后会根据存储来显示就就绪状态还是NO SD CARD状态
+                 */
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS");                  
-                add_state(STATE_PREVIEW);   /* 添加"STATE_PREVIEW"后会显示"READY"字样 */
+                add_state(STATE_PREVIEW);       /* 添加"STATE_PREVIEW",如果后会显示"READY"字样 */
                 updateBottomSpace(true);        /* 计算并更新底部剩余空间(将查询空间的方法统一放入updateBottomSpace中调用) */
             } else {
                 Log.e(TAG, "[%s: %d] Invalid state change", __FILE__, __LINE__);
@@ -7366,7 +7344,7 @@ int MenuUI::oled_disp_type(int type)
 
 			
         case START_PREVIEW_FAIL:	/* 启动预览失败 */
-            Log.d(TAG, "START_PREVIEW_FAIL cur_menu %d cam state %d", cur_menu, cam_state);
+            Log.d(TAG, "[%s: %d] START_PREVIEW_FAIL cur_menu [%s] cam state %d", __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);
             rm_state(STATE_START_PREVIEWING);
             disp_sys_err(type, MENU_TOP);
             break;
@@ -7717,27 +7695,6 @@ void MenuUI::dispIconByLoc(const ICON_INFO* pInfo)
     mOLEDModule->disp_icon(pInfo);
 }
 
-#if 0
-typedef struct  {
-    u8 	xPos;
-    u8 	yPos;
-    u8 	iWidth;
-    u8 	iHeight;
-} ICON_POS;
-
-
-typedef struct stSetItem {
-	const char* 	pItemName;								/* 设置项的名称 */
-	int				iItemMaxVal;							/* 设置项可取的最大值 */
-	int  			iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
-	bool			bHaveSubMenu;							/* 是否含有子菜单 */
-	void 			(*pSetItemProc)(struct stSetItem*);		/* 菜单项的处理函数(当选中并按确认时被调用) */
-	ICON_POS		stPos;
-	const u8 * 		stLightIcon[SETIING_ITEM_ICON_NUM];		/* 选中时的图标列表 */
-	const u8 * 		stNorIcon[SETIING_ITEM_ICON_NUM];		/* 未选中时的图标列表 */
-} SettingItem;
-
-#endif
 
 void MenuUI::dispSetItem(struct stSetItem* pItem, bool iSelected)
 {
@@ -8200,6 +8157,17 @@ void MenuUI::handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo)
 }
 
 
+
+/*************************************************************************
+** 方法名称: handleLongKeyMsg
+** 方法功能: 处理长按键的消息
+** 入口参数: 
+**      key - 被按下的键值
+**      ts  - 按下的时长
+** 返回值: 
+** 调 用: handleMessage
+**
+*************************************************************************/
 void MenuUI::handleLongKeyMsg(int key, int64 ts)
 {
 	if (ts == last_key_ts && last_down_key == key) {
@@ -8211,6 +8179,18 @@ void MenuUI::handleLongKeyMsg(int key, int64 ts)
 }
 
 
+
+/*************************************************************************
+** 方法名称: handleDispLightMsg
+** 方法功能: 处理灯闪烁消息
+** 入口参数: 
+**      menu - 所处的菜单ID
+**      state  - 状态
+**      interval - 下次发送消息的间隔
+** 返回值: 
+** 调 用: handleMessage
+**
+*************************************************************************/
 void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 {
 	// Log.d(TAG," (%d %d	%d %d)", menu, state, interval, cap_delay);
@@ -8417,8 +8397,8 @@ void MenuUI::handleUpdateMid()
 ** 方法名称: handleMessage
 ** 方法功能: 消息处理
 ** 入口参数: msg - 消息对象强指针引用
-** 返 回 值: 无 
-** 调     用: 消息处理线程 MENU_TOP
+** 返回值: 无 
+** 调 用: 消息处理线程 MENU_TOP
 **
 *************************************************************************/
 void MenuUI::handleMessage(const sp<ARMessage> &msg)
@@ -8429,11 +8409,12 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
     Log.d(TAG, "UI Core get msg: what[%d]", what);
 #endif
 
-    if (UI_EXIT == what) {
+    if (UI_EXIT == what) {  /* 退出消息循环 */
         exitAll();
     } else {
         switch (what) {
-            case OLED_DISP_STR_TYPE: {
+
+            case OLED_DISP_STR_TYPE: {  /* 显示指定的页面(状态) */
                 {
                     unique_lock<mutex> lock(mutexState);
                     sp<DISP_TYPE> disp_type;
@@ -8451,7 +8432,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 				break;
             }
 					
-            case OLED_DISP_ERR_TYPE: {
+            case UI_MSG_DISP_ERR_MSG: {     /* 显示错误消息 */
                 unique_lock<mutex> lock(mutexState);
                 sp<ERR_TYPE_INFO> mErrInfo;
                 CHECK_EQ(msg->find<sp<ERR_TYPE_INFO>>("err_type_info", &mErrInfo),true);
@@ -8460,14 +8441,14 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
             }
                
 			
-            case OLED_GET_KEY: {	/* 短按键消息处理 */
+            case UI_MSG_KEY_EVENT: {	/* 短按键消息处理 */
                 int key = -1;
                 CHECK_EQ(msg->find<int>("oled_key", &key), true);
                 handleKeyMsg(key);
 				break;
             }
                 
-            case OLED_GET_LONG_PRESS_KEY: {	/* 长按键消息处理 */
+            case UI_MSG_LONG_KEY_EVENT: {	/* 长按键消息处理 */
                 int key;
                 int64 ts;
                 CHECK_EQ(msg->find<int>("key", &key), true);
@@ -8482,21 +8463,19 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }               
 #endif
-            case OLED_DISP_IP: {	/* 更新IP */
+            case UI_MSG_UPDATE_IP: {	/* 更新IP */
 				sp<DEV_IP_INFO> tmpIpInfo;
 				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
 
 #ifdef ENABLE_DEBUG_NET
-				Log.d(TAG, "OLED_DISP_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
+				Log.d(TAG, "UI_MSG_UPDATE_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
 #endif
 				procUpdateIp(tmpIpInfo->ipAddr);
                	break;
             }
 
-			/*
-			 * 配置WIFI (UI-CORE处理)
-			 */
-            case UI_CONFIG_WIFI:  {	/* On/Off Wifi AP */
+
+            case UI_MSG_CONFIG_WIFI:  {	/* 配置WIFI (UI-CORE处理) */
                 sp<WifiConfig> mConfig;
                 CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
                 handleorSetWifiConfig(mConfig);
@@ -8504,10 +8483,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
             }
                 
 
-			/*
-			 * 写SN (UI-CORE处理)
-			 */
-            case OLED_SET_SN: {	/* 设置SN */
+            case UI_MSG_SET_SN: {	/* 设置SN */
                 sp<SYS_INFO> mSysInfo;
                 CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
                 write_sys_info(mSysInfo);
@@ -8517,8 +8493,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 同步初始化
 			 */
-            case OLED_SYNC_INIT_INFO: {	/* 同步初始化信息(来自control_center) */
-                //exit if needed
+            case UI_MSG_SET_SYNC_INFO: {	/* 同步初始化信息(来自control_center) */
                 exit_sys_err();
                 sp<SYNC_INIT_INFO> mSyncInfo;
                 CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
@@ -8526,15 +8501,11 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
 
-			/*
-			 * 显示初始化
-			 */
             case UI_DISP_INIT: {	/* 1.初始化显示消息 */
-                oled_init_disp();	/* 初始化显示 */
+                oled_init_disp();	                    /* 初始化显示 */
                 send_option_to_fifo(ACTION_REQ_SYNC);	/* 发送请求同步消息 */
                 break;
             }
-
 
 			/*
 			 * 更新存储设备列表(消息来自DevManager线程)
@@ -8550,11 +8521,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
 
-
-			/*
-			 * 更新显示时间(只有在录像,直播的UI)
-			 */
-            case UI_UPDATE_MID: 
+            case UI_UPDATE_MID:     /* 更新显示时间(只有在录像,直播的UI */
                 handleUpdateMid();
 				break;
 
@@ -8565,19 +8532,13 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
 
 
-			/*
-			 * 读取电池电量
-			 */
-            case UI_READ_BAT: {
+            case UI_READ_BAT: {     /* 读取电池电量消息 */
                 unique_lock<mutex> lock(mutexState);
                 check_battery_change();
                 break;
             }
 
-			/*
-			 * 灯显示
-			 */
-            case UI_DISP_LIGHT: {
+            case UI_DISP_LIGHT: {   /* 显示灯状态消息 */
                 int menu;
                 int interval;
                 int state;
@@ -8585,16 +8546,16 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 CHECK_EQ(msg->find<int>("menu", &menu), true);
                 CHECK_EQ(msg->find<int>("interval", &interval), true);
                 CHECK_EQ(msg->find<int>("state", &state), true);
+
 				handleDispLightMsg(menu, interval, state);
 				break;
             }
-                
-			
-            case OLED_CLEAR_MSG_BOX: /* 清除消息框 */
+                			
+            case UI_CLEAR_MSG__BOX:        /* 清除消息框 */
                 if (cur_menu == MENU_DISP_MSG_BOX) {    /* 如果当前处于消息框菜单中,执行返回 */
                     procBackKeyEvent();
                 } else {
-                    Log.d(TAG, "Warnning Cler MsgBox cur_menu [%d]", cur_menu);
+                    Log.d(TAG, "[%s: %d] Warnning Cler MsgBox cur_menu [%s]", __FILE__, __LINE__, getCurMenuStr(cur_menu));
                 }
                 break;
 				
@@ -8609,15 +8570,15 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 ** 方法名称: sys_reboot
 ** 方法功能: 关机或重启系统
 ** 入口参数: cmd - 命令值
-** 返 回 值: 无 
-** 调     用: handleMessage
+** 返回值: 无 
+** 调 用: handleLongKeyMsg
 **
 *************************************************************************/
 void MenuUI::sys_reboot(int cmd)
 {
     switch (cmd) {
         case REBOOT_NORMAL:
-            send_option_to_fifo(ACTION_POWER_OFF,cmd);
+            send_option_to_fifo(ACTION_POWER_OFF, cmd);
             break;
 		
         case REBOOT_SHUTDOWN:
@@ -8629,51 +8590,81 @@ void MenuUI::sys_reboot(int cmd)
 }
 
 
-void MenuUI::set_cap_delay(int delay)
-{
-    Log.d(TAG, ">>>>>>>>>>> set_cap_delay %d", delay);
-    cap_delay = delay;
-}
 
-
+/*************************************************************************
+** 方法名称: setTakePicDelay
+** 方法功能: 设置拍照的倒计时时间
+** 入口参数: 
+**      iDelay - 倒计时值
+** 返回值: 无
+** 调 用: 
+**
+*************************************************************************/
 void MenuUI::setTakePicDelay(int iDelay)
 {
     Log.d(TAG, ">>>>>>>>>>> setTakePicDelay %d", iDelay);
     mTakePicDelay = iDelay;
 }
 
-bool MenuUI::check_live_save_org()
+
+/*************************************************************************
+** 方法名称: getPicVidCfgNameByIndex
+** 方法功能: 获取指定的容器中指定项的名称
+** 入口参数: 
+**      mList - 容器列表引用
+**      iIndex - 索引值
+** 返回值: 存在返回指定项的名称; 失败返回NULL
+** 调 用: 
+**
+*************************************************************************/
+const char* MenuUI::getPicVidCfgNameByIndex(vector<struct stPicVideoCfg*>& mList, int iIndex)
+{
+
+    if (iIndex < 0 || iIndex > mList.size() - 1) {
+        Log.e(TAG, "[%s: %d] Invalid Index[%d], please check", __FILE__, __LINE__, iIndex);
+    } else {
+        struct stPicVideoCfg* pTmpCfg = mList.at(iIndex);
+        if (pTmpCfg) {
+            return pTmpCfg->pItemName;
+        } else {
+            Log.e(TAG, "[%s: %d] Invalid Index[%d], please check", __FILE__, __LINE__, iIndex);
+        }
+    }
+    return NULL;
+}
+
+
+
+/*************************************************************************
+** 方法名称: check_battery_change
+** 方法功能: 检测电池的变化
+** 入口参数: bUpload - 
+** 返 回 值: 无 
+** 调     用: 
+**
+*************************************************************************/
+bool MenuUI::checkLiveNeedSave()
 {
     bool ret = false;
+
     if (check_live()) {
+
         if (mControlAct != nullptr) {
-//            Log.d(TAG, "check_live_save_org mControlAct->stOrgInfo.save_org is %d",
-//                  mControlAct->stOrgInfo.save_org);
-//            if (mControlAct->stOrgInfo.save_org != SAVE_OFF)
-//            {
-//                ret = true;
-//            }
             ret = check_live_save(mControlAct.get());
         } else {
-            int item = getMenuSelectIndex(MENU_LIVE_SET_DEF);
-            Log.d(TAG, "check_live_save_org %d", item);
-            switch (item) {
-                case VID_ARIAL:
-                    ret = true;
-                    break;
-				
-                case LIVE_CUSTOM:
-//                    Log.d(TAG, "check_live_save_org mProCfg->get_def_info(KEY_ALL_LIVE_DEF)->stOrgInfo.save_org  is %d",
-//                          mProCfg->get_def_info(KEY_ALL_LIVE_DEF)->stOrgInfo.save_org);
-//                    if (mProCfg->get_def_info(KEY_ALL_LIVE_DEF)->stOrgInfo.save_org != SAVE_OFF)
-//                    {
-//                        ret = true;
-//                    }
+
+            int iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
+            Log.d(TAG, "[%s: %d] checkLiveNeedSave %d", __FILE__, __LINE__, iIndex);
+            
+            const char* pIndexName = getPicVidCfgNameByIndex(mLiveAllItemsList, iIndex);
+            if (pIndexName) {
+
+                /* UI上的其他直播模式都不需要存储(除了Customer模式外) */
+                if (!strcmp(pIndexName, TAKE_LIVE_MODE_CUSTOMER)) { /* Customer模式需要检查是否需要直播并存储 */
                     ret = check_live_save(mProCfg->get_def_info(KEY_ALL_LIVE_DEF));
-                    break;
-				
-                default:
-                    break;
+                }
+            } else {
+                Log.w(TAG, "[%s: %d] index[%d] item int List Not named", __FILE__, __LINE__, iIndex);
             }
         }
     }
@@ -8692,11 +8683,9 @@ bool MenuUI::check_live_save_org()
 *************************************************************************/
 bool MenuUI::check_battery_change(bool bUpload)
 {
-
-
     bool bUpdate = mBatInterface->read_bat_update(m_bat_info_);
 		
-    if (bUpdate || bUpload) {
+    if (bUpdate || bUpload) {   /* 电池电量需要更新或者需要上报 */
 		
         oled_disp_battery();	/* 显示电池及电量信息 */
 
@@ -8712,34 +8701,65 @@ bool MenuUI::check_battery_change(bool bUpload)
         msg->post();
     }
 
-    if (is_bat_low()) {
+    if (is_bat_low()) { /* 电池电量低 */
 
 #ifdef OPEN_BAT_LOW
-        if (cur_menu != MENU_LOW_BAT) {
-            Log.d(TAG, "bat low menu %d state 0x%x bStiching %d", cur_menu, cam_state, bStiching);
-            if (check_state_in(STATE_RECORD) || check_live_save_org() || bStiching) {
+
+        if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
+
+            Log.d(TAG, "[%s: % ] bat low menu[%s] %d state 0x%x bStiching %d", __FILE__, __LINE__,
+                    getCurMenuStr(cur_menu), cam_state, bStiching);
+
+            if (check_state_in(STATE_RECORD) || checkLiveNeedSave() || bStiching) {
                 setCurMenu(MENU_LOW_BAT, MENU_TOP);
                 add_state(STATE_LOW_BAT);
                 func_low_bat();
                 bStiching = false;
             }
         }
+
 #endif
     }
-    send_delay_msg(UI_READ_BAT, BAT_INTERVAL);
+
+    send_delay_msg(UI_READ_BAT, BAT_INTERVAL);  /* 给UI线程发送读取电池电量的延时消息 */
 
     return bUpdate;
 }
 
+
+/*************************************************************************
+** 方法名称: get_battery_charging
+** 方法功能: 检测电池是否正在充电
+** 入口参数:  
+**      bCharge - 是否充电 
+** 返回值: 是返回true; 否则返回false
+** 调 用: 
+**
+*************************************************************************/
 int MenuUI::get_battery_charging(bool *bCharge)
 {
     return mBatInterface->read_charge(bCharge);
 }
 
+
+
+/*************************************************************************
+** 方法名称: read_tmp
+** 方法功能: 读取电池的温度
+** 入口参数:  
+**      int_tmp - 温度值
+**      tmp - 温度值
+** 返回值: 成功读取返回0;否则返回1
+** 调 用: 
+**
+*************************************************************************/
 int MenuUI::read_tmp(double *int_tmp, double *tmp)
 {
     return mBatInterface->read_tmp(int_tmp, tmp);
 }
+
+
+
 
 void MenuUI::deinit()
 {

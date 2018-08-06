@@ -176,3 +176,85 @@ handleReqFormHttp   fifo.cpp
 		}
 	}
 }
+
+
+
+
+程序运行流程分析：
+MenuUI::MenuUI
+	1.初始化处理UI事件的线程:		init_handler_thread
+	2.初始化对象内部的属性:			init
+	3.给UI线程发送初始化显示消息:	send_init_disp
+
+初始化显示消息处理：
+	oled_init_disp();	/* 初始化显示 */
+		read_sn
+		read_uuid
+		read_ver_info
+		init_cfg_select
+		check_battery_change
+	send_option_to_fifo(ACTION_REQ_SYNC);	/* 发送请求同步消息 */
+
+同步完成：接收到UI_MSG_SET_SYNC_INFO消息:
+exit_sys_err
+set_sync_info: 根据服务端当前的状态显示对应的页面
+
+2.UI上拍照的流程分析：
+- 主菜单上选择拍照项，按下回车进入拍照菜单
+> 发送启动预览请求: send_option_to_fifo(ACTION_PREVIEW)
+> 添加正在启动预览状态: START_PREVIEWING
+> 进入拍照菜单: setCurMenu(MENU_PIC_INFO);
+>> 显示左侧的拍照图标
+>> 根据需要显示底部的默认拍照挡位及对应的标志(是否存原片及拼接: Origin, RTS)及底部的剩余空间
+>> 根据当前的状态机状态显示中间的状态(等待: "...", 就绪: "Ready", 拍照过程中: "shooting", 处理过程中: "processing")
+MenuUI::procPowerKeyEvent
+	case MAINMENU_PIC:	/* 选择的是"拍照"项 */
+		/* 发送预览请求 */
+		if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
+			oled_disp_type(START_PREVIEWING);		/* 添加正在启动预览状态: START_PREVIEWING */
+			setCurMenu(MENU_PIC_INFO);				/* 设置并显示当前菜单 */
+		} else {
+			Log.d(TAG, "pic preview fail?");
+		}
+		break;
+
+setCurMenu(MENU_PIC_INFO)
+	enterMenu(MENU_PIC_INFO)
+		case MENU_PIC_INFO: /* 拍照菜单 */
+			
+            disp_icon(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
+
+            if (dispBottom) {	                 /* 显示底部和右侧信息 */
+                dispBottomInfo(false, false);    /* 正常显示底部规格,不更新剩余空间 */
+            }
+
+            if (check_state_preview()) {	/* 启动预览成功,显示"Ready" */
+                disp_ready_icon();
+            } else if (check_state_equal(STATE_START_PREVIEWING) || check_state_in(STATE_STOP_PREVIEWING)) {
+                disp_waiting();				/* 正在启动,显示"..." */
+            } else if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {	/* 正在拍照 */
+                if (mTakePicDelay == 0) {   /* 倒计时为0,显示"shooting" */
+                    disp_shooting();
+                } else {                    /* 清除就绪图标,等待下一次更新消息 */
+                    clear_ready();
+                }
+            } else if (check_state_in(STATE_PIC_STITCHING)) {	/* 如果正在拼接,显示"processing" */
+                disp_processing();
+            } else {
+                Log.d(TAG, "pic menu error state 0x%x", cam_state);
+                if (check_state_equal(STATE_IDLE)) {
+                    procBackKeyEvent();
+                }
+            }
+            break;
+然后收到camerad发送启动预览的结果：
+启动预览成功：
+oled_disp_type(START_PREVIEW_SUC)
+	add_state(STATE_PREVIEW);		修改状态机当前的状态为预览状态：STATE_PREVIEW
+	updateBottomSpace(true); 		更新底部的空间（通过查询系统存储）
+启动预览失败：
+oled_disp_type(START_PREVIEW_FAIL)
+	rm_state(STATE_START_PREVIEWING);	去除STATE_START_PREVIEWING状态
+	disp_sys_err(type, MENU_TOP);		显示系统错误,将返回菜单设置为MENU_TOP
+
+

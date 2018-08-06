@@ -1,27 +1,24 @@
-//
-// Created by vans on 17-3-22.
-//
 
 #ifndef PROJECT_BATTERY_INTERFACE_H
 #define PROJECT_BATTERY_INTERFACE_H
-#include <common/sp.h>
 
+#include <common/sp.h>
 
 
 /*
  * BAT_INFO - 电池信息
  */
 typedef struct _bat_info_ {
-    bool bCharge;
-    u16 battery_level;
-    u16 full_capacity;
-    double int_tmp;
-    double tmp;
+    bool        bCharge;
+    u16         battery_level;
+    u16         full_capacity;
+    double      int_tmp;
+    double      tmp;
 } BAT_INFO;
 
 class ins_i2c;
-class battery_interface
-{
+
+class battery_interface {
 public:
     explicit battery_interface();
     ~battery_interface();
@@ -40,7 +37,9 @@ public:
     int is_enough(u16 req = 30);
     bool isSuc();
     void test_read_all();
+
 private:
+
     void init();
     void deinit();
     sp<ins_i2c> mI2C;
@@ -49,4 +48,5 @@ private:
     bool bSuc = false;
     u16 full_capacity;
 };
+
 #endif //PROJECT_BATTERY_INTERFACE_H

@@ -584,24 +584,25 @@ private:
     void reset_last_info();
     bool is_bat_low();
     bool is_bat_charge();
-    void set_light(u8 val);
-    void set_light_direct(u8 val);
 
     bool check_battery_change(bool bUpload = false);
-    bool check_live_save_org();
+
     void func_low_bat();
     int get_battery_charging(bool *bCharge);
     int read_tmp(double *int_tmp,double *tmp);
     void set_flick_light();
     void set_light();
     bool check_cam_busy();
-    void set_cap_delay(int delay);
 
 	void dispIconByLoc(const ICON_INFO* pInfo);
 
 
+    /*
+     * 检查直播时是否需要保存原片
+     */
+    bool checkLiveNeedSave();    
 
-
+    const char* getPicVidCfgNameByIndex(std::vector<struct stPicVideoCfg*> & mList, int iIndex);
 
 	void setGyroCalcDelay(int iDelay);
 	
