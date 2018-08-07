@@ -18,7 +18,7 @@ respone:
 {"name":"camera._reset", "state":"done","error":{"code":int, "description":string}}
 
 
-容量查询
+- 容量查询
 camera._queryStorage
 {"name":"camera._queryStorage"}
 
@@ -317,17 +317,42 @@ bitrate: kbits/s
 logMode: 0-关闭log模式 1-开启log模式
 
 
+- 停止预览
 camera._stopPreview
 request:
-{
-    "name":"camera._stopPreview"
-}
+{"name":"camera._stopPreview"}
+
 respone:
 {
     "name":"camera._stopPreview",
     "state":"done",
     "error":{"code":int, "description":string}
 }
+
+------------------------------------------------------------------------------------------------------
+测卡速：
+request:
+{"name":"camera._storageSpeedTest"}
+
+respone:
+{
+    "name":"camera._storageSpeedTest",
+    "parameters":{
+        "state":"done",
+        "results":{"mode":string},
+        "error":{"code":int,"description":string}
+    }
+}
+
+Async result:
+{
+    "name":"camera._storage_speed_test_finish_",
+    "parameters":{
+        "state":string,
+        "error":{"code":int, "description":string}
+    } 
+}
+------------------------------------------------------------------------------------------------------
 
 
 

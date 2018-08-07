@@ -69,7 +69,7 @@ enum {
 	CMD_EXIT = 20,
     
     CMD_WEB_UI_TF_NOTIFY = 30,
-
+    CMD_WEB_UI_TF_CHANGED = 31,
 };
 
 

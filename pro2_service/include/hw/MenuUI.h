@@ -82,7 +82,7 @@ typedef enum _type_ {
     START_GYRO_FAIL ,
     SPEED_TEST_SUC,
     SPEED_TEST_FAIL,
-    SPEED_START = 78,// 78,
+    SPEED_START = 78,   // 78,
 
     SYNC_REC_AND_PREVIEW = 80,
     SYNC_PIC_CAPTURE_AND_PREVIEW,
@@ -365,6 +365,9 @@ public:
     //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
 
     void updateTfStorageInfo(std::vector<sp<Volume>>& mStorageList);
+    void sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
+
+
 
 private:
 
@@ -377,7 +380,7 @@ private:
     void exit_qr_func();
 
     /*
-     * 获取当前菜单的SECLECT_INFO
+     * 获取当前菜单的SECLECT_INFO Volume
      */
     struct _select_info_ * getCurMenuSelectInfo();
 
@@ -554,7 +557,6 @@ private:
 
 
     void get_save_path_remain();
-    bool check_dev_exist(int action = -1);
     void convert_space_to_str(u64 size,char *str, int len);
 
     void caculate_rest_info(u64 size = 0);
@@ -650,6 +652,16 @@ private:
     void calcRemoteRemainSpace();
 
     /*
+     * 检查存储是否满足操作的条件
+     */
+    bool checkStorageSatisfy(int action = -1);
+
+    /*
+     * TF-Card
+     */
+    bool checkAllTfCardExist();
+
+    /*
      * 拍照部分
      */
     void cfgPicModeItemCurVal(struct stPicVideoCfg* pPicCfg);
@@ -740,6 +752,11 @@ private:
 	 * 存储管理器
 	 */
 	bool queryCurStorageState(int iTimeout);
+
+    /* 发送TF状态变化消息 */
+    void handleTfStateChanged(std::vector<sp<Volume>>& mTfChangeList);
+
+
 
 
 	sp<ARLooper> mLooper;

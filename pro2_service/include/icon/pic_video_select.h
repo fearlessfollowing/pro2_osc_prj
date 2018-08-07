@@ -1308,7 +1308,7 @@ static ACTION_INFO vid6K_60F_3D_Action = {
 	{
 		EN_H264,
 		SAVE_DEF,
-		3200,			/* 3840x2880 -> 3200x2400 */
+		3200,			/* 3840x2880 -> 3200x2400 STATE_IDLE*/
 		2400,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
 		{ALL_FR_60, 120}

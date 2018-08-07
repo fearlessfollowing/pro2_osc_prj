@@ -53,7 +53,16 @@ UI拼接校准的流程：
 进入预览状态：
     拼接校准
         开始
-            
+
+D/MenuUI  (26307): OLED_DISP_STR_TYPE (-1 27 -1 1 0x8)
+D/MenuUI  (26307): nothing
+D/MenuUI  (26307): oled_disp_type (27 MENU_PIC_INFO 0x8)
+D/MenuUI  (26307): gyro calc delay -95 cur_menu [MENU_PIC_INFO]
+D/MenuUI  (26307): send_update_light　(0 [MENU_CALIBRATION] [4096] interval[1000] speaker[1] sound_id -1)
+D/MenuUI  (26307): set back (8 1)
+D/MenuUI  (26307): enterMenu is [MENU_CALIBRATION]
+D/MenuUI  (26307): MENU_CALIBRATION GyroCalc delay -95
+
 
 
 
@@ -63,3 +72,47 @@ UI拼接校准的流程：
 echo 0x1 > /sys/class/extcon/extcon0/state
 目前来看好像是机器的问题？
 
+
+
+日期：2018年8月7日
+修改记录：
+1.拍照严格按照6+1卡的机制（没有大卡或小卡都不能拍照，没有大卡显示NO SD CARD，没有小卡显示 NEED TF CARD）
+2.动态检查TF的插入/派出状态，TF卡插入时，显示tf card detected，拔出时显示：tf card removed
+3.拍照的timelapse
+4.修改系统时间和时区
+5.
+6.增加AEB拍照是的ev值
+
+
+设置拍照Customer的调用过程：
+OLED_DISP_STR_TYPE (1 46 -1 1 0x8)
+handleMessage
+    handleDispStrTypeMsg
+        add_qr_res
+            mProCfg->set_def_info(key, -1, mRes);   // 将该参数写入PIC_ALL_PIC_DEF中
+
+
+
+客户端卡速测试调用过程分析：
+camera_cmd_func
+    camera_start_speed_test
+        start_speed_test
+
+def start_speed_test(self, req, from_oled = False):
+    if self.check_allow_speed_test():
+        self.set_cam_state(self.get_cam_state() | config.STATE_SPEED_TEST)
+        if from_oled is False:
+            self.send_oled_type(config.SPEED_START)
+        self.test_path = req[_param]['path']
+        Info('self.test_path {}'.format(self.test_path))
+        read_info = self.write_and_read(req, from_oled)
+    else:
+        if from_oled:
+            Err('rec http req before oled speed test')
+            self.send_oled_type(config.SPEED_TEST_FAIL)
+    return read_info
+
+UI端：
+oled_disp_type(SPEED_START)
+    add_state(STATE_SPEED_TEST);
+        setCurMenu(MENU_SPEED_TEST);    // 进入MENU_SPEED_TEST菜单

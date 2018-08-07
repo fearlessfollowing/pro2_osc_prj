@@ -144,7 +144,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 
 /*
- * 录像模式名称
+ * 录像模式名称 stPicVideoCfg
  */
 
 #define TAKE_LIVE_MODE_4K_30F            "live_4k_30f"
@@ -207,5 +207,9 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_AEB5          "aeb5"
 #define SET_ITEM_NAME_AEB7          "aeb7"
 #define SET_ITEM_NAME_AEB9          "aeb9"
+
+
+
+#define SYS_TF_COUNT_NUM            6
 
 #endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */
