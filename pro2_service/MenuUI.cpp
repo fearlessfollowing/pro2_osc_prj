@@ -2321,6 +2321,8 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
     int iIndex = 0;
     struct stPicVideoCfg* pTmpPicVidCfg = NULL;
+    struct stPicVideoCfg* pAebPicVidCfg = NULL;
+    struct stSetItem* pAebSetItem = NULL;
 
     switch (option) {
 
@@ -2336,7 +2338,24 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 
                 Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
 
-                if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+#ifdef ENABLE_MENU_AEB
+
+                /* 根据AEB当前的选项来更新PIC_ORG参数,不管当前选中的是否AEB项 */
+                pAebSetItem = getSetItemByName(mSetItemsList, SET_ITEM_NAME_AEB);
+                pAebPicVidCfg = getPicVidCfgByName(mPicAllItemsList, TAKE_PIC_MODE_AEB);
+                if (pAebSetItem && pAebPicVidCfg) {
+                    PIC_ORG* pTmpAeb = pAebSetItem->stOrigArg[pAebSetItem->iCurVal];
+                    memcpy(&(pAebPicVidCfg->pStAction->stOrgInfo.stOrgAct), pTmpAeb, sizeof(ORG_INFO));
+                    Log.d(TAG, "[%s: %d] Current AEB info: hdr_count: %d, min_ev: %d, max_ev: %d", 
+                                __FILE__, __LINE__, pTmpAeb->hdr_count, pTmpAeb->min_ev, pTmpAeb->max_ev);
+
+                } else {
+                    Log.w(TAG, "[%s:%d] Warnning Aeb Item lossed, please check!!!", __FILE__, __LINE__);
+                }
+                
+#endif
+
+                if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {    
 
                     Log.d(TAG, "[%s: %d] Customer mode Take Pic", __FILE__, __LINE__);
                     
@@ -8698,6 +8717,48 @@ const char* MenuUI::getPicVidCfgNameByIndex(vector<struct stPicVideoCfg*>& mList
     return NULL;
 }
 
+
+
+struct stSetItem* MenuUI::getSetItemByName(vector<struct stSetItem*>& mList, const char* name)
+{
+    struct stSetItem* pTmpSetItem = NULL;
+
+    if (name) {
+        for (u32 i = 0; i < mList.size(); i++) {
+            if (!strcmp(mList.at(i)->pItemName, name)) {
+                pTmpSetItem = mList.at(i);
+                break;
+            }
+        }
+    }
+    return pTmpSetItem;
+}
+
+
+/*************************************************************************
+** 方法名称: getPicVidCfgByName
+** 方法功能: 获取指定名称的stPicVideoCfg
+** 入口参数: 
+**      mList - 容器列表引用
+**      name - 项的名称
+** 返回值: 存在返回指定项的名称; 失败返回NULL
+** 调 用: 
+**
+*************************************************************************/
+struct stPicVideoCfg* MenuUI::getPicVidCfgByName(vector<struct stPicVideoCfg*>& mList, const char* name)
+{
+    struct stPicVideoCfg* pTmpCfg = NULL;
+
+    if (name) {
+        for (u32 i = 0; i < mList.size(); i++) {
+            if (!strcmp(mList.at(i)->pItemName, name)) {
+                pTmpCfg = mList.at(i);
+                break;
+            }
+        }
+    }
+    return pTmpCfg;
+}
 
 
 /*************************************************************************

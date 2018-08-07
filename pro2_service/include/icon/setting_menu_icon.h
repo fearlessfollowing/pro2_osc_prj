@@ -2093,6 +2093,7 @@ enum {
 
 #define SETTING_ITEM_NAME_MAX 	32
 #define SETIING_ITEM_ICON_NUM	10
+#define SETTING_PIC_ORG_ARG_NUM 10
 
 
 enum {
@@ -2125,6 +2126,11 @@ enum {
 };  
 
 
+PIC_ORG aeb3Ev = {3, -64, 64, 0};
+PIC_ORG aeb5Ev = {5, -32, 32, 0};
+PIC_ORG aeb7Ev = {7, -16, 16, 0};
+PIC_ORG aeb9Ev = {9, -10, 10, 0};
+
 
 typedef struct stIconPos {
     u8 	xPos;
@@ -2139,10 +2145,11 @@ typedef struct stSetItem {
 	int				iItemMaxVal;							/* 设置项可取的最大值 */
 	int  			iCurVal;								/* 当前的值,(根据当前值来选择对应的图标) */
 	bool			bHaveSubMenu;							/* 是否含有子菜单 */
-	void 			(*pSetItemProc)(struct stSetItem*);		/* 菜单项的处理函数(当选中并按确认时被调用) */
+	void 			(*pSetItemProc)(struct stSetItem*);		/* stPicVideoCfg 菜单项的处理函数(当选中并按确认时被调用) */
 	ICON_POS		stPos;
 	const u8 * 		stLightIcon[SETIING_ITEM_ICON_NUM];		/* 选中时的图标列表 */
 	const u8 * 		stNorIcon[SETIING_ITEM_ICON_NUM];		/* 未选中时的图标列表 */
+	PIC_ORG*		stOrigArg[SETTING_PIC_ORG_ARG_NUM];
 } SettingItem;
 
 
@@ -2196,7 +2203,8 @@ SettingItem setDhcpItem = {
 	{	/* 未选中时的图标列表 */
 		set_ethernet_direct_normal_96_16,
 		set_ethernet_dhcp_normal_96_16,
-	}		
+	},
+	{}		
 };
 
 
@@ -2215,7 +2223,8 @@ SettingItem setFreqItem = {
 	{	/* 未选中时的图标列表 */
 		set_frequency_50hz_normal_96_16,
 		set_frequency_60hz_normal_96_16,
-	}					
+	},
+	{}					
 };
 
 /* DOL HDR Normal: On/Off */
@@ -2233,7 +2242,8 @@ SettingItem setHDRItem = {
 	{	/* 未选中时的图标列表 */
 		setHdrOffNor_96x16,
 		setHdrOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2252,7 +2262,8 @@ SettingItem setRawPhotoItem = {
 	{	/* 未选中时的图标列表 */
 		setRawPhotoOffNor_96x16,
 		setRawPhotoOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2275,6 +2286,12 @@ SettingItem setAebItem = {
 		setAeb5Nor_96x16,
 		setAeb7Nor_96x16,
 		setAeb9Nor_96x16,
+	},
+	{
+		&aeb3Ev,
+		&aeb5Ev,
+		&aeb7Ev,
+		&aeb9Ev,
 	}					
 };
 
@@ -2307,7 +2324,8 @@ SettingItem setPhotoDelayItem = {
 		setPhotoDelay40sNor_96x16,
 		setPhotoDelay50sNor_96x16,
 		setPhotoDelay60sNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2326,7 +2344,8 @@ SettingItem setSpeakerItem = {
 	{	/* 未选中时的图标列表 */
 		setSpeakOffNor_96x16,
 		setSpeakOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2346,7 +2365,8 @@ SettingItem setLedItem = {
 	{	/* 未选中时的图标列表 */
 		setLedOffNor_96x16,
 		setLedOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2365,7 +2385,8 @@ SettingItem setAudioItem = {
 	{	/* 未选中时的图标列表 */
 		setAudioOffNor_96x16,
 		setAudioOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 /* Spatial Audio: Off/On */
@@ -2383,7 +2404,8 @@ SettingItem setSpatialAudioItem = {
 	{	/* 未选中时的图标列表 */
 		setSpatialAudioOffNor_96x16,
 		setSpatialAudioOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2402,7 +2424,8 @@ SettingItem setFlowStateItem = {
 	{	/* 未选中时的图标列表 */
 		setFlowStateOffNor_96x16,
 		setFlowStateOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2421,7 +2444,8 @@ SettingItem setGyroOnOffItem = {
 	{	/* 未选中时的图标列表 */
 		setGyroOffNor_96x16,
 		setGyroOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2440,7 +2464,8 @@ SettingItem setGyroCalItem = {
 	{	/* 未选中时的图标列表 */
 		setGyrCalNor_96x16,
 		setGyrCalNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2459,7 +2484,8 @@ SettingItem setFanItem = {
 	{	/* 未选中时的图标列表 */
 		setFanOffNor_96x16,
 		setFanOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2478,7 +2504,8 @@ SettingItem setSampleNosieItem = {
 	{	/* 未选中时的图标列表 */
 		setSampNoiseNor_96x16,
 		setSampNoiseNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2497,7 +2524,8 @@ SettingItem setBottomLogoItem = {
 	{	/* 未选中时的图标列表 */
 		setBottomlogoOff_Nor_96x16,
 		setBottomlogoOn_Nor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2516,7 +2544,8 @@ SettingItem setVideSegItem = {
 	{	/* 未选中时的图标列表 */
 		setSegOffNor_96x16,
 		setSegOnNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2535,7 +2564,8 @@ SettingItem setStorageItem = {
 	{	/* 未选中时的图标列表 */
 		setStorageNor_96x16,
 		setStorageNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2554,7 +2584,8 @@ SettingItem setInfoItem = {
 	{	/* 未选中时的图标列表 */
 		setInfoNor_96x16,
 		setInfoNor_96x16,
-	}					
+	},
+	{}					
 };
 
 
@@ -2573,7 +2604,8 @@ SettingItem setResetItem = {
 	{	/* 未选中时的图标列表 */
 		setResetNor_96x16,
 		setResetNor_96x16,
-	}					
+	},
+	{}					
 };
 
 

@@ -603,6 +603,9 @@ private:
     bool checkLiveNeedSave();    
 
     const char* getPicVidCfgNameByIndex(std::vector<struct stPicVideoCfg*> & mList, int iIndex);
+    struct stPicVideoCfg* getPicVidCfgByName(std::vector<struct stPicVideoCfg*>& mList, const char* name);
+
+
 
 	void setGyroCalcDelay(int iDelay);
 	
@@ -664,6 +667,10 @@ private:
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
     void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
     int get_setting_select(int type);
+
+    struct stSetItem* getSetItemByName(std::vector<struct stSetItem*>& mList, const char* name);
+
+
 
    void setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
     void updateBottomMode(bool bLight);
