@@ -116,3 +116,60 @@ UI端：
 oled_disp_type(SPEED_START)
     add_state(STATE_SPEED_TEST);
         setCurMenu(MENU_SPEED_TEST);    // 进入MENU_SPEED_TEST菜单
+
+
+------------------------------------------------------------------------------------
+日期：2018年8月8日
+
+1.同步系统时间及时区
+2018-08-08 01:42:27,769 - g - INFO - generate random data b'\x8b\xed\x1b\xdf\xfd\x89\xa0\x8c' fp i-0b3_2JoIw=
+2018-08-08 01:42:27,843 - g - INFO - query state res {'state': 'idle', 'version': '1.5.0', 'moduleVersion': '3.3.180804.180804E1'}
+2018-08-08 01:42:27,844 - g - INFO - sync_init_info_to_p res {'state': 'idle', 'version': '1.5.0', 'moduleVersion': '3.3.180804.180804E1'}  cam_state 0 st 0x0
+2018-08-08 01:42:27,844 - g - INFO - st 0x0 mine 0x0 check_need_sync False
+2018-08-08 01:42:27,844 - g - INFO - start_camera_cmd_func name3 camera._queryState
+2018-08-08 01:42:27,845 - g - INFO - camera_get_last_info b
+2018-08-08 01:42:27,845 - g - INFO - b camera_connect st 0x0
+2018-08-08 01:42:27,845 - g - INFO - >>>>>>>>>>>>>>>>>>>>>>>>>>>>> sync time now........
+2018-08-08 01:42:27,846 - g - INFO - tz is GMT+08:00
+2018-08-08 01:42:27,853 - g - INFO - sys cmd setprop persist.sys.timezone GMT+00:00 ret 0
+2018-08-08 01:42:27,854 - g - INFO - get hw_time is 080801432018.04
+2018-08-08 01:42:27,854 - g - INFO - hw_time is 080801432018.04
+2018-08-07 17:43:04,001 - g - INFO - set tz setprop persist.sys.timezone Asia/Taipei
+2018-08-07 17:43:04,007 - g - INFO - sys cmd setprop persist.sys.timezone Asia/Taipei ret 0
+2018-08-07 17:43:04,008 - g - INFO - 2set tz setprop persist.sys.timezone1 Asia/Taipei
+2018-08-07 17:43:04,013 - g - INFO - sys cmd setprop persist.sys.timezone1 Asia/Taipei ret 0
+2018-08-07 17:43:04,014 - g - INFO - set_sys_time_change a
+2018-08-07 17:43:04,014 - g - INFO - start_camera_cmd_func name camera._systemTimeChange
+2018-08-07 17:43:04,015 - g - INFO - start_camera_cmd_func name2 camera._systemTimeChange
+2018-08-07 17:43:04,015 - g - INFO - write_and_read req OrderedDict([('name', 'camera._systemTimeChange')])
+2018-08-07 17:43:04,044 - g - INFO - content_len 70  len res 70
+2018-08-07 17:43:04,044 - g - INFO - sys time change done
+2018-08-07 17:43:04,045 - g - INFO - start_camera_cmd_func name3 camera._systemTimeChange
+2018-08-07 17:43:04,045 - g - INFO - set_sys_time_change b
+2018-08-07 17:43:04,045 - g - INFO - self.sync_param is {'sn': 'sn123456', 'r_v': '0.2.0', 'p_v': 'git: GITDIR-NOTFOUND build: 2018-04-03T03:36:29', 'k_v': '4.4.38'}
+2018-08-07 17:43:04,046 - g - INFO - version is V0.9.2_2017.11.8
+2018-08-07 17:43:04,046 - g - INFO - s_v Linux version 4.4.38 (root@skymixos-Inspiron-3668) (gcc version 4.8.5 (GCC) ) #35 SMP PREEMPT Wed Jul 25 14:48:11 CST 2018
+
+
+2.设置页风扇项的BUG
+已解决
+
+
+设置系统时区: 拷贝对应的时区文件到/etc/localtime文件即可
+设置系统时间:       date xxxxxx.xxx
+保存系统时间到硬件: hwclock --systohc
+
+
+3.设置页存储部分：
+procSetMenuKeyEvent
+    setCurMenu(MENU_STORAGE);
+        enterMenu(MENU_STORAGE);
+            clear_area(0, 16);                                  /* 清除UI下端 */
+            disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);      /* 显示左侧图标 */
+            /* 进入存储页 */
+            dispSettingPage(mStorageList);					    /* 显示"右侧"的项: StorageSpace, TestWriteSpeed */
+
+进入"Storage Space"项：
+procPowerKeyEvent
+    case MENU_STORAGE:
+        setCurMenu(MENU_SHOW_SPACE);        /* 进入显示存储空间 */

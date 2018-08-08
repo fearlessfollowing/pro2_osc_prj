@@ -2840,7 +2840,7 @@ void fifo::read_fifo_thread()
                                             * 外部TF卡的命名规则
                                             * 名称: "tf-1","tf-2","tf-3"....
                                             */
-                                        sprintf(tmpVol->name, "tf-%d", tmpJsonIndex->valueint);
+                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
                                         storageList.push_back(tmpVol);
 
                                         /* 直接将消息丢入UI线程的消息队列中 */
@@ -2885,8 +2885,6 @@ void fifo::read_fifo_thread()
                                         tmpJsonTotalSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_total");
                                         tmpJsonLeftSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_left");
 
-                                        Log.d(TAG, "[%s: %d] TF card node info index[%d], total space[%d]M, left space[%d]",
-                                                    __FILE__, __LINE__, tmpJsonIndex->valueint, tmpJsonTotalSpace->valueint, tmpJsonLeftSpace->valueint);
                                         tmpVol->iIndex = tmpJsonIndex->valueint;
                                         tmpVol->total  = tmpJsonTotalSpace->valueint;
                                         tmpVol->avail  = tmpJsonLeftSpace->valueint;
@@ -2895,7 +2893,10 @@ void fifo::read_fifo_thread()
                                          * 外部TF卡的命名规则
                                          * 名称: "tf-1","tf-2","tf-3"....
                                          */
-                                        sprintf(tmpVol->name, "tf-%d", tmpJsonIndex->valueint);
+                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
+                                        Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d]",
+                                                    __FILE__, __LINE__, tmpVol->name, tmpVol->iIndex, tmpVol->total, tmpVol->avail);
+
                                         storageList.push_back(tmpVol);
                                     }
                                 }

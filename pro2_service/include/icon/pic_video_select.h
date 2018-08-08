@@ -1226,7 +1226,7 @@ const u8 vid_8K60F_Nor_78x16[] = {
 
 
 /*
- * 8K_30F_3D
+ * VID_8K_30F_3D
  */
 static ACTION_INFO vid8K_30F_3D_Action = {
 	MODE_3D,
@@ -1361,7 +1361,7 @@ static ACTION_INFO vid4K_30F_RTS_Action = {
 		3840,			/* 根据肖神的提示修改: 4K|PANO 3200x2400@30fps    60M 2018年7月24日 */
 		2160,
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_30, 90}
+		{ALL_FR_30, 60}
 	},
 	{
 		EN_H264,

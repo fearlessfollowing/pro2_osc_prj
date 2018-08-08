@@ -478,6 +478,10 @@ const char* getCurMenuStr(int iCurMenu)
 		pRet = "MENU_DISP_MSG_BOX";
 		break;
 
+    case MENU_SHOW_SPACE:
+        pRet = "MENU_SHOW_SPACE";
+        break;
+
 	default:
 		pRet = "Unkown Menu";
 		break;
@@ -647,6 +651,8 @@ void MenuUI::init_cfg_select()
     mVidAllItemsList.clear();
     mLiveAllItemsList.clear();
 
+    mShowStorageList.clear();
+
     init_menu_select();     /* 菜单项初始化 */
 
     sp<ARMessage> msg;
@@ -768,7 +774,12 @@ void MenuUI::play_sound(u32 type)
     if (mProCfg->get_val(KEY_SPEAKER) == 1) {
         if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
             char cmd[1024];
-            snprintf(cmd, sizeof(cmd), "aplay -D hw:1,0 %s", sound_str[type]);
+
+            /*
+             * aplay 带 -D hw:1,0 参数时播出的音声会有两声
+             * 去掉-D hw:1,0 参数，插上HDMI时没有声音播放
+             */
+            snprintf(cmd, sizeof(cmd), "aplay %s", sound_str[type]);
             exec_sh(cmd);
 		} else {
             Log.d(TAG,"sound type %d exceed \n",type);
@@ -861,12 +872,17 @@ void MenuUI::commUpKeyProc()
 #endif
 
     if (bUpdatePage) {  /* 更新菜单页 */
-        if (mMenuInfos[cur_menu].privList) {
-            vector<struct stSetItem*>* pSetItemLists = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
-            dispSettingPage(*pSetItemLists);
+        if (cur_menu == MENU_SHOW_SPACE) {
+            /* 显示存储的翻页 */
+            dispShowStoragePage(gStorageInfoItems);
         } else {
-            Log.e(TAG, "[%s:%d] Current Menu[%s] havn't privList ????, Please check", __FILE__, __LINE__, getCurMenuStr(cur_menu));
-        }        
+            if (mMenuInfos[cur_menu].privList) {
+                vector<struct stSetItem*>* pSetItemLists = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
+                dispSettingPage(*pSetItemLists);
+            } else {
+                Log.e(TAG, "[%s:%d] Current Menu[%s] havn't privList ????, Please check", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }        
+        }
     } else {    /* 更新菜单(页内更新) */
         updateMenu();
     }
@@ -922,11 +938,16 @@ void MenuUI::commDownKeyProc()
 #endif
 
     if (bUpdatePage) {
-        if (mMenuInfos[cur_menu].privList) {
-            vector<struct stSetItem*>* pSetItemLists = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
-            dispSettingPage(*pSetItemLists);
+        if (cur_menu == MENU_SHOW_SPACE) {
+            /* 显示存储的翻页 */
+            dispShowStoragePage(gStorageInfoItems);
         } else {
-            Log.e(TAG, "[%s:%d] Current Menu[%s] havn't privList ????, Please check", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            if (mMenuInfos[cur_menu].privList) {
+                vector<struct stSetItem*>* pSetItemLists = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
+                dispSettingPage(*pSetItemLists);
+            } else {
+                Log.e(TAG, "[%s:%d] Current Menu[%s] havn't privList ????, Please check", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }
         }
     } else {
         updateMenu();
@@ -1109,6 +1130,7 @@ void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
         #endif            
         } else if (!strcmp(pItemName, SET_ITEM_NAME_FAN)) {        
             pSetItem[i]->iCurVal = mProCfg->get_val(KEY_FAN);
+            send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_FAN);
         #ifdef DEBUG_SETTING_PAGE
             Log.d(TAG, "Fan Init Val --> [%d]", pSetItem[i]->iCurVal);
         #endif           
@@ -3470,6 +3492,29 @@ void MenuUI::updateInnerSetPage(vector<struct stSetItem*>& setItemList, bool bUp
 }
 
 
+void MenuUI::updateInnerStoragePage(SetStorageItem** pItemList, bool bUpdateLast)
+{
+    struct stStorageItem* pTmpLastItem = NULL;
+    struct stStorageItem* pTmpCurItem = NULL;
+
+    int iLastSelectIndex = getMenuLastSelectIndex(cur_menu);
+    int iCurSelectedIndex = getMenuSelectIndex(cur_menu);
+	
+    Log.d(TAG, "[%s:%d] Last Selected index[%d], Current Index[%d]", __FILE__, __LINE__, iLastSelectIndex, iCurSelectedIndex);
+    pTmpLastItem = pItemList[iLastSelectIndex];
+    pTmpCurItem = pItemList[iCurSelectedIndex];
+
+    if (pTmpLastItem && pTmpCurItem) {
+        if (bUpdateLast) {
+            dispStorageItem(pTmpLastItem, false);
+        }
+        dispStorageItem(pTmpCurItem, true);
+    } else {
+        Log.d(TAG, "[%s:%d] Invalid Last Selected index[%d], Current Index[%d]", iLastSelectIndex, iCurSelectedIndex);
+    }
+}
+
+
 
 /********************************************************************************************
 ** 函数名称: updateSetItemCurVal
@@ -3875,8 +3920,8 @@ void MenuUI::updateMenu()
             updateInnerSetPage(mStorageList, true);
             break;
 		
-        case MENU_SHOW_SPACE:
-            disp_storage_setting();
+        case MENU_SHOW_SPACE:   /* 页内翻页 */
+            updateInnerStoragePage(gStorageInfoItems, true);
             break;
 
         case MENU_FORMAT:
@@ -3890,7 +3935,7 @@ void MenuUI::updateMenu()
 }
 
 /*
- * 先按当前的
+ * 先按当前的 Volume
  */
 
 void MenuUI::get_storage_info()
@@ -3920,12 +3965,144 @@ void MenuUI::get_storage_info()
             convert_space_to_str(used_size,
                                  used_space[storage_index],
                                  sizeof(used_space[storage_index]));
-
+  
             Log.d(TAG," used %s total %s path %s",used_space[storage_index],total_space[storage_index],mLocalStorageList.at(i)->path);
         } else {
             Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
         }
     }
+}
+
+
+/*
+ * 使用mVolumeList来填充gStorageInfoItems
+ */
+void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeList)
+{
+    ICON_POS tmPos;
+ 
+    for (u32 i = 0; i < mVolumeList.size(); i++) {
+
+        int pos = i % pParentMenu->mSelectInfo.page_max;		// 3
+        switch (pos) {
+            case 0:
+                tmPos.yPos 		= 16;
+                break;
+
+            case 1:
+                tmPos.yPos 		= 32;
+                break;
+            
+            case 2:
+                tmPos.yPos 		= 48;
+                break;
+        }
+        tmPos.xPos 		= 27;   /* 水平方向的起始坐标 */
+        tmPos.iWidth	= 103;   /* 显示的宽 */
+        tmPos.iHeight   = 16;   /* 显示的高 */
+    
+        gStorageInfoItems[i]->stPos = tmPos;
+        memcpy(&(gStorageInfoItems[i]->stVolumeInfo), mVolumeList.at(i).get(), sizeof(Volume));
+        Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->stVolumeInfo.name);
+    }
+}
+
+
+/*
+ * 构造系统中所有的存储设备信息列表
+ */
+void MenuUI::getShowStorageInfo()
+{
+    bool bQueryResult = false;
+
+    mShowStorageList.clear();
+    sp<Volume> tmpVolume;
+
+    bQueryResult = queryCurStorageState(9000);
+    if (!bQueryResult) {
+        Log.d(TAG, "[%s: %d] Warnning Query Remote Storage device Info failed, Used old storage Info.");
+    }
+
+    /* 将本地及远端的存储设备信息加入到mShowStorageList列表 */
+    for (u32 i = 0; i < mLocalStorageList.size(); i++) {
+        struct statfs diskInfo;
+        u64 totalsize = 0;
+        u64 used_size = 0;
+        // storage_index = get_dev_type_index(mLocalStorageList.at(i)->dev_type);
+
+        if (access(mLocalStorageList.at(i)->path, F_OK) != -1) {
+
+            statfs(mLocalStorageList.at(i)->path, &diskInfo);
+
+            u64 blocksize = diskInfo.f_bsize;                                   //每个block里包含的字节数
+            totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
+            used_size = (diskInfo.f_blocks - diskInfo.f_bfree) * blocksize;     // 可用空间大小
+            used_size = used_size >> 20;
+
+            tmpVolume = (sp<Volume>)(new Volume());
+
+            memset(tmpVolume->name, 0, sizeof(tmpVolume->name));
+            sprintf(tmpVolume->name, "%s", mLocalStorageList.at(i)->dev_type);
+            tmpVolume->total = totalsize >> 20;                 /* 统一将单位转换MB */
+            tmpVolume->avail = tmpVolume->total - used_size;
+            tmpVolume->iType = VOLUME_TYPE_NV;
+
+            mShowStorageList.push_back(tmpVolume);
+        
+        } else {
+            Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
+        }
+    }
+
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);   
+        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+            struct statfs diskInfo;
+            u64 totalsize = 0;
+            u64 used_size = 0;
+
+            tmpVolume = (sp<Volume>)(new Volume());
+
+            memset(tmpVolume->name, 0, sizeof(tmpVolume->name));
+            
+            /* 名称不能超过3位 */
+            sprintf(tmpVolume->name, "%s", mRemoteStorageList.at(i)->name);
+            tmpVolume->total = mRemoteStorageList.at(i)->total;
+            tmpVolume->avail = mRemoteStorageList.at(i)->avail;
+            tmpVolume->iIndex = mRemoteStorageList.at(i)->iIndex;
+            tmpVolume->iType = VOLUME_TYPE_MODULE;        
+
+            mShowStorageList.push_back(tmpVolume);
+        }
+    }
+
+#ifdef ENABLE_DEBUG_MODE
+    Log.d(TAG, "mShowStorageList.size() = %d", mShowStorageList.size());
+    for (u32 i = 0; i < mShowStorageList.size(); i++) {
+        Log.d(TAG, "Volueme type: %d", mShowStorageList.at(i)->iType);
+        Log.d(TAG, "Volueme Total: %d MB", mShowStorageList.at(i)->total);
+        Log.d(TAG, "Volueme Free: %d MB", mShowStorageList.at(i)->avail);        
+    }
+#endif
+
+    /* 根据查询的结果来重新初始化菜单 */
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total = mShowStorageList.size();
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max = 3;
+
+    int iPageCnt = mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total % mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max;
+    if (iPageCnt == 0) {
+        iPageCnt = mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total / mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max;
+    } else {
+        iPageCnt = mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total / mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max + 1;
+    }
+
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_num = iPageCnt;
+
+    /* 将mShowStorageList的各项填入gStorageInfoItems列表中
+     * 需要填入的项: 名称, 总容量, 空闲容量
+     */
+    volumeItemInit(&mMenuInfos[MENU_SHOW_SPACE], mShowStorageList);
 }
 
 
@@ -4130,6 +4307,36 @@ void MenuUI::convSize2LeftNumTime(u64 size)
 }
 
 
+
+void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
+{
+    double size_b = (double)size;
+    double info_G;
+    
+    switch (iUnit) {
+        case STORAGE_UNIT_MB:
+            info_G = (size_b/1024);
+            break;
+        
+        case STORAGE_UNIT_KB:
+            info_G = (size_b/1024/1024);   
+            break;
+
+        case STORAGE_UNIT_B:
+            info_G = (size_b/1024/1024/1024);   
+            break;   
+
+        default:
+            Log.e(TAG, "[%s: %d] Invalid unit passed[%d]!!!", __FILE__, __LINE__, iUnit);  
+            break;   
+    }
+
+    if (info_G >= 100.0) {
+        snprintf(pStore, iLen, "%ldG", (int64_t)info_G);
+    } else {
+        snprintf(pStore, iLen, "%.1fG", info_G);
+    }
+}
 
 void MenuUI::convert_space_to_str(u64 size, char *str, int len)
 {
@@ -4633,7 +4840,7 @@ void MenuUI::disp_format()
 #endif
 }
 
-void MenuUI::disp_storage_setting()
+void MenuUI:: disp_storage_setting()
 {
     char dev_space[128];
 
@@ -4646,8 +4853,9 @@ void MenuUI::disp_storage_setting()
                 if (strlen(used_space[i]) == 0) {
                     snprintf(dev_space, sizeof(dev_space), "%s:None", dev_type[i]);
                 } else {
-                    snprintf(dev_space, sizeof(dev_space),"%s:%s/%s",
-                             dev_type[i], used_space[i], total_space[i]);
+                    snprintf(dev_space, sizeof(dev_space),"TF1:%s/%s",
+                            //  dev_type[i], 
+                             used_space[i], total_space[i]);
                 }
 
                 Log.d(TAG,"disp storage[%d] select %d %s (%d %d %d)",
@@ -4663,6 +4871,88 @@ void MenuUI::disp_storage_setting()
             SWITCH_DEF_ERROR(i)
         }
     }
+}
+
+
+/*
+ *  103, 16 - 
+ * 宽度103，最大能显示13个字符
+ */
+void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
+{
+
+    /* 根据设置项当前的值来选择显示的图标及位置 
+     * total, avail 单位统一为MB
+     * 1.将单位转换为GB(最大支持3位)加算出该数整数部分的位数及小数部分的位数
+     */
+    char cItems[128] = {0};
+    char cTotal[8] = {0};
+    char cUsed[8]  = {0};
+
+    u64 used_size = pStorageItem->stVolumeInfo.total - pStorageItem->stVolumeInfo.avail;
+
+
+
+#ifdef ENABLE_DEBUG_MODE
+        Log.d(TAG, "[%s:%d] dispStorageItem item name [%s], selected[%s]", __FILE__, __LINE__, 
+                        pStorageItem->stVolumeInfo.name, (bSelected == true) ? "yes": "no");
+#endif
+
+    convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->stVolumeInfo.total, cTotal, 8);
+    convStorageSize2Str(STORAGE_UNIT_MB, used_size, cUsed, 8);
+
+    sprintf(cItems, "%s:%s/%s", pStorageItem->stVolumeInfo.name, cUsed, cTotal);
+
+    Log.d(TAG, "[%s: %d] Calc show Str Len %d", __FILE__, __LINE__, strlen(cItems));
+    
+    /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
+    disp_str((const u8 *)cItems, pStorageItem->stPos.xPos, pStorageItem->stPos.yPos, bSelected, pStorageItem->stPos.iWidth);
+}
+
+
+void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
+{
+    int item = 0;
+    bool iSelected = false;
+
+    struct stStorageItem* pTempStorageItem = NULL;
+
+    SELECT_INFO * mSelect = getCurMenuSelectInfo();
+    const int iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
+
+    int start = mSelect->cur_page * mSelect->page_max;
+    int end = start + mSelect->page_max;
+    
+    if (end > mSelect->total)
+        end = mSelect->total;
+    
+
+    /* 重新显示正页时，清除整个页 */
+    clear_area(25, 16);
+
+	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
+    Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
+
+    while (start < end) {
+
+        Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+        pTempStorageItem = storageList[start];
+        
+        if (pTempStorageItem != NULL) {
+            if (start < mSelect->total) {
+                if (start == iIndex) {
+                    iSelected = true;
+                } else {
+                    iSelected = false;
+                }
+                dispStorageItem(pTempStorageItem, iSelected);
+            }
+        } else {
+            Log.e(TAG, "[%s:%d] dispSettingPage -> invalid index[%d]", start);
+        }
+        start++;
+        item++;
+    }    
 }
 
 void MenuUI::disp_org_rts(sp<struct _action_info_> &mAct,int hdmi)
@@ -5313,12 +5603,14 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_SHOW_SPACE:   /* 显示存储设备菜单 */
             clear_area(0, 16);
-            disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);
+            disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);  /* 暂时没有图标 */
             
-            /* 发送查询卡容量的命令,查询小卡 */
-            get_storage_info();
+            /* 查询的时间有点长,显示等待... */
+            dispIconByLoc(&queryStorageWait);
 
-            disp_storage_setting();
+            getShowStorageInfo();
+            dispShowStoragePage(gStorageInfoItems);
+
             break;
 
 
@@ -7826,6 +8118,7 @@ void MenuUI::clear_icon(u32 type)
 {
     mOLEDModule->clear_icon(type);
 }
+
 
 void MenuUI::disp_icon(u32 type)
 {

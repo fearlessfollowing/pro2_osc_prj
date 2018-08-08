@@ -6,90 +6,17 @@
 #include <mutex>
 #include <common/sp.h>
 
-#if 0
-/*
- * 存储策略
- */
-enum {
-	STORAGE_POLICY_ALL_CARD,		/* 6TF + 1SD */
-	STORAGE_POLICY_6F,
-	STORAGE_POLICY_1SD,
-	STORAGE_POLICY_MAX,
-};
-
-/*
- * 拍照的模式
- */
-enum {
-	8K_3D_OF,
-	8K_3D_OF_RAW,
-	8K_OF,
-	8K_OF_RAW,
-	8K,
-	8K_RAW,
-	AEB3,
-	AEB3_RAW,
-	AEB5,
-	AEB5_RAW,
-	AEB7,
-	AEB7_RAW,
-	AEB9,
-	AEB9_RAW,
-	BURST,
-	BURST_RAW,
-	CUSTOMER
-};
-
-
-/*
- * 录像的模式
- */
-enum {
-	8K_30F_3D,
-	8K_60F,
-	8K_30F,
-	8K_5F_STREETVIEW,
-	6K_60F_3D,
-	6K_30F_3D,
-	4K_120F_30,	//	(Binning)
-	4K_60F_3D,
-	4K_30F_3D,
-	4K_60F_RTS,
-	4K_30F_RTS,
-	4K_30F_3D_RTS,
-	2_5K_60F_3D_RTS,
-	AERIAL,
-	CUSTOMER
-};
-
-/*
- * 直播的模式
- */
-enum {
-	4K_30FPS,
-	4K_30FPS_3D,
-	4K_30FPS_HDMI,
-	4K_30FPS_3D_HDMI,
-	CUSTOMER,
-};
-#endif
 
 
 #define VOLUME_NAME_MAX 32
 
-#if 0
-/*
- * 对应存储卡
- */
-typedef struct stVol {
-	int  mTyep;						/* 存储设备的类型(SD卡, USB移动硬盘) */
-	bool mStatus;					/* true:表示存在;    false表示不存在 */
-	u64  mTotalSize;				/* 总大小单位为MB */
-	u64  mLeftSize;					/* 剩余空间大小(单位MB) */
-	char mName[VOLUME_NAME_MAX];	/* 对于本地存储设备可以用设备名来唯一标识(/dev/sdX) */
-} Volume;
 
-#endif
+enum {
+	VOLUME_TYPE_NV,
+	VOLUME_TYPE_MODULE,
+	VOLUME_TYPE_MAX
+};
+
 
 typedef struct stVol {
     //"usb","sd" or "internal"
@@ -100,7 +27,12 @@ typedef struct stVol {
     u64 	total;			/* 总容量 */
     u64 	avail;			/* 剩余容量 */
 	int		iIndex;			/* 索引号 */
+	int		iType;			/* 用于表示是内部设备还是外部设备 */
 } Volume;
+
+
+
+
 
 
 

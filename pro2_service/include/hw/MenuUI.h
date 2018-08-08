@@ -311,6 +311,14 @@ enum {
 
 
 
+enum {
+    STORAGE_UNIT_MB,
+    STORAGE_UNIT_KB,
+    STORAGE_UNIT_B,
+    STORAGE_UNIT_MAX,
+};
+
+
 struct _icon_info_;
 struct _lr_menu_;
 struct _r_menu_;
@@ -324,6 +332,7 @@ struct _err_type_info_;
 struct _cam_prop_;
 struct stSetItem;
 struct stPicVideoCfg;
+struct stStorageItem;
 
 class InputManager;
 
@@ -651,6 +660,8 @@ private:
     void dispBottomLeftSpace();
     void calcRemoteRemainSpace();
 
+    void convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen);
+    
     /*
      * 检查存储是否满足操作的条件
      */
@@ -682,9 +693,16 @@ private:
 
     struct stSetItem* getSetItemByName(std::vector<struct stSetItem*>& mList, const char* name);
 
+    void dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected);
+    void dispShowStoragePage(struct stStorageItem** storageList);
 
 
-   void setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
+    void volumeItemInit(MENU_INFO* pMenuInfo, std::vector<sp<Volume>>& mVolumeList);
+    void getShowStorageInfo();
+
+    void updateInnerStoragePage(struct stStorageItem** pItemList, bool bUpdateLast);
+
+    void setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
     void updateBottomMode(bool bLight);
 
     /* 显示底部的规格模式 */
@@ -837,6 +855,7 @@ private:
     int64 last_key_ts = 0;
 	
 
+
 	sp<NetManager>              mNetManager;            /* 网络管理器对象强指针 */
 
     sp<dev_manager>             mDevManager;            /* 设备管理器对象强指针 */
@@ -888,10 +907,12 @@ private:
     u64                     mLocalRecLiveLeftTime;                  /* 本地存储设备,录像,直播的剩余时间 */
 
 
+    std::vector<sp<Volume>> mShowStorageList;                       /* 用于Storage列表中显示的存储设备列表 */
+
 	bool	                bFirstDev = true;
 	int		                mSavePathIndex = -1;
     
-    bool                    mNeedSendAction = true;                        /* 是否需要发真实的请求给Camerad */
+    bool                    mNeedSendAction = true;                 /* 是否需要发真实的请求给Camerad */
     bool                    mCalibrateSrc;
 
 	sp<InputManager>        mInputManager;                          /* 按键输入管理器 */

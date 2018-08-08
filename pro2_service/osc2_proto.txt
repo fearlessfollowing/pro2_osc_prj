@@ -387,4 +387,11 @@ indication:
 
 
 
-循环往所有的模组U盘里写wenjian
+
+
+-------------------------------------------------------------------------------------
+格式化小卡：
+{"name": "camera._formatCameraMoudle", "parameters":{"index": -1}}
+{"name": "camera._formatCameraMoudle", "parameters":{"index": -1}}
+{"name": "camera._formatCameraMoudle", "sequence": 0, "state": "done" }
+
