@@ -13,6 +13,9 @@
 #define TEST_KEY ("5K-FmGBV_JGFLcFwrL7xeYQNi2C6bOw0BEsn1H_1_gY=")
 #define ENABLE_TEST_KEY
 
+#undef
+#define TAG "md5"
+
 #define MD5_SIZE		16
 #define MD5_STR_LEN		(MD5_SIZE * 2)
 
@@ -270,7 +273,7 @@ unsigned int get_file_size(const char *filename)
     stat(filename, &statbuf);
     unsigned int size = statbuf.st_size;
 
-    printf("%s size %u \n",filename, size);
+    Log.d(TAG, "%s size %u",filename, size);
     return size;
 }
 
@@ -309,7 +312,7 @@ bool check_file_key_md5(const char *file_path)
             MD5Update(&md5, data, ret);
             left_size -= ret;
         } else {
-            printf("err read size %d\n",ret);
+            Log.d(TAG, "err read size %d\n", ret);
             goto EXIT;
         }
     }
@@ -319,7 +322,7 @@ bool check_file_key_md5(const char *file_path)
 
 
     if (ret != MD5_STR_LEN) {
-        printf("read mismatch(%d %d)\n",MD5_STR_LEN,ret);
+        Log.d(TAG, "read mismatch(%d %d)\n", MD5_STR_LEN, ret);
         goto EXIT;
     }
     close(fd);
@@ -337,7 +340,7 @@ bool check_file_key_md5(const char *file_path)
     if(strcmp(md5_check,md5_str) == 0) {
         bRet = true;
     } else {
-		printf("mismatch read md5 check(%s %s)\n", md5_check, md5_str);
+		Log.d(TAG, "mismatch read md5 check(%s %s)", md5_check, md5_str);
 	}
 
 EXIT:
@@ -389,7 +392,7 @@ int write_file_key_md5(const char *file_path)
 
     // convert md5 value to md5 string
     for (i = 0; i < MD5_SIZE; i++) {
-		printf("0x%x ", md5_value[i]);
+		Log.d(TAG, "0x%x ", md5_value[i]);
         snprintf(md5_str + i*2, 2+1, "%02x", md5_value[i]);
     }
 
@@ -397,7 +400,7 @@ int write_file_key_md5(const char *file_path)
 
 	write_len = write(fd, md5_str, strlen(md5_str));
 	if (write_len != strlen(md5_str)) {
-		printf("write tail mismtach(%d %zd)\n", write_len, strlen(md5_str));
+		Log.d(TAG, "write tail mismtach(%d %zd)", write_len, strlen(md5_str));
 		ret = -1;
 	} else {
 		ret = 0;

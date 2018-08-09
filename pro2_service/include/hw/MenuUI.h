@@ -333,6 +333,7 @@ struct _cam_prop_;
 struct stSetItem;
 struct stPicVideoCfg;
 struct stStorageItem;
+struct stIconPos;
 
 class InputManager;
 
@@ -467,7 +468,6 @@ private:
     void disp_live_setting();
     void disp_storage_setting();
     void disp_format();
-    void start_format();
     void reset_devmanager();
     void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int exec_sh_new(const char *buf);
@@ -562,11 +562,8 @@ private:
 
     bool check_save_path_usb();
     int get_dev_type_index(char *dev_type);
-    void get_storage_info();
-
 
     void get_save_path_remain();
-    void convert_space_to_str(u64 size,char *str, int len);
 
     void caculate_rest_info(u64 size = 0);
     bool switch_dhcp_mode(int iDHCP);
@@ -606,6 +603,12 @@ private:
     bool check_cam_busy();
 
 	void dispIconByLoc(const ICON_INFO* pInfo);
+
+
+    /*
+     * 格式化
+     */
+    void startFormatDevice();
 
 
     /*
@@ -683,8 +686,8 @@ private:
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
     void procSetMenuKeyEvent();
     void setMenuCfgInit();
-    void setSysMenuInit(MENU_INFO* pParentMenu);
-    void setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);    
+    void setSysMenuInit(MENU_INFO* pParentMenu, struct stSetItem** pSetItems);
+    void setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists, struct stSetItem** pSetItems, struct stIconPos* pIconPos);    
     void updateMenuPage();
     void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
@@ -924,6 +927,8 @@ private:
     std::vector<struct stSetItem*>      mPhotoDelayList;
     std::vector<struct stSetItem*>      mAebList;
     std::vector<struct stSetItem*>      mStorageList;
+    std::vector<struct stSetItem*>      mTfFormatSelList;
+
 
     std::vector<struct stPicVideoCfg*>  mPicAllItemsList;
     std::vector<struct stPicVideoCfg*>  mVidAllItemsList;   

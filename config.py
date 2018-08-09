@@ -54,6 +54,8 @@ COM_FLAGS += ' -DENABLE_DEBUG_MODE '
 # 使能AEB菜单项
 COM_FLAGS += ' -DENABLE_MENU_AEB '
 
+# 进入SHOW_SPACE页时给模组上电
+#COM_FLAGS += ' -DENABLE_SPACE_PAGE_POWER_ON_MODULE '
 
 #------------------------------- 菜单相关的配置（通过开关来控制） END   --------------------------------------------------
 

@@ -67,15 +67,16 @@
 #define UPDATE_APP_DEST_PATH	"/usr/local/bin"
 
 #define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
+#define UPDATE_IMG_DEST_PATH	"/tmp"
 
-#define UPDAE_CHECK_VER		"V2.6"
+#define UPDAE_CHECK_VER		"V2.9"
 
 static const char* rm_devies_list[] = {
 	"/dev/mmcblk1", "/dev/sd",
 };
 
 static const char* gUpdateDevPrefix[] = { "mmcblk1", "sd"};
-static char gDevNodeFullPath[512];
+static char gDevNodeFullPath[512];			/* 升级设备的设备节点全路径，如: /dev/sdX */
 static char gUpdateImageRootPath[256];
 
 
@@ -293,8 +294,8 @@ static int get_unzip_update_check(char* image_path)
 	
     if (!check_file_key_md5(update_app_name)) {	/* 文件的MD5值进行校验: 校验失败返回-1 */
         Log.e(TAG, "md5 check err [%s]", update_app_name);
-        disp_update_error(ERR_CHECK);
-        goto EXIT;
+        // disp_update_error(ERR_CHECK);
+        // goto EXIT;
     }
 
 	Log.d(TAG, "check file [%s] MD5 success...", update_app_name);
@@ -501,9 +502,6 @@ static bool is_fs_rw(const char* path)
 
 
 
-
-
-
 /*************************************************************************
 ** 方法名称: check_update_device_insert
 ** 方法功能: 检查系统中是否有可移动设备插入到系统
@@ -586,7 +584,7 @@ static bool wait_update_dev_mounted(char* dev_node, int timeout)
 		while ((iLen = read_line(fd, buf, sizeof(buf))) > 0) {
 			char *p = strtok(buf, delim);	/* 提取"cat /proc/mounts"的低0列(设备文件) */
 			if (p != nullptr) {
-				if (strstr(p, dev_node) != NULL) {
+				if (strstr(p, dev_node) != NULL) {	/* 找到第一个挂载上的USB/SD卡设备 */
 					Log.d(TAG, "device[%s] have mounted ....", p);
 					close(fd);
 					return true;
@@ -668,6 +666,10 @@ int main(int argc, char **argv)
 	bool result = false;
 	const char* pUcDelayStr = NULL;	
 	long iDelay = 0;
+	char com_cmd[1024] = {0};
+	char cp_src_path[1024] = {0};
+	char cp_dst_path[1024] = {0};
+	int iCpCnt = 0;
 
 	/* 注册信号处理函数 */
     registerSig(default_signal_handler);
@@ -726,57 +728,65 @@ int main(int argc, char **argv)
 			goto EXIT;
 		}
 
-		property_set("update_image_path", gUpdateImageRootPath);
+		/* 将升级文件拷贝到/tmp目录下 */
+		sprintf(cp_src_path, "%s/%s", gUpdateImageRootPath, UPDATE_IMAGE_FILE);
+		sprintf(cp_dst_path, "%s/%s", "/tmp", UPDATE_IMAGE_FILE);
+		Log.d(TAG, "[%s: %d] Copy image source path name: %s", __FILE__, __LINE__, cp_src_path);
+		Log.d(TAG, "[%s: %d] Copy image dest path name: %s", __FILE__, __LINE__, cp_dst_path);
 
-		/** 升级文件存在 */
-		init_oled_module();
-
-		Log.e(TAG, "update_image_path[%s]", property_get("update_image_path"));
+		sprintf(com_cmd, "cp -f %s %s", cp_src_path, cp_dst_path);
 		
-		/* 检查磁盘空间是否足够 */
-		memset(image_path, 0, sizeof(image_path));
-		sprintf(image_path, "%s/%s", gUpdateImageRootPath, UPDATE_IMAGE_FILE);
-		sprintf(upate_check_path, "%s/%s", gUpdateImageRootPath, UPDATE_APP_ZIP);
-		u32 bin_file_size = get_file_size(image_path);	/* 得到升级文件的大小 */
-
-
-#if 0
-		if (!check_free_space(gUpdateImageRootPath, (u32)((bin_file_size * 3) >> 20))) {
-			Log.e(TAG, "free space is not enough for unzip image");
-			disp_update_error(ERR_SPACE_LIMIT);
-			err_reboot();
+		for (int i = 0; i < 3; i++) {
+			if (system(com_cmd)) {
+				iCpCnt++;
+				Log.e(TAG, "[%s: %d] Exec Copy Image from disk to System(/tmp) failed", __FILE__, __LINE__);
+				msg_util::sleep_ms(500);
+			} else {
+				Log.d(TAG, "[%s: %d] Exec Copy Image from disk to System(/tmp) Success", __FILE__, __LINE__);
+				break;
+			}
 		}
 
+		if (iCpCnt >= 3) {
+			Log.e(TAG, "[%s:%d] Copy retry 3 times failed, What's wrong, reboot now", __FILE__, __LINE__);
+			system("reboot");
+		} else {
 
-		/* 检查SD卡是否 */
-		if (is_fs_rw(gUpdateImageRootPath) == false) {
-			Log.e(TAG, "readonly fs is checked ...", gUpdateImageRootPath);
-			disp_update_error(ERR_RDONLY_DEV);
-			err_reboot();			
-		}
-#endif
-
-        iRet = get_unzip_update_check(gUpdateImageRootPath);	/* 提取用于系统更新的应用: update_app */
-        if (iRet == 0) {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */
+			property_set("update_image_path", UPDATE_IMG_DEST_PATH);
 			
-			/* 设置属性: "sys.uc_update_app"为true
-		 	 * 让monitor服务启动update_app服务来进行具体的更新操作 
-		 	 */
-			property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
-			Log.d(TAG, "update_check normal exit now ...");
-			arlog_close();
+			/** 升级文件存在 */
+			init_oled_module();
 
-			/* 删除update_app.zip */
-			unlink(upate_check_path);		
-			return 0;
-        } else if (iRet == 2) {	/* 版本低于目标板 */
-			Log.d(TAG, "image version smaller than board...");
-			goto EXIT;
-		} else {	/* 提取update_app失败,提示错误并重启 */
-            Log.e(TAG, "get_update_app fail\n");
-			disp_update_error(ERR_GET_APP);
-			err_reboot();
-        }		
+			Log.e(TAG, "update_image_path[%s]", property_get("update_image_path"));
+			
+			#if 0
+			/* 检查磁盘空间是否足够 */
+			memset(image_path, 0, sizeof(image_path));
+			sprintf(image_path, "%s/%s", gUpdateImageRootPath, UPDATE_IMAGE_FILE);
+			sprintf(upate_check_path, "%s/%s", gUpdateImageRootPath, UPDATE_APP_ZIP);
+			u32 bin_file_size = get_file_size(image_path);	/* 得到升级文件的大小 */
+			#endif
+
+
+       		iRet = get_unzip_update_check(UPDATE_IMG_DEST_PATH);	/* 提取用于系统更新的应用: update_app */
+			if (iRet == 0) {	/* 提取update_app成功(会将其放入到/usr/local/bin/app/下) */
+				
+				/* 设置属性: "sys.uc_update_app"为true
+					* 让monitor服务启动update_app服务来进行具体的更新操作 
+					*/
+				property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
+				Log.d(TAG, "update_check normal exit now ...");
+				arlog_close();	
+				return 0;
+			} else if (iRet == 2) {	/* 版本低于目标板 */
+				Log.d(TAG, "image version smaller than board...");
+				goto EXIT;
+			} else {	/* 提取update_app失败,提示错误并重启 */
+				Log.e(TAG, "get_update_app fail\n");
+				disp_update_error(ERR_GET_APP);
+				err_reboot();
+			}	
+		}	
 	} else {
 		Log.d(TAG, "update device not insert yet....");
 	}

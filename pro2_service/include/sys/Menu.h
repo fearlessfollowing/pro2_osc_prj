@@ -73,7 +73,11 @@ enum {
 #endif
     MENU_SHOW_SPACE,
     
-    //messagebox keep at the end
+    MENU_TF_FORMAT_SELECT,      /* TF卡的格式化选中菜单 */
+
+    MENU_SET_TEST_SPEED,        /* 设置页的测速菜单 */
+
+    //messagebox keep at the end mAebList
     MENU_DISP_MSG_BOX,          // 28
     MENU_MAX,                   // 29
 
@@ -513,7 +517,7 @@ static MENU_INFO mMenuInfos[] = {
      * MENU_FORMAT_INDICATION
      */
     {
-        MENU_FORMAT,
+        MENU_SHOW_SPACE,
         {0},
         {0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
         MENU_FORMAT_INDICATION,
@@ -556,6 +560,26 @@ static MENU_INFO mMenuInfos[] = {
 		NULL,
         NULL,        
 	},
+
+
+    {	/* MENU_SHOW_SPACE SetStorageItem */
+    	MENU_SHOW_SPACE,
+		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
+		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		MENU_TF_FORMAT_SELECT,           /* Menu ID: MENU_TF_FORMAT_SELECT */
+		NULL,
+        NULL,        
+	},
+
+    {	/* MENU_SHOW_SPACE SetStorageItem */
+    	MENU_STORAGE,
+		{-1, 0, 0, 0, 0, 1}, 
+		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		MENU_SET_TEST_SPEED,           /* Menu ID: MENU_TF_FORMAT_SELECT */
+		NULL,
+        NULL,        
+	},
+
 
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,

@@ -482,6 +482,10 @@ const char* getCurMenuStr(int iCurMenu)
         pRet = "MENU_SHOW_SPACE";
         break;
 
+    case MENU_TF_FORMAT_SELECT: 
+        pRet = "MENU_TF_FORMAT_SELECT";
+        break;
+    
 	default:
 		pRet = "Unkown Menu";
 		break;
@@ -652,6 +656,8 @@ void MenuUI::init_cfg_select()
     mLiveAllItemsList.clear();
 
     mShowStorageList.clear();
+
+    mTfFormatSelList.clear();
 
     init_menu_select();     /* 菜单项初始化 */
 
@@ -1019,20 +1025,16 @@ void MenuUI::updateMenuCurPageAndSelect(int menu, int iSelect)
 ** 调 用: init_menu_select
 **
 *************************************************************************/
-void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
+void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu, SettingItem** pSetItem)
 {
     Log.d(TAG, "[%s:%d] Init System Setting subsyste Menu...", __FILE__, __LINE__);
 
     int size = pParentMenu->mSelectInfo.total;
     ICON_POS tmPos;
     int val = 0;
-    SettingItem** pSetItem = static_cast<SettingItem**>(pParentMenu->priv);
-
+    
     for (int i = 0; i < size; i++) {
 
-        /*
-         * 坐标的设置
-         */
 		int pos = i % pParentMenu->mSelectInfo.page_max;		// 3
 		switch (pos) {
 			case 0:
@@ -1154,14 +1156,13 @@ void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu)
 }
 
 
-void MenuUI::setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists)
+void MenuUI::setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists, SettingItem**  pSetItem, ICON_POS* pIconPos)
 {
     Log.d(TAG, "[%s:%d] Init Set Photo Delay Menu...", __FILE__, __LINE__);
 
     if (pParentMenu) {
         int size = pParentMenu->mSelectInfo.total;
         ICON_POS tmPos;
-        SettingItem** pSetItem = static_cast<SettingItem**>(pParentMenu->priv);
 
         for (int i = 0; i < size; i++) {
 
@@ -1171,22 +1172,18 @@ void MenuUI::setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetI
             int pos = i % pParentMenu->mSelectInfo.page_max;		// 3
             switch (pos) {
                 case 0:
-                    tmPos.yPos 		= 16;
+                    pIconPos->yPos 		= 16;
                     break;
 
                 case 1:
-                    tmPos.yPos 		= 32;
+                    pIconPos->yPos 		= 32;
                     break;
                 
                 case 2:
-                    tmPos.yPos 		= 48;
+                    pIconPos->yPos 		= 48;
                     break;
-            }
-            tmPos.xPos 		= 34;   /* 水平方向的起始坐标 */
-            tmPos.iWidth	= 89;   /* 显示的宽 */
-            tmPos.iHeight   = 16;   /* 显示的高 */
-        
-            pSetItem[i]->stPos = tmPos;
+            }        
+            pSetItem[i]->stPos = *pIconPos;
             pItemLists.push_back(pSetItem[i]);  
         }
     } else {
@@ -1240,11 +1237,13 @@ void MenuUI::setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSet
 void MenuUI::setMenuCfgInit()
 {
     int iPageCnt = 0;
+    ICON_POS tmPos;
+    ICON_POS nvPos;     /* 导航图标的坐标 */
 
     /*
      * 设置菜单
      */
-    mMenuInfos[MENU_SYS_SETTING].priv = static_cast<void*>(gSettingItems);
+    mMenuInfos[MENU_SYS_SETTING].priv = static_cast<void*>(&setPageNvIconInfo);
     mMenuInfos[MENU_SYS_SETTING].privList = static_cast<void*>(&mSetItemsList);
 
     mMenuInfos[MENU_SYS_SETTING].mSelectInfo.total = sizeof(gSettingItems) / sizeof(gSettingItems[0]);
@@ -1263,13 +1262,13 @@ void MenuUI::setMenuCfgInit()
                 mMenuInfos[MENU_SYS_SETTING].mSelectInfo.total,
                 mMenuInfos[MENU_SYS_SETTING].mSelectInfo.page_num);
 
-    setSysMenuInit(&mMenuInfos[MENU_SYS_SETTING]);   /* 设置系统菜单初始化 */
+    setSysMenuInit(&mMenuInfos[MENU_SYS_SETTING], gSettingItems);   /* 设置系统菜单初始化 */
 
 
     /*
      * Photot delay菜单
      */
-    mMenuInfos[MENU_SET_PHOTO_DEALY].priv = static_cast<void*>(gSetPhotoDelayItems);
+    mMenuInfos[MENU_SET_PHOTO_DEALY].priv = static_cast<void*>(&setPhotoDelayNvIconInfo);
     mMenuInfos[MENU_SET_PHOTO_DEALY].privList = static_cast<void*>(&mPhotoDelayList);
 
     mMenuInfos[MENU_SET_PHOTO_DEALY].mSelectInfo.total = sizeof(gSetPhotoDelayItems) / sizeof(gSetPhotoDelayItems[0]);
@@ -1285,6 +1284,7 @@ void MenuUI::setMenuCfgInit()
 
     mMenuInfos[MENU_SET_PHOTO_DEALY].mSelectInfo.page_num = iPageCnt;
 
+
     /* 使用配置值来初始化首次显示的页面 */
     updateMenuCurPageAndSelect(MENU_SET_PHOTO_DEALY, mProCfg->get_val(KEY_PH_DELAY));
 
@@ -1295,12 +1295,16 @@ void MenuUI::setMenuCfgInit()
                 mMenuInfos[MENU_SET_PHOTO_DEALY].mSelectInfo.select
                 );
 
-    setCommonMenuInit(&mMenuInfos[MENU_SET_PHOTO_DEALY], mPhotoDelayList);   /* 设置系统菜单初始化 */
+    tmPos.yPos 		= 48;
+    tmPos.xPos 		= 34;   /* 水平方向的起始坐标 */
+    tmPos.iWidth	= 89;   /* 显示的宽 */
+    tmPos.iHeight   = 16;   /* 显示的高 */
+    setCommonMenuInit(&mMenuInfos[MENU_SET_PHOTO_DEALY], mPhotoDelayList, gSetPhotoDelayItems, &tmPos);   /* 设置系统菜单初始化 */
 
 
 #ifdef ENABLE_MENU_AEB	
 
-    mMenuInfos[MENU_SET_AEB].priv = static_cast<void*>(gSetAebItems);
+    mMenuInfos[MENU_SET_AEB].priv = static_cast<void*>(&setAebsNvIconInfo);
     mMenuInfos[MENU_SET_AEB].privList = static_cast<void*>(&mAebList);
 
     mMenuInfos[MENU_SET_AEB].mSelectInfo.total = sizeof(gSetAebItems) / sizeof(gSetAebItems[0]);
@@ -1319,6 +1323,7 @@ void MenuUI::setMenuCfgInit()
     /* 使用配置值来初始化首次显示的页面 */
     updateMenuCurPageAndSelect(MENU_SET_AEB, mProCfg->get_val(KEY_AEB));
 
+
     Log.d(TAG, "Set AEB Menu Info: total items [%d], page count[%d], cur page[%d], select [%d]", 
                 mMenuInfos[MENU_SET_AEB].mSelectInfo.total,
                 mMenuInfos[MENU_SET_AEB].mSelectInfo.page_num,
@@ -1326,11 +1331,17 @@ void MenuUI::setMenuCfgInit()
                 mMenuInfos[MENU_SET_AEB].mSelectInfo.select
                 );
 
-    setCommonMenuInit(&mMenuInfos[MENU_SET_AEB], mAebList);   /* 设置系统菜单初始化 */
+    tmPos.xPos 		= 41;   /* 水平方向的起始坐标 */
+    tmPos.yPos 		= 48;
+    tmPos.iWidth	= 87;   /* 显示的宽： 实际应该小点 */
+    tmPos.iHeight   = 16;   /* 显示的高 */
+
+
+    setCommonMenuInit(&mMenuInfos[MENU_SET_AEB], mAebList, gSetAebItems, &tmPos);   /* 设置系统菜单初始化 */
 #endif
 
 
-    mMenuInfos[MENU_STORAGE].priv = static_cast<void*>(gStorageSetItems);
+    mMenuInfos[MENU_STORAGE].priv = static_cast<void*>(&storageNvIconInfo);
     mMenuInfos[MENU_STORAGE].privList = static_cast<void*>(&mStorageList);
 
     mMenuInfos[MENU_STORAGE].mSelectInfo.total = sizeof(gStorageSetItems) / sizeof(gStorageSetItems[0]);
@@ -1358,7 +1369,55 @@ void MenuUI::setMenuCfgInit()
                 mMenuInfos[MENU_STORAGE].mSelectInfo.select
                 );
 
-    setStorageMenuInit(&mMenuInfos[MENU_STORAGE], mStorageList);   /* 设置系统菜单初始化 */
+
+    tmPos.xPos 		= 25;   /* 水平方向的起始坐标 */
+    tmPos.yPos 		= 16;
+    tmPos.iWidth	= 103;   /* 显示的宽 */
+    tmPos.iHeight   = 16;   /* 显示的高 */
+    setCommonMenuInit(&mMenuInfos[MENU_STORAGE], mStorageList, gStorageSetItems, &tmPos);   /* 设置系统菜单初始化 */
+
+
+    mMenuInfos[MENU_SHOW_SPACE].priv = static_cast<void*>(&spaceNvIconInfo);
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max = 3;
+
+
+
+    mMenuInfos[MENU_TF_FORMAT_SELECT].priv = static_cast<void*>(&storageNvIconInfo);
+    mMenuInfos[MENU_TF_FORMAT_SELECT].privList = static_cast<void*>(&mStorageList);
+
+    mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.total = sizeof(gStorageSetItems) / sizeof(gStorageSetItems[0]);
+    mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.select = 0;   
+    mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_max = 3;
+
+    iPageCnt = mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.total % mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_max;
+    if (iPageCnt == 0) {
+        iPageCnt = mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.total / mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_max;
+    } else {
+        iPageCnt = mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.total / mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_max + 1;
+    }
+
+    mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_num = iPageCnt;
+
+
+#if 0
+    /* 使用配置值来初始化首次显示的页面 */
+    updateMenuCurPageAndSelect(MENU_SET_AEB, mProCfg->get_val(KEY_AEB));
+#endif
+
+    Log.d(TAG, "Set TF Card format select Menu Info: total items [%d], page count[%d], cur page[%d], select [%d]", 
+                mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.total,
+                mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.page_num,
+                mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.cur_page,
+                mMenuInfos[MENU_TF_FORMAT_SELECT].mSelectInfo.select);
+
+    tmPos.xPos 		= 0;        /* 水平方向的起始坐标 */
+    tmPos.yPos 		= 16;
+    tmPos.iWidth	= 128;      /* 显示的宽： 实际应该小点 */
+    tmPos.iHeight   = 16;       /* 显示的高 */
+
+
+    setCommonMenuInit(&mMenuInfos[MENU_TF_FORMAT_SELECT], mTfFormatSelList, gTfFormatSelectItems, &tmPos); 
 
 }
 
@@ -1980,7 +2039,13 @@ void MenuUI::set_cur_menu_from_exit()
         Log.e(TAG,"set_cur_menu_from_exit met error ");
         cur_menu = MENU_TOP;
     }
-	
+
+#ifdef ENABLE_SPACE_PAGE_POWER_ON_MODULE	
+    if (old_menu == MENU_SHOW_SPACE) {
+        system("power_manager power_off");
+    }
+#endif
+
     if (menuHasStatusbar(cur_menu)) {
         clear_area();
     }
@@ -2378,7 +2443,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 pAebPicVidCfg = getPicVidCfgByName(mPicAllItemsList, TAKE_PIC_MODE_AEB);
                 if (pAebSetItem && pAebPicVidCfg) {
                     PIC_ORG* pTmpAeb = pAebSetItem->stOrigArg[pAebSetItem->iCurVal];
-                    memcpy(&(pAebPicVidCfg->pStAction->stOrgInfo.stOrgAct), pTmpAeb, sizeof(ORG_INFO));
+                    memcpy(&(pAebPicVidCfg->pStAction->stOrgInfo.stOrgAct.mOrgP), pTmpAeb, sizeof(PIC_ORG));
                     Log.d(TAG, "[%s: %d] Current AEB info: hdr_count: %d, min_ev: %d, max_ev: %d", 
                                 __FILE__, __LINE__, pTmpAeb->hdr_count, pTmpAeb->min_ev, pTmpAeb->max_ev);
 
@@ -3924,6 +3989,12 @@ void MenuUI::updateMenu()
             updateInnerStoragePage(gStorageInfoItems, true);
             break;
 
+
+        case MENU_TF_FORMAT_SELECT:
+            updateInnerSetPage(mTfFormatSelList, true);
+            break;
+
+
         case MENU_FORMAT:
             disp_format();
             break;
@@ -3931,45 +4002,6 @@ void MenuUI::updateMenu()
         default:
             Log.w(TAG, " Unkown join Update Menu [%d]", cur_menu);
             break;
-    }
-}
-
-/*
- * 先按当前的 Volume
- */
-
-void MenuUI::get_storage_info()
-{
-    int storage_index;
-
-    memset(total_space, 0, sizeof(total_space));
-    memset(used_space, 0, sizeof(used_space));
-
-    Log.d(TAG, "get total mLocalStorageList.size() %d", mLocalStorageList.size());
-    for (u32 i = 0; i < mLocalStorageList.size(); i++) {
-        struct statfs diskInfo;
-        u64 totalsize = 0;
-        u64 used_size = 0;
-        storage_index = get_dev_type_index(mLocalStorageList.at(i)->dev_type);
-
-        if (access(mLocalStorageList.at(i)->path, F_OK) != -1) {
-            statfs(mLocalStorageList.at(i)->path, &diskInfo);
-            u64 blocksize = diskInfo.f_bsize;    //每个block里包含的字节数
-            totalsize = blocksize * diskInfo.f_blocks;   //总的字节数，f_blocks为block的数目
-//            used_size = (diskInfo.f_blocks - diskInfo.f_bavail) * blocksize;   //可用空间大小
-            used_size = (diskInfo.f_blocks - diskInfo.f_bfree) * blocksize;   //可用空间大小
-
-            convert_space_to_str(totalsize,
-                                 total_space[storage_index],
-                                 sizeof(total_space[storage_index]));
-            convert_space_to_str(used_size,
-                                 used_space[storage_index],
-                                 sizeof(used_space[storage_index]));
-  
-            Log.d(TAG," used %s total %s path %s",used_space[storage_index],total_space[storage_index],mLocalStorageList.at(i)->path);
-        } else {
-            Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
-        }
     }
 }
 
@@ -4018,12 +4050,8 @@ void MenuUI::getShowStorageInfo()
     mShowStorageList.clear();
     sp<Volume> tmpVolume;
 
-    bQueryResult = queryCurStorageState(9000);
-    if (!bQueryResult) {
-        Log.d(TAG, "[%s: %d] Warnning Query Remote Storage device Info failed, Used old storage Info.");
-    }
 
-    /* 将本地及远端的存储设备信息加入到mShowStorageList列表 */
+   /* 将本地及远端的存储设备信息加入到mShowStorageList列表 */
     for (u32 i = 0; i < mLocalStorageList.size(); i++) {
         struct statfs diskInfo;
         u64 totalsize = 0;
@@ -4054,41 +4082,47 @@ void MenuUI::getShowStorageInfo()
         }
     }
 
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);   
-        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-            struct statfs diskInfo;
-            u64 totalsize = 0;
-            u64 used_size = 0;
+    bQueryResult = queryCurStorageState(9000);
+    if (!bQueryResult) {
+        Log.d(TAG, "[%s: %d] Warnning Query Remote Storage device Info failed, Used old storage Info.");
+    } else {
 
-            tmpVolume = (sp<Volume>)(new Volume());
+        {
+            unique_lock<mutex> lock(mRemoteDevLock);   
+            for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+                struct statfs diskInfo;
+                u64 totalsize = 0;
+                u64 used_size = 0;
 
-            memset(tmpVolume->name, 0, sizeof(tmpVolume->name));
-            
-            /* 名称不能超过3位 */
-            sprintf(tmpVolume->name, "%s", mRemoteStorageList.at(i)->name);
-            tmpVolume->total = mRemoteStorageList.at(i)->total;
-            tmpVolume->avail = mRemoteStorageList.at(i)->avail;
-            tmpVolume->iIndex = mRemoteStorageList.at(i)->iIndex;
-            tmpVolume->iType = VOLUME_TYPE_MODULE;        
+                tmpVolume = (sp<Volume>)(new Volume());
 
-            mShowStorageList.push_back(tmpVolume);
+                memset(tmpVolume->name, 0, sizeof(tmpVolume->name));
+                
+                /* 名称不能超过3位 */
+                sprintf(tmpVolume->name, "%s", mRemoteStorageList.at(i)->name);
+                tmpVolume->total = mRemoteStorageList.at(i)->total;
+                tmpVolume->avail = mRemoteStorageList.at(i)->avail;
+                tmpVolume->iIndex = mRemoteStorageList.at(i)->iIndex;
+                tmpVolume->iType = VOLUME_TYPE_MODULE;        
+
+                mShowStorageList.push_back(tmpVolume);
+            }
         }
-    }
 
-#ifdef ENABLE_DEBUG_MODE
-    Log.d(TAG, "mShowStorageList.size() = %d", mShowStorageList.size());
-    for (u32 i = 0; i < mShowStorageList.size(); i++) {
-        Log.d(TAG, "Volueme type: %d", mShowStorageList.at(i)->iType);
-        Log.d(TAG, "Volueme Total: %d MB", mShowStorageList.at(i)->total);
-        Log.d(TAG, "Volueme Free: %d MB", mShowStorageList.at(i)->avail);        
+    #ifdef ENABLE_DEBUG_MODE
+        Log.d(TAG, "mShowStorageList.size() = %d", mShowStorageList.size());
+        for (u32 i = 0; i < mShowStorageList.size(); i++) {
+            Log.d(TAG, "Volueme type: %d", mShowStorageList.at(i)->iType);
+            Log.d(TAG, "Volueme Total: %d MB", mShowStorageList.at(i)->total);
+            Log.d(TAG, "Volueme Free: %d MB", mShowStorageList.at(i)->avail);        
+        }
+    #endif
+
     }
-#endif
 
     /* 根据查询的结果来重新初始化菜单 */
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total = mShowStorageList.size();
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
-    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max = 3;
 
     int iPageCnt = mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total % mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max;
     if (iPageCnt == 0) {
@@ -4170,6 +4204,7 @@ void MenuUI::calcRemainSpace()
      * 对于录像: 首先计算出容量最小的小卡, 然后按照当前的码率
      */
     queryCurStorageState(2000);
+
     if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF) {    /* 拍照模式下计算剩余空间: 只计算大卡的即可 */
         if (localStorageAvail()) {
             convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
@@ -4181,16 +4216,6 @@ void MenuUI::calcRemainSpace()
         // queryCurStorageState(2000);
         calcRemoteRemainSpace();
         convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
-
-
-        #if 0
-        if (cur_menu == MENU_VIDEO_SET_DEF || cur_menu == MENU_LIVE_SET_DEF) {
-            if (mReoteRecLiveLeftSize > 0) {
-                convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
-            }
-        } 
-        #endif
-
     }
 }
 
@@ -4338,17 +4363,6 @@ void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
     }
 }
 
-void MenuUI::convert_space_to_str(u64 size, char *str, int len)
-{
-    double size_b = (double)size;
-    double info_G = (size_b/1024/1024/1024);
-
-    if (info_G >= 100.0) {
-        snprintf(str, len, "%ldG", (int64_t)info_G);
-    } else {
-        snprintf(str, len, "%.1fG", info_G);
-    }
-}
 
 
 /*
@@ -4435,7 +4449,7 @@ void MenuUI::dispBottomLeftSpace()
     } else {    /* 录像或拍照页面 */
 
         #if 1
-        if (!checkHaveLocalSavePath() && 1 /* checkHaveRemoteSavePath()*/) {
+        if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {
             switch (cur_menu) {
 			    /* 录像界面: */				
                 case MENU_VIDEO_INFO:
@@ -4446,16 +4460,19 @@ void MenuUI::dispBottomLeftSpace()
                         Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
                         clear_area(78, 48);
                     } else {
-                        // if (tl_count == -1) {
+                         if (tl_count == -1) {
 
-                        //     if (check_rec_tl()) {
-                        //         clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
-                        //     } else {
+                             if (check_rec_tl()) {
+                                 clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
+                             } else {
                                 snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", mRemainInfo->remain_hour,
                                     mRemainInfo->remain_min, mRemainInfo->remain_sec);
                                 disp_str_fill((const u8 *) disk_info, 78, 48);
-                        //     }
-                        // }
+                             }
+                        } else {    /* 拍摄的是timelapse,显示剩余可拍的张数 */
+                            snprintf(disk_info, sizeof(disk_info), "  %d", mCanTakePicNum);
+                            disp_str_fill((const u8 *) disk_info, 78, 48);
+                        }
                     }
                     break;
             
@@ -4588,6 +4605,7 @@ struct _select_info_ * MenuUI::getCurMenuSelectInfo()
 ** 方法功能: 显示一个设置页面
 ** 入口参数: 
 **		setItemsList  - 设置页元素列表
+**      pIconPos - 左侧导航图标的坐标
 ** 返回值: 无
 ** 调 用: 
 ** 
@@ -4597,6 +4615,7 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
     int item = 0;
     bool iSelected = false;
 
+    ICON_POS* pIconPos = NULL;
     struct stSetItem* pTempSetItem = NULL;
     SELECT_INFO * mSelect = getCurMenuSelectInfo();
     const int iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
@@ -4607,34 +4626,42 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
     if (end > mSelect->total)
         end = mSelect->total;
     
+    /*
+     * 对于设置系统的页，菜单的私有数据保存的为其左侧导航图标的坐标
+     */
+    pIconPos = (ICON_POS*)mMenuInfos[cur_menu].priv;
 
-    /* 重新显示正页时，清除整个页 */
-    clear_area(32, 16);
+    if (pIconPos) {
 
-	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
-    Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
+        /* 重新显示正页时，清除整个页 */
+        clear_area(pIconPos->xPos + pIconPos->iWidth, 16);
 
-    while (start < end) {
+        /* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
+        Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
 
-        Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
-        pTempSetItem = setItemsList.at(start);
-        
-        if (pTempSetItem != NULL) {
-            if (start < mSelect->total) {
-                if (start == iIndex) {
-                    iSelected = true;
-                } else {
-                    iSelected = false;
+        while (start < end) {
+
+            Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+            pTempSetItem = setItemsList.at(start);
+            
+            if (pTempSetItem != NULL) {
+                if (start < mSelect->total) {
+                    if (start == iIndex) {
+                        iSelected = true;
+                    } else {
+                        iSelected = false;
+                    }
+                    dispSetItem(pTempSetItem, iSelected);
                 }
-                dispSetItem(pTempSetItem, iSelected);
+            } else {
+                Log.e(TAG, "[%s:%d] dispSettingPage -> invalid index[%d]", start);
             }
-        } else {
-            Log.e(TAG, "[%s:%d] dispSettingPage -> invalid index[%d]", start);
+            start++;
+            item++;
         }
-        start++;
-        item++;
+    } else {
+        Log.e(TAG, "[%s: %d] Warnning Invalid Nv Position in Menu[%s]", __FILE__, __LINE__, getCurMenuStr(cur_menu));
     }
-
 }
 
 
@@ -4777,15 +4804,54 @@ ERROR:
     msg_util::sleep_ms(3000);
 }
 
-void MenuUI::start_format()
+void MenuUI::startFormatDevice()
 {
+    /* getCurMenuStr
+     * 根据MENU_SHOW_SPACE来判断选择的是本地存储还是TF卡
+     * 如果选择的是TF卡,还需要MENU_TF_FORMAT_SELECT来判断是格式化所有的TF卡还是格式化一张TF卡
+     */
     bool bFound = false;
+    SetStorageItem* tmpStorageItem = NULL;
+    SettingItem* tmpFormatSelectItem = NULL;
+
+    int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
+    Log.d(TAG, "[%s:%d] Select Device index [%d] in MENU_SHOW_SPACE", __FILE__, __LINE__, iIndex);
+    tmpStorageItem = gStorageInfoItems[iIndex];
+
+    
+    Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
+    
+    if (!strncmp(tmpStorageItem->stVolumeInfo.name, "TF", strlen("TF"))) {
+        int iIndex = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
+        Log.d(TAG, "[%s: %d] Format TF Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
+
+        tmpFormatSelectItem = gTfFormatSelectItems[iIndex];
+        if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
+            /* 格式化一张卡 */
+            Log.d(TAG, "[%s: %d] Format TF Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
+            /* 显示格式化消息: "TF Card X is Formatting..." */
+            
+            
+
+        } else {
+            /* 格式化所有的卡 */
+            Log.d(TAG, "[%s: %d] Format All TF Card", __FILE__, __LINE__);
+
+        }
+
+        /* 状态机添加格式化状态 */
+        add_state(STATE_FORMATING);
+    } else {    /* 本地存储设备 */
+        Log.d(TAG, "[%s: %d] Format Native USB Device", __FILE__, __LINE__);
+    }
+    
+    #if 0
     switch (getMenuSelectIndex(MENU_SHOW_SPACE)) {
         case SET_STORAGE_SD:
             disp_icon(ICON_SDCARD_FORMATTING128_48);
             for(u32 i = 0; i < mLocalStorageList.size(); i++) {
                 if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_SD) {
-                    format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
+                    format(mLocalStorageList.at(i)->src, mLocalStorageList.at(i)->path, ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
                     bFound = true;
                     break;
                 }
@@ -4804,7 +4870,7 @@ void MenuUI::start_format()
                 }
             }
             break;
-        SWITCH_DEF_ERROR(getMenuSelectIndex(MENU_STORAGE))
+        // SWITCH_DEF_ERROR(getMenuSelectIndex(MENU_STORAGE))
     }
 
     if (!bFound) {
@@ -4819,6 +4885,8 @@ void MenuUI::start_format()
 //    msg_util::sleep_ms(2000);
 //    rm_state(STATE_FORMATING);
 //    setCurMenu(MENU_FORMAT);
+#endif
+
 }
 
 void MenuUI::disp_format()
@@ -5503,7 +5571,10 @@ bool MenuUI::isDevExist()
 void MenuUI::enterMenu(bool dispBottom)
 {
 	Log.d(TAG, "enterMenu is [%s]", getCurMenuStr(cur_menu));
+    ICON_INFO* pNvIconInfo = NULL;
 
+    pNvIconInfo = static_cast<ICON_INFO*>(mMenuInfos[cur_menu].priv);
+    
     switch (cur_menu) {
         case MENU_TOP:      /* 主菜单 */
             disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][getCurMenuCurSelectIndex()]);
@@ -5595,16 +5666,28 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_STORAGE:      /* 存储菜单 */
             clear_area(0, 16);
-            disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);
+            if (pNvIconInfo) {
+                dispIconByLoc(pNvIconInfo);
+            } else {
+                Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }
 
-            /* 进入存储页 */
-            dispSettingPage(mStorageList);					/* 显示"右侧"的项 */
+            dispSettingPage(mStorageList);  /* 显示"右侧"的项: Storage Space; Test Write Speed */
             break;
+
 
         case MENU_SHOW_SPACE:   /* 显示存储设备菜单 */
             clear_area(0, 16);
-            disp_icon(ICON_STORAGE_IC_DEFAULT_0016_25X48);  /* 暂时没有图标 */
-            
+
+#ifdef ENABLE_SPACE_PAGE_POWER_ON_MODULE
+            system("power_manager power_on");
+#endif
+            if (pNvIconInfo) {
+                dispIconByLoc(pNvIconInfo);
+            } else {
+                Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }            
+
             /* 查询的时间有点长,显示等待... */
             dispIconByLoc(&queryStorageWait);
 
@@ -5619,7 +5702,11 @@ void MenuUI::enterMenu(bool dispBottom)
 
 			clear_area(0, 16);									/* 清除真个区域 */
 
-            dispIconByLoc(&setPhotoDelayNv);
+            if (pNvIconInfo) {
+                dispIconByLoc(pNvIconInfo);
+            } else {
+                Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }
 
             /* 进入设置"Set Photo Delay" */
             dispSettingPage(mPhotoDelayList);					/* 显示"右侧"的项 */
@@ -5629,20 +5716,37 @@ void MenuUI::enterMenu(bool dispBottom)
         case MENU_SET_AEB:
             Log.d(TAG, "[%s:%d] +++++>>> enter aeb Menu now .... ", __FILE__, __LINE__);
             clear_area(0, 16);	
-            dispIconByLoc(&setAebs);
+
+            if (pNvIconInfo) {
+                dispIconByLoc(pNvIconInfo);
+            } else {
+                Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }
+
             dispSettingPage(mAebList);
             break;
 #endif
 
 		
+
         case MENU_SYS_SETTING:      /* 显示"设置菜单"" */
             clear_area(0, 16);
-            disp_icon(ICON_SET_IC_DEFAULT_25_48_0_1625_48);         /* 显示左侧的"设置图标" */
 
+            if (pNvIconInfo) {
+                dispIconByLoc(pNvIconInfo);
+            } else {
+                Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+            }
             /* 显示设置页 */
             dispSettingPage(mSetItemsList);
             break;
 			
+
+        case MENU_TF_FORMAT_SELECT: /* 格式化选择 */
+            clear_area(0, 16);
+            /* 显示设置页 */
+            dispSettingPage(mTfFormatSelList);
+            break;
 
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
@@ -5715,6 +5819,7 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
         case MENU_SPEED_TEST: {
+            #if 0
             if (!checkHaveLocalSavePath()) {
                 int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
 
@@ -5754,8 +5859,14 @@ void MenuUI::enterMenu(bool dispBottom)
                 Log.d(TAG, "card remove while speed test cam_state 0x%x", cam_state);
                 procBackKeyEvent();
             }
+            #else 
+            clear_area(0, 16);
+            dispIconByLoc(&testSpeedIconInfo);
+            send_option_to_fifo(ACTION_SPEED_TEST);
+            #endif
+            break;            
         }
-            break;
+
 
         case MENU_RESET_INDICATION:
             aging_times = 0;
@@ -5763,12 +5874,19 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
         case MENU_FORMAT_INDICATION:
-            Log.d(TAG,"cam state 0x%x",cam_state);
+
+            Log.d(TAG, "cam state 0x%x", cam_state);
+
+            #if 0
             if (isDevExist()) {
                 disp_icon(ICON_FORMAT_MSG_128_48128_48);
             } else {
                 setCurMenu(MENU_SHOW_SPACE);
             }
+            #else
+            disp_icon(ICON_FORMAT_MSG_128_48128_48);    /* 显示是否确认格式化 */
+            #endif
+
             break;
 
 #ifdef ENABE_MENU_WIFI_CONNECT
@@ -6180,7 +6298,7 @@ void MenuUI::procPowerKeyEvent()
         case MENU_SET_AEB:
             /* 获取MENU_SET_PHOTO_DELAY的Select_info.select的全局索引值,用该值来更新 */
             iIndex = getMenuSelectIndex(MENU_SET_AEB);
-            // int iEvArry[] = {-125, 125, -62, 62, -31, 31, -15, 15};
+
             Log.d(TAG, "[%s: %d] set aeb index[%d]", __FILE__, __LINE__, iIndex);
 
             updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AEB, iIndex);
@@ -6216,11 +6334,16 @@ void MenuUI::procPowerKeyEvent()
             break;
 			
         case MENU_SPEED_TEST:
+            #if 0
             if (check_state_equal(STATE_PREVIEW)) {
                 send_option_to_fifo(ACTION_SPEED_TEST);
             } else  {
                 Log.d(TAG, "speed cam_state 0x%x", cam_state);
             }
+            #else
+                send_option_to_fifo(ACTION_SPEED_TEST);
+            #endif
+
             break;
 			
         case MENU_RESET_INDICATION:
@@ -6231,9 +6354,9 @@ void MenuUI::procPowerKeyEvent()
             }
             break;
 			
-        case MENU_FORMAT_INDICATION:
+        case MENU_FORMAT_INDICATION:    /* 进入真正的格式化 */
             if (check_state_equal(STATE_IDLE)) {
-                start_format();
+                startFormatDevice();    /* 进行设备格式化 */
             } else if (check_state_equal(STATE_FORMAT_OVER)) {
                 rm_state(STATE_FORMAT_OVER);
                 set_cur_menu_from_exit();
@@ -6246,6 +6369,7 @@ void MenuUI::procPowerKeyEvent()
             send_option_to_fifo(ACTION_LIVE);
             break;
 
+
 #ifdef ENABLE_MENU_STITCH_BOX		
         case MENU_STITCH_BOX:
             if (!bStiching) {
@@ -6255,15 +6379,31 @@ void MenuUI::procPowerKeyEvent()
             break;
 #endif
          
-        case MENU_SHOW_SPACE: {
-            int select = getMenuSelectIndex(MENU_SHOW_SPACE);
-            Log.d(TAG, "used_space[%d] %s", select, used_space[select]);
 
-            if (strlen(used_space[select]) != 0) {
-                setCurMenu(MENU_FORMAT);
+        case MENU_SHOW_SPACE: { /* 如果选中的SD卡或者USB硬盘进入格式化指示菜单 */
+            int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
+
+            /* 选中的项是TF卡 */
+            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.name,"TF", strlen("TF"))) {
+                
+                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->stVolumeInfo.name);
+                /* 进入格式化模式选择菜单 */
+                setCurMenu(MENU_TF_FORMAT_SELECT);
+
+            } else {    /* 选中的是大SD卡或USB硬盘 */
+                setCurMenu(MENU_FORMAT_INDICATION);
             }
+
+
+            // if (strlen(used_space[select]) != 0) {
+            //     setCurMenu(MENU_FORMAT);
+            // }
             break;
         }
+
+        case MENU_TF_FORMAT_SELECT:
+            setCurMenu(MENU_FORMAT_INDICATION);
+            break;
 
         /*
          * 根据选择的值进入对应的下级别菜单
@@ -6274,9 +6414,11 @@ void MenuUI::procPowerKeyEvent()
             SettingItem* pTmpSetItem = mStorageList.at(iIndex);
             if (pTmpSetItem) {
                 if (!strcmp(pTmpSetItem->pItemName, SET_ITEM_NAME_STORAGESPACE)) {
-                    setCurMenu(MENU_SHOW_SPACE);
+                    setCurMenu(MENU_SHOW_SPACE);    /* 为了节省查询TF容量的时间过长,可在进入MENU_SHOW_SPACE时打开模组的电 - 2018年8月9日 */
                 } else if (!strcmp(pTmpSetItem->pItemName, SET_ITEM_NAME_TESTSPEED)) {
                     Log.d(TAG, "[%s: %d] Hi Hi not support yet");
+                    // setCurMenu(MENU_SPEED_TEST);
+                    send_option_to_fifo(ACTION_SPEED_TEST);
                 }
             }
 
@@ -6879,6 +7021,7 @@ void MenuUI::add_state(int state)
             break;
 		
         case STATE_FORMATING:
+            Log.d(TAG, "System enter Format state");
             break;
 
 			
@@ -7848,7 +7991,7 @@ int MenuUI::oled_disp_type(int type)
         case CALIBRATION_FAIL:
             mCalibrateSrc = false;
             rm_state(STATE_CALIBRATING);
-            disp_sys_err(type,get_back_menu(cur_menu));
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
 
 /*********************************	陀螺仪相关状态 END ********************************************/
@@ -8010,6 +8153,7 @@ int MenuUI::oled_disp_type(int type)
                 Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x", cam_state);
             } else {
                 disp_tl_count(tl_count);    /* 显示timelpase拍摄值以及剩余可拍的张数 */
+                dispBottomLeftSpace();
             }
             break;
 
@@ -8118,6 +8262,7 @@ void MenuUI::clear_icon(u32 type)
 {
     mOLEDModule->clear_icon(type);
 }
+
 
 
 void MenuUI::disp_icon(u32 type)
