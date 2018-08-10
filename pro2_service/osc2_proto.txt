@@ -387,6 +387,32 @@ indication:
 
 
 
+磁力计校正
+--------------------------------------------------------------------------------------------------------------
+request:
+{ "name":"camera._magmeterCalibration"}
+
+respone:
+{
+    "name":"camera._magmeterCalibration",
+    "parameters":{
+        "state":"done",
+        "results":{"mode":string},
+        "error":{"code":int, "description":string}
+    }
+}
+
+Async result:
+{
+    "name":"camera._magmeter_calibration_finish_",
+    "parameters": {
+        "state":string,
+        "error":{"code":int, "description":string}
+    } 
+}
+--------------------------------------------------------------------------------------------------------------
+
+
 
 
 -------------------------------------------------------------------------------------
@@ -395,3 +421,4 @@ indication:
 {"name": "camera._formatCameraMoudle", "parameters":{"index": -1}}
 {"name": "camera._formatCameraMoudle", "sequence": 0, "state": "done" }
 
+ 

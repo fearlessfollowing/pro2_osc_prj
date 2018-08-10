@@ -165,6 +165,7 @@ enum {
     UI_DISP_INIT,
     UI_UPDATE_TF,               /* TF卡状态消息 */
     UI_MSG_TF_STATE,
+    UI_MSG_TF_FORMAT_RES,
     UI_EXIT,                    /* 退出消息循环 */
 };
 
@@ -1914,6 +1915,14 @@ void MenuUI::sendTfStateChanged(vector<sp<Volume>>& mChangedList)
     msg->post();   
 }
 
+void MenuUI::notifyTfcardFormatResult(vector<sp<Volume>>& failList)
+{
+    sp<ARMessage> msg = obtainMessage(UI_MSG_TF_FORMAT_RES);
+    msg->set<std::vector<sp<Volume>>>("tf_list", failList);
+    msg->post();     
+}
+
+
 void MenuUI::send_disp_str(sp<DISP_TYPE> &sp_disp)
 {
     sp<ARMessage> msg = obtainMessage(OLED_DISP_STR_TYPE);
@@ -2718,6 +2727,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
         }
             
         case ACTION_LOW_BAT:
+            Log.d(TAG, "[%s: %d] Battery is Low, Send Command[%d] to Camerad", __FILE__, __LINE__, cmd);
             msg->set<int>("cmd", cmd);
             break;
 		
@@ -2846,6 +2856,13 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
 		case ACTION_QUERY_STORAGE:
 			break;
+
+        case ACTION_FORMAT_TFCARD:
+            msg->set<int>("index", cmd);    /* 格式化卡的索引值 */
+            Log.d(TAG, "[%s: %d] TF card index[%d]", __FILE__, __LINE__, cmd);
+            add_state(STATE_FORMATING);     /* 添加正在格式化状态 */
+            break;
+
 			
         SWITCH_DEF_ERROR(option)
     }
@@ -3376,8 +3393,11 @@ void MenuUI::procBackKeyEvent()
         }
 #endif        
     } else if (cur_menu == MENU_FORMAT_INDICATION) {
-        rm_state(STATE_FORMAT_OVER);
-        set_cur_menu_from_exit();
+        // rm_state(STATE_FORMAT_OVER);
+        
+        /* 格式化完成之前不能返回 */
+        if (!check_state_in(STATE_FORMATING))
+            set_cur_menu_from_exit();
     } else {
 		
         switch (cam_state) {
@@ -3621,78 +3641,60 @@ void MenuUI::updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, co
 }
 
 
-void MenuUI::update_sys_cfg(int item, int val)
+void MenuUI::updateSetItemVal(const char* pSetItemName, int iVal)
 {
-    val = val & 0x00000001;
-    Log.d(TAG," update_sys_cfg item %d val %d",item,val);
-    switch(item) {
-        case SET_FREQ:
-            mProCfg->set_val(KEY_PAL_NTSC, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FREQ, val);
-            break;
+    iVal = iVal & 0x00000001;
 
-        case SET_SPEAK_ON:
-            mProCfg->set_val(KEY_SPEAKER, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPEAKER, val);
-            break;
+    Log.d(TAG, "[%s:%d] updateSetItemVal Item Name[%s], iVal [%d]", __FILE__, __LINE__, pSetItemName, iVal);
+    
+    if (!strcmp(pSetItemName, SET_ITEM_NAME_FREQ)) {
+        mProCfg->set_val(KEY_PAL_NTSC, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FREQ, iVal);
+        send_option_to_fifo(ACTION_SET_OPTION, OPTION_FLICKER);    
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_SPEAKER)) {
+        mProCfg->set_val(KEY_SPEAKER, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPEAKER, iVal);
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_BOOTMLOGO)) {    /* Need Notify Camerad */
+        mProCfg->set_val(KEY_SET_LOGO, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_BOOTMLOGO, iVal);
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_LED)) {    
+        mProCfg->set_val(KEY_LIGHT_ON, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_LED, iVal);
+        if (iVal == 1) {
+            setLight();
+        } else {
+            setLightDirect(LIGHT_OFF);
+        }
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_SPAUDIO)) {    /* Need Notify Camerad */
+        mProCfg->set_val(KEY_AUD_SPATIAL, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPAUDIO, iVal);
+        if (mProCfg->get_val(KEY_AUD_ON) == 1) {
+            send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
+        }           
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_FAN)) {    /* Need Notify Camerad */
+        mProCfg->set_val(KEY_FAN, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FAN, iVal);
+        send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_FAN);
 
-        case SET_BOTTOM_LOGO:
-            mProCfg->set_val(KEY_SET_LOGO, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_BOOTMLOGO, val);
-            break;
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_AUDIO)) {    /* Need Notify Camerad */
+        mProCfg->set_val(KEY_AUD_ON, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AUDIO, iVal);
+        send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_AUD);
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_VIDSEG)) {    /* Need Notify Camerad */
+        
+        mProCfg->set_val(KEY_VID_SEG, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_VIDSEG, iVal);
+        send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
 
-        case SET_LIGHT_ON:
-            mProCfg->set_val(KEY_LIGHT_ON, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_LED, val);
-            if (val == 1) {
-                setLight();
-            } else {
-                setLightDirect(LIGHT_OFF);
-            }
-            break;
-
-//        case SET_RESTORE:
-//            if(check_state_equal(STATE_IDLE))
-//            {
-//                restore_all();
-//            }
-//            else
-//            {
-//                Log.e(TAG,"SET_RESTORE error cam_state 0x%x",cam_state);
-//            }
-//            break;
-
-        case SET_SPATIAL_AUD:
-            mProCfg->set_val(KEY_AUD_SPATIAL, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_SPAUDIO, val);
-            break;
-
-#if 0
-        case SET_GYRO_ON:
-            mProCfg->set_val(KEY_GYRO_ON, val);
-            set_setting_select(item, val);
-            break;
-#endif
-
-        case SET_FAN_ON:
-            mProCfg->set_val(KEY_FAN, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_FAN, val);
-
-            break;
-
-        case SET_AUD_ON:
-            mProCfg->set_val(KEY_AUD_ON, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_AUDIO, val);
-            break;
-
-        case SET_VIDEO_SEGMENT:
-            mProCfg->set_val(KEY_VID_SEG, val);
-            updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_VIDSEG, val);
-            break;
-
-            SWITCH_DEF_ERROR(item)
+    } else if (!strcmp(pSetItemName, SET_ITEM_NAME_GYRO_ONOFF)) {    /* Need Notify Camerad */
+        mProCfg->set_val(KEY_GYRO_ON, iVal);
+        updateSetItemCurVal(mSetItemsList, SET_ITEM_NAME_GYRO_ONOFF, iVal);
+        send_option_to_fifo(ACTION_SET_OPTION, OPTION_GYRO_ON);            
+    } else {
+        Log.d(TAG, "[%s:%d] Not Support item[%s] Yet!!!", __FILE__, __LINE__, pSetItemName);
     }
 }
+
 
 
 #ifdef ENABLE_MENU_STITCH_BOX
@@ -3749,12 +3751,12 @@ void MenuUI::disp_stitch_progress(sp<struct _stich_progress_> &mProgress)
 
 
 
-void MenuUI::set_sys_setting(sp<struct _sys_setting_> & mSysSetting)
+void MenuUI::updateSysSetting(sp<struct _sys_setting_> & mSysSetting)
 {
     CHECK_NE(mSysSetting, nullptr);
 
-#if 0
-    Log.d(TAG, "%s %d %d %d %d %d %d %d %d %d %d", __FUNCTION__,
+#if 1
+    Log.d(TAG, "%s %d %d %d %d %d %d %d %d %d", __FUNCTION__,
                                                     mSysSetting->flicker,
                                                     mSysSetting->speaker,
                                                     mSysSetting->led_on,
@@ -3767,51 +3769,47 @@ void MenuUI::set_sys_setting(sp<struct _sys_setting_> & mSysSetting)
 
     {
 
-        #if 1
         if (mSysSetting->flicker != -1) {
-            update_sys_cfg(SET_FREQ, mSysSetting->flicker);
+            updateSetItemVal(SET_ITEM_NAME_FREQ, mSysSetting->flicker);
         }
 
         if (mSysSetting->speaker != -1) {
-            update_sys_cfg(SET_SPEAK_ON, mSysSetting->speaker);
+            updateSetItemVal(SET_ITEM_NAME_SPEAKER, mSysSetting->speaker);
         }
 
         if (mSysSetting->aud_on != -1) {
-            update_sys_cfg(SET_AUD_ON, mSysSetting->aud_on);
+            updateSetItemVal(SET_ITEM_NAME_AUDIO, mSysSetting->aud_on);
         }
 
         if (mSysSetting->aud_spatial != -1) {
-            update_sys_cfg(SET_SPATIAL_AUD, mSysSetting->aud_spatial);
+            updateSetItemVal(SET_ITEM_NAME_SPAUDIO, mSysSetting->aud_spatial);
         }
 
         if (mSysSetting->fan_on != -1)  {
-            update_sys_cfg(SET_FAN_ON, mSysSetting->fan_on);
+            updateSetItemVal(SET_ITEM_NAME_FAN, mSysSetting->fan_on);
         }
 
         if (mSysSetting->set_logo != -1) {
-            update_sys_cfg(SET_BOTTOM_LOGO, mSysSetting->set_logo);
+            updateSetItemVal(SET_ITEM_NAME_BOOTMLOGO, mSysSetting->set_logo);
         }
 
         if (mSysSetting->led_on != -1) {
-            update_sys_cfg(setLight_ON, mSysSetting->led_on);
+            updateSetItemVal(SET_ITEM_NAME_LED, mSysSetting->led_on);
         }
 
         if (mSysSetting->gyro_on != -1) {
-            update_sys_cfg(SET_GYRO_ON, mSysSetting->gyro_on);
+            updateSetItemVal(SET_ITEM_NAME_GYRO_ONOFF, mSysSetting->gyro_on);
         }
 
         if (mSysSetting->video_fragment != -1)  {
-            update_sys_cfg(SET_VIDEO_SEGMENT, mSysSetting->video_fragment);
+            updateSetItemVal(SET_ITEM_NAME_VIDSEG, mSysSetting->video_fragment);
         }
         #endif
 
-        //update current menu
         if (cur_menu == MENU_SYS_SETTING) { /* 如果当前的菜单为设置菜单,重新进入设置菜单(以便更新各项) */
             setCurMenu(MENU_SYS_SETTING);
         }
     }
-#endif
-
 }
 
 
@@ -4804,6 +4802,50 @@ ERROR:
     msg_util::sleep_ms(3000);
 }
 
+
+/*
+ * iType - 0 格式化指定的卡; (1-6)格式化指定的TF卡
+ */
+void MenuUI::dispTfCardIsFormatting(int iType) 
+{
+    clear_area(0, 16);
+
+    char msg[128] = {0};
+
+    if (iType == -1) {
+        sprintf(msg, "%s", "All TF card");
+    } else {
+        sprintf(msg, "TF card %d", iType);
+    }
+    disp_str((const u8*)msg, 24, 16, false, 128);
+    disp_str((const u8*)"is formatting ...", 0, 32, false, 128);
+}
+
+void MenuUI::dispTfcardFormatReuslt(vector<sp<Volume>>& mTfFormatList, int iIndex)
+{
+    clear_area(0, 16);
+    char msg[128] = {0};
+
+    if (mTfFormatList.size() == 0) {    /* 成功 */
+        if (iIndex == -1) {
+            sprintf(msg, "%s", "All TF card");
+        } else {
+            sprintf(msg, "TF card %d", iIndex);
+        }
+        disp_str((const u8*)msg, 24, 16, false, 128);
+        disp_str((const u8*)"formatted success", 0, 32, false, 128);
+    } else {    /* 失败 */
+        if (iIndex == -1) {
+            sprintf(msg, "%s", "All TF card");
+        } else {
+            sprintf(msg, "TF card %d", iIndex);
+        }
+        disp_str((const u8*)msg, 24, 16, false, 128);
+        disp_str((const u8*)"formatted failed", 0, 32, false, 128);
+    }
+}
+
+
 void MenuUI::startFormatDevice()
 {
     /* getCurMenuStr
@@ -4811,6 +4853,7 @@ void MenuUI::startFormatDevice()
      * 如果选择的是TF卡,还需要MENU_TF_FORMAT_SELECT来判断是格式化所有的TF卡还是格式化一张TF卡
      */
     bool bFound = false;
+    int iTfIndex = -1;
     SetStorageItem* tmpStorageItem = NULL;
     SettingItem* tmpFormatSelectItem = NULL;
 
@@ -4822,25 +4865,27 @@ void MenuUI::startFormatDevice()
     Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
     
     if (!strncmp(tmpStorageItem->stVolumeInfo.name, "TF", strlen("TF"))) {
-        int iIndex = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
+        int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
         Log.d(TAG, "[%s: %d] Format TF Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
 
-        tmpFormatSelectItem = gTfFormatSelectItems[iIndex];
+        tmpFormatSelectItem = gTfFormatSelectItems[iMode];
         if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
+            
             /* 格式化一张卡 */
             Log.d(TAG, "[%s: %d] Format TF Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
-            /* 显示格式化消息: "TF Card X is Formatting..." */
-            
-            
-
+            iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
         } else {
             /* 格式化所有的卡 */
             Log.d(TAG, "[%s: %d] Format All TF Card", __FILE__, __LINE__);
-
+            iTfIndex = -1;
         }
 
+        /* 显示格式化消息: "TF Card X is Formatting..." */
+        dispTfCardIsFormatting(iTfIndex);
+
         /* 状态机添加格式化状态 */
-        add_state(STATE_FORMATING);
+        send_option_to_fifo(ACTION_FORMAT_TFCARD, iTfIndex);
+
     } else {    /* 本地存储设备 */
         Log.d(TAG, "[%s: %d] Format Native USB Device", __FILE__, __LINE__);
     }
@@ -5875,7 +5920,7 @@ void MenuUI::enterMenu(bool dispBottom)
 
         case MENU_FORMAT_INDICATION:
 
-            Log.d(TAG, "cam state 0x%x", cam_state);
+            Log.d(TAG, "[%s: %d] Enter MENU_FOMAT_INDICATION cam state 0x%x", __FILE__, __LINE__, cam_state);
 
             #if 0
             if (isDevExist()) {
@@ -6357,11 +6402,15 @@ void MenuUI::procPowerKeyEvent()
         case MENU_FORMAT_INDICATION:    /* 进入真正的格式化 */
             if (check_state_equal(STATE_IDLE)) {
                 startFormatDevice();    /* 进行设备格式化 */
-            } else if (check_state_equal(STATE_FORMAT_OVER)) {
+            }
+            #if 0 
+            else if (check_state_equal(STATE_FORMAT_OVER)) {
                 rm_state(STATE_FORMAT_OVER);
                 set_cur_menu_from_exit();
-            } else {
-                Log.w(TAG, "error state 0x%x", cam_state);
+            }
+            #endif 
+            else {
+                Log.w(TAG, "Formatting state 0x%x", cam_state);
             }
             break;
 			
@@ -8084,7 +8133,7 @@ int MenuUI::oled_disp_type(int type)
 			
         case STOP_QR_FAIL:
             rm_state(STATE_STOP_QRING);
-            disp_sys_err(type,get_back_menu(cur_menu));
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
 			
         case QR_FINISH_CORRECT:
@@ -8704,7 +8753,9 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 		set_tl_count(disp_type->tl_count);
 
 	} else if (disp_type->mSysSetting != nullptr) { /* 系统设置不为空 */
-		set_sys_setting(disp_type->mSysSetting);    /* 更新设置(来自客户端) */
+
+        Log.d(TAG, "[%s: %d] update System setting!!!!", __FILE__, __LINE__);
+		updateSysSetting(disp_type->mSysSetting);    /* 更新设置(来自客户端) */
 
 #ifdef ENABLE_MENU_STITCH_BOX        
 	} else if (disp_type->mStichProgress != nullptr) {
@@ -8976,6 +9027,52 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
 }
 
 
+void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
+{
+    rm_state(STATE_FORMATING);
+    
+    /* 获取是格式化所有的卡，还是格式化一张卡 */
+    SetStorageItem* tmpStorageItem = NULL;
+    SettingItem* tmpFormatSelectItem = NULL;
+    int iTfIndex = -1;
+
+    int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
+    Log.d(TAG, "[%s:%d] Select Device index [%d] in MENU_SHOW_SPACE", __FILE__, __LINE__, iIndex);
+    tmpStorageItem = gStorageInfoItems[iIndex];
+
+    int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
+
+    tmpFormatSelectItem = gTfFormatSelectItems[iMode];
+    if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
+        iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
+    } else {
+        iTfIndex = -1;
+    }
+
+    Log.d(TAG, "[%s: %d] Show result.............", __FILE__, __LINE__);
+    
+    if (mTfFormatList.size() == 0) {
+        /* 格式化成功 */
+        if (iTfIndex == -1) {
+            Log.d(TAG, "[%s: %d] Format All TF Card Success", __FILE__, __LINE__);
+        } else {
+            Log.d(TAG, "[%s: %d] Format TF%d Card Success", __FILE__, __LINE__, iTfIndex);
+        }
+        
+    } else {
+        /* 格式化失败 */
+        Log.d(TAG, "[%s:%d] Format TF Card Failed..", __FILE__, __LINE__);
+    }
+
+    dispTfcardFormatReuslt(mTfFormatList, iTfIndex);
+
+    /* 等待一会,重新进入MENU_TF_FORMAT_SELECT菜单 */
+    msg_util::sleep_ms(1000);
+
+    setCurMenu(MENU_TF_FORMAT_SELECT);
+}
+
+
 /*
  * 处理更新录像,直播的时间
  */
@@ -9158,6 +9255,12 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfChangeList), true);
                 handleTfStateChanged(mTfChangeList);
                 break;
+            }
+
+            case UI_MSG_TF_FORMAT_RES: {
+                vector<sp<Volume>> mTfFormatList;
+                CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfFormatList), true);
+                handleTfFormated(mTfFormatList);                
             }
 
             case UI_UPDATE_MID:     /* 更新显示时间(只有在录像,直播的UI */
@@ -9353,7 +9456,6 @@ bool MenuUI::checkLiveNeedSave()
 }
 
 
-
 /*************************************************************************
 ** 方法名称: check_battery_change
 ** 方法功能: 检测电池的变化
@@ -9388,7 +9490,7 @@ bool MenuUI::check_battery_change(bool bUpload)
 
         if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
 
-            Log.d(TAG, "[%s: % ] bat low menu[%s] %d state 0x%x bStiching %d", __FILE__, __LINE__,
+            Log.d(TAG, "[%s: %d ] bat low menu[%s] %d state 0x%x bStiching %d", __FILE__, __LINE__,
                     getCurMenuStr(cur_menu), cam_state, bStiching);
 
             if (check_state_in(STATE_RECORD) || checkLiveNeedSave() || bStiching) {

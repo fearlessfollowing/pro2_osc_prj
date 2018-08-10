@@ -1239,7 +1239,7 @@ static ACTION_INFO vid8K_30F_3D_Action = {
 		3840,		/* 3840 */
 		2880,		/* 2160 -> 2880 */
 		1,			/* 0 -> nvidia; 1 -> module; 2 -> both */
-		{ALL_FR_30, 120}	/* bitrate: 40 -> 80 -> 120 */
+		{ALL_FR_30, 100}	/* 120 -> 100: 温度测试 */
 	},	
 	{	/* STI_INFO */
 		EN_H264,

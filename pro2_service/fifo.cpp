@@ -527,7 +527,11 @@ const char* getActionStr(int iAction)
 	case ACTION_QUERY_STORAGE:
 		pRet = "ACTION_QUERY_STORAGE";
 		break;
-		
+
+    case ACTION_FORMAT_TFCARD:
+        pRet = "ACTION_FORMAT_TFCARD";
+        break;
+
 	default:
 		pRet = "Unkown ACTION";
 		break;
@@ -844,6 +848,8 @@ void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *pa
 void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg)
 {
     cJSON *param = nullptr;
+    int iIndex = -1;
+
     switch (action) {
         case ACTION_CUSTOM_PARAM: {
             sp<CAM_PROP> mCamProp;
@@ -937,7 +943,7 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
         /* {"action": ACTION_POWER_OFF} */
         case ACTION_POWER_OFF: {
             // stop_all(false);
-            set_gpio_level(85,0);
+            set_gpio_level(85, 0);
             CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
             Log.d(TAG, "power off reboot cmd is %d", reboot_cmd);
             break;
@@ -947,7 +953,23 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUERY_STORAGE");
             break;
         }
-						
+
+        case ACTION_FORMAT_TFCARD: {    /* 格式化请求 */
+            CHECK_EQ(msg->find<int>("index", &iIndex), true);
+
+            cJSON *pJsonIndex = cJSON_CreateObject();
+            
+            /* {"name":"camera._formatCameraMoudle"} */
+
+            cJSON_AddNumberToObject(pJsonIndex, "index", iIndex);
+
+            param = cJSON_CreateObject();
+
+            cJSON_AddStringToObject(param, "name", "camera._formatCameraMoudle");
+            cJSON_AddItemToObject(param, "parameters", pJsonIndex);
+            break;
+        }
+
         case ACTION_SET_STICH:
             Log.d(TAG,"stitch action");
             break;
@@ -1103,205 +1125,9 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 			/* 查看msg的"action_info" */
             if (msg->find<sp<ACTION_INFO>>("action_info", &mActInfo)) {
-                // cJSON *org = cJSON_CreateObject();
+
                 cJSON *param = cJSON_CreateObject();
 
-                #if 0
-                switch (action) {
-                    
-                    case ACTION_PIC:
-
-                        Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
-                    
-                        cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
-                    #if 0
-                        cJSON_AddNumberToObject(param, "delay", mActInfo->delay);
-                    #else 
-                        cJSON_AddNumberToObject(param, "delay", 0);
-                    #endif
-
-                        if (mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count > 0) {
-                            cJSON *burst = cJSON_CreateObject();
-                            cJSON_AddTrueToObject(burst,"enable");
-                            cJSON_AddNumberToObject(burst, "count", mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count);
-                            cJSON_AddItemToObject(param, "burst",burst);
-
-                        } else if(mActInfo->stOrgInfo.stOrgAct.mOrgP.hdr_count > 0) {
-                            cJSON *hdr = cJSON_CreateObject();
-                            cJSON_AddTrueToObject(hdr,"enable");
-                            cJSON_AddNumberToObject(hdr, "count", mActInfo->stOrgInfo.stOrgAct.mOrgP.hdr_count);
-                            cJSON_AddNumberToObject(hdr, "min_ev", mActInfo->stOrgInfo.stOrgAct.mOrgP.min_ev);
-                            cJSON_AddNumberToObject(hdr, "max_ev", mActInfo->stOrgInfo.stOrgAct.mOrgP.max_ev);
-                            cJSON_AddItemToObject(param, "hdr", hdr);
-                        }
-                        break;
-						
-                    case ACTION_VIDEO:
-                        cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
-                        cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgV.org_fr]));
-                        cJSON_AddNumberToObject(org, "bitrate", mActInfo->stOrgInfo.stOrgAct.mOrgV.org_br * 1000);
-                        Log.d(TAG,"vid mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-                        if (mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int != 0) {
-                            cJSON *tim_lap = cJSON_CreateObject();
-                            cJSON_AddTrueToObject(tim_lap, "enable");
-                            cJSON_AddNumberToObject(tim_lap, "interval",
-                                                    mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-                            cJSON_AddItemToObject(param, "timelapse", tim_lap);
-                        }
-						
-                        if (mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode == 1) {
-                            cJSON_AddNumberToObject(org, "logMode", mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode);
-                        }
-                        break;
-
-                    case ACTION_LIVE:
-                        cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
-                        cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgL.org_fr]));
-                        cJSON_AddNumberToObject(org, "bitrate", mActInfo->stOrgInfo.stOrgAct.mOrgL.org_br * 1000);
-                        if (mActInfo->stOrgInfo.stOrgAct.mOrgL.logMode == 1) {
-                            cJSON_AddNumberToObject(org, "logMode", mActInfo->stOrgInfo.stOrgAct.mOrgL.logMode);
-                        }
-                        break;
-
-                    SWITCH_DEF_ERROR(action)
-                }
-				
-                if (mActInfo->stOrgInfo.save_org == SAVE_OFF) {
-                    cJSON_AddFalseToObject(org, "saveOrigin");
-                } else {
-                    cJSON_AddTrueToObject(org, "saveOrigin");
-                }
-				
-                cJSON_AddNumberToObject(org, "width", mActInfo->stOrgInfo.w);
-                cJSON_AddNumberToObject(org, "height", mActInfo->stOrgInfo.h);
-
-				/*
-				 * 2018年5月17日：添加录像到各张子卡
-				 */
-				cJSON_AddNumberToObject(org, "storage_loc", mActInfo->stOrgInfo.locMode);
-
-				
-				/* {"paramters": {"origin":{}} */
-				cJSON_AddItemToObject(param, "origin", org);
-				Log.d(TAG, " mActInfo->stStiInfo.stich_mode %d", mActInfo->stStiInfo.stich_mode);
-
-
-				/* {
-				 *		"action":ACTION_XX, 
-				 *		"parameters": {
-				 *			"stiching": {
-				 *				"bitrate":int, 
-				 *				"samplerate":int, 
-				 *				"mime":string,
-				 *				"sampleFormat":stirng,
-				 *				"channelLayout":string,
-				 *				"mime":string
-				 *			}
-				 *		}
-				 * }
-				 */				
-
-				if (mActInfo->stStiInfo.stich_mode != STITCH_OFF) {
-                    cJSON *sti = cJSON_CreateObject();
-                    cJSON_AddStringToObject(sti, "mode", act_mode[mActInfo->mode]);
-                    cJSON_AddNumberToObject(sti, "height", mActInfo->stStiInfo.h);
-                    cJSON_AddNumberToObject(sti, "width", mActInfo->stStiInfo.w);
-					Log.d(TAG, "sti mode %d", mActInfo->stStiInfo.stich_mode);
-                    if (STITCH_CUBE == mActInfo->stStiInfo.stich_mode) {
-                        cJSON_AddStringToObject(sti, "map", "cube");
-                    }
-					
-                    switch (action) {
-                        case ACTION_PIC:
-                            cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
-                            if (STITCH_OPTICAL_FLOW == mActInfo->stStiInfo.stich_mode) {
-                                cJSON_AddStringToObject(sti, "algorithm", "opticalFlow");
-                            }
-                            break;
-							
-                        case ACTION_LIVE:
-                            if (mActInfo->stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON) {
-                                cJSON_AddTrueToObject(sti, "liveOnHdmi");
-                            } else {
-                                cJSON_AddFalseToObject(sti, "liveOnHdmi");
-                            }
-
-                            if (mActInfo->stStiInfo.stStiAct.mStiL.file_save) {
-                                cJSON_AddTrueToObject(sti, "fileSave");
-                            } else {
-                                cJSON_AddFalseToObject(sti, "fileSave");
-                            }
-							
-                            Log.d(TAG, "url format (%d %d)",
-                                  strlen(mActInfo->stStiInfo.stStiAct.mStiL.url),
-                                  strlen(mActInfo->stStiInfo.stStiAct.mStiL.format));
-
-							if (strlen(mActInfo->stStiInfo.stStiAct.mStiL.url) > 0) {
-                                Log.d(TAG,"  url  %s", mActInfo->stStiInfo.stStiAct.mStiL.url);
-                                cJSON_AddStringToObject(sti, "_liveUrl", mActInfo->stStiInfo.stStiAct.mStiL.url);
-                            }
-							
-                            if (strlen(mActInfo->stStiInfo.stStiAct.mStiL.format) > 0) {
-                                Log.d(TAG,"  format  %s", mActInfo->stStiInfo.stStiAct.mStiL.url);
-                                cJSON_AddStringToObject(sti, "format", mActInfo->stStiInfo.stStiAct.mStiL.format);
-                            }
-                            cJSON_AddNumberToObject(sti, "framerate",
-                                                    (all_frs[mActInfo->stStiInfo.stStiAct.mStiL.sti_fr]));
-                            cJSON_AddNumberToObject(sti, "bitrate", mActInfo->stStiInfo.stStiAct.mStiL.sti_br * 1000);
-                            cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
-                            //no break here
-                            break;
-
-							
-                        case ACTION_VIDEO:
-                            Log.d(TAG, "mActInfo->stStiInfo.stStiAct.mStiV.sti_fr is %d",
-                                  mActInfo->stStiInfo.stStiAct.mStiV.sti_fr);
-							
-                            cJSON_AddNumberToObject(sti, "framerate",
-                                                    (all_frs[mActInfo->stStiInfo.stStiAct.mStiV.sti_fr]));
-                            cJSON_AddNumberToObject(sti, "bitrate", mActInfo->stStiInfo.stStiAct.mStiV.sti_br * 1000);
-                            cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
-                            break;
-                        SWITCH_DEF_ERROR(action)
-                    }
-                    cJSON_AddItemToObject(param, "stiching", sti);
-                } else {
-                    Log.w(TAG,"sti off");
-                }
-
-				/* {
-				 *		"action":ACTION_XX, 
-				 *		"parameters": {
-				 *			"audio": {
-				 *				"bitrate":int, 
-				 *				"samplerate":int, 
-				 *				"mime":string,
-				 *				"sampleFormat":stirng,
-				 *				"channelLayout":string,
-				 *				"mime":string
-				 *			}
-				 *		}
-				 * }
-				 */				
-                //judge whether has audio
-				// Log.d(TAG, "mActInfo->stAudInfo.sample_rate is %d", mActInfo->stAudInfo.sample_rate);
-                if (mActInfo->stAudInfo.sample_rate != 0) {
-                    //"mime":string,"sampleFormat":string,"channelLayout":string,samplerate:int,bitrate:int}
-                    cJSON *aud = cJSON_CreateObject();
-                    cJSON_AddNumberToObject(aud, "bitrate", mActInfo->stAudInfo.br);
-                    cJSON_AddNumberToObject(aud, "samplerate", mActInfo->stAudInfo.sample_rate);
-                    cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-                    cJSON_AddStringToObject(aud, "sampleFormat", mActInfo->stAudInfo.sample_fmt);
-                    cJSON_AddStringToObject(aud, "channelLayout", mActInfo->stAudInfo.ch_layout);
-                    cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-                    cJSON_AddItemToObject(param, "audio", aud);
-                } else {
-					Log.w(TAG,"aud s 0");
-				}
-
-				/* {"action":ACTION_XX, "parameters": {}} */
-                cJSON_AddItemToObject(root, "parameters", param);
-                #else
                 switch (action) {
                     case ACTION_PIC:
                         handleUiTakePicReq(mActInfo, root, param);
@@ -1319,229 +1145,9 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                         Log.e(TAG, "[%s: %d] Unkown action[%d] recv form UI", __FILE__, __LINE__, action);
                         break;
                 }
-                #endif
 
             } else {
-                #if 0
-                cJSON *param = nullptr;
-                switch (action) {
-                    case ACTION_CUSTOM_PARAM: {
-                        sp<CAM_PROP> mCamProp;
-                        CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
-                        param = cJSON_CreateObject();
-
-                        Log.d(TAG,"set aud gain %d", mCamProp->audio_gain);
-                        if (mCamProp->audio_gain != -1) {
-                            cJSON_AddNumberToObject(param, "audio_gain", mCamProp->audio_gain);
-                        }
-						
-                        Log.d(TAG,"len_param len %d",strlen(mCamProp->len_param));
-                        if (strlen(mCamProp->len_param) > 0) {
-                            cJSON_AddItemToObject(param, "len_param", cJSON_Parse(mCamProp->len_param));
-                        }
-						
-                        Log.d(TAG,"mGammaData len %d", strlen(mCamProp->mGammaData));
-                        if (strlen(mCamProp->mGammaData) > 0) {
-                            cJSON_AddStringToObject(param, "gamma_param", mCamProp->mGammaData);
-                        }
-                    }
-                    break;
-					
-                    case ACTION_LIVE_ORIGIN:
-                        break;
-						
-                    case ACTION_CALIBRATION: {
-//                        int calibration_mode;
-//                        CHECK_EQ(msg->find<int>("cal_mode", &calibration_mode), true);
-//                        param = cJSON_CreateObject();
-//                        cJSON_AddStringToObject(param, "mode", cal_mode[calibration_mode]);
-                    }
-                        break;
-
-                    case ACTION_SET_OPTION:
-                    {
-                        int type;
-                        CHECK_EQ(msg->find<int>("type", &type), true);
-
-						Log.d(TAG, " type is %d", type);
-                        switch (type) {
-							/* {"action": ACTION_SET_OPTION, "parameters":{"property":"flicker", "value":int} } */
-                            case OPTION_FLICKER: { 
-                                int flicker;
-                                CHECK_EQ(msg->find<int>("flicker", &flicker), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "flicker");
-                                cJSON_AddNumberToObject(param, "value", flicker);
-								break;
-							}
-
-							/* {"action": ACTION_SET_OPTION, "parameters":{"property":"logMode", "mode":int, "effect":int, ""} } */
-                            case OPTION_LOG_MODE: {	 /* {"action": ACTION_SET_OPTION, "type": OPTION_FLICKER } */
-                                int mode;
-                                int effect;
-                                cJSON *valObj = cJSON_CreateObject();
-                                CHECK_EQ(msg->find<int>("mode", &mode), true);
-                                CHECK_EQ(msg->find<int>("effect", &effect), true);
-								
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "logMode");
-                                cJSON_AddNumberToObject(valObj, "mode", mode);
-                                cJSON_AddNumberToObject(valObj, "effect", effect);
-                                cJSON_AddItemToObject(param, "value", valObj);
-								break;
-                            }
-							
-							/* {"action": ACTION_SET_OPTION, {"property": "fanless", "value": 0/1}} */
-                            case OPTION_SET_FAN: {
-                                int fan;
-                                CHECK_EQ(msg->find<int>("fan", &fan), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "fanless");
-                                if (fan == 1) {
-                                    cJSON_AddNumberToObject(param, "value", 0);
-                                } else {
-                                    cJSON_AddNumberToObject(param, "value", 1);
-                                }
-								break;
-                            }
-
-							/* {"action": ACTION_SET_OPTION, {"property": "panoAudio", "value": 0/1}} */
-                            case OPTION_SET_AUD: {
-                                int aud;
-                                CHECK_EQ(msg->find<int>("aud", &aud), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "panoAudio");
-                                cJSON_AddNumberToObject(param, "value", aud);
-								break;
-							}
-
-							/* {"action": ACTION_SET_OPTION, {"property": "stabilization_cfg", "value": 0/1}} */
-                            case OPTION_GYRO_ON: {
-                                int gyro_on;
-                                CHECK_EQ(msg->find<int>("gyro_on", &gyro_on), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "stabilization_cfg");
-                                cJSON_AddNumberToObject(param, "value", gyro_on);
-								break;
-                           }
-
-							/* {"action": ACTION_SET_OPTION, {"property": "logo", "value": 0/1}} */
-                            case OPTION_SET_LOGO: {
-                                int logo_on;
-                                CHECK_EQ(msg->find<int>("logo_on", &logo_on), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "logo");
-                                cJSON_AddNumberToObject(param, "value", logo_on);
-								break;
-                            }
-                                break;
-                            case OPTION_SET_VID_SEG:
-                                int video_fragment;
-                                CHECK_EQ(msg->find<int>("video_fragment", &video_fragment), true);
-                                param = cJSON_CreateObject();
-                                cJSON_AddStringToObject(param, "property", "video_fragment");
-                                cJSON_AddNumberToObject(param, "value", video_fragment);
-                                break;
-//                            case OPTION_SET_AUD_GAIN:
-//                            {
-//                                sp<CAM_PROP> mCamProp;
-//                                CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
-//                                param = cJSON_CreateObject();
-//                                Log.d(TAG,"set aud gain %d",
-//                                      mCamProp->audio_gain);
-//                                cJSON_AddStringToObject(param, "property", "audio_gain");
-//                                cJSON_AddNumberToObject(param, "value", mCamProp->audio_gain);
-//                            }
-//                                break;
-                            SWITCH_DEF_ERROR(type)
-                        }
-						break;
-                    }
-
-
-					/* {"action": ACTION_REQ_SYNC, parameters":{"sn":"0123456", "r_v":"xxxx", "p_v":"ddfff", "k_v":"xxxxx"}} */
-                    case ACTION_REQ_SYNC: {
-                        sp<REQ_SYNC> mReqSync;
-                        CHECK_EQ(msg->find<sp<REQ_SYNC>>("req_sync", &mReqSync), true);
-                        param = cJSON_CreateObject();
-                        cJSON_AddStringToObject(param, "sn", mReqSync->sn);
-                        cJSON_AddStringToObject(param, "r_v", mReqSync->r_v);
-                        cJSON_AddStringToObject(param, "p_v", mReqSync->p_v);
-                        cJSON_AddStringToObject(param, "k_v", mReqSync->k_v);
-						break;
-					}
-
-					/* {"action": ACTION_LOW_BAT} */
-                    case ACTION_LOW_BAT: {
-                        CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
-                        Log.d(TAG,"low bat reboot cmd is %d",reboot_cmd);
-						break;
-					}
-
-					/* {"action": ACTION_LOW_PROTECT} */
-					#if 0
-                    case ACTION_LOW_PROTECT:
-                        break;
-					#endif
-					
-					/* {"action": ACTION_SPEED_TEST, "paramters":{"path":"/media/nvidia/xxxx"}} */
-                    case ACTION_SPEED_TEST: {
-                        char *path;
-                        CHECK_EQ(msg->find<char *>("path", &path), true);
-                        param = cJSON_CreateObject();
-						Log.d(TAG, "speed path %s", path);
-                        cJSON_AddStringToObject(param, "path", path);
-						break;
-					}
-
-					/* {"action": ACTION_NOISE} */
-                    case ACTION_NOISE:
-                        break;
-
-					/* {"action": ACTION_GYRO} */
-                    case ACTION_GYRO:
-                        break;
-
-					/* {"action": ACTION_AGEING} */
-                    case ACTION_AGEING:
-                        break;
-
-
-					case ACTION_AWB:
-									
-						param = cJSON_CreateObject();
-						cJSON_AddStringToObject(param, "name", "camera._calibrationAwb");
-						break;
-
-
-					/* {"action": ACTION_POWER_OFF} */
-                    case ACTION_POWER_OFF: {
-						// stop_all(false);
-                        set_gpio_level(85,0);
-                        CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
-                        Log.d(TAG, "power off reboot cmd is %d", reboot_cmd);
-						break;
-                    }
-                        break;
-
-					case ACTION_QUERY_STORAGE: {
-						Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUERY_STORAGE");
-						break;
-					}
-						
-                    case ACTION_SET_STICH:
-                        Log.d(TAG,"stitch action");
-                        break;
-                    default:
-                        break;
-                }
-
-                if (param != nullptr) {
-                    cJSON_AddItemToObject(root, "parameters", param);
-                }
-                #else 
                 handleUiReqWithNoAction(root, action, msg);
-                #endif
             }
 
             pSrt = cJSON_Print(root);
@@ -1876,6 +1482,10 @@ const char* getRecvCmdType(int iType)
 
     case CMD_WEB_UI_TF_CHANGED:
         pRet = "CMD_WEB_UI_TF_CHANGED";
+        break;
+
+    case CMD_WEB_UI_TF_FORMAT:
+        pRet = "CMD_WEB_UI_TF_FORMAT";
         break;
 
 	default:
@@ -2613,11 +2223,14 @@ void fifo::handleStitchProgress(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 *************************************************************************/
 void fifo::read_fifo_thread()
 {
-    char buf[1024];
+    char buf[1024] = {0};
+    char result[1024] = {0}; 
     int error_times = 0;
 
     while (true) {
+
         memset(buf, 0, sizeof(buf));
+        memset(result, 0, sizeof(result));
 
         get_read_fd();	/* 获取FIFO读端的fd */
 
@@ -2661,14 +2274,41 @@ void fifo::read_fifo_thread()
                     }
                 } else {
                 
-                	/* 解析该Json数据 */
+                	/* 解析该Json数据 
+                     * 如果传递的是字符串，做一些过滤处理 -- 2018年8月10日
+                     */
+                    // if (buf[FIFO_HEAD_LEN] == '"') {
+                    //     Log.d(TAG, "%s", buf[FIFO_HEAD_LEN]);
+                    //     // Log.d(TAG, "[%s:%d] Invalid Json object, drop \" first", __FILE__, __LINE__);
+                    //     // memcpy(result, &(buf[FIFO_HEAD_LEN+1]), content_len - 2);
+                    //     int i = 0, j = 0;
+                    //     while (j < content_len) {
+                    //         if (buf[FIFO_HEAD_LEN + i] == '\\') {
+                    //             j++;
+                    //         } else {
+                    //             result[FIFO_HEAD_LEN + i] = buf[FIFO_HEAD_LEN + j];
+                    //             i++;
+                    //             j++;
+                    //         }
+                    //         Log.d(TAG, "%c", buf[FIFO_HEAD_LEN + j]);
+                            
+                    //     }
+
+                    //     Log.d(TAG, "result: %s", result);
+                    // } else {
+                    //     memcpy(result, &(buf[FIFO_HEAD_LEN]), content_len);
+                    // }
+
+                    // Log.d(TAG, "[%s: %d] result :%s", __FILE__, __LINE__, result);
+                    // cJSON *root = cJSON_Parse(result);
                     cJSON *root = cJSON_Parse(&buf[FIFO_HEAD_LEN]);
+
                     cJSON *subNode = 0;
                     if (!root) {	/* 解析出错 */
                         Log.e(TAG, "cJSON parse string error, func(%s), line(%d)", __FILE__, __LINE__);
                     }
 					
-                    Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), &buf[FIFO_HEAD_LEN]);
+                    Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), result);
 
 					/* 根据消息的类型做出处理 */
                     switch (msg_what) {
@@ -2910,6 +2550,71 @@ void fifo::read_fifo_thread()
                             break;
                         }
 
+
+                        case CMD_WEB_UI_TF_FORMAT: {
+                            Log.d(TAG, "[%s: %d] get notify form server for TF format info", __FILE__, __LINE__);
+
+                            char cResState[64] = {0};
+
+                            cJSON* tmpJsonNode = NULL;
+                            cJSON* tmpJsonIndex = NULL;
+                            cJSON* tmpJsonTotalSpace = NULL;
+                            cJSON* tmpJsonLeftSpace = NULL;
+                            cJSON* pState = NULL;
+                            std::vector<sp<Volume>> storageList;
+                            
+                            pState = cJSON_GetObjectItem(root, "name");
+                            if (pState) {
+                                Log.d(TAG, "[%s:%d] 'state' = %s", __FILE__, __LINE__, pState->valuestring);
+                            } else {
+                                Log.d(TAG, "[%s:%d] CMD_WEB_UI_TF_FORMAT Protocal Err, no 'state'", __FILE__, __LINE__);
+                            }
+
+                            /* 直接将消息丢入UI线程的消息队列中 */
+                            mOLEDHandle->notifyTfcardFormatResult(storageList);
+
+                            /*
+                             * 如果"state":"done" 表示格式化成功 - 显示""All TF Card formatted success"
+                             * 如果
+                             */
+#if 0
+                            subNode = cJSON_GetObjectItem(root, "module");
+                            if (subNode) {
+                                iModuleArray = cJSON_GetArraySize(subNode);
+                                for (u32 i = 0; i < iModuleArray; i++) {
+                                    tmpJsonNode = cJSON_GetArrayItem(subNode, i);
+                                    if (tmpJsonNode) {
+                                        sp<Volume> tmpVol = (sp<Volume>)(new Volume());
+
+                                        tmpJsonIndex = cJSON_GetObjectItem(tmpJsonNode, "index");
+                                        tmpJsonTotalSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_total");
+                                        tmpJsonLeftSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_left");
+
+                                        tmpVol->iIndex = tmpJsonIndex->valueint;
+                                        tmpVol->total  = tmpJsonTotalSpace->valueint;
+                                        tmpVol->avail  = tmpJsonLeftSpace->valueint;
+
+                                        /* 类型为"SD"
+                                         * 外部TF卡的命名规则
+                                         * 名称: "tf-1","tf-2","tf-3"....
+                                         */
+                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
+                                        Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d]",
+                                                    __FILE__, __LINE__, tmpVol->name, tmpVol->iIndex, tmpVol->total, tmpVol->avail);
+
+                                        storageList.push_back(tmpVol);
+                                    }
+                                }
+
+                                /* 直接将消息丢入UI线程的消息队列中 */
+                                mOLEDHandle->updateTfStorageInfo(storageList);
+
+                            } else {
+                                Log.d(TAG, "[%s:%d] get module json node[module] failed", __FILE__, __LINE__);
+                            }
+#endif
+                            break;
+                        }
 						/*
 						 * 等待查询信息,
 						 */

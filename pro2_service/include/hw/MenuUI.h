@@ -45,44 +45,44 @@ typedef enum _type_ {
     START_CALIBRATIONING = 27 , // 27,
     CALIBRATION_SUC,
     CALIBRATION_FAIL,
-    START_PREVIEWING ,  // 30,
+    START_PREVIEWING ,          // 30,
     START_PREVIEW_SUC,  
     START_PREVIEW_FAIL,
     STOP_PREVIEWING,
     STOP_PREVIEW_SUC,
-    STOP_PREVIEW_FAIL ,// 35,
+    STOP_PREVIEW_FAIL ,         // 35,
     START_QRING,
     START_QR_SUC,
     START_QR_FAIL,
     STOP_QRING,
-    STOP_QR_SUC ,// 40,
+    STOP_QR_SUC ,               // 40,
     STOP_QR_FAIL,
     QR_FINISH_CORRECT,
     QR_FINISH_ERROR,
     CAPTURE_ORG_SUC,
-    CALIBRATION_ORG_SUC ,// 45,
+    CALIBRATION_ORG_SUC ,       // 45,
     SET_CUS_PARAM,
     QR_FINISH_UNRECOGNIZE,
     TIMELPASE_COUNT,
     START_NOISE_SUC,
-    START_NOISE_FAIL, //50
+    START_NOISE_FAIL,           // 50
     START_NOISE,
     START_LOW_BAT_SUC,
     START_LOW_BAT_FAIL,
     LIVE_REC_OVER,
-    SET_SYS_SETTING, //55
+    SET_SYS_SETTING,            // 55
 
     STITCH_PROGRESS,
 
-    START_BLC = 70,
-    STOP_BLC,
+    START_BLC = 70,             // 启动BLC
+    STOP_BLC,                   // 停止BLC校正
 
     START_GYRO = 73,
     START_GYRO_SUC,
     START_GYRO_FAIL ,
     SPEED_TEST_SUC,
     SPEED_TEST_FAIL,
-    SPEED_START = 78,   // 78,
+    SPEED_START = 78,           // 78,
 
     SYNC_REC_AND_PREVIEW = 80,
     SYNC_PIC_CAPTURE_AND_PREVIEW,
@@ -259,7 +259,8 @@ enum {
 
     ACTION_SET_STICH = 50,
 	ACTION_QUERY_STORAGE = 200,
-	
+	ACTION_FORMAT_TFCARD = 201,
+
 };
 
 
@@ -376,7 +377,7 @@ public:
 
     void updateTfStorageInfo(std::vector<sp<Volume>>& mStorageList);
     void sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
-
+    void notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
 
 
 private:
@@ -582,8 +583,7 @@ private:
 
 
     void add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
-    void update_sys_cfg(int item, int val);
-    void set_sys_setting(sp<struct _sys_setting_> &mSysSetting);
+
     void disp_stitch_progress(sp<struct _stich_progress_> &mProgress);
     void disp_qr_res(bool high = true);
 
@@ -596,12 +596,17 @@ private:
     bool check_battery_change(bool bUpload = false);
 
     void func_low_bat();
+
     int get_battery_charging(bool *bCharge);
     int read_tmp(double *int_tmp,double *tmp);
     void set_flick_light();
     void set_light();
     bool check_cam_busy();
 
+
+/******************************************************************************************************
+ * 显示类
+ ******************************************************************************************************/
 	void dispIconByLoc(const ICON_INFO* pInfo);
 
 
@@ -610,7 +615,10 @@ private:
      */
     void startFormatDevice();
 
+   void handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
 
+
+    void dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
     /*
      * 检查直播时是否需要保存原片
      */
@@ -680,9 +688,23 @@ private:
      */
     void cfgPicModeItemCurVal(struct stPicVideoCfg* pPicCfg);
 
+
+
+
+/*************************************************************************************************
+ * 设置页部分
+ ************************************************************************************************/
+
     /*
-     * 设置页部分
+     * 更新系统设置（来自客户端）
      */
+    void updateSysSetting(sp<struct _sys_setting_> &mSysSetting);
+    /*
+     * 更新指定名称的设置项的值
+     */
+    void updateSetItemVal(const char* pSetItemName, int iVal);    
+
+
     void dispSetItem(struct stSetItem* pItem, bool iSelected);
     void procSetMenuKeyEvent();
     void setMenuCfgInit();
@@ -693,6 +715,10 @@ private:
     void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
     void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
     int get_setting_select(int type);
+
+
+
+
 
     struct stSetItem* getSetItemByName(std::vector<struct stSetItem*>& mList, const char* name);
 
@@ -767,7 +793,7 @@ private:
 	 */
 	void uiShowStatusbarIp();			/* 显示IP地址 */
 	void procUpdateIp(const char* ipAddr);
-	
+    void dispTfCardIsFormatting(int iType);
 
 	/*
 	 * 存储管理器

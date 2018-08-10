@@ -68,8 +68,12 @@ enum {
     
 	CMD_EXIT = 20,
     
+    /*
+     * Add by skymixos
+     */
     CMD_WEB_UI_TF_NOTIFY = 30,
     CMD_WEB_UI_TF_CHANGED = 31,
+    CMD_WEB_UI_TF_FORMAT  = 32,
 };
 
 
