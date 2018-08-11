@@ -614,8 +614,8 @@ private:
      * 格式化
      */
     void startFormatDevice();
-
-   void handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
+    int formatDev(const char* pDevNode, const char* pMountPath);
+    void handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
 
 
     void dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);

@@ -1332,9 +1332,9 @@ void MenuUI::setMenuCfgInit()
                 mMenuInfos[MENU_SET_AEB].mSelectInfo.select
                 );
 
-    tmPos.xPos 		= 41;   /* 水平方向的起始坐标 */
-    tmPos.yPos 		= 48;
-    tmPos.iWidth	= 87;   /* 显示的宽： 实际应该小点 */
+    tmPos.xPos 		= 43;   /* 水平方向的起始坐标 */
+    tmPos.yPos 		= 16;
+    tmPos.iWidth	= 83;   /* 显示的宽： 实际应该小点 */
     tmPos.iHeight   = 16;   /* 显示的高 */
 
 
@@ -4072,6 +4072,10 @@ void MenuUI::getShowStorageInfo()
             tmpVolume->total = totalsize >> 20;                 /* 统一将单位转换MB */
             tmpVolume->avail = tmpVolume->total - used_size;
             tmpVolume->iType = VOLUME_TYPE_NV;
+            
+            strcpy(tmpVolume->path, mLocalStorageList.at(i)->path);     /* 挂载路径 */
+            strcpy(tmpVolume->src, mLocalStorageList.at(i)->src);       /* 设备节点名称 */
+
 
             mShowStorageList.push_back(tmpVolume);
         
@@ -4212,8 +4216,14 @@ void MenuUI::calcRemainSpace()
          * 暂时不计算大卡的 get_cam_state()
          */
         // queryCurStorageState(2000);
-        calcRemoteRemainSpace();
-        convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
+        if (cur_menu == MENU_VIDEO_INFO && tl_count == 0) {
+            if (localStorageAvail()) {
+                convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
+            }           
+        } else {
+            calcRemoteRemainSpace();
+            convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
+        }
     }
 }
 
@@ -4458,10 +4468,10 @@ void MenuUI::dispBottomLeftSpace()
                         Log.d(TAG, "[%s: %d] wait preview and calc left done....", __FILE__, __LINE__);
                         clear_area(78, 48);
                     } else {
-                         if (tl_count == -1) {
+                        if (tl_count == -1) {
 
                              if (check_rec_tl()) {
-                                 clear_icon(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
+                                 dispIconByLoc(&remoteControlIconInfo);
                              } else {
                                 snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", mRemainInfo->remain_hour,
                                     mRemainInfo->remain_min, mRemainInfo->remain_sec);
@@ -4696,6 +4706,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
 
     add_state(STATE_FORMATING);
 
+
     switch (getMenuSelectIndex(MENU_FORMAT)) {
         //exfat
         case 0:
@@ -4845,6 +4856,23 @@ void MenuUI::dispTfcardFormatReuslt(vector<sp<Volume>>& mTfFormatList, int iInde
     }
 }
 
+enum {
+    FORMAT_ERR_SUC = 0,
+    FORMAT_ERR_UMOUNT = -1,
+    FORMAT_ERR_FORMAT_EXT4 = -2,
+    FORMAT_ERR_MOUNT_EXT4 = -3,
+    FORMAT_ERR_FSTRIM = -4,
+    FORMAT_ERR_UMOUNT_EXT4 = -5,
+    FORMAT_ERR_FORMAT_EXFAT = -6,
+
+};
+
+
+enum {
+    DISK_TYPE_USB,
+    DISK_TYPE_SD,
+    DISK_TYPE_MAX
+};
 
 void MenuUI::startFormatDevice()
 {
@@ -4888,6 +4916,66 @@ void MenuUI::startFormatDevice()
 
     } else {    /* 本地存储设备 */
         Log.d(TAG, "[%s: %d] Format Native USB Device", __FILE__, __LINE__);
+
+        /*
+         * 获取卷的设备名称,挂载路径信息
+         */
+        Log.d(TAG, "[%s: %d] Volume name [%s] device node [%s], mount path[%s]", __FILE__, __LINE__, 
+                tmpStorageItem->stVolumeInfo.name, 
+                tmpStorageItem->stVolumeInfo.src,
+                tmpStorageItem->stVolumeInfo.path);
+        
+        ICON_INFO* pDispType = NULL;
+        int iDiskType = DISK_TYPE_USB;
+
+        if (!strcmp(tmpStorageItem->stVolumeInfo.name, "usb")) {
+            /* disp formatting.. usb */
+            pDispType = &usbDrvFormatingIconInfo;
+            iDiskType = DISK_TYPE_USB;
+        } else {    /* disp formatting ... sd */
+            pDispType = &sdFormattingIconInfo;
+            iDiskType = DISK_TYPE_SD;
+        }
+
+        clear_area(0, 16);
+        dispIconByLoc(pDispType);
+
+        /* 添加格式化状态 */
+        add_state(STATE_FORMATING);
+        int iResult = formatDev(tmpStorageItem->stVolumeInfo.src, tmpStorageItem->stVolumeInfo.path);
+
+        rm_state(STATE_FORMATING);
+
+        ICON_INFO* pFormatResult = NULL;
+        switch(iResult) {
+            case FORMAT_ERR_SUC:        /* 格式化成功 */
+                if (iDiskType == DISK_TYPE_USB) {
+                    pFormatResult = &usbFormatedSucIconInfo;
+                } else {
+                    pFormatResult = &sdFormatedSucIconInfo;
+                }
+                break;  
+
+            case FORMAT_ERR_FSTRIM:     /* 格式化成功，但可能有碎片 */
+                if (iDiskType == DISK_TYPE_USB) {
+                    pFormatResult = &usbFormatedButFragmentIconInfo;
+                } else {
+                    pFormatResult = &sdFormatedButFragmentIconInfo;
+                }
+                break;
+
+            default:                    /* 格式化失败 */
+                if (iDiskType == DISK_TYPE_USB) {
+                    pFormatResult = &usbDrvFormatFailedIconInfo;
+                } else {
+                    pFormatResult = &sdFormatFailedIconInfo;
+                }
+                break;
+        }
+
+        if (pFormatResult)
+            dispIconByLoc(pFormatResult);
+
     }
     
     #if 0
@@ -4933,6 +5021,103 @@ void MenuUI::startFormatDevice()
 #endif
 
 }
+
+
+
+int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
+{
+    char buf[1024] = {0};
+    int err_trim = 0;
+    int iErrNo = FORMAT_ERR_SUC;
+
+    snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
+    if (exec_sh_new((const char *)buf) != 0) {
+        Log.d(TAG, "[%s: %d] umount path[%s] failed", __FILE__, __LINE__, pMountPath);
+        iErrNo = FORMAT_ERR_UMOUNT;
+        goto ERROR;
+    }
+
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "mke2fs -F -t ext4 %s", pDevNode);   
+
+    Log.d(TAG, "[%s: %d] Format dev[%s] to Ext4", __FILE__, __LINE__, pDevNode); 
+
+    if (exec_sh_new((const char *)buf) != 0) {
+        Log.d(TAG, "[%s: %d] Format dev[%s] Failed", __FILE__, __LINE__, pDevNode);
+        iErrNo = FORMAT_ERR_FORMAT_EXT4;
+        goto ERROR;
+    }  else {
+        
+        Log.d(TAG, "[%s: %d] Format dev[%s] to Ext4 Success!!!", __FILE__, __LINE__, pDevNode);
+
+        memset(buf, 0, sizeof(buf));
+        snprintf(buf, sizeof(buf), "mount -t ext4 -o discard %s %s", pDevNode, pMountPath);
+        if (exec_sh_new((const char *)buf) != 0) {
+            Log.d(TAG, "[%s: %d] Mount dev[%s] -> path[%s] Failed", __FILE__, __LINE__, pDevNode, pMountPath);
+            iErrNo = FORMAT_ERR_MOUNT_EXT4;
+            goto ERROR;
+        } else {    /* 挂载正常 */
+
+            Log.d(TAG, "[%s: %d] Mount dev[%s] to [%s] Success!!!", __FILE__, __LINE__, pDevNode, pMountPath);
+            
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "fstrim %s", pMountPath);
+            if (exec_sh_new((const char *)buf) != 0) {
+                iErrNo = FORMAT_ERR_FSTRIM;
+                goto ERROR;
+            }
+
+            Log.d(TAG, "[%s: %d] Fstrim Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
+            if (exec_sh_new((const char *)buf) != 0) {
+                iErrNo = FORMAT_ERR_UMOUNT_EXT4;
+                goto ERROR;
+            }
+           Log.d(TAG, "[%s: %d] umount Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
+            if (exec_sh_new((const char *)buf) != 0) {
+                iErrNo = FORMAT_ERR_FORMAT_EXFAT;
+                goto ERROR;
+            }
+            Log.d(TAG, "[%s: %d] Format Dev[%s] to Exfat Success!", __FILE__, __LINE__, pDevNode);
+
+            // system("killall vold_test");    /* 重启挂载服务 */
+        }
+    }
+
+ERROR:
+    switch (iErrNo) {
+        case FORMAT_ERR_UMOUNT:
+        case FORMAT_ERR_FORMAT_EXT4:
+        case FORMAT_ERR_MOUNT_EXT4:
+        case FORMAT_ERR_UMOUNT_EXT4:
+        case FORMAT_ERR_FORMAT_EXFAT:
+            Log.d(TAG, "[%s: %d] Action[%d] dev[%s], path[%s]", __FILE__, __LINE__, iErrNo, pDevNode, pMountPath);
+            break;
+        
+        case FORMAT_ERR_FSTRIM: {     /* fstrim失败,应该将其重启格式化成exfat格式 */
+
+            Log.d(TAG, "[%s: %d] Fstrim Failed Now, umount, and format it to exfat", __FILE__, __LINE__);
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
+            exec_sh_new((const char *)buf);
+
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
+            exec_sh_new((const char *)buf);
+            // system("killall vold_test");    /* 重启挂载服务 */            
+            break;  
+        }
+    }
+
+    return iErrNo;
+}
+
+
 
 void MenuUI::disp_format()
 {
@@ -5183,7 +5368,7 @@ void MenuUI::updateBottomMode(bool bLight)
         case MENU_PIC_SET_DEF:
             if (mControlAct != nullptr) {   /* 客户端有传递ACTION_INFO, 显示客户端传递的ACTION_INFO */
                 disp_org_rts(mControlAct);
-                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);    /* 清除Customer图标 */
+                dispIconByLoc(&remoteControlIconInfo);
             } else {
 
                 /* 根据当前选择的挡位进行显示 */
@@ -5227,10 +5412,11 @@ void MenuUI::updateBottomMode(bool bLight)
         case MENU_VIDEO_SET_DEF:
             if (tl_count != -1) {   /* timelapse拍摄 */
                 disp_org_rts(0, 0);
-                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                dispIconByLoc(&remoteControlIconInfo);
             } else if (mControlAct != nullptr) {   /* 来自客户端直播请求 */
                 disp_org_rts(mControlAct);
-                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                // clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                dispIconByLoc(&remoteControlIconInfo);
             } else {
 
                 /* 根据菜单中选择的挡位进行显示 */
@@ -5278,7 +5464,8 @@ void MenuUI::updateBottomMode(bool bLight)
                             0 /* mControlAct->stStiInfo.stStiAct.mStiL.file_save*/,
                             (int)(mControlAct->stStiInfo.stStiAct.mStiL.hdmi_on == HDMI_ON));
                 
-                clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                // clear_icon(ICON_VINFO_CUSTOMIZE_NORMAL_0_48_78_1678_16);
+                dispIconByLoc(&remoteControlIconInfo);
 
             } else {
                 iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
@@ -5659,7 +5846,11 @@ void MenuUI::enterMenu(bool dispBottom)
             if (tl_count != -1) {   /* timelapse拍摄,显示拍照的图标 */
                 clear_area(0, 16);
                 disp_icon(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
-                disp_tl_count(tl_count);            
+                dispIconByLoc(&remoteControlIconInfo);
+                disp_tl_count(tl_count);   
+
+                /* 更新底部空间: */
+                updateBottomSpace(true);        
             } else {
                 disp_icon(ICON_VIDEO_ICON_0_16_20_32);
                 dispBottomInfo(false, false);
@@ -6851,7 +7042,7 @@ void MenuUI::disp_ready_icon(bool bDispReady)
 #ifdef ENABLE_DEBUG_MODE
         Log.d(TAG, "[%s: %d] Warnning Need TF Card ....", __FILE__, __LINE__);
 #endif
-        disp_icon(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);  
+        dispIconByLoc(&needTfCardIconInfo);
 
     } else {    /* 小卡在,大卡不在 或者大卡小卡都不在: 直接显示NO SD CARD */
 
@@ -7661,8 +7852,7 @@ int MenuUI::oled_disp_type(int type)
         case START_REC_SUC:	/* 发送显示录像成功 */
             if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
                 if (check_rec_tl()) {   /* 如果是timelapse拍摄,将tl_count设置为0 */
-                    tl_count = 0;
-                    // disp_tl_count(tl_count);
+                    tl_count = 0;   /* 计算出当前可拍timelapse的数目 */
                 } else {    /* 非timelapse录像 */
                     //before send for disp_mid
                     set_update_mid();
@@ -7743,6 +7933,7 @@ int MenuUI::oled_disp_type(int type)
                      */
                     if (tl_count > 0) {
                         setCurMenu(MENU_PIC_INFO);     /* timelapse拍摄完成后进入拍照页面 */
+                        updateBottomSpace(true);
                     } else {    /* 正常的录像结束 */
                         dispBottomInfo();     
                     }
@@ -7751,6 +7942,7 @@ int MenuUI::oled_disp_type(int type)
                 }
 
                 tl_count = -1;
+
 				/* 添加用于老化测试： 灯全绿 */
 				#ifdef ENABLE_AGING_MODE
 				setLightDirect(FRONT_GREEN | BACK_GREEN);
@@ -8202,7 +8394,15 @@ int MenuUI::oled_disp_type(int type)
                 Log.e(TAG," TIMELPASE_COUNT cam_state 0x%x", cam_state);
             } else {
                 disp_tl_count(tl_count);    /* 显示timelpase拍摄值以及剩余可拍的张数 */
-                dispBottomLeftSpace();
+                if (mCanTakePicNum > 0) {
+                    mCanTakePicNum--;
+                    dispBottomLeftSpace();
+                } else {
+                    /* TODO: 主动停止拍摄 */
+                    Log.d(TAG, "[%s:%d] Disk is Full, Stop Timelapse take", __FILE__, __LINE__);
+
+                }
+                
             }
             break;
 
@@ -9456,6 +9656,7 @@ bool MenuUI::checkLiveNeedSave()
 }
 
 
+
 /*************************************************************************
 ** 方法名称: check_battery_change
 ** 方法功能: 检测电池的变化
@@ -9467,7 +9668,12 @@ bool MenuUI::checkLiveNeedSave()
 bool MenuUI::check_battery_change(bool bUpload)
 {
     bool bUpdate = mBatInterface->read_bat_update(m_bat_info_);
-		
+
+    double dInterTmp, dExternTmp; 
+
+    mBatInterface->read_tmp(&dInterTmp, &dExternTmp);
+    Log.d(TAG, "[%s: %d] Read Battery Tmp: interTmp[%f], externTmp[%f]", __FILE__, __LINE__, dInterTmp, dExternTmp);
+
     if (bUpdate || bUpload) {   /* 电池电量需要更新或者需要上报 */
 		
         oled_disp_battery();	/* 显示电池及电量信息 */

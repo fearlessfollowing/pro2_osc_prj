@@ -81,6 +81,14 @@
 #define PROP_SYS_FILE_LIST_ROOT     "sys.list_root"
 
 #define PROP_EXTERN_TF_STATE        "sys.tf_info"
+#define PROP_SYS_TZ_CHANGED         "sys.tz_changed"
+
+#define PROP_SYS_TZ_VER             "sys.tz_ver"
+
+#define PROP_SYS_TZ                 "sys.timezone"
+#define PROP_SYS_TZ1                "sys.timezone1"
+#define PROP_SYS_TIME               "sys.hw_time"
+
 
 #define PROP_MAX_DISK_SLOT_NUM	    10
 
@@ -131,6 +139,9 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
 
 #define HTTP_APP_LOG_PATH       "/home/nvidia/insta360/log/http_log"
+
+
+#define TIME_TZ_LOG_PATH        "/home/nvidia/insta360/log/tz_log"
 
 /*
  * 拍照模式名称

@@ -86,3 +86,8 @@ com_env.Program('./out/mongoose', mongoose_obj)
 
 
 
+############################ time_tz ##################################
+time_tz_obj = SConscript('./time_tz/SConscript')
+com_env.Program('./out/time_tz', time_tz_obj)
+
+

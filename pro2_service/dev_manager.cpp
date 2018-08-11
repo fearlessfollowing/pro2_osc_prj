@@ -325,7 +325,7 @@ int dev_manager::check_block_mount(char *dev)
 bool dev_manager::start_scan(int action)
 {
     bool bHandle = false;
-	
+	char* pPath = NULL;
     int fd = open("/proc/mounts", O_RDONLY);	/* 打开"/proc/mounts"文件 */
 	
     vector <sp<Volume>> mDevList;
@@ -358,9 +358,9 @@ bool dev_manager::start_scan(int action)
                         snprintf(mDevInfo->name, sizeof(mDevInfo->name), "%s", "usb");
                     }
 					
-                    p = strtok(NULL, delim);	/* 得到设备的挂载路径 */
-                    if (p) {
-                        snprintf(mDevInfo->path, sizeof(mDevInfo->path), "%s", p);
+                    pPath = strtok(NULL, delim);	/* 得到设备的挂载路径 */
+                    if (pPath) {
+                        snprintf(mDevInfo->path, sizeof(mDevInfo->path), "%s", pPath);
                     } else {
                         Log.d(TAG, "no mount path?\n");
                     }

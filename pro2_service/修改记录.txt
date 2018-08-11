@@ -173,3 +173,7 @@ procSetMenuKeyEvent
 procPowerKeyEvent
     case MENU_STORAGE:
         setCurMenu(MENU_SHOW_SPACE);        /* 进入显示存储空间 */
+
+
+日期：2018年8月11日
+1.修改时区
