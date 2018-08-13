@@ -177,3 +177,42 @@ procPowerKeyEvent
 
 日期：2018年8月11日
 1.修改时区
+
+
+
+日期：2018年8月13日
+1.去掉jetson_clocks.sh脚本中风扇控制部分
+2.开机时，将风扇的转速调节到最大: /usr/local/bin/hardware_init.sh
+
+#################################################################################
+# Fan Speed
+# 0 - Max Fan Speed
+# 255 - Min Fan Speed
+# debug dir: /sys/kernel/debug/tegra_fan/target_pwm
+#
+#################################################################################
+echo 0 > /sys/kernel/debug/tegra_fan/target_pwm
+
+3.优化TF状态查询（肖神修改了查询时TF卡的索引号：由0 - 5改成1-6）
+4.解决进入MENU_SHOW_SPACE时屏幕重启问题
+5.解决第一次进入拍照页面有插入TF卡，但显示Need mSD Card的错误
+6.将拍摄timelapse的参数保存到MENU_PIC_DEF的Customer挡位
+7.录像时长的计算及检查条件
+8.直播的时长及检查条件
+9.测速逻辑
+10.客户端控制Pro2关机
+
+
+
+
+
+网盘实验：
+将6个模组变成6个U盘，通过HTTP访问U盘文件，速度大致为10MB/s
+{ "name":"camera._change_module_usb_mode","parameters":{"mode":0} }
+
+
+
+
+定频问题：
+1.使用Type-C转USB连接Pro2相机和PC（亲测Win10和Win7能出现RNDIS网卡）
+

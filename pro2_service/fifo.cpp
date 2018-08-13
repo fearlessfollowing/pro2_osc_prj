@@ -2274,33 +2274,6 @@ void fifo::read_fifo_thread()
                     }
                 } else {
                 
-                	/* 解析该Json数据 
-                     * 如果传递的是字符串，做一些过滤处理 -- 2018年8月10日
-                     */
-                    // if (buf[FIFO_HEAD_LEN] == '"') {
-                    //     Log.d(TAG, "%s", buf[FIFO_HEAD_LEN]);
-                    //     // Log.d(TAG, "[%s:%d] Invalid Json object, drop \" first", __FILE__, __LINE__);
-                    //     // memcpy(result, &(buf[FIFO_HEAD_LEN+1]), content_len - 2);
-                    //     int i = 0, j = 0;
-                    //     while (j < content_len) {
-                    //         if (buf[FIFO_HEAD_LEN + i] == '\\') {
-                    //             j++;
-                    //         } else {
-                    //             result[FIFO_HEAD_LEN + i] = buf[FIFO_HEAD_LEN + j];
-                    //             i++;
-                    //             j++;
-                    //         }
-                    //         Log.d(TAG, "%c", buf[FIFO_HEAD_LEN + j]);
-                            
-                    //     }
-
-                    //     Log.d(TAG, "result: %s", result);
-                    // } else {
-                    //     memcpy(result, &(buf[FIFO_HEAD_LEN]), content_len);
-                    // }
-
-                    // Log.d(TAG, "[%s: %d] result :%s", __FILE__, __LINE__, result);
-                    // cJSON *root = cJSON_Parse(result);
                     cJSON *root = cJSON_Parse(&buf[FIFO_HEAD_LEN]);
 
                     cJSON *subNode = 0;
@@ -2308,7 +2281,7 @@ void fifo::read_fifo_thread()
                         Log.e(TAG, "cJSON parse string error, func(%s), line(%d)", __FILE__, __LINE__);
                     }
 					
-                    Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), result);
+                    Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), &buf[FIFO_HEAD_LEN]);
 
 					/* 根据消息的类型做出处理 */
                     switch (msg_what) {
@@ -2362,6 +2335,7 @@ void fifo::read_fifo_thread()
                             break;
                         }
 						
+
 
                         /* 设置SN/UUID
                          * {"sn":string, "uuid":string}
@@ -2496,13 +2470,36 @@ void fifo::read_fifo_thread()
                             break;
                         }
 
-                        /* 发送通知TF的状态 */
+
+                        /* 发送通知TF的状态 
+                         *  {
+                         *      "name": "camera._queryStorage", 
+                         *      "sequence": 512, 
+                         *      "state": "done", 
+                         *      "results": {
+                         *          "storagePath": "/mnt/udisk1", 
+                         *          "module": [
+                         *                      {"storage_total": 61024, "storage_left": 52962, "index": 1}, 
+                         *                      {"storage_total": 61024, "storage_left": 47073, "index": 2}, 
+                         *                      {"storage_total": 61037, "storage_left": 47086, "index": 3}, 
+                         *                      {"storage_total": 61024, "storage_left": 47073, "index": 4}, 
+                         *                      {"storage_total": 61024, "storage_left": 47073, "index": 5}, 
+                         *                      {"storage_total": 61024, "storage_left": 47073, "index": 6}
+                         *                     ]
+                         *      }
+                         * }
+                         *  
+                         */
                         case CMD_WEB_UI_TF_NOTIFY: {
                             Log.d(TAG, "[%s:%d] get notify form server for TF info", __FILE__, __LINE__);
+
+                            bool bResult = false;
                             char cStoragePath[64] = {0};
+                            char cState[32] = {0};
                             int iModuleArray = 0;
                             std::vector<sp<Volume>> storageList;
                             
+                            cJSON* pTmpResultNode = NULL;
                             cJSON* tmpJsonNode = NULL;
                             cJSON* tmpJsonIndex = NULL;
                             cJSON* tmpJsonTotalSpace = NULL;
@@ -2510,43 +2507,49 @@ void fifo::read_fifo_thread()
 
                             storageList.clear();
 
-                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "storagePath", cStoragePath, sizeof(cStoragePath));
-                            Log.d(TAG, "[%s:%d] get local device mount path [%s]", __FILE__, __LINE__, cStoragePath);
+                            GET_CJSON_OBJ_ITEM_STR(subNode, root, "state", cState, sizeof(cState));
+                            if (!strcmp(cState, "done")) {  /* 查询成功 */
 
-                            subNode = cJSON_GetObjectItem(root, "module");
-                            if (subNode) {
-                                iModuleArray = cJSON_GetArraySize(subNode);
-                                for (u32 i = 0; i < iModuleArray; i++) {
-                                    tmpJsonNode = cJSON_GetArrayItem(subNode, i);
-                                    if (tmpJsonNode) {
-                                        sp<Volume> tmpVol = (sp<Volume>)(new Volume());
+                                pTmpResultNode = cJSON_GetObjectItem(root, "results");
+                                if (pTmpResultNode) {
+                                    subNode = cJSON_GetObjectItem(pTmpResultNode, "module");
+                                    if (subNode) {
+                                        iModuleArray = cJSON_GetArraySize(subNode);
+                                        for (u32 i = 0; i < iModuleArray; i++) {
+                                            tmpJsonNode = cJSON_GetArrayItem(subNode, i);
+                                            if (tmpJsonNode) {
+                                                sp<Volume> tmpVol = (sp<Volume>)(new Volume());
 
-                                        tmpJsonIndex = cJSON_GetObjectItem(tmpJsonNode, "index");
-                                        tmpJsonTotalSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_total");
-                                        tmpJsonLeftSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_left");
+                                                tmpJsonIndex = cJSON_GetObjectItem(tmpJsonNode, "index");
+                                                tmpJsonTotalSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_total");
+                                                tmpJsonLeftSpace = cJSON_GetObjectItem(tmpJsonNode, "storage_left");
 
-                                        tmpVol->iIndex = tmpJsonIndex->valueint;
-                                        tmpVol->total  = tmpJsonTotalSpace->valueint;
-                                        tmpVol->avail  = tmpJsonLeftSpace->valueint;
+                                                tmpVol->iIndex = tmpJsonIndex->valueint;
+                                                tmpVol->total  = tmpJsonTotalSpace->valueint;
+                                                tmpVol->avail  = tmpJsonLeftSpace->valueint;
 
-                                        /* 类型为"SD"
-                                         * 外部TF卡的命名规则
-                                         * 名称: "tf-1","tf-2","tf-3"....
-                                         */
-                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
-                                        Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d]",
-                                                    __FILE__, __LINE__, tmpVol->name, tmpVol->iIndex, tmpVol->total, tmpVol->avail);
+                                                /* 类型为"SD"
+                                                * 外部TF卡的命名规则
+                                                * 名称: "tf-1","tf-2","tf-3"....
+                                                */
+                                                sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
+                                                Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d]",
+                                                            __FILE__, __LINE__, tmpVol->name, tmpVol->iIndex, tmpVol->total, tmpVol->avail);
 
-                                        storageList.push_back(tmpVol);
+                                                storageList.push_back(tmpVol);
+                                            }
+                                        }    
+                                        bResult = true;                                    
+                                    } else {
+                                        Log.d(TAG, "[%s:%d] get module json node[module] failed", __FILE__, __LINE__);
                                     }
                                 }
 
-                                /* 直接将消息丢入UI线程的消息队列中 */
-                                mOLEDHandle->updateTfStorageInfo(storageList);
-
-                            } else {
-                                Log.d(TAG, "[%s:%d] get module json node[module] failed", __FILE__, __LINE__);
+                            } else {    /* 查询失败 */
+                                Log.d(TAG, "[%s: %d] Query TF Card info Failed....", __FILE__, __LINE__);
                             }
+
+                            mOLEDHandle->updateTfStorageInfo(bResult, storageList);
                             break;
                         }
 

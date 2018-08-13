@@ -49,6 +49,12 @@ COM_FLAGS += ' -I' + PRO2_SERVICE + '/include '
 #------------------------------- 调试模式开关 --------------------------------------------------
 COM_FLAGS += ' -DENABLE_DEBUG_MODE '
 
+# 无TF卡也可以拍照开关
+COM_FLAGS += ' -DENABLE_MODE_NO_TF_TAKEPIC '
+
+# 拍timelapse只存大卡
+COM_FLAGS +=  ' -DENABLE_TIME_LAPSE_STOR_SD '
+
 #------------------------------- 菜单相关的配置（通过开关来控制） START --------------------------------------------------
 
 # 使能AEB菜单项

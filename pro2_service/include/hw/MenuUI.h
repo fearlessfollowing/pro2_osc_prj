@@ -375,7 +375,7 @@ public:
 
     //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
 
-    void updateTfStorageInfo(std::vector<sp<Volume>>& mStorageList);
+    void updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
     void sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
     void notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
 
@@ -467,14 +467,13 @@ private:
 
 //    void disp_pic_setting();
     void disp_live_setting();
-    void disp_storage_setting();
+
+
     void disp_format();
     void reset_devmanager();
     void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int exec_sh_new(const char *buf);
-    #if 0
-    void disp_sys_setting(SETTING_ITEMS* pSetting);
-    #endif
+
 
     void disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
     void disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
@@ -491,8 +490,6 @@ private:
     void disp_err_str(int type);
     void disp_err_code(int code,int back_menu);
     void disp_top_info();
-
-    void set_setting_select(int type,int val);
 
     int oled_disp_battery();
     void clear_area(u8 x,u8 y, u8 w,u8 h);
@@ -517,7 +514,7 @@ private:
     void read_ver_info();
 
     void init();
-    void check_net_status();
+
     void init_menu_select();
     void deinit();
     void init_handler_thread();
@@ -538,7 +535,6 @@ private:
     void disp_tl_count(int count);
     void set_tl_count(int count);
     void rm_state(int state);
-    void update_disp_func(int lan);
 
     void update_sys_info();
     void restore_all();
@@ -717,9 +713,6 @@ private:
     int get_setting_select(int type);
 
 
-
-
-
     struct stSetItem* getSetItemByName(std::vector<struct stSetItem*>& mList, const char* name);
 
     void dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected);
@@ -760,6 +753,7 @@ private:
 	/*
 	 * 消息处理
 	 */
+    void handleTfQueryResult();
 	void handleKeyMsg(int iKey);				/* 按键消息处理 */
 	void handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type);
 	void handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
@@ -800,8 +794,12 @@ private:
 	 */
 	bool queryCurStorageState(int iTimeout);
 
+    bool asyncQueryTfCardState();
+
     /* 发送TF状态变化消息 */
     void handleTfStateChanged(std::vector<sp<Volume>>& mTfChangeList);
+
+    void showSpaceQueryTfCallback();
 
 
 
@@ -849,6 +847,9 @@ private:
     char used_space[2][8]; //for disp
     char total_space[2][8];
 
+    /*
+     * 录像/直播的可存储的剩余时长
+     */
     sp<struct _remain_info_> mRemainInfo;
     sp<struct _rec_info_> mRecInfo;
     sp<oled_light> mOLEDLight;

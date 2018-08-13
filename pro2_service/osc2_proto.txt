@@ -25,7 +25,8 @@ camera._queryStorage
 respone:
 {
     "name":"camera._queryStorage",
-    "state":"done", "error":{"code":int, "description":string}
+    "state":"done", 
+    "error":{"code":int, "description":string}
     "results":{
         "storagePath":string //nvidia上的存储路径
         "module":[{"index":int, "storage_total":int, "storage_left":int}] //6个模组上的存储容量
