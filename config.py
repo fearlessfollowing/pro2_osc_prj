@@ -37,12 +37,17 @@ UPDATE_APP = SDK_ROOT + 'update_app'
 VOLD_DIR = SDK_ROOT + 'vold'
 
 
+# INC_PATH
+INC_PATH = []
+INC_PATH += [SDK_ROOT + 'include']
+INC_PATH += [SDK_ROOT + 'include/init']
+INC_PATH += [PRO2_SERVICE + '/include']
+
+
 # Common flags
 COM_FLAGS = ''
 COM_FLAGS += ' -DHAVE_SYS_UIO_H -DHAVE_PTHREADS -DHAVE_ANDROID_OS '
-COM_FLAGS += ' -I' + SDK_ROOT + 'include '
-COM_FLAGS += ' -I' + SDK_ROOT + 'include/init '
-COM_FLAGS += ' -I' + PRO2_SERVICE + '/include '
+
 
 #COM_FLAGS += $(EXTRA_INC_PATH)
 
@@ -83,10 +88,10 @@ COM_FLAGS += ' -DDEBUG_OLED '
 COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
 # 电池调试信息开关
-COM_FLAGS += ' -DDEBUG_BATTERY '
+#COM_FLAGS += ' -DDEBUG_BATTERY '
 
 # 设置页调试信息开关
-COM_FLAGS += ' -DDEBUG_SETTING_PAGE '
+#COM_FLAGS += ' -DDEBUG_SETTING_PAGE '
 
 # diable baterry check, print too much error info
 #COM_FLAGS += ' -DDISABLE_BATTERY_CHECK'
@@ -126,7 +131,8 @@ if PLATFORM == 'gcc':
     OBJDUMP = PREFIX + 'objdump'
     OBJCPY = PREFIX + 'objcopy'
 
-    CFLAGS = DEVICE
+
+    CFLAGS = ''
     #LFLAGS = DEVICE
     #LFLAGS += ' -Wl,--gc-sections,-cref,-Map=' + MAP_FILE
     #LFLAGS += ' -T ' + LINK_FILE + '.ld'
@@ -156,6 +162,7 @@ elif PLATFORM == 'aarch64':
     CFLAGS = COM_FLAGS
     CXXFLAGS = COM_FLAGS
     CXXFLAGS += ' -std=c++11 -frtti '
+    CPPPATH = INC_PATH
     LDFLAGS = ''
     LINKLIBS = ''
     CPATH = ''

@@ -835,54 +835,54 @@ private:
 
 	//normally changed by up/down/power key in panel
     int org_option = 0;
-    sp<pro_cfg> mProCfg;
+    sp<pro_cfg>             mProCfg;
 	
 	// dev_type : 1 -- usb , 2 -- sd1 (3 --sd2 if exists)
-    std::vector<sp<Volume>> mSaveList;
+    std::vector<sp<Volume>>     mSaveList;
 
 	// int save_select;
-    sp<oled_module> mOLEDModule;
+    sp<oled_module>             mOLEDModule;
 
 
-    char used_space[2][8]; //for disp
-    char total_space[2][8];
+    // char used_space[2][8]; //for disp
+    // char total_space[2][8];
 
     /*
      * 录像/直播的可存储的剩余时长
      */
-    sp<struct _remain_info_> mRemainInfo;
-    sp<struct _rec_info_> mRecInfo;
-    sp<oled_light> mOLEDLight;
+    sp<struct _remain_info_>    mRemainInfo;
+    sp<struct _rec_info_>       mRecInfo;
+    sp<oled_light>              mOLEDLight;
 
-    int cap_delay = 0;
+    // int cap_delay = 0;
 	
 
     u8 last_light = 0;
     u8 fli_light = 0;
     u8 front_light;
 	
-    std::mutex mutexState;
+    std::mutex                  mutexState;
 
 
-    sp<battery_interface> mBatInterface;
-    sp<struct _action_info_> mControlAct;
-    sp<BAT_INFO> m_bat_info_;
+    sp<battery_interface>       mBatInterface;
+    sp<struct _action_info_>    mControlAct;
+    sp<BAT_INFO>                m_bat_info_;
 
 	
-    sp<SYS_INFO> mReadSys;
+    sp<SYS_INFO>                mReadSys;
     sp<struct _ver_info_>       mVerInfo;
     sp<struct _wifi_config_>    mWifiConfig;
 
-    bool bDispTop = false;
-    bool bRoot = false;
-    bool bAdb = false;
-    int adb_times = 0;
-    int adb_root_times = 0;
-    int last_down_key = 0;
-    int tl_count = -1;
-    int aging_times = 0;
-    int bat_jump_times = 0;
-    int64 last_key_ts = 0;
+    bool                        bDispTop = false;
+    bool                        bRoot = false;
+    bool                        bAdb = false;
+    int                         adb_times = 0;
+    int                         adb_root_times = 0;
+    int                         last_down_key = 0;
+    int                         tl_count = -1;
+    int                         aging_times = 0;
+    int                         bat_jump_times = 0;
+    int64                       last_key_ts = 0;
 	
 
 

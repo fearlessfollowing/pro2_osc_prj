@@ -177,6 +177,7 @@ static int writeConfigFile(const char* path, const char* val)
 	return iRet;
 }
 
+#if 0
 static bool checkDiskPathValid(const char* path)
 {
 	bool bResult = false;
@@ -188,12 +189,13 @@ static bool checkDiskPathValid(const char* path)
 
 	return bResult;
 }
+#endif
 
 
 static int configUdisk(int iDiskCnt)
 {
 	int iRet = 0;
-	char* pTmpDiskPath = NULL;
+	// char* pTmpDiskPath = NULL;
 
 	Log.d(TAG, "disk count = %d", iDiskCnt);
 
@@ -274,7 +276,7 @@ static int configUdisk(int iDiskCnt)
 //				writeConfigFile("/sys/kernel/config/usb_gadget/l4t/functions/mass_storage.0/lun.0/file", "/dev/sda4");
 			}
 		//}
-#else
+
 			pTmpDiskPath = "/dev/sda1";
 			if (pTmpDiskPath) {	/* 检查磁盘名是否合法 */
 				if (checkDiskPathValid(pTmpDiskPath)) {

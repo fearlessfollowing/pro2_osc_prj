@@ -51,6 +51,7 @@
 
 using namespace std;
 
+#undef TAG
 #define TAG "NetManager"
 
 //#define ENABLE_IP_DEBUG
@@ -950,7 +951,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 
 sp<NetDev>& NetManager::getNetDevByType(int iType)
 {
-    uint32_t i;
+    // uint32_t i;
     {
         unique_lock<mutex> lock(mMutex);
         for (uint32_t i = 0; i < mDevList.size(); i++) {
@@ -1075,8 +1076,8 @@ void NetManager::dispatchIpPolicy(int iPolicy)
     sp<NetDev> tmpEthDev;
     sp<NetDev> tmpWlanDev;
 
-	const char* pEthIp = NULL;
-	const char* pWlanIp = NULL;
+	// const char* pEthIp = NULL;
+	// const char* pWlanIp = NULL;
 	bool bUpdate = false;
 
 

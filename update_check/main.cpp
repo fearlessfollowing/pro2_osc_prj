@@ -98,7 +98,7 @@ static const char *get_key()
     return FP_KEY;
 }
 
-
+#if 0
 /*************************************************************************
 ** 方法名称: check_free_space
 ** 方法功能: 检查SD卡的空闲空间是否足够
@@ -126,6 +126,7 @@ static bool check_free_space(char* fs_path, u32 limit)
     }
     return bAllow;
 }
+#endif
 
 
 static bool check_is_digit(const char* data)
@@ -276,7 +277,7 @@ static int version_check(SYS_VERSION* pVer)
 ** 调     用: main
 **
 *************************************************************************/
-static int get_unzip_update_check(char* image_path)
+static int get_unzip_update_check(const char* image_path)
 {
     int bRet = -1;
     FILE *fp = nullptr;
@@ -478,7 +479,7 @@ static bool search_updatebin_from_rmdev()
 }
 
 
-
+#if 0
 static bool is_fs_rw(const char* path)
 {
 	char tmp_file[512];
@@ -496,9 +497,9 @@ static bool is_fs_rw(const char* path)
 		close(fd);
 		unlink(tmp_file);
 	}
-
 	return ret;
 }
+#endif
 
 
 
@@ -566,7 +567,6 @@ static bool check_update_device_insert()
 static bool wait_update_dev_mounted(char* dev_node, int timeout)
 {
 	int wait_step = 500;	
-	int time_out;
 	int i_cnt = 0;
 	
 	while (true) {
@@ -660,8 +660,8 @@ static void set_sys_ver_prop(const char* ver_path)
 int main(int argc, char **argv)
 {
 	int iRet = -1;
-    char image_path[1024];
-	char upate_check_path[1024] = {0};
+    // char image_path[1024];
+	// char upate_check_path[1024] = {0};
 	bool found = false;
 	bool result = false;
 	const char* pUcDelayStr = NULL;	

@@ -17,15 +17,14 @@ com_env = Environment(
 	CC = config.CC, CCFLAGS = config.CFLAGS,
 	CXX = config.CXX, CXXFLAGS = config.CXXFLAGS,
 	LIBS = ['pthread', 'rt', 'ev'],
-	LINKFLAGS = config.LDFLAGS
+	LINKFLAGS = config.LDFLAGS,
+	CPPPATH = config.CPPPATH,
  	)
 
 com_env.Append(CCCOMSTR='CC <+++ $SOURCES')
-#com_env.Append(LINKCOMSTR='Link Target $SOURCES')
+com_env.Append(CXXCOMSTR='CXX <+++ $SOURCES')
+com_env.Append(LINKCOMSTR='Link Target $SOURCES')
 
-
-#print com_env['CCFLAGS']
-#print com_env['CXXFLAGS']
 
 Export('com_env')
 

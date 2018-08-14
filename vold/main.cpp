@@ -141,7 +141,7 @@ static const char* default_mount_devices[] = {
 
 T_name_fd  t_name_fd[100];
 int count_name_fd;
-static char *epoll_files[MAX_FILES];
+// static char *epoll_files[MAX_FILES];
 static struct epoll_event mPendingEventItems[EPOLL_COUNT];
 
 static int mINotifyFd, mEpollFd, i;
@@ -172,6 +172,7 @@ struct stMountSlotObj mountObjs[] = {
 #define MAX_MOUNT_POINT (sizeof(mountObjs) /sizeof(mountObjs[0]))
 
 
+#if 0
 static int getfdFromName(char* name)
 {
     int i;
@@ -185,7 +186,7 @@ static int getfdFromName(char* name)
     }
     return -1;
 }
-
+#endif
 
 static int exec_cmd(const char *str)
 {

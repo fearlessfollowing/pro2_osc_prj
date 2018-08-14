@@ -3458,7 +3458,8 @@ void MenuUI::procBackKeyEvent()
                         break;
 					
                     default:
-                        Log.d(TAG, "strange enter (%d 0x%x)", cur_menu, cam_state);
+                        Log.d(TAG, "[%s: %d] strange enter (%s 0x%x)", getCurMenuStr(cur_menu), cam_state);
+                        
                         if (check_live()) {
                             if (cur_menu != MENU_LIVE_INFO) {
                                 setCurMenu(MENU_LIVE_INFO);
@@ -7408,12 +7409,6 @@ void MenuUI::minus_cam_state(int state)
 {
     rm_state(state);
 
-    // set_cap_delay(0);
-
-//    Log.d(TAG,"after minus_cam_state cam_state 0x%x "
-//                  "cur_menu %d state 0x%x",
-//          cam_state,cur_menu, state);
-
     if (check_state_equal(STATE_IDLE)) {
         reset_last_info();
         switch (state) {
@@ -7450,7 +7445,7 @@ void MenuUI::minus_cam_state(int state)
                 break;
         }
     } else {
-        Log.w(TAG," minus error cam_state 0x%x state 0x%x", cam_state,state);
+        Log.w(TAG," minus error cam_state 0x%x state 0x%x", cam_state, state);
     }
 }
 
