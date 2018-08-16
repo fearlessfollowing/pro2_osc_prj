@@ -98,7 +98,7 @@ typedef struct _cam_prop_ {
 typedef struct _action_info_ {
     int mode;    
 
-    // pic size or rec M/s
+    // pic size or rec M/s MODE_3D
     int size_per_act;           /* 拍照: 每张照片的大小; 录像/直播: 每秒多少M */
     int delay;                  /* 拍照的倒计时值 */
     ORG_INFO stOrgInfo;         /* 原片信息 */

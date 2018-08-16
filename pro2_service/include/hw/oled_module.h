@@ -103,8 +103,9 @@ private:
     sp<ins_i2c> pstI2C_OLED;
 
     // byte0 --page0,col0 byte1 -- page0 col1  ...
-    u8 *ucBuf;
-    u8 *ucBufLast;
+    u8  *ucBuf;
+    u8  *ucBufLast;
+    u8  mTmpBuf[32];
     sp<struct _page_info_> mPageInfo;
 };
 

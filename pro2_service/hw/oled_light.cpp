@@ -21,6 +21,7 @@
 
 using namespace std;
 
+#undef TAG
 #define TAG "oled_light"
 
 #define LED_I2C_REG 0x02
@@ -76,7 +77,7 @@ void oled_light::set_light_val(u8 val)
     val &= 0x3f;    /* 设置灯的值不能改变模组的供电状态 */
 
     if (mI2CLight->i2c_read(LED_I2C_REG, &orig_val) == 0) {
-    #ifdef DEBUG_OLED
+    #ifdef DEBUG_LED
         Log.d(TAG, "+++++++>>> read orig val [0x%x]", orig_val);
         Log.d(TAG, "set_light_val --> val[0x%x]", val);
     #endif
@@ -87,7 +88,7 @@ void oled_light::set_light_val(u8 val)
         if (mI2CLight->i2c_write_byte(LED_I2C_REG, orig_val) != 0) {
             Log.e(TAG, " oled write val 0x%x fail", val);
         } else {
-        #ifdef DEBUG_OLED
+        #ifdef DEBUG_LED
             Log.d(TAG, "set_light_val, new val [0x%x]", orig_val);
         #endif
         }

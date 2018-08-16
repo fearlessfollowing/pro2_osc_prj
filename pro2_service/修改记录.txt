@@ -196,15 +196,122 @@ echo 0 > /sys/kernel/debug/tegra_fan/target_pwm
 3.优化TF状态查询（肖神修改了查询时TF卡的索引号：由0 - 5改成1-6）
 4.解决进入MENU_SHOW_SPACE时屏幕重启问题
 5.解决第一次进入拍照页面有插入TF卡，但显示Need mSD Card的错误
-6.将拍摄timelapse的参数保存到MENU_PIC_DEF的Customer挡位
-7.录像时长的计算及检查条件
+6.录像时长的计算及检查条件
+
+
+日期：2018年8月14日
+1.修改编译系统Scons
+2.将拍摄timelapse的参数保存到MENU_PIC_DEF的Customer挡位
+
 8.直播的时长及检查条件
 9.测速逻辑
 10.客户端控制Pro2关机
 
 
-日期：2018年8月14日
-1.修改编译系统Scons
+拍摄timelapse的参数：
+{
+    'name': 'camera._startRecording', 
+    'parameters': {
+        'storageSpeedTest': False, 
+        'stabilization': False, 
+        'timelapse': {
+            'interval': 4000, 
+            'enable': True
+        }, 
+        'origin': {
+            'height': 3000, 
+            'saveOrigin': True, 
+            'mime': 'raw', 
+            'logMode': 0, 
+            'width': 4000
+        }, 
+        'fileOverride': False
+    }
+}
+
+
+保存timelapse的自定义参数：
+
+2018-08-14 11:19:44,952 - g - INFO - set custom req 
+{
+    'name': 'camera._setCustom', 
+    'parameters': {
+        'name': 'camera._takePicture', 
+        'parameters': {
+            'storageSpeedTest': False, 
+            'stabilization': False, 
+            'origin': {
+                'height': 3000, 
+                'saveOrigin': True, 
+                'mime': 'raw', 
+                'logMode': 0, 
+                'width': 4000
+            }, 
+            'timelapse': {
+                'interval': 4000, 
+                'enable': True
+            }, 
+            'fileOverride': False, 
+            'properties': {
+                'audio_gain': 0, 
+                'len_param': {
+                    'brightness': 0, 
+                    'hue': 0, 
+                    'stabilization': 1, 
+                    'contrast': 64, 
+                    'ev_bias': 0, 
+                    'saturation': 64, 
+                    'aaa_mode': 1, 
+                    'sharpness': 0, 
+                    'iso_value': 0, 
+                    'shutter_value': 19, 
+                    'wb': 0
+                }
+            }
+        }
+    }
+}
+
+2018-08-14 11:19:44,954 - g - INFO - start_write conent 
+{
+    "type": 46, 
+    "req": {
+        "action": 1,
+         "param": {
+             "storageSpeedTest": false, 
+             "stabilization": false, 
+             "origin": {
+                 "height": 3000, 
+                 "saveOrigin": true, 
+                 "mime": "raw", 
+                 "logMode": 0, 
+                 "width": 4000
+            }, 
+            "timelapse": {
+                "interval": 4000, 
+                "enable": true
+            }, 
+            "fileOverride": false, 
+            "properties": {
+                "audio_gain": 0, 
+                "len_param": {
+                    "brightness": 0, 
+                    "hue": 0, 
+                    "stabilization": 1, 
+                    "contrast": 64, 
+                    "ev_bias": 0, 
+                    "saturation": 64,
+                    "aaa_mode": 1, 
+                    "sharpness": 0, 
+                    "iso_value": 0, 
+                    "shutter_value": 19, 
+                    "wb": 0
+                }
+            }
+        }
+    }
+}
+
 
 
 
@@ -219,3 +326,28 @@ echo 0 > /sys/kernel/debug/tegra_fan/target_pwm
 定频问题：
 1.使用Type-C转USB连接Pro2相机和PC（亲测Win10和Win7能出现RNDIS网卡）
 
+
+
+resut info is {"name": "camera._queryStorage", "sequence": 19, "state": "done", "results": {"storagePath": "/mnt/udisk1", "module": [{"storage_total": 61024, "storage_left": 34840, "index": 1}, {"storage_total": 61024, "storage_left": 34840, "index": 2}, {"storage_total": 0, "storage_left": 0, "index": 3}, {"storage_total": 61024, "storage_left": 34840, "index": 4}, {"storage_total": 61024, "storage_left": 34840, "index": 5}, {"storage_total": 61024, "storage_left": 34860, "index": 6}]}}
+
+
+send query storage results to UI {'name': 'camera._queryStorage', 'sequence': 19, 'state': 'done', 'results': {'storagePath': '/mnt/udisk1', 'module': [{'storage_total': 61024, 'storage_left': 34840, 'index': 1}, {'storage_total': 61024, 'storage_left': 34840, 'index': 2}, {'storage_total': 0, 'storage_left': 0, 'index': 3}, {'storage_total': 61024, 'storage_left': 34840, 'index': 4}, {'storage_total': 61024, 'storage_left': 34840, 'index': 5}, {'storage_total': 61024, 'storage_left': 34860, 'index': 6}]}}
+
+
+
+
+TX2与模组连接的两个GPIO：
+G8:     GPIO3_PR.00         320 + 17*8 + 0  = 456
+D7:     GPIO3_PX.06         320 + 19*8 + 6  = 478
+
+
+
+日期：2018年8月15日
+对于TF的查询，提供同步和异步两种接口：
+同步接口主要用于预览状态下，此时查询TF卡的时间非常短（50ms），同步方式下可以设置超时机制，如果查询超时，可以提示查询失败之类的提示
+同步接口用在的场合：
+1.拍照，录像，直播启动预览成功之后，通过查询TF的信息，来显示底部的容量信息
+2.MENU_PIC_SET_DEF, MENU_VIDEO_SET_DEF, MENU_LIVE_SET_DEF菜单中挡位切换时
+3.有TF卡动态插入时，会收到卡插入的消息，此时会主动进行一次查询（可以免去繁琐的更新）
+
+异步接口主要用于非预览状态下，此时查询TF卡的时间非常长，主要用在设置页下查询TF卡容量

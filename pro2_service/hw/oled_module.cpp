@@ -575,28 +575,25 @@ void oled_module::ssd1306_init()
 
 void oled_module::disp_dat(u8 col, u8 page, u8 col_w,u8 page_num)
 {
-//    Log.d(TAG,"col %d page %d col_w %d page_num %d\n",
-//           col,page, col_w, page_num);
 #ifdef HORIZONAL_ADDRESS_MODE
     //    SSD_Set_RAM_Address(page, col);
     SSD_Set_Page_Address(page,page + page_num);
     SSD_Set_Column_Address(col,col + col_w);
 #endif
 
-    for (u8 i = 0; i < page_num; i++)
-    {
+    for (u8 i = 0; i < page_num; i++) {
         u16 start = (page + i) * COL_MAX + col;
 
         #ifndef HORIZONAL_ADDRESS_MODE
         SSD_Set_RAM_Address(page + i,col);
 		#endif
 
-        for (u8 j = 0; j < col_w; j++ )
-        {
+        for (u8 j = 0; j < col_w; j++ ) {
             ssd1306_write_dat(ucBuf[start + j]);
         }
     }
 }
+
 
 void oled_module::disp_buf_last()
 {
@@ -654,56 +651,70 @@ void oled_module::get_page_info_convert(u8 y,u8 h,sp<PAGE_INFO> &mPageInfo)
     mPageInfo->page_start = y/PAGE_H;
     mPageInfo->dat_page_num = h/PAGE_H;
 
-    if (mPageInfo->delta_y != 0)
-    {
+    if (mPageInfo->delta_y != 0) {
         mPageInfo->page_num = mPageInfo->dat_page_num + 1;
-        if (mPageInfo->page_num  >= 4)
-        {
+        if (mPageInfo->page_num  >= 4) {
             Log.d(TAG,"warning: page occupy more than 4\n");
         }
-    }
-    else
-    {
+    } else {
         mPageInfo->page_num = mPageInfo->dat_page_num;
     }
 }
 
 
 //high: 0 - normal ,1 -- highlight
-void oled_module::get_char_info(u8 c,sp<CHAR_INFO> &mCharInfo, bool high)
+void oled_module::get_char_info(u8 c, sp<CHAR_INFO> & mCharInfo, bool high)
 {
     u32 i = 0;
     u32 total = sizeof(others_array)/ sizeof(others_array[0]);
+    CHAR_INFO* tmpCharInfo = NULL;
 
-    if (c >= '0' && c <= '9')
-    {
+    memset(mTmpBuf, 0, sizeof(mTmpBuf));
+
+    if (c >= '0' && c <= '9') {
         mCharInfo->char_w = 6;
         mCharInfo->pucChar = (const u8 *)&digit_array[high][c - '0'];
-    }
-    else if ( c >= 'A' && c <= 'Z')
-    {
-        mCharInfo->char_w = 8;
-        mCharInfo->pucChar = (const u8 *)&alpha_bigger[high][c - 'A'];
-    }
-    else if ( c >= 'a' && c <= 'z')
-    {
-        mCharInfo->char_w = 8;
-        mCharInfo->pucChar = (const u8 *)&alpha_smaller[high][c - 'a'];
-    }
-    else
-    {
-        for (i = 0; i < total; i++)
-        {
-            if (others_array[i].c == c)
-            {
+    } else if ( c >= 'A' && c <= 'Z') {
+        // mCharInfo->char_w = 8;
+        // mCharInfo->pucChar = (const u8 *)&alpha_bigger[high][c - 'A'];
+        tmpCharInfo = &gArryBigAlpha[c - 'A'];
+        if (tmpCharInfo) {
+            mCharInfo->char_w = tmpCharInfo->char_w;
+            if (high) {
+                for (int j = 0; j < tmpCharInfo->char_w * 2; j++) {
+                    mTmpBuf[j] = ~(tmpCharInfo->pucChar[j]);
+                }
+                mCharInfo->pucChar = mTmpBuf;
+            } else {
+                mCharInfo->pucChar = tmpCharInfo->pucChar;
+            }
+        }
+    } else if ( c >= 'a' && c <= 'z') {
+        // mCharInfo->char_w = 8;
+        // mCharInfo->pucChar = (const u8 *)&alpha_smaller[high][c - 'a'];
+        tmpCharInfo = &gArrySmallAlpha[c - 'a'];
+        if (tmpCharInfo) {
+            mCharInfo->char_w = tmpCharInfo->char_w;
+            if (high) {
+                for (int j = 0; j < tmpCharInfo->char_w * 2; j++) {
+                    mTmpBuf[j] = ~(tmpCharInfo->pucChar[j]);
+                }
+                mCharInfo->pucChar = mTmpBuf;
+            } else {
+                mCharInfo->pucChar = tmpCharInfo->pucChar;
+            } 
+        }   
+    
+    } else {
+        for (i = 0; i < total; i++) {
+            if (others_array[i].c == c) {
                 mCharInfo->char_w = 6;
                 mCharInfo->pucChar = others_array[i].pucChar[high];
                 break;
             }
         }
 
-        if (i == total)
-        {
+        if (i == total) {
             Log.e(TAG, "not found char 0x%x", c);
             mCharInfo->char_w = 6;
             mCharInfo->pucChar = others_array[0].pucChar[high];
@@ -736,7 +747,7 @@ void oled_module::set_buf_by_page_info(u8 col_start, DAT_TYPE ucMid,sp<PAGE_INFO
 
 void oled_module::ssd1306_disp_16_str_fill(const u8 *str, const u8 x, const u8 y, bool bHigh)
 {
-    ssd1306_disp_16_str(str,x,y,bHigh,COL_MAX - x);
+    ssd1306_disp_16_str(str, x, y, bHigh,COL_MAX - x);
 }
 
 /*x: 0-127 y:0 - 48
@@ -773,14 +784,11 @@ void oled_module::ssd1306_disp_16_str(const u8 *str,const u8 x, const u8 y, bool
 //                  "col_limit %d width %d bHigh %d\n",
 //          str, len,x, y, col_start,col_limit, width,bHigh);
 //    Log.d(TAG,"x %d w %d col_limit %d str %s",x,width,col_limit,str);
-    if ( mPageInfo->delta_y != 0)
-    {
+    if ( mPageInfo->delta_y != 0) {
         DAT_TYPE ucMid = 0;
-        for(u8 i = 0; i < len ; i++)
-        {
-            get_char_info(str[i],mCharInfo,bHigh);
-            if((col_start + mCharInfo->char_w) <= col_limit )
-            {
+        for (u8 i = 0; i < len ; i++) {
+            get_char_info(str[i], mCharInfo, bHigh);
+            if ((col_start + mCharInfo->char_w) <= col_limit) {
                 for (u8 j = 0; j < mCharInfo->char_w; j++)
                 {
                     ucMid = 0;
@@ -838,8 +846,7 @@ void oled_module::ssd1306_disp_16_str(const u8 *str,const u8 x, const u8 y, bool
         }
 //        Log.d(TAG,"col_start is %d x %d col_limit %d", col_start,x,col_limit);
         // fill dat if need use width nor col_limit for width might be zero
-        if(width > 0 && (col_start - x) < col_limit)
-        {
+        if (width > 0 && (col_start - x) < col_limit) {
 //            Log.d(TAG," fill dat 0x%x col_start %d col_limit %d"
 //                          " mPageInfo->page_start %d mPageInfo->page_num %d",
 //                  fill_dat[bHigh], col_start,col_limit, mPageInfo->page_start,
@@ -852,32 +859,28 @@ void oled_module::ssd1306_disp_16_str(const u8 *str,const u8 x, const u8 y, bool
     }
 EXIT:
 //    Log.d(TAG,"disp x %d w %d",x,col_start -x );
-    disp_dat(x,mPageInfo->page_start,
-             col_start - x ,mPageInfo->page_num);
+    disp_dat(x, mPageInfo->page_start, col_start - x ,mPageInfo->page_num);
 }
 
 void oled_module::clear_icon(const u32 icon_type)
 {
     const struct _icon_info_ *pstTmp = (const struct _icon_info_ *)&oled_icons[icon_type];
-//    Log.d(TAG,"clear_icon icon_type %d",icon_type);
-    clear_area(pstTmp->x,pstTmp->y,pstTmp->w,pstTmp->h);
+    clear_area(pstTmp->x, pstTmp->y, pstTmp->w, pstTmp->h);
 }
 
 void oled_module::disp_icon(const u32 icon_type)
 {
-    if (icon_type > ICON_MAX)
-    {
+    if (icon_type > ICON_MAX) {
         Log.e(TAG,"disp_icon exceed icon_type %d",icon_type);
 #ifdef ENABLE_ABORT
         abort();
 #else
         return;
 #endif
-    }
-    else if (icon_type == 0)
-    {
+    } else if (icon_type == 0) {
         Log.w(TAG, "disp icon 0 happen");
     }
+
     disp_icon((const struct _icon_info_ *)&oled_icons[icon_type]);
 }
 

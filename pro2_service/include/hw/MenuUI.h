@@ -46,7 +46,7 @@ typedef enum _type_ {
     CALIBRATION_SUC,
     CALIBRATION_FAIL,
     START_PREVIEWING ,          // 30,
-    START_PREVIEW_SUC,  
+    START_PREVIEW_SUC,          // 31
     START_PREVIEW_FAIL,
     STOP_PREVIEWING,
     STOP_PREVIEW_SUC,
@@ -378,7 +378,7 @@ public:
     void updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
     void sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
     void notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
-
+    void sendSpeedTestResult(std::vector<sp<Volume>>& mChangedList);
 
 private:
 
@@ -614,6 +614,17 @@ private:
     void handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
 
 
+    /*
+     * 测速
+     */
+    void handleSppedTest(std::vector<sp<Volume>>& mSpeedTestList);
+    /*
+     * 是否满足测速条件
+     * 是返回true; 否返回false
+     */
+    bool isSatisfySpeedTestCond();
+
+
     void dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
     /*
      * 检查直播时是否需要保存原片
@@ -651,6 +662,7 @@ private:
     void setCurMenu(int menu,int back_menu = -1);
     void cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
+    bool isQueryTfMenuShowLeftSpace();
  
     bool getQueryResult(int iTimeout);
     /*
@@ -792,7 +804,7 @@ private:
 	/*
 	 * 存储管理器
 	 */
-	bool queryCurStorageState(int iTimeout);
+	bool syncQueryTfCardState(int iTimeout);
 
     bool asyncQueryTfCardState();
 
@@ -902,6 +914,8 @@ private:
 
     char                        mLocalIpAddr[32];        /* UI本地保存的IP地址 */
 
+    u32                         mStoreUiState;          /* 保存查询TF卡时系统的状态 */
+    int                         mStoreQueryTfMenu;
 
 	/*
 	 * 是否已经配置SSID
@@ -911,9 +925,10 @@ private:
 	/*------------------------------------------------------------------------------
 	 * 存储管理部分
 	 */
-
+    bool                        mRemoteStorageState;
 
 	u32 	                    mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
+
 
     /* 目前拍照都存储在大卡里
      * 步骤:
@@ -929,6 +944,10 @@ private:
 
 	std::mutex				mRemoteDevLock;
     bool                    mRemoteStorageUpdate = false;
+    
+    bool                    mSysncQueryTfReq;                       /* 以同步方式查询TF卡状态 */
+    bool                    mAsyncQueryTfReq;                       /* 以异步方式查询TF卡状态 */
+
 	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
     u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 

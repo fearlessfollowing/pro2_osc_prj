@@ -28,6 +28,7 @@ typedef struct stVol {
     u64 	avail;			/* 剩余容量 */
 	int		iIndex;			/* 索引号 */
 	int		iType;			/* 用于表示是内部设备还是外部设备 */
+	int 	iSpeedTest;		/* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
 } Volume;
 
 

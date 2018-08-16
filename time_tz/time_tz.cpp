@@ -133,7 +133,6 @@ int main(int argc, char **argv)
 		setSysTime(pCurTime);
 	}
 
-
 	/* 2.修改系统时区 */
 	pTimeTZ = property_get(PROP_SYS_TZ);
 	if (pTimeTZ) {

@@ -923,6 +923,8 @@ static void proc_update_success(const char* mount_point)
 	  
 	/* 3.根据配置是重启or直接启动应用 */
     disp_start_reboot(5);
+
+	system("mv /lib/systemd/system/NetworkManager.service /lib/systemd/");	/* 暂时移除这个服务，测试Direct */
 	start_reboot();			
 }	
 

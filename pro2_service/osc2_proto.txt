@@ -353,6 +353,54 @@ Async result:
         "error":{"code":int, "description":string}
     } 
 }
+
+
+{ 
+    "name": "camera._storage_speed_test_finish_", 
+    "sequence": 21, 
+    "parameters": 
+    { 
+        "local": false, 
+        "module": [ 
+            { "index": 1, "result": true }, 
+            { "index": 2, "result": true }, 
+            { "index": 3, "result": true }, 
+            { "index": 4, "result": true }, 
+            { "index": 5, "result": true }, 
+            { "index": 6, "result": true } 
+            ] 
+        } 
+    }'
+2018-08-15 22:58:29,767 - g - INFO - handle notify content {'name': 'camera._storage_speed_test_finish_', 'sequence': 21, 'parameters': {'local': False, 'module': [{'index': 1, 'result': True}, {'index': 2, 'result': True}, {'index': 3, 'result': True}, {'index': 4, 'result': True}, {'index': 5, 'result': True}, {'index': 6, 'result': True}]}}
+2018-08-15 22:58:29,767 - g - INFO - storage_speed_test_finish_notify param {'local': False, 'module': [{'index': 1, 'result': True}, {'index': 2, 'result': True}, {'index': 3, 'result': True}, {'index': 4, 'result': True}, {'index': 5, 'result': True}, {'index': 6, 'result': True}]}
+2018-08-15 22:58:29,767 - g - ERROR - handle_notify_from_camera exception 'state'
+
+
+{
+    'name': 'camera._storage_speed_test_finish_', 
+    'sequence': 10, 
+    'parameters': {
+        'local': True, 
+        'module': [
+            {'index': 1, 'result': True},
+            {'index': 2, 'result': True}, 
+            {'index': 3, 'result': True}, 
+            {'index': 4, 'result': True}, 
+            {'index': 5, 'result': True}, 
+            {'index': 6, 'result': True}
+        ]
+    }
+}
+
+UI的速度测试：
+camera_start_speed_test
+    start_speed_test
+
+
+测试完成的通知
+storage_speed_test_finish_notify
+
+
 ------------------------------------------------------------------------------------------------------
 
 

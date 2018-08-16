@@ -18,10 +18,6 @@
 
 using namespace std;
 
-/*
- * 调试开关
- */
-#define DEBUG_BATTERY
 
 #define OLD_BAT
 
@@ -58,6 +54,7 @@ enum {
 };
 
 
+#undef TAG
 #define TAG	"battery_interface"
 
 

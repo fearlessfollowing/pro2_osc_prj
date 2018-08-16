@@ -74,17 +74,18 @@ enum {
     CMD_WEB_UI_TF_NOTIFY = 30,
     CMD_WEB_UI_TF_CHANGED = 31,
     CMD_WEB_UI_TF_FORMAT  = 32,
+    CMD_WEB_UI_TEST_SPEED_RES = 33,
 };
 
 
 //send to controller
 enum {
-    EVENT_BATTERY = 0,
-    EVENT_NET_CHANGE = 1,
-    EVENT_OLED_KEY = 2,
-    EVENT_DEV_NOTIFY = 3,
-    EVENT_SAVE_PATH = 4,
-    EVENT_AGEING_TEST = 5,
+    EVENT_BATTERY       = 0,
+    EVENT_NET_CHANGE    = 1,
+    EVENT_OLED_KEY      = 2,
+    EVENT_DEV_NOTIFY    = 3,
+    EVENT_SAVE_PATH     = 4,
+    EVENT_AGEING_TEST   = 5,
     EVENT_QUERY_STORAGE = 6,
 };
 

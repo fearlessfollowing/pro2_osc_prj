@@ -37,6 +37,7 @@
 #include <prop_cfg.h>
 
 
+#undef TAG
 #define TAG "pro2_service"
 
 void start_all();
@@ -44,11 +45,15 @@ void init_fifo();
 void debug_version_info();
 
 
+#define PRO2_VER    "V0.2.4"
+
+
 int main(int argc ,char *argv[])
 {
     int iRet = 0;
 
     debug_version_info();
+
     registerSig(default_signal_handler);
 	
     signal(SIGPIPE, pipe_signal_handler);
@@ -60,6 +65,9 @@ int main(int argc ,char *argv[])
         Log.e(TAG, "pro_service service exit: __system_properties_init() faile, ret = %d", iRet);
         return -1;
     }
+
+    property_set(PROP_PRO2_VER, PRO2_VER);
+
 
     Log.d(TAG, "ro.version [%s]", property_get("ro.version"));
 

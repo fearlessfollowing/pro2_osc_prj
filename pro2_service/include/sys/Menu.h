@@ -104,7 +104,7 @@ typedef struct _select_info_ {
 	
     int cur_page;			/* 选项所在的页 */
 
-    int total;				/* 真个含有的项数 */
+    u32 total;				/* 真个含有的项数 */
 
     int page_max;			/* 一页含有的项数 */
 

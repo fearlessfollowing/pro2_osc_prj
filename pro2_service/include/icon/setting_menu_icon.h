@@ -3644,7 +3644,7 @@ ICON_INFO spaceNvIconInfo = {
 
 
 ICON_INFO testSpeedIconInfo = {
-	0, 32, 128, 16, sizeof(setTestSpeed_128x16), setTestSpeed_128x16,
+	0, 24, 128, 16, sizeof(setTestSpeed_128x16), setTestSpeed_128x16,
 };
 
 

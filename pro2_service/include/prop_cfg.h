@@ -43,16 +43,25 @@
 #define PROP_UC_START_APP 			"sys.uc_start_app"
 
 
+/*
+ * 模组的数组/TF卡的数目
+ */
+#define PROP_REMOTE_TF_NUM          "sys.tf_num"
+
 #define PROP_SYS_UPDATE_IMG_PATH	"update_image_path"
 
 /** update_check service version prop */
 #define PROP_SYS_UC_VER 			"sys.uc_ver"
 
 #define PROP_SYS_UA_VER 			"sys.ua_ver"
+#define PROP_PRO2_VER               "sys.pro2_ver"
+
 
 #define PROP_PWR_FIRST      	    "sys.hub_reset_first"
-
 #define PROP_KEY_RESPRATE           "sys.key_resprate"
+
+
+
 
 /*
  * 启动动画属性

@@ -1353,7 +1353,7 @@ static ACTION_INFO vid4K_120F_3D_Action = {
 
 static ACTION_INFO vid4K_30F_RTS_Action = {
 	MODE_PANO,
-	20,
+	8,
 	0,
 	{
 		EN_H264,
@@ -1377,7 +1377,7 @@ static ACTION_INFO vid4K_30F_RTS_Action = {
 
 static ACTION_INFO vid4K_30F_3D_RTS_Action = {
 	MODE_3D,
-	20,
+	8,
 	0,
 	{
 		EN_H264,
@@ -1392,7 +1392,7 @@ static ACTION_INFO vid4K_30F_3D_RTS_Action = {
 		STITCH_NORMAL,
 		3840,
 		3840,
-		{ALL_FR_30, 80}
+		{ALL_FR_30, 50}		/* 日期：2018年8月14日 - 将拼接码率由80改为50 */
 	},
 	{},
 	{}
@@ -1401,7 +1401,7 @@ static ACTION_INFO vid4K_30F_3D_RTS_Action = {
 
 static ACTION_INFO vid_Customer_Action = {
 	MODE_PANO,
-	10,
+	8,
 	0,
 	{
 		EN_H264,

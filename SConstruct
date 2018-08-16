@@ -21,8 +21,8 @@ com_env = Environment(
 	CPPPATH = config.CPPPATH,
  	)
 
-com_env.Append(CCCOMSTR='CC <+++ $SOURCES')
-com_env.Append(CXXCOMSTR='CXX <+++ $SOURCES')
+com_env.Append(CCCOMSTR  ='CC <============================================ $SOURCES')
+com_env.Append(CXXCOMSTR ='CXX <=========================================== $SOURCES')
 com_env.Append(LINKCOMSTR='Link Target $SOURCES')
 
 

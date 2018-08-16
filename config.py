@@ -76,7 +76,7 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 
 
 # LED 调试信息开关
-COM_FLAGS += ' -DDEBUG_OLED '
+#COM_FLAGS += ' -DDEBUG_LED '
 
 # 是否支持HDR（默认不支持）
 #COM_FLAGS += ' -DENABLE_FEATURE_HDR '
@@ -89,6 +89,9 @@ COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
 # 电池调试信息开关
 #COM_FLAGS += ' -DDEBUG_BATTERY '
+
+# 使能同步方式查询TF卡信息
+#COM_FLAGS += ' -DENABLE_SYNC_QUERY_TF_INFO '
 
 # 设置页调试信息开关
 #COM_FLAGS += ' -DDEBUG_SETTING_PAGE '
