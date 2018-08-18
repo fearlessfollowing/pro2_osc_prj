@@ -116,6 +116,10 @@ enum {
     PRINT_LABELS            = 1U << 16,
 };
 
+
+/*
+ * 消息框的消息类型
+ */
 enum {
     DISP_DISK_FULL,
     DISP_NO_DISK,
@@ -131,6 +135,8 @@ enum {
     DISP_ALERT_FAN_OFF,
     DISP_LIVE_REC_USB,
     DISP_VID_SEGMENT,
+    DISP_NEED_SDCARD,
+    DISP_NEED_QUERY_TFCARD,
     //mtp
     DISP_USB_CONNECTED,
 };
@@ -387,7 +393,7 @@ const char* getCurMenuStr(int iCurMenu)
 		break;
 	
 	case MENU_STORAGE:
-		pRet = "MENU_LIVE_INFO";
+		pRet = "MENU_STORAGE";
 		break;
 		
 	case MENU_SYS_SETTING:
@@ -474,8 +480,6 @@ const char* getCurMenuStr(int iCurMenu)
 		pRet = "MENU_SET_PHOTO_DEALY";
 		break;
 		
-	
-	//messagebox keep at the end
 	case MENU_DISP_MSG_BOX:
 		pRet = "MENU_DISP_MSG_BOX";
 		break;
@@ -488,6 +492,10 @@ const char* getCurMenuStr(int iCurMenu)
         pRet = "MENU_TF_FORMAT_SELECT";
         break;
     
+    case MENU_SET_TEST_SPEED:
+        pRet = "MENU_SET_TEST_SPEED";
+        break;
+
 	default:
 		pRet = "Unkown Menu";
 		break;
@@ -1614,7 +1622,7 @@ void MenuUI::init_menu_select()
 *************************************************************************/
 void MenuUI::init()
 {
-    int iTfNum = 6;     /* 默认值 */
+    mTfNum = 6;     /* 默认值 */
 
     const char* pRemoteTfNum = NULL;
 
@@ -1641,10 +1649,10 @@ void MenuUI::init()
      */
     pRemoteTfNum = property_get(PROP_REMOTE_TF_NUM);
     if (pRemoteTfNum) {
-        iTfNum = atoi(pRemoteTfNum);
+        mTfNum = atoi(pRemoteTfNum);
     }
 
-    for (u32 i = 0; i < iTfNum; i++) {
+    for (u32 i = 0; i < mTfNum; i++) {
         sp<Volume> tmpVolume = (sp<Volume>)(new Volume());
         tmpVolume->iIndex = i + 1;  /* 索引从1开始 */
         mRemoteStorageList.push_back(tmpVolume);
@@ -1682,6 +1690,7 @@ void MenuUI::init()
     Log.d(TAG, "Create System Light Manager Object...");
 
  //   init_pipe(mCtrlPipe);
+
 #ifdef ENABLE_LIGHT
     mOLEDLight = sp<oled_light>(new oled_light());
     CHECK_NE(mOLEDLight, nullptr);
@@ -1697,7 +1706,7 @@ void MenuUI::init()
     m_bat_info_->battery_level = 1000;
 
 //    mControlAct = sp<ACTION_INFO>(new ACTION_INFO());
-//    CHECK_NE(mControlAct,nullptr);
+//    CHECK_NE(mControlAct, nullptr);
 
     Log.d(TAG, "Create System Info Object...");
     mReadSys = sp<SYS_INFO>(new SYS_INFO());
@@ -1746,7 +1755,35 @@ void MenuUI::init()
 
 	property_set(PROP_SYS_AP_PESUDO_SN, tmpName);
 	Log.d(TAG, "get pesudo sn [%s]", property_get(PROP_SYS_AP_PESUDO_SN));
-	
+
+#else
+	char tmpName[128] = {0};
+    char* pEnd = NULL;
+
+    if (access(SYS_SN_PATH, F_OK) == 0) {
+		FILE* fp = fopen(SYS_SN_PATH, "r");
+		if (fp) {
+			fgets(tmpName, 128, fp);
+			Log.d(TAG, "get sn [%s]", tmpName);
+			
+            int iLen = strlen(tmpName);
+            if (tmpName[iLen -1] == '\r' || tmpName[iLen -1] == '\n') {
+                tmpName[iLen -1] = '\0';
+            }
+            pEnd = &tmpName[iLen -1];
+
+            property_set(PROP_SYS_AP_PESUDO_SN, pEnd - 6);
+
+            fclose(fp);
+		} else {
+			Log.e(TAG, "open [%s] failed", WIFI_RAND_NUM_CFG);
+			strcpy(tmpName, "Test");
+		}
+    } else {
+        Log.d(TAG, "[%s: %d] Sn file [%s] Not Exist, Use Default Subfix", __FILE__, __LINE__, SYS_SN_PATH);
+        property_set(PROP_SYS_AP_PESUDO_SN, "Tester");
+    }
+
 #endif
 
 
@@ -1782,7 +1819,6 @@ void MenuUI::init()
     sp<ARMessage> listMsg = obtainMessage(NETM_LIST_NETDEV);
     mNetManager->postNetMessage(listMsg);
 
-#ifdef  ENABLE_PESUDO_SN
 	if (!mHaveConfigSSID) {
 
 		const char* pRandSn = NULL;
@@ -1813,7 +1849,6 @@ void MenuUI::init()
 		handleorSetWifiConfig(wifiConfig);
 		mHaveConfigSSID = true;
 	}
-#endif
 
 
     Log.d(TAG, "Init Input Manager");
@@ -1984,7 +2019,6 @@ void MenuUI::send_get_key(int key)
     msg->set<int>("oled_key", key);
     msg->post();
 }
-
 
 
 
@@ -2252,6 +2286,11 @@ void MenuUI::disp_msg_box(int type)
                 send_clear_msg_box(2500);
                 break;
 			
+            case DISP_NEED_SDCARD:
+            case DISP_NEED_QUERY_TFCARD:
+                send_clear_msg_box(2000);
+                break;
+
             default:
                 send_clear_msg_box();
                 break;
@@ -2317,7 +2356,31 @@ void MenuUI::disp_msg_box(int type)
         case DISP_LIVE_REC_USB:
             disp_icon(ICON_LIVE_REC_USB_128_64128_64);
             break;
-		
+
+        case DISP_NEED_SDCARD: {
+            clear_area();
+            #if 1
+            disp_str((const u8*)"Please", 48, 8, false, 128);
+            disp_str((const u8*)"ensure SD card or", 16, 24, false, 128);
+            disp_str((const u8*)"USB disk are inserted", 8, 40, false, 128);
+            #else 
+
+            disp_str((const u8*)"Testing...", 36, 16, false, 128);
+            disp_str((const u8*)"do not remove your", 12, 32, false, 128);
+            disp_str((const u8*)"storage device please", 8, 48, false, 128);
+
+            #endif
+            break;
+        }
+
+        case DISP_NEED_QUERY_TFCARD: {
+            clear_area();
+            disp_str((const u8*)"Please ensure mSD", 16, 8, false, 128);
+            disp_str((const u8*)"cards exist and query", 8, 24, false, 128);
+            disp_str((const u8*)"storage space first...", 6, 40, false, 128);
+            break;
+        }
+        
         SWITCH_DEF_ERROR(type);
     }
 }
@@ -2346,6 +2409,66 @@ bool MenuUI::start_speed_test()
     }
     return ret;
 }
+
+
+/*
+ * 小卡速度是否OK
+ */
+bool MenuUI::ismSDSpeedOk()
+{
+    sp<Volume> tmpVolume = NULL;
+    int iExitNum = 0;
+
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+            tmpVolume = mRemoteStorageList.at(i);
+            if ((tmpVolume->total > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
+                iExitNum++;
+            }
+        }
+    }
+
+    if (iExitNum >= mTfNum) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/*
+ * 本地存储设置速度是否OK
+ */
+bool MenuUI::isLocalStorageSpeedOk()
+{
+    sp<Volume> tmpVolume = NULL;
+    {
+        unique_lock<mutex> lock(mLocaLDevLock);
+        if ((mLocalStorageList.size() > 0) && (mSavePathIndex > -1)) {
+            tmpVolume = mLocalStorageList.at(mSavePathIndex);
+        }
+    }
+
+    return (tmpVolume->iSpeedTest == 1) ? true : false;
+}
+
+bool MenuUI::checkVidLiveStorageSpeed()
+{
+    if (ismSDSpeedOk()) {
+        if (isLocalStorageSpeedOk()) {
+            Log.d(TAG, "[%s: %d] All Card Speed is OK, very good !!", __FILE__, __LINE__);
+        } else {
+            /* 提示警告 */
+            Log.w(TAG, "[%s: %d] mSD speed is OK, but Local Storage speed is bad", __FILE__, __LINE__);
+        }
+        return true;
+    } else {
+        /* 直接进入 */
+        Log.d(TAG, "[%s: %d] mSD Need Speed Test ....", __FILE__, __LINE__);
+        setCurMenu(MENU_SPEED_TEST);
+    }
+}
+
 
 void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
 {
@@ -2548,40 +2671,13 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 			
 
         case ACTION_VIDEO: {
-        #if 1
 
             /* 处于录像或正在停止录像状态 */
             if (check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
                 oled_disp_type(STOP_RECING);
             } else if (check_state_preview()) {
-                #if 0
                 if (checkStorageSatisfy(option)) {
-                    if (start_speed_test()) {
-                        bAllow = false;
-                    } else {
-                        oled_disp_type(START_RECING);
-                        item = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
-//                        Log.d(TAG, " vid set is %d ", item);
-                        if (item >= 0 && item < VID_CUSTOM) {
-                            memcpy(mActionInfo.get(), &mVIDAction[item], sizeof(ACTION_INFO));
-                        }
-                        else if (VID_CUSTOM == item)
-                        {
-                            send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stProp);
-                            memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_VIDEO_DEF), sizeof(ACTION_INFO));
-                        }
-                        else
-                        {
-                            ERR_ITEM(item);
-                        }
-                        msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-                    }
-                } else {
-                    bAllow = false;
-                }
-                #else 
-                if (checkStorageSatisfy(option)) {
-                    if (start_speed_test()) {
+                    if (checkVidLiveStorageSpeed() == false) {
                         bAllow = false;
                     } else {
                         oled_disp_type(START_RECING); 
@@ -2603,7 +2699,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                             }
                             msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
                         } else {
-                            Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
+                            Log.e(TAG, "[%s:%d] +_+ Error Invalid index[%d]", __FILE__, __LINE__);
                             abort();
                         }
                     }
@@ -2611,13 +2707,10 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                     Log.w(TAG, "[%s: %d] SD Card or TF Card Lost, Can't take video now ...", __FILE__, __LINE__);
                     bAllow = false;
                 }
-                #endif
             } else {
                 Log.w(TAG, " ACTION_VIDEO bad state 0x%x", cam_state);
                 bAllow = false;
-            }
-
-        #endif            
+            }          
             break;
         }
 			
@@ -3467,6 +3560,13 @@ void MenuUI::procBackKeyEvent()
         /* 格式化完成之前不能返回 */
         if (!check_state_in(STATE_FORMATING))
             set_cur_menu_from_exit();
+    } else if (cur_menu == MENU_SPEED_TEST || cur_menu == MENU_SET_TEST_SPEED) {
+        if (!check_state_in(STATE_SPEED_TEST)) {
+            mSpeedTestUpdateFlag = false;   /* 测试结果失效 */
+            set_cur_menu_from_exit();
+        } else {
+            Log.d(TAG, "[%s: %d] Speed Testing, you can't back until Test is over", __FILE__, __LINE__);
+        }
     } else {
 		
         switch (cam_state) {
@@ -4156,6 +4256,7 @@ void MenuUI::getShowStorageInfo()
 
         {
             unique_lock<mutex> lock(mRemoteDevLock);   
+
             for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
 
                 /* 只显示存在的TF卡信息 */
@@ -4191,6 +4292,7 @@ void MenuUI::getShowStorageInfo()
     /* 根据查询的结果来重新初始化菜单 */
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total = mShowStorageList.size();
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.cur_page = 0;
 
     int iPageCnt = mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total % mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max;
     if (iPageCnt == 0) {
@@ -4212,6 +4314,7 @@ void MenuUI::getShowStorageInfo()
 bool MenuUI::localStorageAvail()
 {
     bool ret = false;
+
     if (!checkHaveLocalSavePath()) {
         int times = 3;
         int i = 0;
@@ -4254,9 +4357,13 @@ bool MenuUI::localStorageAvail()
 void MenuUI::calcRemoteRemainSpace()
 {
     u64 iTmpMinSize = ~0UL;
-    for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-        if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
-            iTmpMinSize = mRemoteStorageList.at(i)->avail;
+    
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+            if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
+                iTmpMinSize = mRemoteStorageList.at(i)->avail;
+            }
         }
     }
     mReoteRecLiveLeftSize = iTmpMinSize;
@@ -4265,6 +4372,12 @@ void MenuUI::calcRemoteRemainSpace()
 }
 
 
+/*
+ * calcRemainSpace - 计算剩余空间
+ * - 按当前挡位，可拍照的数目，保存在 mCanTakePicNum中
+ * - 按当前挡位，可录像的时长，保存在 mReoteRecLiveLeftSize
+ * - 按当前挡位，可拍timelapse的剩余张数，保存在 mCanTakeTimelapseNum 中
+ */
 void MenuUI::calcRemainSpace()
 {
     Log.d(TAG, "Calc Remian Space now ......");
@@ -4274,7 +4387,24 @@ void MenuUI::calcRemainSpace()
      * 对于录像: 首先计算出容量最小的小卡, 然后按照当前的码率
      */
 
+    #ifdef ENABLE_USE_NEW_CALC_MODE    
+    {
+        mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
+        if (localStorageAvail()) {
+            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail, CALC_MODE_TAKE_PIC);
+        }
+    }
 
+    {
+        mCanTakeTimelapseNum = 0;
+    }
+
+    {
+        calcRemoteRemainSpace();
+        convSize2LeftNumTime(mReoteRecLiveLeftSize << 20, CALC_MODE_TAKE_VIDEO);
+    }
+
+    #else
 
     if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF) {    /* 拍照模式下计算剩余空间: 只计算大卡的即可 */
         mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
@@ -4292,14 +4422,12 @@ void MenuUI::calcRemainSpace()
                 convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
             }           
         } else {
-
-            if (mRemoteStorageState) {
-                calcRemoteRemainSpace();
-                convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
-                mRemoteStorageState = false;
-            }
+            calcRemoteRemainSpace();
+            convSize2LeftNumTime(mReoteRecLiveLeftSize << 20);
         }
     }
+
+    #endif
 }
 
 
@@ -4420,6 +4548,125 @@ void MenuUI::convSize2LeftNumTime(u64 size)
 
 
 
+/*
+ * convSize2LeftNumTime - 转换剩余空间为可拍张数，可录时长
+ */
+void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
+{
+    INFO_MENU_STATE(cur_menu, cam_state);
+
+    u64 size_M = (size >> 20);
+	
+    if (size_M > AVAIL_SUBSTRACT) {
+		
+        int rest_sec = 0;
+        int rest_min = 0;
+
+        //deliberately minus 1024
+        size_M -= AVAIL_SUBSTRACT;;
+        int item = 0;
+		
+
+        switch (iMode) {
+            case CALC_MODE_TAKE_PIC: {
+                if (mControlAct != nullptr) {
+                    mCanTakePicNum = size_M / mControlAct->size_per_act;
+                    Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_PIC (%d %d)",
+                                            __FILE__, __LINE__, size_M, mCanTakePicNum);
+                } else {
+					/*
+                     * 使能RAW和没有使能RAW
+                     */
+                    item = getMenuSelectIndex(MENU_PIC_SET_DEF);
+                    int iRawVal = mProCfg->get_val(KEY_RAW);
+
+                    Log.d(TAG, "[%s: %d] Raw[%d]", __FILE__, __LINE__, iRawVal);
+                    
+                    struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
+                    int iUnitSize = 30;
+                    if (pPicVidCfg) {
+                        if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+                            iUnitSize = pPicVidCfg->pStAction->size_per_act;
+                            if (iRawVal) {
+                                iUnitSize = iUnitSize * pPicVidCfg->iRawStorageRatio;
+                            }
+                            Log.d(TAG, "[%s:%d] One Group Picture size [%d]M", __FILE__, __LINE__, iUnitSize);
+
+                        } else {
+                            iUnitSize = mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
+                        }
+                    } else {
+                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
+                    }
+                    
+                    mCanTakePicNum = size_M / iUnitSize;
+                    Log.d(TAG, "[%s: %d] Calc Can Take Picture num in this Mode [%d]", __FILE__, __LINE__, mCanTakePicNum);
+                }
+                break;
+            }
+
+
+            case CALC_MODE_TAKE_TIMELAPSE: {
+                break;
+            }
+
+
+            case CALC_MODE_TAKE_VIDEO: {
+
+                /* 如果是由客户端启动录像, 此时已经进入了STATE_RECORD状态 */
+                if (mControlAct != nullptr) {
+                    rest_sec = size_M / mControlAct->size_per_act;
+                    Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_VIDEO size_per_act %d", 
+                                                                    __FILE__, __LINE__, mControlAct->size_per_act);
+
+                } else {
+
+                    int index = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
+
+                    // Log.d(TAG, "[%s: %d], >>>>>>>>>>>> item %d", __FILE__, __LINE__, item);
+                    
+                    struct stPicVideoCfg* pPicVidCfg = mVidAllItemsList.at(index);
+                    if (pPicVidCfg) {
+                        Log.d(TAG, ">> calc item name [%s], unit size [%d]", pPicVidCfg->pItemName, pPicVidCfg->pStAction->size_per_act);
+
+                        if (strcmp(pPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
+                            rest_sec = size_M / pPicVidCfg->pStAction->size_per_act;
+                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs for Take Vide Non Customer Mode[%ld]", 
+                                                        __FILE__, __LINE__, rest_sec);
+                        } else {
+                            rest_sec = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
+                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs for Take Vide Customer Mode[%ld]",
+                                                        __FILE__, __LINE__, rest_sec);
+                        }
+
+                        rest_min = rest_sec / 60;
+                        mRemainInfo->remain_sec = rest_sec % 60;
+                        mRemainInfo->remain_hour = rest_min / 60;
+                        mRemainInfo->remain_min = rest_min % 60;
+                        
+                        Log.d(TAG, "[%s: %d] ======> convSize2LeftNumTime (%d %d %d  %d)", 
+                                                                            __FILE__, __LINE__,
+                                                                            size_M, 
+                                                                            mRemainInfo->remain_hour,
+                                                                            mRemainInfo->remain_min, 
+                                                                            mRemainInfo->remain_sec);
+                    } else {
+                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, index);
+                    }
+                }
+                break;
+            }
+        }
+    } else {    /* 达到剩余空间阀值 */
+        Log.d(TAG, "[%s: %d] convSize2LeftNumTime Left space too low ....", __FILE__, __LINE__);
+        mCanTakePicNum = 0;
+        mCanTakeTimelapseNum = 0;
+        memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
+    }
+}
+
+
+
 void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
 {
     double size_b = (double)size;
@@ -4472,6 +4719,7 @@ bool MenuUI::checkAllTfCardExist()
 {
     sp<Volume> tmpVolume = NULL;
     int iExitNum = 0;
+    
     {
         unique_lock<mutex> lock(mRemoteDevLock);
         for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
@@ -4482,7 +4730,7 @@ bool MenuUI::checkAllTfCardExist()
         }
     }
 
-    if (iExitNum >= SYS_TF_COUNT_NUM) {
+    if (iExitNum >= mTfNum) {
         return true;
     } else {
         return false;
@@ -4979,6 +5227,17 @@ ERROR:
 }
 
 
+void MenuUI::dispTipStorageDevSpeedTest() 
+{
+    clear_area();
+    disp_str((const u8*)"Need to test you", 16, 8, false, 128);
+    disp_str((const u8*)"storage device speed", 8, 24, false, 128);    
+    disp_str((const u8*)"press power to continue", 0, 40, false, 128);
+}
+
+
+
+
 /*
  * iType - 0 格式化指定的卡; (1-6)格式化指定的TF卡
  */
@@ -4989,13 +5248,14 @@ void MenuUI::dispTfCardIsFormatting(int iType)
     char msg[128] = {0};
 
     if (iType == -1) {
-        sprintf(msg, "%s", "All TF card");
+        sprintf(msg, "%s", "All mSD card");
     } else {
-        sprintf(msg, "TF card %d", iType);
+        sprintf(msg, "mSD card %d", iType);
     }
-    disp_str((const u8*)msg, 32, 24, false, 128);
+    disp_str((const u8*)msg, 28, 24, false, 128);
     disp_str((const u8*)"is formatting ...", 20, 40, false, 128);
 }
+
 
 void MenuUI::dispTfcardFormatReuslt(vector<sp<Volume>>& mTfFormatList, int iIndex)
 {
@@ -5004,22 +5264,30 @@ void MenuUI::dispTfcardFormatReuslt(vector<sp<Volume>>& mTfFormatList, int iInde
 
     if (mTfFormatList.size() == 0) {    /* 成功 */
         if (iIndex == -1) {
-            sprintf(msg, "%s", "All TF card");
+            sprintf(msg, "%s", "All mSD card");
         } else {
-            sprintf(msg, "TF card %d", iIndex);
+            sprintf(msg, "mSD card %d", iIndex);
         }
         disp_str((const u8*)msg, 32, 24, false, 128);
         disp_str((const u8*)"formatted success", 20, 40, false, 128);
     } else {    /* 失败 */
         if (iIndex == -1) {
-            sprintf(msg, "%s", "All TF card");
+            sprintf(msg, "%s", "All mSD card");
         } else {
-            sprintf(msg, "TF card %d", iIndex);
+            sprintf(msg, "mSD card %d", iIndex);
         }
         disp_str((const u8*)msg, 32, 24, false, 128);
         disp_str((const u8*)"formatted failed", 20, 40, false, 128);
     }
 }
+
+void MenuUI::dispWriteSpeedTest()
+{
+    disp_str((const u8*)"Testing...", 36, 16, false, 128);
+    disp_str((const u8*)"do not remove your", 12, 32, false, 128);
+    disp_str((const u8*)"storage device please", 8, 48, false, 128);
+}
+
 
 enum {
     FORMAT_ERR_SUC = 0,
@@ -5057,19 +5325,19 @@ void MenuUI::startFormatDevice()
     
     Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
     
-    if (!strncmp(tmpStorageItem->stVolumeInfo.name, "TF", strlen("TF"))) {
+    if (!strncmp(tmpStorageItem->stVolumeInfo.name, "mSD", strlen("mSD"))) {
         int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
-        Log.d(TAG, "[%s: %d] Format TF Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
+        Log.d(TAG, "[%s: %d] Format mSD Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
 
         tmpFormatSelectItem = gTfFormatSelectItems[iMode];
         if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
             
             /* 格式化一张卡 */
-            Log.d(TAG, "[%s: %d] Format TF Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
+            Log.d(TAG, "[%s: %d] Format mSD Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
             iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
         } else {
             /* 格式化所有的卡 */
-            Log.d(TAG, "[%s: %d] Format All TF Card", __FILE__, __LINE__);
+            Log.d(TAG, "[%s: %d] Format All mSD Card", __FILE__, __LINE__);
             iTfIndex = -1;
         }
 
@@ -5364,26 +5632,33 @@ void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
 	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
     Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
 
-    while (start < end) {
+    if (mSelect->total) {
+        while (start < end) {
 
-        Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
-        pTempStorageItem = storageList[start];
-        
-        if (pTempStorageItem != NULL) {
-            if (start < mSelect->total) {
-                if (start == iIndex) {
-                    iSelected = true;
-                } else {
-                    iSelected = false;
+            Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+            pTempStorageItem = storageList[start];
+            
+            if (pTempStorageItem != NULL) {
+                if (start < mSelect->total) {
+                    if (start == iIndex) {
+                        iSelected = true;
+                    } else {
+                        iSelected = false;
+                    }
+                    dispStorageItem(pTempStorageItem, iSelected);
                 }
-                dispStorageItem(pTempStorageItem, iSelected);
+            } else {
+                Log.e(TAG, "[%s:%d] dispSettingPage -> invalid index[%d]", start);
             }
-        } else {
-            Log.e(TAG, "[%s:%d] dispSettingPage -> invalid index[%d]", start);
+            start++;
+            item++;
         }
-        start++;
-        item++;
-    }    
+    } else {
+        Log.d(TAG, "[%s: %d] None Storage device yet!", __FILE__, __LINE__);
+        disp_str((const u8*)"None storage", 40, 32, false, 128);
+    }
+
+    
 }
 
 
@@ -5835,6 +6110,7 @@ bool MenuUI::menuHasStatusbar(int menu)
         case MENU_CALIBRATION:
         case MENU_QR_SCAN:
         case MENU_SPEED_TEST:
+        case MENU_SET_TEST_SPEED:
 
 #ifdef MENU_WIFI_CONNECT
         case MENU_WIFI_CONNECT:
@@ -5951,7 +6227,7 @@ void MenuUI::showSpaceQueryTfCallback()
 *************************************************************************/
 void MenuUI::enterMenu(bool dispBottom)
 {
-	Log.d(TAG, "enterMenu is [%s]", getCurMenuStr(cur_menu));
+	Log.d(TAG, "enterMenu is [%s], cam_state [0x%x]", getCurMenuStr(cur_menu), cam_state);
     ICON_INFO* pNvIconInfo = NULL;
 
     pNvIconInfo = static_cast<ICON_INFO*>(mMenuInfos[cur_menu].priv);
@@ -6071,12 +6347,12 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
 
-        case MENU_SHOW_SPACE:   /* 显示存储设备菜单 */
+        case MENU_SHOW_SPACE: {  /* 显示存储设备菜单 */
             clear_area(0, 16);
 
-        #ifdef ENABLE_SPACE_PAGE_POWER_ON_MODULE
+            #ifdef ENABLE_SPACE_PAGE_POWER_ON_MODULE
             system("power_manager power_on");
-        #endif
+            #endif
         
             if (pNvIconInfo) {
                 dispIconByLoc(pNvIconInfo);
@@ -6089,9 +6365,10 @@ void MenuUI::enterMenu(bool dispBottom)
 
             asyncQueryTfCardState();
             break;
+        }
 
 
-		case MENU_SET_PHOTO_DEALY:  /* 显示PhotoDelay菜单 */
+		case MENU_SET_PHOTO_DEALY: { /* 显示PhotoDelay菜单 */
             Log.d(TAG, "[%s:%d] +++++>>> enter Set Photo Delay Menu now .... ", __FILE__, __LINE__);
 
 			clear_area(0, 16);									/* 清除真个区域 */
@@ -6105,6 +6382,7 @@ void MenuUI::enterMenu(bool dispBottom)
             /* 进入设置"Set Photo Delay" */
             dispSettingPage(mPhotoDelayList);					/* 显示"右侧"的项 */
 			break;
+        }
 
     #ifdef ENABLE_MENU_AEB	
         case MENU_SET_AEB:
@@ -6123,7 +6401,7 @@ void MenuUI::enterMenu(bool dispBottom)
 
 		
 
-        case MENU_SYS_SETTING:      /* 显示"设置菜单"" */
+        case MENU_SYS_SETTING: {     /* 显示"设置菜单"" */
             clear_area(0, 16);
 
             if (pNvIconInfo) {
@@ -6134,13 +6412,14 @@ void MenuUI::enterMenu(bool dispBottom)
             /* 显示设置页 */
             dispSettingPage(mSetItemsList);
             break;
-			
+        }
 
-        case MENU_TF_FORMAT_SELECT: /* 格式化选择 */
+        case MENU_TF_FORMAT_SELECT: { /* 格式化选择 */
             clear_area(0, 16);
             /* 显示设置页 */
             dispSettingPage(mTfFormatSelList);
             break;
+        }
 
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
@@ -6204,60 +6483,31 @@ void MenuUI::enterMenu(bool dispBottom)
            break;
     #endif
 
-        case MENU_GYRO_START:
+        case MENU_GYRO_START: {
             if (check_state_equal(STATE_START_GYRO)) {
                 disp_icon(ICON_GYRO_CALIBRATING128_48);
             } else {
                 disp_icon(ICON_HORIZONTALLY01128_48);
             }
             break;
+        }
+
+
+        case MENU_SET_TEST_SPEED: {
+            dispTipStorageDevSpeedTest();           
+            break;
+        }
+
 
         case MENU_SPEED_TEST: {
-            #if 0
-            if (!checkHaveLocalSavePath()) {
-                int dev_index = get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type);
-
-                if (check_state_in(STATE_SPEED_TEST)) {
-                    switch (dev_index) {
-                        case SET_STORAGE_SD:
-                            disp_icon(ICON_SPEEDTEST03128_64);
-                            break;
-
-                        case SET_STORAGE_USB:
-                            disp_icon(ICON_SPEEDTEST04128_64);
-                            break;
-
-                        default:
-                            Log.d(TAG,"STATE_SPEED_TEST mSavePathIndex is -1");
-
-                            disp_icon(ICON_SPEEDTEST03128_64);
-                            break;
-                    }
-                } else {
-                    switch (dev_index) {
-                        case SET_STORAGE_SD:
-                            disp_icon(ICON_SPEEDTEST01128_64);
-                            break;
-
-                        case SET_STORAGE_USB:
-                            disp_icon(ICON_SPEEDTEST02128_64);
-                            break;
-
-                        default:
-                            Log.d(TAG,"mSavePathIndex is -1");
-                            disp_icon(ICON_SPEEDTEST01128_64);
-                            break;
-                    }
-                }
+            if (mWhoReqSpeedTest == APP_REQ_TESTSPEED) {
+                /* 直接提示: 正在测速 */
+                clear_area(); 
+                dispWriteSpeedTest();  
             } else {
-                Log.d(TAG, "card remove while speed test cam_state 0x%x", cam_state);
-                procBackKeyEvent();
+                /* 来自UI的：提示是否确认测速 */
+                dispTipStorageDevSpeedTest();
             }
-            #else 
-            clear_area();
-            dispIconByLoc(&testSpeedIconInfo);
-            send_option_to_fifo(ACTION_SPEED_TEST);
-            #endif
             break;            
         }
 
@@ -6609,34 +6859,40 @@ void MenuUI::procPowerKeyEvent()
         case MENU_TOP:	/* 顶层菜单 */
 
             switch (getCurMenuCurSelectIndex()) {	/* 获取当前选择的菜单项 */
-                case MAINMENU_PIC:	/* 选择的是"拍照"项 */
+                case MAINMENU_PIC: {	/* 选择的是"拍照"项 */
 
                     /* 发送预览请求 */
                     if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
                         oled_disp_type(START_PREVIEWING);	    /* 屏幕中间会显示"..." */
                         setCurMenu(MENU_PIC_INFO);	            /* 设置并显示当前菜单 */
                     } else {
                         Log.d(TAG, "pic preview fail?");
                     }
                     break;
-					
-                case MAINMENU_VIDEO:	/* 选择的是"录像"项 */
+                }
+
+                case MAINMENU_VIDEO: {	/* 选择的是"录像"项 */
                     if (send_option_to_fifo(ACTION_PREVIEW)) {	/* 发送预览请求 */
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
                         oled_disp_type(START_PREVIEWING);
                         setCurMenu(MENU_VIDEO_INFO);
                     } else {
                         Log.d(TAG, "vid preview fail?");
                     }
                     break;
+                }
 					
-                case MAINMENU_LIVE:		/* 选择的是"Living"项 */
+                case MAINMENU_LIVE:	{	/* 选择的是"Living"项 */
                     if (send_option_to_fifo(ACTION_PREVIEW)) {
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
                         oled_disp_type(START_PREVIEWING);
                         setCurMenu(MENU_LIVE_INFO);
                     } else {
                         Log.d(TAG, "live preview fail?");
                     }
                     break;
+                }
 
 
                 case MAINMENU_WIFI:     		/* WiFi菜单项用于打开关闭AP */
@@ -6729,15 +6985,25 @@ void MenuUI::procPowerKeyEvent()
             }
             break;
 			
-        case MENU_SPEED_TEST:
+        case MENU_SPEED_TEST: 
+        case MENU_SET_TEST_SPEED: {
             if (!check_state_in(STATE_SPEED_TEST)) {
-                Log.d(TAG, "[%s: %d] Enter Speed Testing ", __FILE__, __LINE__);
-                send_option_to_fifo(ACTION_SPEED_TEST);
+                if (mSpeedTestUpdateFlag == false) {
+                    Log.d(TAG, "[%s: %d] Enter MENU_SPEED_TEST Speed Testing ", __FILE__, __LINE__);
+
+                    add_state(STATE_SPEED_TEST);                
+                    clear_area();
+                    dispWriteSpeedTest();                
+                    send_option_to_fifo(ACTION_SPEED_TEST);
+                } else {
+                    Log.d(TAG, "[%s: %d] Speed Test Result is updated !!!", __FILE__, __LINE__);
+                }
             } else {
                 Log.d(TAG, "[%s: %d] System is Speed Testing, You can't Send Again", __FILE__, __LINE__);
             }
-
             break;
+        }
+
 			
         case MENU_RESET_INDICATION:
             if (check_state_equal(STATE_IDLE)) {
@@ -6782,7 +7048,7 @@ void MenuUI::procPowerKeyEvent()
             int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
 
             /* 选中的项是TF卡 */
-            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.name,"TF", strlen("TF"))) {
+            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.name,"mSD", strlen("mSD"))) {
                 
                 Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->stVolumeInfo.name);
                 /* 进入格式化模式选择菜单 */
@@ -6791,11 +7057,6 @@ void MenuUI::procPowerKeyEvent()
             } else {    /* 选中的是大SD卡或USB硬盘 */
                 setCurMenu(MENU_FORMAT_INDICATION);
             }
-
-
-            // if (strlen(used_space[select]) != 0) {
-            //     setCurMenu(MENU_FORMAT);
-            // }
             break;
         }
 
@@ -6818,10 +7079,24 @@ void MenuUI::procPowerKeyEvent()
                     /*
                      * 检查是否满足测试条件：所有的卡都存在，否则提示卡不足
                      */
-                    if (isSatisfySpeedTestCond()) {
-                        oled_disp_type(SPEED_START);
+                    int iCond = isSatisfySpeedTestCond();
+                    if (iCond == COND_ALL_CARD_EXIST) {
+                        if (!check_state_in(STATE_SPEED_TEST)) {
+                            setCurMenu(MENU_SET_TEST_SPEED);
+                        } else {
+                            Log.e(TAG, "[%s: %d] Current is Test Speed state ...", __FILE__, __LINE__);
+                        }
+                    } else if (iCond == COND_NEED_SD_CARD) {
+                        Log.d(TAG, "[%s: %d] Maybe SD Card Lost, Please check ", __FILE__, __LINE__);
+                        /*
+                         * 1.如果从来没有查询过卡所有卡的状态，提示先查询系统中卡的状态
+                         * 2.如果卡的数目不够，提示需要1张大卡加6张小卡
+                         */
+                        disp_msg_box(DISP_NEED_SDCARD);
+                      
                     } else {
-                        Log.d(TAG, "[%s: %d] Maybe lost some Card for Speed test!", __FILE__, __LINE__);
+                        Log.d(TAG, "[%s: %d] Maybe TF Card Lost or Query First, Please check ", __FILE__, __LINE__);
+                        disp_msg_box(DISP_NEED_QUERY_TFCARD);
                     }
                 }
             }
@@ -6838,15 +7113,22 @@ void MenuUI::procPowerKeyEvent()
 }
 
 
+
+
 /*
  * isSatisfySpeedTestCond - 是否满足卡速测试条件
+ * 所有条件满足，返回0
+ * 大卡不存在，返回1
+ * 
  */
-bool MenuUI::isSatisfySpeedTestCond()
+int MenuUI::isSatisfySpeedTestCond()
 {
     if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {
-        return true;
+        return COND_ALL_CARD_EXIST;
+    } else if (checkHaveLocalSavePath()) {
+        return COND_NEED_SD_CARD;
     } else {
-        return false;
+        return COND_NEED_TF_CARD;
     }
 }
 
@@ -7411,7 +7693,7 @@ void MenuUI::add_state(int state)
             break;
 			
         case STATE_SPEED_TEST:
-            if (cur_menu != MENU_SPEED_TEST) {
+            if ((cur_menu != MENU_SPEED_TEST) && (cur_menu != MENU_SET_TEST_SPEED) ) {
                 setCurMenu(MENU_SPEED_TEST);
             }
             break;
@@ -8046,9 +8328,14 @@ int MenuUI::oled_disp_type(int type)
             break;
 
 		/*
-		 * 启动录像成功
+		 * 启动录像成功 - 需要判断是UI的启动的还是客户端启动的
+         * 如果是UI启动的，此时剩余空间已经计算过了
+         * 如果是客户端启动的，可能还没有查询过剩余空间，进行一次剩余空间查询
 		 */
-        case START_REC_SUC:	/* 发送显示录像成功 */
+        case START_REC_SUC:	 { /* 发送显示录像成功 */
+
+            Log.d(TAG, "[%s: %d] >>>>>>> Start Recording Success........", __FILE__, __LINE__);
+
             if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
                 if (check_rec_tl()) {   /* 如果是timelapse拍摄,将tl_count设置为0 */
                     tl_count = 0;   /* 计算出当前可拍timelapse的数目 */
@@ -8063,18 +8350,26 @@ int MenuUI::oled_disp_type(int type)
             } else {
                 Log.e(TAG, "START_REC_SUC error state 0x%x", cam_state);
             }
+
             break;
+        }
+
 
 		/* 
-		 * 启动测试速度
+		 * 启动测试速度 - 该命令来自客户端
+         * UI需要做的事情：
+         * 1.显示正在进行设备速度测试
+         * 2.
 		 */
-        case SPEED_START:
+        case SPEED_START: {
             if (!check_state_in(STATE_SPEED_TEST)) {
+                mWhoReqSpeedTest = APP_REQ_TESTSPEED;
                 add_state(STATE_SPEED_TEST);
             } else {
                 Log.e(TAG, "speed test happened already");
             }
             break;
+        }
 
 		/*
 		 * 速度测试成功
@@ -8343,31 +8638,44 @@ int MenuUI::oled_disp_type(int type)
             add_state(STATE_START_PREVIEWING);
             break;
 
+        /*
+         * - 客户端发送的预览成功，都应该进入MENU_PIC_INFO菜单
+         * - 按键启动的进入预览成功，进入相应的菜单
+         */
         case START_PREVIEW_SUC: {		/* 启动预览成功 */
             if (!check_state_in(STATE_PREVIEW)) {   
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS");                  
 
-                #ifdef ENABLE_SYNC_QUERY_TF_INFO
+            #ifdef ENABLE_SYNC_QUERY_TF_INFO
                 updateBottomSpace(true);        /* 计算并更新底部剩余空间(将查询空间的方法统一放入updateBottomSpace中调用) */
                 add_state(STATE_PREVIEW);       /* 添加"STATE_PREVIEW",如果后会显示"READY"字样 */
-                #else 
+            #else 
 
                 Log.d(TAG, "[%s: %d] Current Menu[%s] and Statep[0x%x]", __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);
 
-                if (check_state_in(STATE_IDLE) && cur_menu == MENU_TOP) {
+                /*
+                 * 1.如果是按键操作进入预览成功,（先前已经进入了对应的菜单，不需要再次进入菜单）
+                 * 2.如果是客户端发起的进入预览成功,(统一进入MENU_PIC_INFO菜单)
+                 */
+
+
+                if (mWhoReqEnterPrew == APP_REQ_PREVIEW) {
                     add_state(STATE_START_PREVIEWING);
                     setCurMenu(MENU_PIC_INFO);
+                } else {
+                    mWhoReqEnterPrew = APP_REQ_PREVIEW;
                 }
 
                 Log.d(TAG, "[%s: %d] Async Query Remote TF Card State!!!", __FILE__, __LINE__);
                 asyncQueryTfCardState();
-                #endif
+            #endif
 
             } else {
                 Log.e(TAG, "[%s: %d] Invalid state change", __FILE__, __LINE__);
             }
             break;
         }
+
 
         /* 查询TF Card状态有两种情况: 预览和IDLE状态 
          * 修改：2018年8月13日
@@ -8406,6 +8714,9 @@ int MenuUI::oled_disp_type(int type)
 			
         case START_PREVIEW_FAIL: {	/* 启动预览失败 */
             Log.d(TAG, "[%s: %d] START_PREVIEW_FAIL cur_menu [%s] cam state %d", __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);
+            
+            mWhoReqEnterPrew = APP_REQ_PREVIEW;
+
             rm_state(STATE_START_PREVIEWING);
             disp_sys_err(type, MENU_TOP);
             break;
@@ -9110,7 +9421,6 @@ void MenuUI::setLight(u8 val)
 }
 
 
-
 bool MenuUI::check_rec_tl()
 {
     bool ret = false;
@@ -9244,7 +9554,6 @@ void MenuUI::handleLongKeyMsg(int key, int64 ts)
 }
 
 
-
 /*
  * 处理异步通知（查询到的TF卡状态）
  */
@@ -9259,7 +9568,7 @@ void MenuUI::handleTfQueryResult()
         tfSize = mRemoteStorageList.size();
     }
 
-    mRemoteStorageState = true;
+    // mRemoteStorageState = true;
 
     rm_state(STATE_QUERY_STORAGE);
 
@@ -9438,8 +9747,6 @@ void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
 			memset(mConfig->cPasswd, 0, sizeof(mConfig->cPasswd));
 			strncpy(mConfig->cPasswd, pWifPasswd, (strlen(pWifPasswd) > DEFAULT_NAME_LEN) ? DEFAULT_NAME_LEN: strlen(pWifPasswd));
 		}
-
-
 	} else {
 		Log.d(TAG, "Not supported auth mode in current");
 	}
@@ -9540,7 +9847,7 @@ void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
     dispTfcardFormatReuslt(mTfFormatList, iTfIndex);
 
     /* 等待一会,重新进入MENU_TF_FORMAT_SELECT菜单 */
-    msg_util::sleep_ms(1000);
+    msg_util::sleep_ms(1500);
 
     setCurMenu(MENU_TF_FORMAT_SELECT);
 }
@@ -9587,48 +9894,92 @@ void MenuUI::handleSppedTest(vector<sp<Volume>>& mSpeedTestList)
      * 如果所有卡测试通过 - 显示All Card Test OK
      * 如果有小卡测速失败 - 显示测速未通过的小卡
      */
-    if (iLocalTestFlag == 0) {
-        Log.d(TAG, "[%s: %d] Local SD speed test failed", __FILE__, __LINE__);
-    }
-
-    if (testFailedList.size()) {
-        Log.d(TAG, "[%s: %d] TF Card Speed test failed num: %d", __FILE__, __LINE__, testFailedList.size());
-    }
-
- 
 
     if (check_state_in(STATE_SPEED_TEST)) {
-        rm_state(STATE_SPEED_TEST);
-        if (testFailedList.size() == 0) {
-            disp_icon(ICON_SPEEDTEST05128_64);
-            msg_util::sleep_ms(1000);
-            procBackKeyEvent();
-        } else {
-            disp_icon(ICON_SPEEDTEST06128_64);            
+
+        clear_area();
+        sp<Volume> tmpVol;
+        char cMsg[128] = {0};
+        char cTmp[32] = {0};
+        u32 i = 0;
+        u8 xStarPos = 0;
+
+        sprintf(cMsg, "%s", "mSD ");
+
+        for (i = 0; i < testFailedList.size(); i++) {
+            memset(cTmp, 0, sizeof(cTmp));
+            tmpVol = testFailedList.at(i);
+            if (i != testFailedList.size() - 1) {
+                sprintf(cTmp, "%d,", tmpVol->iIndex);
+            } else {
+                sprintf(cTmp, "%d", i);
+            }
+            strcat(cMsg, cTmp);
         }
+        
+        Log.d(TAG, "[%s: %d] cMsg Content: %s", __FILE__, __LINE__, cMsg);
+        switch (i) {
+            case 1:
+                xStarPos = 46;
+                break;
+
+            case 2:
+                xStarPos = 40;
+                break;
+
+            case 3:
+                xStarPos = 34;
+                break;
+            
+            case 4:
+                xStarPos = 28;
+                break;
+
+            case 5:
+                xStarPos = 22;
+                break;
+            
+            case 6:
+                xStarPos = 16;
+                break;
+            
+            default:
+                break;
+        }
+
+
+        if (iLocalTestFlag == 0) {  /* 大卡不通过 */
+            Log.d(TAG, "[%s: %d] Local SD speed test failed", __FILE__, __LINE__);
+            if (testFailedList.size() == 0) {   /* 大卡速度不够 */
+                disp_str((const u8*)"SD/USB write", 28, 16, false, 128);
+                disp_str((const u8*)"speed are insufficient.", 6, 32, false, 128);
+            } else {
+                disp_str((const u8*)cMsg, xStarPos, 8, false, 128);
+                disp_str((const u8*)"SD/USB write", 28, 24, false, 128);
+                disp_str((const u8*)"speed are insufficient.", 6, 40, false, 128);
+            }
+        } else {    /* 大卡通过 */
+            Log.d(TAG, "[%s: %d] Local SD speed test Success", __FILE__, __LINE__);
+            if (testFailedList.size() == 0) {   /* 所有卡速OK */
+                disp_str((const u8*)"All storage", 32, 8, false, 128);
+                disp_str((const u8*)"devices write", 28, 24, false, 128);
+                disp_str((const u8*)"speed are sufficient...", 6, 40, false, 128);                
+            } else {    /* 显示卡速不足的小卡 */
+                disp_str((const u8*)cMsg, xStarPos, 16, false, 128);
+                disp_str((const u8*)"speed are insufficient.", 8, 32, false, 128);
+            }
+        }
+
+        mSpeedTestUpdateFlag = true;            /* 测速结果已更新，只有在返回测速菜单后才失效 */
+        rm_state(STATE_SPEED_TEST);
+
+        if (mWhoReqSpeedTest == APP_REQ_TESTSPEED) {
+            mWhoReqSpeedTest = UI_REQ_TESTSPEED;    /* 默认将测试发起方设置为UI */
+        }
+
+        msg_util::sleep_ms(1500);
+        procBackKeyEvent();
     }
-
-    testFailedList.clear();
-#if 0
-            if (check_state_in(STATE_SPEED_TEST)) {
-                rm_state(STATE_SPEED_TEST);
-                disp_icon(ICON_SPEEDTEST05128_64);
-                msg_util::sleep_ms(1000);
-                procBackKeyEvent();
-            }
-            break;
-
-		/*
-		 * 速度测试失败
-		 */
-        case SPEED_TEST_FAIL:
-            if (check_state_in(STATE_SPEED_TEST)) {
-                rm_state(STATE_SPEED_TEST);
-                disp_icon(ICON_SPEEDTEST06128_64);
-            }
-            break;
-#endif
-
 }
 
 

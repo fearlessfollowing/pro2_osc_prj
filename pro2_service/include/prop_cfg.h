@@ -109,6 +109,7 @@
 #define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand_sn"
 #define SYS_TMP 				"/home/nvidia/insta360/etc/sys_tmp"
 
+#define SYS_SN_PATH             "/home/nvidia/insta360/etc/sn"
 
 
 #if 0

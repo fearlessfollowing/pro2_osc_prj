@@ -319,6 +319,41 @@ enum {
     STORAGE_UNIT_MAX,
 };
 
+enum {
+    COND_ALL_CARD_EXIST = 0,
+    COND_NEED_TF_CARD   = 1,
+    COND_NEED_SD_CARD   = 2,
+};
+
+
+enum {
+    APP_REQ_PREVIEW = 0,
+    UI_REQ_PREVIEW = 1,
+    MAX_REQ_PREVIEW
+};
+
+
+enum {
+    APP_REQ_TESTSPEED = 0,
+    UI_REQ_TESTSPEED  = 1,
+    MAX_REQ_TESTSPEED
+};
+
+enum {
+    APP_REQ_STARTREC = 0,
+    UI_REQ_STARTREC  = 1,
+    MAX_REQ_STARTREC
+};
+
+
+enum {
+    CALC_MODE_TAKE_PIC = 1,
+    CALC_MODE_TAKE_TIMELAPSE = 2,
+    CALC_MODE_TAKE_VIDEO = 3,
+    CALC_MODE_TAKE_REC_LIVE = 4,
+    CALC_MODE_MAX
+};
+
 
 struct _icon_info_;
 struct _lr_menu_;
@@ -622,8 +657,12 @@ private:
      * 是否满足测速条件
      * 是返回true; 否返回false
      */
-    bool isSatisfySpeedTestCond();
-
+    int isSatisfySpeedTestCond();
+    bool ismSDSpeedOk();
+    bool isLocalStorageSpeedOk();
+    bool checkVidLiveStorageSpeed();
+    void dispTipStorageDevSpeedTest();    
+    void dispWriteSpeedTest();
 
     void dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
     /*
@@ -674,7 +713,8 @@ private:
      * 存储相关: 计算剩余空间
      */
     bool localStorageAvail();
-    void convSize2LeftNumTime(u64 size);        
+    void convSize2LeftNumTime(u64 size);    
+    void convSize2LeftNumTime(u64 size, int iMode);
     void calcRemainSpace();
     void dispBottomLeftSpace();
     void calcRemoteRemainSpace();
@@ -930,6 +970,8 @@ private:
 	u32 	                    mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
 
 
+    int                         mTfNum;
+
     /* 目前拍照都存储在大卡里
      * 步骤:
      * 根据mSavePathIndex从mLocalStorageList列表中取出对应的Volume,将该值除以当前配置ACTION_INFO.size_per_byte
@@ -942,12 +984,15 @@ private:
 	u32		                mCanTakeVidTime;						/* 可录像的时长(秒数) */
 	u32		                mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
 
-	std::mutex				mRemoteDevLock;
-    bool                    mRemoteStorageUpdate = false;
-    
+    u32                     mCanTakeTimelapseNum;                   /* 可拍timelapse的张数 */
+
     bool                    mSysncQueryTfReq;                       /* 以同步方式查询TF卡状态 */
     bool                    mAsyncQueryTfReq;                       /* 以异步方式查询TF卡状态 */
 
+
+	std::mutex				mRemoteDevLock;
+    bool                    mRemoteStorageUpdate = false;
+    
 	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
     u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
@@ -965,6 +1010,14 @@ private:
     bool                    mCalibrateSrc;
 
 	sp<InputManager>        mInputManager;                          /* 按键输入管理器 */
+
+
+    bool                    mSpeedTestUpdateFlag = false;                   /* 测速更新标志 */
+
+    int                     mWhoReqSpeedTest = UI_REQ_TESTSPEED;
+    int                     mWhoReqEnterPrew = APP_REQ_PREVIEW;            /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
+    int                     mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
+
 	/*
 	 * 菜单管理相关 MENU_INFO stPicVideoCfg
 	 */

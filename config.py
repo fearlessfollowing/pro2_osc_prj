@@ -85,7 +85,7 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 # 输入事件管理器调试开关
 #COMFLAGS += ' -DDEBUG_INPUT_MANAGER'
 
-COM_FLAGS += ' -DENABLE_PESUDO_SN '
+#COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
 # 电池调试信息开关
 #COM_FLAGS += ' -DDEBUG_BATTERY '
@@ -98,6 +98,10 @@ COM_FLAGS += ' -DENABLE_PESUDO_SN '
 
 # diable baterry check, print too much error info
 #COM_FLAGS += ' -DDISABLE_BATTERY_CHECK'
+
+# 使用新的计算剩余空间模式
+COM_FLAGS += ' -DENABLE_USE_NEW_CALC_MODE '
+
 
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
 

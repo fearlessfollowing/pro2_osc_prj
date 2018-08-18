@@ -2291,7 +2291,6 @@ void fifo::read_fifo_thread()
                     switch (msg_what) {
 
                         case CMD_OLED_DISP_TYPE: {	/* 通信UI线程显示指定UI */
-                            // cJSON *child = nullptr;
 							
 							/* 解析子节点的数据来构造DISP_TYPE 
                              * {"type":int, }
@@ -2458,7 +2457,7 @@ void fifo::read_fifo_thread()
                                             * 外部TF卡的命名规则
                                             * 名称: "tf-1","tf-2","tf-3"....
                                             */
-                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
+                                        sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
                                         storageList.push_back(tmpVol);
 
                                         /* 直接将消息丢入UI线程的消息队列中 */
@@ -2539,7 +2538,7 @@ void fifo::read_fifo_thread()
                                                 * 外部TF卡的命名规则
                                                 * 名称: "tf-1","tf-2","tf-3"....
                                                 */
-                                                sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
+                                                sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
                                                 Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d], speed[%d]",
                                                             __FILE__, __LINE__, tmpVol->name, 
                                                             tmpVol->iIndex, tmpVol->total, tmpVol->avail, tmpVol->iSpeedTest);
@@ -2554,7 +2553,7 @@ void fifo::read_fifo_thread()
                                 }
 
                             } else {    /* 查询失败 */
-                                Log.d(TAG, "[%s: %d] Query TF Card info Failed....", __FILE__, __LINE__);
+                                Log.d(TAG, "[%s: %d] Query mSD Card info Failed....", __FILE__, __LINE__);
                             }
 
                             mOLEDHandle->updateTfStorageInfo(bResult, storageList);
@@ -2572,7 +2571,7 @@ void fifo::read_fifo_thread()
                          * 失败: 
                          */
                         case CMD_WEB_UI_TF_FORMAT: {
-                            Log.d(TAG, "[%s: %d] Get Notify(TF Format Info)", __FILE__, __LINE__);
+                            Log.d(TAG, "[%s: %d] Get Notify(mSD Format Info)", __FILE__, __LINE__);
 
                             sp<Volume> tmpVolume = (sp<Volume>)(new Volume());
 
@@ -2656,8 +2655,8 @@ void fifo::read_fifo_thread()
                                         * 外部TF卡的命名规则
                                         * 名称: "tf-1","tf-2","tf-3"....
                                         */
-                                        sprintf(tmpVol->name, "TF%d", tmpJsonIndex->valueint);
-                                        Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], speed[%d]",
+                                        sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
+                                        Log.d(TAG, "[%s: %d] mSD card node[%s] info index[%d], speed[%d]",
                                                     __FILE__, __LINE__, tmpVol->name,  tmpVol->iIndex, tmpVol->iSpeedTest);
 
                                         storageList.push_back(tmpVol);
