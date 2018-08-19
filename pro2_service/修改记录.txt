@@ -359,5 +359,18 @@ D7:     GPIO3_PX.06         320 + 19*8 + 6  = 478
 
 
 日期：2018年8月18日
+
 1.WIFI的后缀不再使用随机数，而是使用SN文件的后六位
 2.格式化后，清空心跳包中的'test'字段为'false'
+3.完成所有的测速逻辑
+
+
+日期：2018年8月19日
+1.去掉avahi-daemon服务  （mv /etc/avahi ../）
+2.系统时，如果没有resolv.conf文件，手动提供一个
+
+root@tegra-ubuntu:/home/nvidia# cat /etc/resolv.conf
+nameserver 202.96.128.86
+nameserver 114.114.114.114
+
+3.格式化问题

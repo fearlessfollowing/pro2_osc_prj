@@ -4432,6 +4432,7 @@ void MenuUI::calcRemainSpace()
 
 
 
+#if 0
 /********************************************************************************************
 ** 函数名称: convSize2LeftNumTime
 ** 函数功能: 计算剩余空间信息(可拍照片的张数,可录像的时长,可直播存储的时长)
@@ -4545,7 +4546,7 @@ void MenuUI::convSize2LeftNumTime(u64 size)
         memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
     }
 }
-
+#endif
 
 
 /*
@@ -4562,7 +4563,6 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
         int rest_sec = 0;
         int rest_min = 0;
 
-        //deliberately minus 1024
         size_M -= AVAIL_SUBSTRACT;;
         int item = 0;
 		
@@ -4622,8 +4622,6 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
                 } else {
 
                     int index = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
-
-                    // Log.d(TAG, "[%s: %d], >>>>>>>>>>>> item %d", __FILE__, __LINE__, item);
                     
                     struct stPicVideoCfg* pPicVidCfg = mVidAllItemsList.at(index);
                     if (pPicVidCfg) {
@@ -4659,9 +4657,20 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
         }
     } else {    /* 达到剩余空间阀值 */
         Log.d(TAG, "[%s: %d] convSize2LeftNumTime Left space too low ....", __FILE__, __LINE__);
-        mCanTakePicNum = 0;
-        mCanTakeTimelapseNum = 0;
-        memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
+
+        switch (iMode) {
+            case CALC_MODE_TAKE_PIC:
+                mCanTakePicNum = 0;        
+                break;
+
+            case CALC_MODE_TAKE_TIMELAPSE:
+                mCanTakeTimelapseNum = 0;
+                break;
+
+            case CALC_MODE_TAKE_VIDEO:
+                memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
+                break;
+        }
     }
 }
 
@@ -5113,9 +5122,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
     char buf[1024];
     int err_trim = 0;
 
-    Log.d(TAG," %d src %s path %s cur_menu %d",
-          getMenuSelectIndex(MENU_FORMAT),
-          src,path,cur_menu);
+    Log.d(TAG," %d src %s path %s cur_menu %d", getMenuSelectIndex(MENU_FORMAT), src, path, cur_menu);
 
     add_state(STATE_FORMATING);
 
@@ -5297,6 +5304,7 @@ enum {
     FORMAT_ERR_FSTRIM = -4,
     FORMAT_ERR_UMOUNT_EXT4 = -5,
     FORMAT_ERR_FORMAT_EXFAT = -6,
+    FORMAT_ERR_E4DEFRAG = -7,
 
 };
 
@@ -5313,7 +5321,6 @@ void MenuUI::startFormatDevice()
      * 根据MENU_SHOW_SPACE来判断选择的是本地存储还是TF卡
      * 如果选择的是TF卡,还需要MENU_TF_FORMAT_SELECT来判断是格式化所有的TF卡还是格式化一张TF卡
      */
-    // bool bFound = false;
     int iTfIndex = -1;
     SetStorageItem* tmpStorageItem = NULL;
     SettingItem* tmpFormatSelectItem = NULL;
@@ -5469,6 +5476,8 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
         iErrNo = FORMAT_ERR_UMOUNT;
         goto ERROR;
     }
+    Log.d(TAG, "[%s: %d] Umount dev [%s] Success !!", __FILE__, __LINE__, pDevNode);
+
 
     memset(buf, 0, sizeof(buf));
     snprintf(buf, sizeof(buf), "mke2fs -F -t ext4 %s", pDevNode);   
@@ -5491,16 +5500,23 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
             goto ERROR;
         } else {    /* 挂载正常 */
 
-            Log.d(TAG, "[%s: %d] Mount dev[%s] to [%s] Success!!!", __FILE__, __LINE__, pDevNode, pMountPath);
-            
+            Log.d(TAG, "[%s: %d] ReMount dev[%s] to [%s] Success!!!", __FILE__, __LINE__, pDevNode, pMountPath);
+
+        #ifdef ENABLE_FS_TRIM            
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf), "fstrim %s", pMountPath);
             if (exec_sh_new((const char *)buf) != 0) {
                 iErrNo = FORMAT_ERR_FSTRIM;
                 goto ERROR;
             }
-
             Log.d(TAG, "[%s: %d] Fstrim Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
+        #else
+            memset(buf, 0, sizeof(buf));
+            snprintf(buf, sizeof(buf), "e4defrag %s", pMountPath);
+            exec_sh_new((const char *)buf);
+            Log.d(TAG, "[%s: %d] e4defrag Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
+
+        #endif
 
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
@@ -5508,7 +5524,8 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
                 iErrNo = FORMAT_ERR_UMOUNT_EXT4;
                 goto ERROR;
             }
-           Log.d(TAG, "[%s: %d] umount Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
+            
+            Log.d(TAG, "[%s: %d] umount Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
 
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
@@ -5518,7 +5535,7 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
             }
             Log.d(TAG, "[%s: %d] Format Dev[%s] to Exfat Success!", __FILE__, __LINE__, pDevNode);
 
-            // system("killall vold_test");    /* 重启挂载服务 */
+            system("killall vold_test");    /* 重启挂载服务 */
         }
     }
 
@@ -5529,6 +5546,7 @@ ERROR:
         case FORMAT_ERR_MOUNT_EXT4:
         case FORMAT_ERR_UMOUNT_EXT4:
         case FORMAT_ERR_FORMAT_EXFAT:
+        case FORMAT_ERR_E4DEFRAG:
             Log.d(TAG, "[%s: %d] Action[%d] dev[%s], path[%s]", __FILE__, __LINE__, iErrNo, pDevNode, pMountPath);
             break;
         
@@ -5542,13 +5560,14 @@ ERROR:
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
             exec_sh_new((const char *)buf);
-            // system("killall vold_test");    /* 重启挂载服务 */            
+            system("killall vold_test");    /* 重启挂载服务 */            
             break;  
         }
     }
 
     return iErrNo;
 }
+
 
 
 
@@ -10391,7 +10410,10 @@ bool MenuUI::check_battery_change(bool bUpload)
     double dInterTmp, dExternTmp; 
 
     mBatInterface->read_tmp(&dInterTmp, &dExternTmp);
+
+    #ifdef ENABLE_SHOW_BATTERY_TMP
     Log.d(TAG, "[%s: %d] Read Battery Tmp: interTmp[%f], externTmp[%f]", __FILE__, __LINE__, dInterTmp, dExternTmp);
+    #endif
 
     if (bUpdate || bUpload) {   /* 电池电量需要更新或者需要上报 */
 		

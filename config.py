@@ -103,6 +103,10 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 COM_FLAGS += ' -DENABLE_USE_NEW_CALC_MODE '
 
 
+# 打印电池温度
+COM_FLAGS += ' -DENABLE_SHOW_BATTERY_TMP '
+
+
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
 
 # toolchains options
