@@ -366,11 +366,31 @@ D7:     GPIO3_PX.06         320 + 19*8 + 6  = 478
 
 
 日期：2018年8月19日
-1.去掉avahi-daemon服务  （mv /etc/avahi ../）
+1.去掉avahi-daemon服务  （mv /etc/avahi /）
 2.系统时，如果没有resolv.conf文件，手动提供一个
 
 root@tegra-ubuntu:/home/nvidia# cat /etc/resolv.conf
 nameserver 202.96.128.86
 nameserver 114.114.114.114
 
-3.格式化问题
+
+
+日期：2018年8月20日
+1.去掉系统自带的dnsmasq服务（mv /usr/sbin/dnsmasq ../）
+2.修改show storage菜单（去掉左侧导航栏）
+3.修改测速完成菜单（屏幕操作，测速完成后停在该页面）
+4.格式化问题
+
+日期：2018年8月21日
+移植samba服务
+- 将samba-ok.zip 安装包拷贝到/home/nvidia/目录下，并解压: unzip samaba-ok.zip
+- 将smb.conf文件拷贝到/etc/samba/下
+- 重启samba服务：/etc/init.d/smbd restart 
+
+
+解决BUG： 相机连接客户端进入预览状态时，屏幕进入测速，然后断开客户端而导致屏幕一直处于测速状态
+解决方案：测速过程中不停止预览
+
+
+
+

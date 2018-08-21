@@ -925,6 +925,10 @@ static void proc_update_success(const char* mount_point)
     disp_start_reboot(5);
 
 	system("mv /lib/systemd/system/NetworkManager.service /lib/systemd/");	/* 暂时移除这个服务，测试Direct */
+
+	/* 2018年8月20日：禁止avahi-demon服务，避免分配169.254.xxxx的IP */
+	system("mv /etc/avahi /");
+	
 	start_reboot();			
 }	
 

@@ -2208,7 +2208,7 @@ typedef struct stStorageItem {
 
 
 static ICON_INFO queryStorageWait = {
-	32, 24, 76, 32, sizeof(queryStorageWait_76x32), queryStorageWait_76x32
+	24, 24, 76, 32, sizeof(queryStorageWait_76x32), queryStorageWait_76x32
 }; 
 
 

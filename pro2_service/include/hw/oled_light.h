@@ -14,6 +14,9 @@ public:
     void set_light_val(u8 val);
 	int factory_test(int icnt = 3);
 
+    void setAllLight(int iOnOff);
+
+
     /* 保存恢复灯的状态 */
     void suspend_led_status();
     void resume_led_status();
@@ -24,7 +27,8 @@ private:
     void init();
     void deinit();
 
-    u8 light_restore_val = 0;
+    u8 mRestoreLedVal = 0;
+    u8 light_restore_val = 0x7;
 
     sp<ins_i2c> mI2CLight;
 }; 

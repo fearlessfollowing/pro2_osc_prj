@@ -26,6 +26,8 @@ using namespace std;
 
 #define LED_I2C_REG 0x02
 
+#define LED_I2C_CONTROL_REG 0x06
+
 
 oled_light::oled_light()
 {
@@ -103,6 +105,30 @@ void oled_light::close_all()
 {
     mI2CLight->i2c_write_byte(LED_I2C_REG, 0);
 }
+
+void oled_light::setAllLight(int iOnOff)
+{
+    u8 orig_val = 0;
+
+    if (mI2CLight->i2c_read(LED_I2C_REG, &orig_val) == 0) {
+
+        if (iOnOff == 1) {  /* On */
+            mI2CLight->i2c_write_byte(LED_I2C_CONTROL_REG, 0x00);
+            orig_val |= mRestoreLedVal;
+            Log.d(TAG, "[%s: %d] Resume Val 0x%x", __FILE__, __LINE__, mRestoreLedVal);
+        } else {    /* Off */
+            mI2CLight->i2c_write_byte(LED_I2C_CONTROL_REG, 0x3f);
+            mRestoreLedVal = orig_val;
+            Log.d(TAG, "[%s: %d] Restore LED Val 0x%x", __FILE__, __LINE__, mRestoreLedVal);
+            orig_val &= 0xc0;
+        }
+        mI2CLight->i2c_write_byte(LED_I2C_REG, orig_val);
+    } else {
+        Log.e(TAG, ">>>> read i2c 0x2 failed...");
+    }
+
+}
+
 
 
 int oled_light::factory_test(int icnt)

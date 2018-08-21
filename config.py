@@ -72,7 +72,7 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 
 
 # 使能老化模式开关（仅用于工厂测试）
-#COM_FLAGS += ' -DENABLE_AGEING_MODE '
+COM_FLAGS += ' -DENABLE_AGEING_MODE '
 
 
 # LED 调试信息开关
@@ -103,8 +103,11 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 COM_FLAGS += ' -DENABLE_USE_NEW_CALC_MODE '
 
 
+# 使能Show Storage页左边的导航
+#COM_FLAGS += ' -DENABLE_SHOW_SPACE_NV '
+
 # 打印电池温度
-COM_FLAGS += ' -DENABLE_SHOW_BATTERY_TMP '
+#COM_FLAGS += ' -DENABLE_SHOW_BATTERY_TMP '
 
 
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '

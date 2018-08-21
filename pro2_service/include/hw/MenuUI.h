@@ -107,6 +107,10 @@ typedef enum _type_ {
 	START_QUERY_STORAGE_SUC,
 	START_QUERY_STORAGE_FAIL,
 
+
+    START_BPC = 150,
+    STOP_BPC  = 151,
+
 //    WRITE_FOR_BROKEN = 101,
     RESET_ALL_CFG = 102,
     MAX_TYPE,
@@ -636,6 +640,15 @@ private:
 
 
 /******************************************************************************************************
+ * 模式类
+ ******************************************************************************************************/
+    /*
+     * takeVideoIsAgeingMode - 老化录像模式
+     */
+    bool takeVideoIsAgeingMode();
+
+
+/******************************************************************************************************
  * 显示类
  ******************************************************************************************************/
 	void dispIconByLoc(const ICON_INFO* pInfo);
@@ -688,6 +701,7 @@ private:
     void setLightDirect(u8 val);
     void setLight(u8 val);
     void setLight();
+    void setAllLightOnOffForce(int iOnOff);
     /************************************** 灯光管理 END *************************************************/
 
 

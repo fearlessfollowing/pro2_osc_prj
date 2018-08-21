@@ -496,6 +496,15 @@ const char* getCurMenuStr(int iCurMenu)
         pRet = "MENU_SET_TEST_SPEED";
         break;
 
+    case MENU_CALC_BLC:
+        pRet = "MENU_CALC_BLC";
+        break;
+
+    case MENU_CALC_BPC:
+        pRet = "MENU_CALC_BPC";
+        break;
+
+
 	default:
 		pRet = "Unkown Menu";
 		break;
@@ -712,7 +721,6 @@ void MenuUI::oled_init_disp()
     bDispTop = true;				/* 显示顶部标志设置为true */
 
 	check_battery_change(true);		/* 检查电池的状态 */
-	// set_oled_power(1);
 }
 
 
@@ -1725,6 +1733,14 @@ void MenuUI::init()
 
     Log.d(TAG, "Create System NetManager Object...");
 
+    if (access("/etc/resolv.conf", F_OK) != 0) {
+        system("touch /etc/resolv.conf");
+        system("echo 'nameserver 202.96.128.86' >>  /etc/resolv.conf");
+        system("echo 'nameserver 114.114.114.114' >> /etc/resolv.conf");
+
+    }
+
+
 #ifdef ENABLE_PESUDO_SN
 
 	char tmpName[32] = {0};
@@ -2091,10 +2107,13 @@ int MenuUI::oled_reset_disp(int type)
     //reset to original
 //    reset_last_info();
     INFO_MENU_STATE(cur_menu,cam_state)
-    set_oled_power(1);
+
+
     cam_state = STATE_IDLE;
-//keep sys error back to menu top
+    
+    //keep sys error back to menu top
     disp_sys_err(type,MENU_TOP);
+    
     //fix select if working by controller 0616
     mControlAct = nullptr;
     bStiching = false;
@@ -2468,6 +2487,35 @@ bool MenuUI::checkVidLiveStorageSpeed()
         setCurMenu(MENU_SPEED_TEST);
     }
 }
+
+
+/*
+ * takeVideoIsAgeingMode - 是否为老化模式的录像
+ */
+bool MenuUI::takeVideoIsAgeingMode()
+{
+    #ifdef ENABLE_AGEING_MODE
+    char cAginePath[512] = {0};
+    sp<Volume> tmpVolume = NULL;
+    {
+        unique_lock<mutex> lock(mLocaLDevLock);
+        if ((mLocalStorageList.size() > 0) && (mSavePathIndex > -1)) {
+            tmpVolume = mLocalStorageList.at(mSavePathIndex);
+        }
+    }
+
+    sprintf(cAginePath, "%s/factory.json", tmpVolume->path);
+    if (access(cAginePath, F_OK) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+
+    #else 
+    return false;
+    #endif
+}
+
 
 
 void MenuUI::fix_live_save_per_act(struct _action_info_ *mAct)
@@ -2850,7 +2898,8 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 			
             break;
 			
-        case ACTION_QR:
+
+        case ACTION_QR: {
             if ((check_state_equal(STATE_IDLE) || check_state_preview())) {
                 oled_disp_type(START_QRING);
             } else if (check_state_in(STATE_START_QR) && !check_state_in(STATE_STOP_QRING)) {
@@ -2859,6 +2908,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
                 bAllow = false;
             }
             break;
+        }
 			
         case ACTION_REQ_SYNC: {     /* 请求同步ACTION */
             sp<REQ_SYNC> mReqSync = sp<REQ_SYNC>(new REQ_SYNC());
@@ -2870,10 +2920,11 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 			break;
         }
             
-        case ACTION_LOW_BAT:
+        case ACTION_LOW_BAT: {
             Log.d(TAG, "[%s: %d] Battery is Low, Send Command[%d] to Camerad", __FILE__, __LINE__, cmd);
             msg->set<int>("cmd", cmd);
             break;
+        }
 		
 //        case ACTION_LOW_PROTECT:
 //            break;
@@ -3011,9 +3062,10 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
         case ACTION_SET_STICH:
             break;
 			
-		case ACTION_AWB:		
+		case ACTION_AWB: {		
 			setLightDirect(FRONT_GREEN);
-			break;			
+			break;		
+        }	
 
 		case ACTION_QUERY_STORAGE:
 			break;
@@ -3056,12 +3108,13 @@ void MenuUI::send_save_path_change()
         case MENU_PIC_INFO:
         case MENU_VIDEO_INFO:
         case MENU_PIC_SET_DEF:
-        case MENU_VIDEO_SET_DEF:
+        case MENU_VIDEO_SET_DEF: {
             //make update bottom before sent it to ws 20170710
             if (!check_cam_busy())  {	//not statfs while busy ,add 20170804
                 updateBottomSpace(true);
             }
             break;
+        }
 			
         default:
             break;
@@ -3599,6 +3652,10 @@ void MenuUI::procBackKeyEvent()
                     case MENU_VIDEO_SET_DEF:
                     case MENU_LIVE_SET_DEF:
                     case MENU_SPEED_TEST:
+                    
+                    case MENU_CALC_BLC:
+                    case MENU_CALC_BPC:
+                    
 #ifdef MENU_WIFI_CONNECT                    
                     case MENU_WIFI_CONNECT:
 #endif
@@ -4197,10 +4254,16 @@ void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeL
                 tmPos.yPos 		= 48;
                 break;
         }
+        #ifdef ENABLE_SHOW_SPACE_NV
         tmPos.xPos 		= 27;   /* 水平方向的起始坐标 */
         tmPos.iWidth	= 103;   /* 显示的宽 */
         tmPos.iHeight   = 16;   /* 显示的高 */
-    
+        #else
+        tmPos.xPos 		= 0;   /* 水平方向的起始坐标 */
+        tmPos.iWidth	= 128;   /* 显示的宽 */
+        tmPos.iHeight   = 16;   /* 显示的高 */
+        #endif
+
         gStorageInfoItems[i]->stPos = tmPos;
         memcpy(&(gStorageInfoItems[i]->stVolumeInfo), mVolumeList.at(i).get(), sizeof(Volume));
         Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->stVolumeInfo.name);
@@ -4222,7 +4285,6 @@ void MenuUI::getShowStorageInfo()
         struct statfs diskInfo;
         u64 totalsize = 0;
         u64 used_size = 0;
-        // storage_index = get_dev_type_index(mLocalStorageList.at(i)->dev_type);
 
         if (access(mLocalStorageList.at(i)->path, F_OK) != -1) {
 
@@ -4329,11 +4391,7 @@ bool MenuUI::localStorageAvail()
                 /*
                  * 老化模式下为了能让时间尽可能长,虚拟出足够长的录像时间
                  */
-				#ifdef ENABLE_AGEING_MODE
-                mLocalStorageList.at(mSavePathIndex)->avail = 0x10000000000;
-				#else
                 mLocalStorageList.at(mSavePathIndex)->avail = diskInfo.f_bavail *diskInfo.f_bsize;
-				#endif
 				
                 Log.d(TAG, "remain ( %s %llu)\n", mLocalStorageList.at(mSavePathIndex)->path, mLocalStorageList.at(mSavePathIndex)->avail);
                 break;
@@ -4358,15 +4416,21 @@ void MenuUI::calcRemoteRemainSpace()
 {
     u64 iTmpMinSize = ~0UL;
     
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);
-        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-            if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
-                iTmpMinSize = mRemoteStorageList.at(i)->avail;
+    if (takeVideoIsAgeingMode()) {
+        mReoteRecLiveLeftSize = 1024 * 256;    /* 单位为MB， 256GB */
+    } else {
+        {
+            unique_lock<mutex> lock(mRemoteDevLock);
+            for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
+                if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
+                    iTmpMinSize = mRemoteStorageList.at(i)->avail;
+                }
             }
         }
+        mReoteRecLiveLeftSize = iTmpMinSize;
+
     }
-    mReoteRecLiveLeftSize = iTmpMinSize;
+
     Log.d(TAG, "[%s: %d] remote left space [%d]M", __FILE__, __LINE__, mReoteRecLiveLeftSize);
 
 }
@@ -4431,124 +4495,6 @@ void MenuUI::calcRemainSpace()
 }
 
 
-
-#if 0
-/********************************************************************************************
-** 函数名称: convSize2LeftNumTime
-** 函数功能: 计算剩余空间信息(可拍照片的张数,可录像的时长,可直播存储的时长)
-** 入口参数: 存储容量的大小(单位为M)
-** 返 回 值: 无(计算出的值来更新mRemainInfo对象)
-** 调     用: calcRemainSpace
-**
-*********************************************************************************************/
-void MenuUI::convSize2LeftNumTime(u64 size)
-{
-    INFO_MENU_STATE(cur_menu, cam_state);
-    int size_M = (int)(size >> 20);
-	
-    if (size_M > AVAIL_SUBSTRACT) {
-		
-        int rest_sec = 0;
-        int rest_min = 0;
-
-        //deliberately minus 1024
-        size_M -= AVAIL_SUBSTRACT;;
-        int item = 0;
-		
-        switch (cur_menu) {
-            case MENU_PIC_INFO:
-            case MENU_PIC_SET_DEF:
-                if (mControlAct != nullptr) {
-                    mCanTakePicNum = size_M / mControlAct->size_per_act;
-                    Log.d(TAG, "0remain(%d %d)", size_M, mCanTakePicNum);
-                } else {
-					/*
-                     * 使能RAW和没有使能RAW
-                     */
-                    item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-                    int iRawVal = mProCfg->get_val(KEY_RAW);
-
-                    Log.d(TAG, "[%s: %d] Raw[%d]", __FILE__, __LINE__, iRawVal);
-                    
-                    struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
-                    int iUnitSize = 30;
-                    if (pPicVidCfg) {
-                        if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
-                            iUnitSize = pPicVidCfg->pStAction->size_per_act;
-                            if (iRawVal) {
-                                iUnitSize = iUnitSize * pPicVidCfg->iRawStorageRatio;
-                            }
-                            Log.d(TAG, "[%s:%d] One Group Picture size [%d]M", __FILE__, __LINE__, iUnitSize);
-
-                        } else {
-                            iUnitSize = mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
-                        }
-                    } else {
-                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
-                    }
-                    
-                    mCanTakePicNum = size_M / iUnitSize;
-                    Log.d(TAG, "[%s: %d] Calc Can Take Picture num in this Mode [%d]", __FILE__, __LINE__, mCanTakePicNum);
-                }
-                break;
-				
-            case MENU_VIDEO_INFO:
-            case MENU_VIDEO_SET_DEF:
-
-                // not cal while rec already started
-                if (!(check_state_in(STATE_RECORD) 
-                    /* && (mRecInfo->rec_hour > 0 || mRecInfo->rec_min > 0 || mRecInfo->rec_sec > 0) */)) {
-
-                    Log.d(TAG, ">>>>>>>>>>>>>>>>>>calc video size");
-
-                    if (mControlAct != nullptr) {
-                        Log.d(TAG,"vid size_per_act %d", mControlAct->size_per_act);
-                        rest_sec = size_M / mControlAct->size_per_act;
-                    } else {
-                        int index = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
-
-                        Log.d(TAG, "[%s: %d], >>>>>>>>>>>> item %d", __FILE__, __LINE__, item);
-                        Log.d(TAG, ">>>>>>>>>>>>size_M = %d>>size = %d", size_M, mVidAllItemsList.size());
-                       
-                        struct stPicVideoCfg* pPicVidCfg = mVidAllItemsList.at(index);
-                        if (pPicVidCfg) {
-
-                            Log.d(TAG, "calc item name [%s], unit size [%d]", pPicVidCfg->pItemName, pPicVidCfg->pStAction->size_per_act);
-                            
-                            if (strcmp(pPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
-                                rest_sec = size_M / pPicVidCfg->pStAction->size_per_act;
-                            } else {
-                                Log.d(TAG, "3vid size_per_act %d",
-                                    mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act);
-                                rest_sec = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
-                            }
-
-                            rest_min = rest_sec / 60;
-                            mRemainInfo->remain_sec = rest_sec % 60;
-                            mRemainInfo->remain_hour = rest_min / 60;
-                            mRemainInfo->remain_min = rest_min % 60;
-                            
-                            Log.d(TAG, "++__++__++__++__++ convSize2LeftNumTime (%d %d %d  %d)", size_M, 
-                                                                                mRemainInfo->remain_hour,
-                                                                                mRemainInfo->remain_min, 
-                                                                                mRemainInfo->remain_sec);
-                        } else {
-                            Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, index);
-                        }
-                    }
-                } else {
-                    Log.e(TAG, "[%s: %d] Current in Taking Video State, Can't conv Left Time", __FILE__, __LINE__);
-                }
-                break;
-        }
-    } else {
-        Log.d(TAG, "[%s: %d] convSize2LeftNumTime Left space too low ....", __FILE__, __LINE__);
-        memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
-    }
-}
-#endif
-
-
 /*
  * convSize2LeftNumTime - 转换剩余空间为可拍张数，可录时长
  */
@@ -4599,8 +4545,14 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
                         Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
                     }
                     
+                    if (iUnitSize <= 0) {
+                        Log.e(TAG, "[%s: %d] What's wrong One Group Picture size smaller than 0", __FILE__, __LINE__);
+                        iUnitSize = 40;     /* 避免挂掉 */
+                    }
+
                     mCanTakePicNum = size_M / iUnitSize;
-                    Log.d(TAG, "[%s: %d] Calc Can Take Picture num in this Mode [%d]", __FILE__, __LINE__, mCanTakePicNum);
+
+                    Log.d(TAG, "[%s: %d] Calc Can Take Picture num [%d] in CALC_MODE_TAKE_PIC Mode.", __FILE__, __LINE__, mCanTakePicNum);
                 }
                 break;
             }
@@ -4618,6 +4570,12 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
                     rest_sec = size_M / mControlAct->size_per_act;
                     Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_VIDEO size_per_act %d", 
                                                                     __FILE__, __LINE__, mControlAct->size_per_act);
+                    if (takeVideoIsAgeingMode()) {
+                        rest_min = rest_sec / 60;
+                        mRemainInfo->remain_sec = rest_sec % 60;
+                        mRemainInfo->remain_hour = rest_min / 60;
+                        mRemainInfo->remain_min = rest_min % 60;
+                    }
 
                 } else {
 
@@ -4629,7 +4587,7 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
 
                         if (strcmp(pPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
                             rest_sec = size_M / pPicVidCfg->pStAction->size_per_act;
-                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs for Take Vide Non Customer Mode[%ld]", 
+                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs[%ld s] for Take Vide Non Customer Mode", 
                                                         __FILE__, __LINE__, rest_sec);
                         } else {
                             rest_sec = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
@@ -4821,15 +4779,23 @@ void MenuUI::dispBottomLeftSpace()
             case MENU_VIDEO_INFO:
             case MENU_VIDEO_SET_DEF: {  /* 目前的需求,拍timelapse只需要大卡即可 */
                 if (tl_count == -1) {
-                    if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
-                        snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", 
-                                            mRemainInfo->remain_hour,
-                                            mRemainInfo->remain_min, 
-                                            mRemainInfo->remain_sec);
-                        disp_str_fill((const u8 *) disk_info, 78, 48);
+                    if (takeVideoIsAgeingMode()) {
+                            snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", 
+                                                mRemainInfo->remain_hour,
+                                                mRemainInfo->remain_min, 
+                                                mRemainInfo->remain_sec);
+                            disp_str_fill((const u8 *) disk_info, 78, 48);
                     } else {
-                        Log.d(TAG, "[%s: %d] Take Video, but no storage", __FILE__, __LINE__, getCurMenuStr(cur_menu));
-                        disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);     
+                        if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
+                            snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", 
+                                                mRemainInfo->remain_hour,
+                                                mRemainInfo->remain_min, 
+                                                mRemainInfo->remain_sec);
+                            disp_str_fill((const u8 *) disk_info, 78, 48);
+                        } else {
+                            Log.d(TAG, "[%s: %d] Take Video, but no storage", __FILE__, __LINE__, getCurMenuStr(cur_menu));
+                            disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);     
+                        }
                     }
                 } else {    /* timelapse模式 */
 
@@ -5646,7 +5612,11 @@ void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
     
 
     /* 重新显示正页时，清除整个页 */
+    #ifdef ENABLE_SHOW_SPACE_NV
     clear_area(25, 16);
+    #else 
+    clear_area(0, 16);
+    #endif
 
 	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
     Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
@@ -6131,6 +6101,9 @@ bool MenuUI::menuHasStatusbar(int menu)
         case MENU_SPEED_TEST:
         case MENU_SET_TEST_SPEED:
 
+        case MENU_CALC_BLC:
+        case MENU_CALC_BPC:
+
 #ifdef MENU_WIFI_CONNECT
         case MENU_WIFI_CONNECT:
 #endif  
@@ -6300,8 +6273,6 @@ void MenuUI::enterMenu(bool dispBottom)
                 updateBottomSpace(true);        
             } else {
                 disp_icon(ICON_VIDEO_ICON_0_16_20_32);
-
-                // dispBottomInfo(false, false);
                 
                 if (check_state_in(START_PREVIEWING)) {
                     dispBottomInfo(false, false);           /* 正常显示底部规格,不更新剩余空间 */
@@ -6367,17 +6338,20 @@ void MenuUI::enterMenu(bool dispBottom)
 
 
         case MENU_SHOW_SPACE: {  /* 显示存储设备菜单 */
+
             clear_area(0, 16);
 
             #ifdef ENABLE_SPACE_PAGE_POWER_ON_MODULE
             system("power_manager power_on");
             #endif
         
+            #ifdef ENABLE_SHOW_SPACE_NV            
             if (pNvIconInfo) {
                 dispIconByLoc(pNvIconInfo);
             } else {
                 Log.e(TAG, "[%s: %d] Current Menu[%s] NV Icon not exist", __FILE__, __LINE__, getCurMenuStr(cur_menu));
             }            
+            #endif
 
             /* 查询的时间有点长,显示等待... */
             dispIconByLoc(&queryStorageWait);
@@ -6589,6 +6563,13 @@ void MenuUI::enterMenu(bool dispBottom)
             }
         }
         break;
+
+
+        case MENU_CALC_BLC:
+        case MENU_CALC_BPC: {
+            clear_area();
+            break;
+        }
 
         SWITCH_DEF_ERROR(cur_menu);
     }
@@ -7016,6 +6997,7 @@ void MenuUI::procPowerKeyEvent()
                     send_option_to_fifo(ACTION_SPEED_TEST);
                 } else {
                     Log.d(TAG, "[%s: %d] Speed Test Result is updated !!!", __FILE__, __LINE__);
+                    procBackKeyEvent();
                 }
             } else {
                 Log.d(TAG, "[%s: %d] System is Speed Testing, You can't Send Again", __FILE__, __LINE__);
@@ -8001,6 +7983,13 @@ void MenuUI::setLight()
     return;
 }
 
+void MenuUI::setAllLightOnOffForce(int iOnOff)
+{
+    mOLEDLight->setAllLight(iOnOff);
+}
+
+
+
 int MenuUI::get_error_back_menu(int force_menu)
 {
     int back_menu = MENU_TOP;
@@ -8175,25 +8164,6 @@ void MenuUI::set_led_power(unsigned int on)
     }
 }
 
-void MenuUI::set_oled_power(unsigned int on)
-{
-#if 0    
-    int GPIP_PX3 = 187;
-
-
-    Log.i(TAG,"set_oled_power on %d",on);
-    if (gpio_is_requested(GPIP_PX3) != 1)
-    {
-//        Log.d(TAG,"create gpio GPIO_V6");
-        gpio_request(GPIP_PX3);
-    }
-//    gpio_direction_output(GPIO_V6, 1);
-//    msg_util::sleep_ms(1000);
-    gpio_direction_output(GPIP_PX3, on);
-
-    set_led_power(on);
-#endif
-}
 
 #define STR(cmd)	#cmd
 
@@ -8355,21 +8325,29 @@ int MenuUI::oled_disp_type(int type)
 
             Log.d(TAG, "[%s: %d] >>>>>>> Start Recording Success........", __FILE__, __LINE__);
 
-            if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
-                if (check_rec_tl()) {   /* 如果是timelapse拍摄,将tl_count设置为0 */
-                    tl_count = 0;   /* 计算出当前可拍timelapse的数目 */
-                } else {    /* 非timelapse录像 */
-                    //before send for disp_mid
-                    set_update_mid();
-                }
-				
-                INFO_MENU_STATE(cur_menu, cam_state)
-                add_state(STATE_RECORD);    /* 添加正在录像状态(去除正在启动录像状态) */
-                setCurMenu(MENU_VIDEO_INFO);
-            } else {
-                Log.e(TAG, "START_REC_SUC error state 0x%x", cam_state);
-            }
+            if (takeVideoIsAgeingMode()) {
 
+                    set_update_mid();
+                    
+                    INFO_MENU_STATE(cur_menu, cam_state)
+                    add_state(STATE_RECORD);    /* 添加正在录像状态(去除正在启动录像状态) */
+                    setCurMenu(MENU_VIDEO_INFO);
+            } else {
+                if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
+                    if (check_rec_tl()) {   /* 如果是timelapse拍摄,将tl_count设置为0 */
+                        tl_count = 0;   /* 计算出当前可拍timelapse的数目 */
+                    } else {    /* 非timelapse录像 */
+                        //before send for disp_mid
+                        set_update_mid();
+                    }
+                    
+                    INFO_MENU_STATE(cur_menu, cam_state)
+                    add_state(STATE_RECORD);    /* 添加正在录像状态(去除正在启动录像状态) */
+                    setCurMenu(MENU_VIDEO_INFO);
+                } else {
+                    Log.e(TAG, "START_REC_SUC error state 0x%x", cam_state);
+                }
+            }
             break;
         }
 
@@ -8462,9 +8440,9 @@ int MenuUI::oled_disp_type(int type)
                 tl_count = -1;
 
 				/* 添加用于老化测试： 灯全绿 */
-				#ifdef ENABLE_AGING_MODE
-				setLightDirect(FRONT_GREEN | BACK_GREEN);
-				#endif
+                if (takeVideoIsAgeingMode()) {
+    				setLightDirect(FRONT_GREEN | BACK_GREEN);
+                }
             }
             break;
 			
@@ -9035,13 +9013,34 @@ int MenuUI::oled_disp_type(int type)
             disp_sys_err(type, get_back_menu(MENU_NOSIE_SAMPLE));
             break;
 
-        case START_BLC:
-            set_oled_power(0);
+        case START_BLC: {
+            Log.d(TAG, "[%s: %d] Enter BLC Calc now ...", __FILE__, __LINE__);
+            setAllLightOnOffForce(0);
+            setCurMenu(MENU_CALC_BLC);
             break;
+        }
 
-        case STOP_BLC:
-            set_oled_power(1);
+
+        case START_BPC: {
+            Log.d(TAG, "[%s: %d] Enter BPC Calc now ...", __FILE__, __LINE__);
+            setAllLightOnOffForce(0);
+            setCurMenu(MENU_CALC_BPC);
             break;
+        }
+
+        case STOP_BLC: {
+            Log.d(TAG, "[%s: %d] Exit BLC Calc now ...", __FILE__, __LINE__);
+            setAllLightOnOffForce(1);
+            procBackKeyEvent();
+            break;
+        }
+
+        case STOP_BPC: {
+            Log.d(TAG, "[%s: %d] Exit BPC Calc now ...", __FILE__, __LINE__);
+            setAllLightOnOffForce(1);
+            procBackKeyEvent();
+            break;
+        }
 
         default:
             break;
@@ -9121,7 +9120,7 @@ void MenuUI::dispSetItem(struct stSetItem* pItem, bool iSelected)
 void MenuUI::disp_ageing()
 {
     clear_area();
-    disp_str((const u8 *)"Ageing...",8,16);
+    disp_str((const u8 *)"Factory Aging Mode", 16, 24);
 }
 
 
@@ -9994,10 +9993,10 @@ void MenuUI::handleSppedTest(vector<sp<Volume>>& mSpeedTestList)
 
         if (mWhoReqSpeedTest == APP_REQ_TESTSPEED) {
             mWhoReqSpeedTest = UI_REQ_TESTSPEED;    /* 默认将测试发起方设置为UI */
+            msg_util::sleep_ms(3000);
+            procBackKeyEvent();
         }
 
-        msg_util::sleep_ms(1500);
-        procBackKeyEvent();
     }
 }
 

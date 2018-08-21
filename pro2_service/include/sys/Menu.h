@@ -10,9 +10,6 @@
 #include <sys/action_info.h>
 #include <sys/pro_cfg.h>
 
-#if 0
-#include <icon/pic_mode_select.h>
-#endif
 
 enum {
 
@@ -71,11 +68,15 @@ enum {
 #ifdef ENABLE_MENU_AEB
     MENU_SET_AEB,               // 27
 #endif
+
     MENU_SHOW_SPACE,
     
     MENU_TF_FORMAT_SELECT,      /* TF卡的格式化选中菜单 */
 
     MENU_SET_TEST_SPEED,        /* 设置页的测速菜单 */
+
+    MENU_CALC_BLC,
+    MENU_CALC_BPC,
 
     //messagebox keep at the end mAebList
     MENU_DISP_MSG_BOX,          // 28
@@ -135,138 +136,6 @@ typedef struct _menu_info_ {
 
 
 
-
-//pic ,vid, live def
-enum {
-    //normal stich
-//#ifndef ONLY_PIC_FLOW
-//    PIC_8K_3D_SAVE,
-//#endif
-    //optical flow stich
-    PIC_8K_3D_SAVE_OF,
-    PIC_8K_PANO_SAVE_OF,
-    PIC_8K_PANO_SAVE,
-#ifdef OPEN_HDR_RTS
-    PIC_HDR_RTS,
-#endif
-    PIC_HDR,
-    PIC_BURST,
-    PIC_RAW,
-    PIC_CUSTOM,
-    PIC_DEF_MAX,
-};
-
-
-
-/* 6+1
- * 录像 - 
- */
-enum {
-	VID_8K_30FPS_3D,
-	VID_8K_60FPS,
-	VID_8K_30FPS,
-	VID_8K_5FPS_STREETVIEW,
-	VID_6K_60FPS_3D,
-	VID_6K_30FPS_3D,
-	VID_4K_120FPS_3D,
-	VID_4K_60FPS_3D,
-	VID_4K_30FPS_3D,
-	VID_4K_60FPS_RTS,
-	VID_4K_30FPS_RTS,
-	VID_4K_30FPS_3D_RTS,
-	VID_2_5K_60FPS_3D_RTS,
-	VID_AERIAL,
-};
-
-
-/*
- * 6+1
- * 直播
- */
-enum {
-	LIVE_4K_30FPS,
-	LIVE_4K_30FPS_3D,
-	LIVE_4K_30FPS_HDMI,
-	LIVE_4K_30FPS_3D_HDMI
-};
-
-
-enum {
-    //video
-    VID_8K_50M_30FPS_PANO_RTS_OFF,
-#ifdef GOOGLE_8K_5F
-//    VID_8K_5FPS_RTS,//for google 170921
-    VID_8K_5FPS,
-#endif
-    VID_6K_50M_30FPS_3D_RTS_OFF,
-    VID_4K_50M_120FPS_PANO_RTS_OFF,
-    VID_4K_20M_60FPS_3D_RTS_OFF,
-    VID_4K_20M_24FPS_3D_50M_24FPS_RTS_ON,
-    VID_4K_20M_24FPS_PANO_50M_30FPS_RTS_ON,
-    VID_CUSTOM,
-    VID_DEF_MAX,
-};
-
-enum {
-    //live
-#ifdef LIVE_ORG
-    LIVE_ORIGIN,
-#endif
-    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON,
-    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON,
-    //hdmi on
-    VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI,
-    VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI,
-    VID_ARIAL,
-    LIVE_CUSTOM,
-    LIVE_DEF_MAX,
-};
-
-#if 0 
-    MENU_TOP ,                  // 1
-    MENU_PIC_INFO,              // 2
-    MENU_VIDEO_INFO,            // 3
-    MENU_LIVE_INFO,             // 4
-    MENU_SYS_SETTING,           // 5
-    MENU_PIC_SET_DEF,           // 6
-    MENU_VIDEO_SET_DEF ,        // 7
-    MENU_LIVE_SET_DEF,          // 8
-    MENU_CALIBRATION,           // 9
-    MENU_QR_SCAN,               // 10
-    
-	MENU_STORAGE,		        // 11
-    
-    MENU_SYS_DEV_INFO,          // 12
-    MENU_SYS_ERR,               // 13
-    MENU_LOW_BAT,               // 14
-    MENU_GYRO_START,            // 15
-    MENU_SPEED_TEST,            // 16
-    MENU_RESET_INDICATION,      // 17
-    MENU_WIFI_CONNECT,          // 18
-    MENU_AGEING,                // 19
-//    MENU_LOW_PROTECT,         // 20
-    MENU_NOSIE_SAMPLE,          // 21
-    MENU_LIVE_REC_TIME,         // 22
-
-#ifdef ENABLE_MENU_STITCH_BOX
-    MENU_STITCH_BOX,            // 23
-#endif    
-
-    MENU_FORMAT,                // 24
-    MENU_FORMAT_INDICATION,     // 25
-    
-	MENU_SET_PHOTO_DEALY,	    // 26
-	
-#ifdef ENALEB_MENU_AEB
-    MENU_AEB,                   // 27
-#endif
-
-    //messagebox keep at the end
-    MENU_DISP_MSG_BOX,          // 28
-    MENU_MAX,                   // 29
-
-#endif
-
 static MENU_INFO mMenuInfos[] = {
     {	
     	-1,					/* back_menu */
@@ -325,7 +194,7 @@ static MENU_INFO mMenuInfos[] = {
 
     {	
     	MENU_VIDEO_INFO,
-		{-1, 0, 0, VID_DEF_MAX, VID_DEF_MAX, 1},
+		{-1, 0, 0, 0, 1, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_VIDEO_SET_DEF,     /* Menu ID: MENU_VIDEO_SET_DEF */
         NULL,                   /* TODO */
@@ -334,7 +203,7 @@ static MENU_INFO mMenuInfos[] = {
     
     {	/* MENU_LIVE_SET_DEF */
     	MENU_LIVE_INFO,
-		{-1, 0, 0, LIVE_DEF_MAX, LIVE_DEF_MAX, 1},
+		{-1, 0, 0, 0, 0, 1},
 		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_LIVE_SET_DEF,      /* Menu ID: MENU_LIVE_SET_DEF */
         NULL,
@@ -580,6 +449,25 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        
 	},
 
+#if 1
+	{	/* MENU_DISP_MSG_BOX */
+    	MENU_TOP,
+		{0},
+		{0},
+        MENU_CALC_BLC,
+        NULL,
+        NULL,        
+	},
+
+	{	/* MENU_DISP_MSG_BOX */
+    	MENU_TOP,
+		{0},
+		{0},
+        MENU_CALC_BPC,
+        NULL,
+        NULL,        
+	},
+#endif
 
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,
@@ -590,7 +478,6 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        
 	},
 };
-
 
 
 #endif /* _MENU_H_ */
