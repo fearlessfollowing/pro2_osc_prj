@@ -59,6 +59,8 @@
 
 #include <sys/Menu.h>
 
+#include <sys/mount.h>
+
 
 #include <icon/setting_menu_icon.h>
 
@@ -1462,7 +1464,7 @@ void MenuUI::cfgPicModeItemCurVal(PicVideoCfg* pPicCfg)
             }
         } else {
             pPicCfg->iCurVal = iRawVal;
-            Log.e(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pPicCfg->iCurVal);
+            Log.d(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pPicCfg->iCurVal);
         }
 
     } else {
@@ -3655,7 +3657,7 @@ void MenuUI::procBackKeyEvent()
                     
                     case MENU_CALC_BLC:
                     case MENU_CALC_BPC:
-                    
+
 #ifdef MENU_WIFI_CONNECT                    
                     case MENU_WIFI_CONNECT:
 #endif
@@ -4401,11 +4403,20 @@ bool MenuUI::localStorageAvail()
             }
         }
 
+    #if 0
         if (i == times) {
             Log.d(TAG, "still fail to access %s", mLocalStorageList.at(mSavePathIndex)->path);
                 mLocalStorageList.at(mSavePathIndex)->avail = 0;
         }
         ret = true;
+    #else
+        if (i < times) {
+            ret = true;
+        } else {
+            ret = false;
+        }
+         
+    #endif
     }
 
     return ret;
@@ -4455,6 +4466,7 @@ void MenuUI::calcRemainSpace()
     {
         mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
         if (localStorageAvail()) {
+            Log.d(TAG, "[%s: %d] Calc can take picture num in calcRemainSpace", __FILE__, __LINE__);                    
             convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail, CALC_MODE_TAKE_PIC);
         }
     }
@@ -4463,10 +4475,10 @@ void MenuUI::calcRemainSpace()
         mCanTakeTimelapseNum = 0;
     }
 
-    {
-        calcRemoteRemainSpace();
-        convSize2LeftNumTime(mReoteRecLiveLeftSize << 20, CALC_MODE_TAKE_VIDEO);
-    }
+    // {
+    //     calcRemoteRemainSpace();
+    //     convSize2LeftNumTime(mReoteRecLiveLeftSize << 20, CALC_MODE_TAKE_VIDEO);
+    // }
 
     #else
 
@@ -4516,6 +4528,11 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
         switch (iMode) {
             case CALC_MODE_TAKE_PIC: {
                 if (mControlAct != nullptr) {
+                    if (mControlAct->size_per_act < 0) {
+                        Log.e(TAG, "[%s: %d] What's wrong size_per_act smaller than 0 [%d]", __FILE__, __LINE__, mControlAct->size_per_act);
+                        mControlAct->size_per_act = 10;
+                    }
+
                     mCanTakePicNum = size_M / mControlAct->size_per_act;
                     Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_PIC (%d %d)",
                                             __FILE__, __LINE__, size_M, mCanTakePicNum);
@@ -5264,7 +5281,7 @@ void MenuUI::dispWriteSpeedTest()
 
 enum {
     FORMAT_ERR_SUC = 0,
-    FORMAT_ERR_UMOUNT = -1,
+    FORMAT_ERR_UMOUNT_EXFAT = -1,
     FORMAT_ERR_FORMAT_EXT4 = -2,
     FORMAT_ERR_MOUNT_EXT4 = -3,
     FORMAT_ERR_FSTRIM = -4,
@@ -5281,6 +5298,11 @@ enum {
     DISK_TYPE_MAX
 };
 
+
+
+/*
+ * startFormatDevice - 启动设备格式化
+ */
 void MenuUI::startFormatDevice()
 {
     /* getCurMenuStr
@@ -5383,49 +5405,6 @@ void MenuUI::startFormatDevice()
             dispIconByLoc(pFormatResult);
 
     }
-    
-    #if 0
-    switch (getMenuSelectIndex(MENU_SHOW_SPACE)) {
-        case SET_STORAGE_SD:
-            disp_icon(ICON_SDCARD_FORMATTING128_48);
-            for(u32 i = 0; i < mLocalStorageList.size(); i++) {
-                if(get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_SD) {
-                    format(mLocalStorageList.at(i)->src, mLocalStorageList.at(i)->path, ICON_FORMAT_REPLACE_NEW_SD_128_48128_48,ICON_SDCARD_FORMATTED_FAILED128_48,ICON_SDCARD_FORMATTED_SUCCESS128_48);
-                    bFound = true;
-                    break;
-                }
-            }
-            break;
-
-        case SET_STORAGE_USB:
-            disp_icon(ICON_USBHARDDRIVE_FORMATTING128_48);
-            for(u32 i = 0; i < mLocalStorageList.size(); i++)  {
-                if (get_dev_type_index(mLocalStorageList.at(i)->dev_type) == SET_STORAGE_USB) {
-                    bFound = true;
-                    format(mLocalStorageList.at(i)->src,mLocalStorageList.at(i)->path,
-                           ICON_FORMAT_REPLACE_NEW_USB_128_48128_48,
-                           ICON_USBDARDDRIVE_FORMATTED_FAILED128_48,ICON_USBHARDDRIVE_FORMATTED_SUCCESS128_48);
-                    break;
-                }
-            }
-            break;
-        // SWITCH_DEF_ERROR(getMenuSelectIndex(MENU_STORAGE))
-    }
-
-    if (!bFound) {
-        Log.e(TAG,"no format device found");
-        abort();
-    } else {
-//        msg_util::sleep_ms(3000);
-        rm_state(STATE_FORMATING);
-        add_state(STATE_FORMAT_OVER);
-//        setCurMenu(MENU_FORMAT);
-    }
-//    msg_util::sleep_ms(2000);
-//    rm_state(STATE_FORMATING);
-//    setCurMenu(MENU_FORMAT);
-#endif
-
 }
 
 
@@ -5435,7 +5414,13 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
     char buf[1024] = {0};
     int err_trim = 0;
     int iErrNo = FORMAT_ERR_SUC;
+    int i, iRetry = 3;
 
+
+    /*
+     * 1.卸载本地设备（卸载成功从mLocalStorageList中移除该设备）
+     */
+    #ifdef ENABLE_FORMAT_DEV_USE_SYSTEM_CMD
     snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
     if (exec_sh_new((const char *)buf) != 0) {
         Log.d(TAG, "[%s: %d] umount path[%s] failed", __FILE__, __LINE__, pMountPath);
@@ -5443,6 +5428,31 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
         goto ERROR;
     }
     Log.d(TAG, "[%s: %d] Umount dev [%s] Success !!", __FILE__, __LINE__, pDevNode);
+
+    #else   /* 使用API卸载 */
+
+    for (i = 0; i < iRetry; i++) {
+        Log.d(TAG, "[%s: %d] umount2 dev[%s], mount pointer[%s]", __FILE__, __LINE__, pDevNode, pMountPath);
+        if (umount2(pMountPath, MNT_FORCE)) {
+            Log.e(TAG, "[%s: %d] umount dev[%s] failed, times[%d]", __FILE__, __LINE__, pDevNode, i);
+            msg_util::sleep_ms(100);
+            continue;
+        } else {
+            break;
+        }
+    }
+
+    if (i >= iRetry) {
+        Log.e(TAG, "[%s: %d] umount dev[%s] failed", __FILE__, __LINE__, pDevNode);
+        iErrNo = FORMAT_ERR_UMOUNT_EXFAT;
+        goto ERROR;
+    } else {    /* 卸载成功(可以考虑直接操作mLocalStorageList,将Volume的状态设置为已卸载状态) */
+        Log.e(TAG, "[%s: %d] umount dev[%s] Suc", __FILE__, __LINE__, pDevNode);
+    }
+
+    #endif
+
+    msg_util::sleep_ms(100);
 
 
     memset(buf, 0, sizeof(buf));
@@ -5483,6 +5493,7 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
             Log.d(TAG, "[%s: %d] e4defrag Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
 
         #endif
+            msg_util::sleep_ms(200);
 
             memset(buf, 0, sizeof(buf));
             snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
@@ -5493,8 +5504,10 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
             
             Log.d(TAG, "[%s: %d] umount Dev[%s] Success!", __FILE__, __LINE__, pMountPath);
 
+            msg_util::sleep_ms(500);
+
             memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
+            snprintf(buf, sizeof(buf), "mkfs.exfat %s", pDevNode);
             if (exec_sh_new((const char *)buf) != 0) {
                 iErrNo = FORMAT_ERR_FORMAT_EXFAT;
                 goto ERROR;
@@ -5507,7 +5520,7 @@ int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
 
 ERROR:
     switch (iErrNo) {
-        case FORMAT_ERR_UMOUNT:
+        case FORMAT_ERR_UMOUNT_EXFAT:
         case FORMAT_ERR_FORMAT_EXT4:
         case FORMAT_ERR_MOUNT_EXT4:
         case FORMAT_ERR_UMOUNT_EXT4:
@@ -5585,7 +5598,7 @@ void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
     convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->stVolumeInfo.total, cTotal, 8);
     convStorageSize2Str(STORAGE_UNIT_MB, used_size, cUsed, 8);
 
-    sprintf(cItems, "%s:%s/%s", pStorageItem->stVolumeInfo.name, cUsed, cTotal);
+    sprintf(cItems, "%s: %s/%s", pStorageItem->stVolumeInfo.name, cUsed, cTotal);
 
     Log.d(TAG, "[%s: %d] Calc show Str Len %d", __FILE__, __LINE__, strlen(cItems));
     
