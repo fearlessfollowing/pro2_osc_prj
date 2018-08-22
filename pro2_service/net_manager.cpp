@@ -523,7 +523,12 @@ int WiFiNetDev::netdevOpen()
 		system("echo 2 > /sys/module/bcmdhd/parameters/op_mode");	/* 通知固件工作在AP模式 */
 		
 		memset(cmd, 0, sizeof(cmd));
+
+#ifdef ENABLE_DEBUG_HOSTAPD
+		sprintf(cmd, "hostapd -B %s > /home/nvidia/insta360/log/wifi.log", WIFI_TMP_AP_CONFIG_FILE);
+#else 
 		sprintf(cmd, "hostapd -B %s", WIFI_TMP_AP_CONFIG_FILE);
+#endif
 
 		for (i = 0; i < 3; i++) {
 			iResult = system(cmd);
@@ -907,6 +912,7 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 						fprintf(iWifiFile, "wpa=%d\n", tmpConfig->iAuthMode);
 						fprintf(iWifiFile, "wpa_passphrase=%s\n", tmpConfig->cPasswd);
 						fprintf(iWifiFile, "wpa_key_mgmt=%s\n", "WPA-PSK");
+
 					}
 					
 					fclose(iWifiFile);

@@ -151,7 +151,7 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
 
     bool bBlockDisk = false;
 
-	//Log.d(TAG, "parseAsciiNetlinkMessage: %s", buffer);
+	Log.d(TAG, "parseAsciiNetlinkMessage: %s", buffer);
 
     sp<NET_LINK_INFO> mLink = sp<NET_LINK_INFO>(new NET_LINK_INFO());
 	
@@ -208,7 +208,7 @@ bool dev_manager::parseAsciiNetlinkMessage(char *buffer, int size)
 
     if (bBlockDisk) {
 		Log.d(TAG, "DevManager: recv block action (%d %d)\n", mLink->action, mLink->major);
-		handle_block_event(mLink);
+		// handle_block_event(mLink);
 		Log.d(TAG, "DevManager: recv block action %d over\n", mLink->action);
     }
     return true;

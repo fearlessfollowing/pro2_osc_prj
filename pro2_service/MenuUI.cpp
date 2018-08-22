@@ -256,6 +256,7 @@ enum {
     LIGHT_ALL 		= 0xff		/* 所有的灯亮白色 */
 };
 
+#define INTERVAL_0HZ        0
 
 #define INTERVAL_1HZ 	    (1000)
 
@@ -629,7 +630,9 @@ void MenuUI::send_init_disp()
 
 void MenuUI::disp_top_info()
 {
-	
+	/** 显示状态栏之前,进行清除状态栏(避免有些写的字落在该区域) */
+    clear_area(0, 0, 128, 16);
+
     if (mProCfg->get_val(KEY_WIFI_ON)) {
         disp_icon(ICON_WIFI_OPEN_0_0_16_16);
     } else {
@@ -741,7 +744,6 @@ void MenuUI::exit_qr_func()
 void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, int sound_id)
 {
 
-// #ifdef ENABLE_DEBUG_MODE
 #if 0
 	Log.d(TAG, "send_update_light　(%d [%s] [%d] interval[%d] speaker[%d] sound_id %d) ", 
 					bSendUpdate, 
@@ -763,7 +765,6 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
     }
 
     if (!bSendUpdate) {
-		
         bSendUpdate = true;
         sp<ARMessage> msg = obtainMessage(UI_DISP_LIGHT);
         msg->set<int>("menu", menu);
@@ -1735,12 +1736,12 @@ void MenuUI::init()
 
     Log.d(TAG, "Create System NetManager Object...");
 
-    if (access("/etc/resolv.conf", F_OK) != 0) {
-        system("touch /etc/resolv.conf");
-        system("echo 'nameserver 202.96.128.86' >>  /etc/resolv.conf");
-        system("echo 'nameserver 114.114.114.114' >> /etc/resolv.conf");
-
-    }
+    system("rm /etc/resolv.conf");
+    
+    msg_util::sleep_ms(50);
+    system("touch /etc/resolv.conf");
+    system("echo 'nameserver 202.96.128.86' >>  /etc/resolv.conf");
+    system("echo 'nameserver 114.114.114.114' >> /etc/resolv.conf");
 
 
 #ifdef ENABLE_PESUDO_SN
@@ -2194,11 +2195,12 @@ void MenuUI::set_cur_menu_from_exit()
 *************************************************************************/
 void MenuUI::setCurMenu(int menu, int back_menu)
 {
-    bool bDispBottom = true; //add 170804 for menu_pic_info not recalculate for pic num MENU_TOP
+    // bool bDispBottom = true; // add 170804 for menu_pic_info not recalculate for pic num MENU_TOP
+    bool bUpdateAllMenuUI = true;
 
 	if (menu == cur_menu) {
         Log.d(TAG, "set cur menu same menu %d cur menu %d\n", menu, cur_menu);
-        bDispBottom = false;
+        bUpdateAllMenuUI = false;
     } else  {
         if (menuHasStatusbar(menu))  {
             if (back_menu == -1)  {
@@ -2207,10 +2209,12 @@ void MenuUI::setCurMenu(int menu, int back_menu)
                 set_back_menu(menu, back_menu);
             }
         }
+
+        // clear_area();
         cur_menu = menu;
     }
 	
-    enterMenu(bDispBottom);
+    enterMenu(bUpdateAllMenuUI);
 }
 
 
@@ -2619,10 +2623,11 @@ bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest
 
 void MenuUI::setGyroCalcDelay(int iDelay)
 {
+    Log.d(TAG, "[%s: %d] setGyroCalcDelay = %d", __FILE__, __LINE__, iDelay);
 	if (iDelay > 0)
 		mGyroCalcDelay = iDelay;
 	else 
-		mGyroCalcDelay = 5;	/* Default */
+		mGyroCalcDelay = 4;	/* Default */
 }
 
 
@@ -2887,18 +2892,16 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
         }
 			
 
-        case ACTION_CALIBRATION:	/* 陀螺仪校正 */
-			#if 0
+        case ACTION_CALIBRATION: {	/* 拼接校正 */
             if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
                 setGyroCalcDelay(5);
                 oled_disp_type(START_CALIBRATIONING);
             } else {
-                Log.e(TAG, "calibration happen cam_state 0x%x", cam_state);
+                Log.e(TAG, "[ %s: %d] calibration happen cam_state 0x%x", cam_state);
                 bAllow = false;
-            }
-			#endif
-			
+            }			
             break;
+        }
 			
 
         case ACTION_QR: {
@@ -6230,20 +6233,26 @@ void MenuUI::showSpaceQueryTfCallback()
 ** 调     用: 
 ** 
 *************************************************************************/
-void MenuUI::enterMenu(bool dispBottom)
+void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 {
-	Log.d(TAG, "enterMenu is [%s], cam_state [0x%x]", getCurMenuStr(cur_menu), cam_state);
+	Log.d(TAG, "enterMenu is [%s], cam_state [0x%x], update all [%s]", 
+                        getCurMenuStr(cur_menu), cam_state, (bUpdateAllMenuUI == true) ? "true": "false");
     ICON_INFO* pNvIconInfo = NULL;
 
     pNvIconInfo = static_cast<ICON_INFO*>(mMenuInfos[cur_menu].priv);
     
     switch (cur_menu) {
-        case MENU_TOP:      /* 主菜单 */
+        case MENU_TOP: {      /* 主菜单 */
             disp_icon(main_icons[mProCfg->get_val(KEY_WIFI_ON)][getCurMenuCurSelectIndex()]);
             break;
+        }
 		
-        case MENU_PIC_INFO: /* 拍照菜单 */
+        case MENU_PIC_INFO: {   /* 拍照菜单 */
 			
+            if (bUpdateAllMenuUI) {
+                clear_area(0, 16);
+            }
+
             disp_icon(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
 
             if (check_state_in(START_PREVIEWING)) {
@@ -6272,9 +6281,10 @@ void MenuUI::enterMenu(bool dispBottom)
                 }
             }
             break;
+        }
 			
 
-        case MENU_VIDEO_INFO:   /* 录像菜单 */
+        case MENU_VIDEO_INFO: { /* 录像菜单 */
 
             if (tl_count != -1) {   /* timelapse拍摄,显示拍照的图标 */
                 clear_area(0, 16);
@@ -6310,6 +6320,7 @@ void MenuUI::enterMenu(bool dispBottom)
                 }
             }
             break;
+        }
 
 
         /* 进入直播页面 */	
@@ -6451,16 +6462,19 @@ void MenuUI::enterMenu(bool dispBottom)
             break;
 
 			
-        case MENU_CALIBRATION:
+        case MENU_CALIBRATION: {
             Log.d(TAG, "MENU_CALIBRATION GyroCalc delay %d", mGyroCalcDelay);
+
             if (mGyroCalcDelay > 0) {
                 disp_icon(ICON_CALIBRAT_AWAY128_16);
+                disp_calibration_res(3, mGyroCalcDelay--);  /* 解决屏幕显示比实际时间多一秒问题 */
             } else {
-                //disp_calibration_res(2);	/* 显示正在校正"gyro caclibrating..." */
+                disp_calibration_res(2);	/* 显示正在校正"gyro caclibrating..." */
             }
             break;
+        }
 
-            //menu sys device
+
 //            case MENU_SYS_DEV:
 //                disp_sys_dev();
 //                break;
@@ -6657,17 +6671,7 @@ bool MenuUI::checkStorageSatisfy(int action)
 void MenuUI::handleGyroCalcEvent()
 {
 	Log.d(TAG, ">>>> handleGyroCalcEvent START");
-    #if 0
-	if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
-		setGyroCalcDelay(5);
-		oled_disp_type(START_CALIBRATIONING);
-	} else {
-		Log.e(TAG, "handleGyroCalcEvent: calibration happen cam_state 0x%x", cam_state);
-	}
-    #else 
-    mCalibrateSrc = true;   /* 表示发起拼接动作来自UI */
-    oled_disp_type(START_CALIBRATIONING);
-    #endif
+    send_option_to_fifo(ACTION_CALIBRATION);
 }
 
 
@@ -8757,25 +8761,28 @@ int MenuUI::oled_disp_type(int type)
 
 /*********************************	陀螺仪相关状态 START ********************************************/
 			
-        case START_CALIBRATIONING: {
+        case START_CALIBRATIONING: {    /* 客户端发起的拼接校正，屏幕直接从此处开始运行 */
 
-            Log.d(TAG, "START_CALIBRATIONING calc delay %d cur_menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
+            Log.d(TAG, "cap delay %d cur_menu %d", mGyroCalcDelay, cur_menu);
+            
             if (mGyroCalcDelay <= 0) {
-                mGyroCalcDelay = 5;
+                setGyroCalcDelay(5);
             }
 
-            if (cur_menu != MENU_CALIBRATION) {		/* 进入陀螺仪校正菜单 */
+            /* 一秒之后发送该消息，感觉有点慢 
+             * 出现进入菜单一秒后才开始倒计时（默认是屏幕刷新的更快了??） - 2018年8月22日
+             */
+            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_0HZ);
+            if (cur_menu != MENU_CALIBRATION) {
                 setCurMenu(MENU_CALIBRATION);
             }
             add_state(STATE_CALIBRATING);
-            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_1HZ);
-
             break;
         }
 
 			
         case CALIBRATION_SUC: {
-            mCalibrateSrc = false;
+            setGyroCalcDelay(0);
             if (check_state_in(STATE_CALIBRATING)) {
                 disp_calibration_res(0);
                 msg_util::sleep_ms(1000);
@@ -8785,7 +8792,7 @@ int MenuUI::oled_disp_type(int type)
         }
 			
         case CALIBRATION_FAIL: {
-            mCalibrateSrc = false;
+            setGyroCalcDelay(0);
             rm_state(STATE_CALIBRATING);
             disp_sys_err(type, get_back_menu(cur_menu));
             break;
@@ -9682,7 +9689,7 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 					
 		case MENU_CALIBRATION:
 			
-			Log.d(TAG, "GyroCal is %d, cur menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
+			// Log.d(TAG, "GyroCal is %d, cur menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
 			
 			if ((cam_state & STATE_CALIBRATING) == STATE_CALIBRATING) {
 				if (mGyroCalcDelay <= 0) {
@@ -9690,10 +9697,6 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 					if (mGyroCalcDelay == 0) {
 						if (cur_menu == menu) {	/* 当倒计时完成后才会给Camerad发送"校验消息" */
 							disp_calibration_res(2);
-
-                            if (mCalibrateSrc) {    /* 来自UI的拼接请求来需要发送 */
-							    send_option_to_fifo(ACTION_CALIBRATION);
-                            }
 						}
 					}
 				} else {	/* 大于0时,显示倒计时 */

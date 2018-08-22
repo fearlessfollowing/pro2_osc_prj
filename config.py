@@ -103,6 +103,10 @@ COM_FLAGS += ' -DENABLE_AGEING_MODE '
 COM_FLAGS += ' -DENABLE_USE_NEW_CALC_MODE '
 
 
+# 使能调试hostapd
+COM_FLAGS += ' -DENABLE_DEBUG_HOSTAPD '
+
+
 # 使能Show Storage页左边的导航
 #COM_FLAGS += ' -DENABLE_SHOW_SPACE_NV '
 

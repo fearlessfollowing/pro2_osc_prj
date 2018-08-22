@@ -410,6 +410,7 @@ camera._change_module_usb_mode
 request:
 { "name":"camera._change_module_usb_mode","parameters":{"mode":1} }
 
+{ "name":"camera._change_module_usb_mode","parameters":{"mode":0} }
 respone:
 {
     "name":"camera._change_module_usb_mode",
@@ -417,9 +418,23 @@ respone:
     "error":{"code":int, "description":string}
 }
 
+camera._switch_camera_udisk_mode
+{ "name":"camera._switch_camera_udisk_mode", "parameters":{"mode":1} }
+respone:
+{
+    "name":"camera._switch_camera_udisk_mode",
+    "state":"done",
+    "error":{"code":int, "description":string}
+}
+
+
+
 说明：
 1.mode: 0:非storage模式 1:storage模式
 2.storage模式的时候，camerad处于module_storage状态，此状态下不能做任何模组操作
+
+
+
 
 
 模组存储设备信息

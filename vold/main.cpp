@@ -64,12 +64,12 @@ using namespace std;
 
 std::mutex devMutex;
 
-#define WATCH_PATH "/dev"
+#define WATCH_PATH		"/dev"
 
-#define VOLD_VER "v2.3"
+#define VOLD_VER		"v2.4"
 
-#define TAG "vold"
-#define VOLD_LOG_PATH "/home/nvidia/insta360/log/vold_log"
+#define TAG				"vold"
+#define VOLD_LOG_PATH 	"/home/nvidia/insta360/log/vold_log"
 
 
 #define MAX_FILES 			1000
@@ -434,6 +434,48 @@ static void checkMountPoint()
 	}
 }
 
+int read_process_inotify_fd(int fd)
+{
+	char event_buf[512];
+	int event_size;
+	int event_pos = 0;
+	int res;
+	struct inotify_event *event;
+   
+ 
+	res = read(fd, event_buf, sizeof(event_buf));
+	if (res < (int)sizeof(*event)) {
+		if (errno == EINTR)
+			return 0;
+		Log.e(TAG, "could not get event, %s\n", strerror(errno));
+		return -1;
+	}
+ 
+	while (res >= (int)sizeof(*event)) {
+		event = (struct inotify_event *)(event_buf + event_pos);
+		Log.d(TAG, "%d: %08x \"%s\"\n", event->wd, event->mask, event->len ? event->name : "");
+		if (event->len) {
+			if (event->mask & IN_CREATE) {
+				//openDeviceLocked(devname);
+				Log.d(TAG, ">>>>>>>>>>>>> Create file: %s", event->name);
+			} else {
+				//closeDeviceByPathLocked(devname);
+				Log.d(TAG, ">>>>>>>>>>>>> delete file: %s", event->name);
+			}
+		}
+		event_size = sizeof(*event) + event->len;
+		res -= event_size;
+		event_pos += event_size;
+		}
+	return 0;
+}
+
+
+/*
+ * 广播线程：负责将所有的挂载卸载信息广播出去
+ * 卷操作线程：负责卷的挂载/卸载/格式化等操作
+ * 
+ */
 
 int main(int argc, char** argv)
 {
@@ -465,22 +507,23 @@ int main(int argc, char** argv)
 
 	/* 1.初始化inotify和epoll */
 	mINotifyFd = inotify_init();
-	mEpollFd = epoll_create(EPOLL_SIZE_HINT);
+	// mEpollFd = epoll_create(EPOLL_SIZE_HINT);
 
 	/* 2.添加监控的目录(监听/dev/下设备文件的变化<当有设备插入时会生成设备文件;当有设备拔出时会删除设备文件> */
 	inotify_add_watch(mINotifyFd, WATCH_PATH, IN_DELETE | IN_CREATE);
 
 	/* 3.将Inotify添加到epoll中 */
-	eventItem.events = EPOLLIN;
-	eventItem.data.fd = mINotifyFd;
-	epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mINotifyFd, &eventItem);
+	// eventItem.events = EPOLLIN;
+	// eventItem.data.fd = mINotifyFd;
+	// epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mINotifyFd, &eventItem);
 
 	Log.d(TAG, "Starting watch /dev files changed now ...");
 
     while (true) {
 
+	#if 0
 		/* 4.等待事件的带来 */
-		int pollResult = epoll_wait(mEpollFd, mPendingEventItems, EPOLL_COUNT, -1);
+		// int pollResult = epoll_wait(mEpollFd, mPendingEventItems, EPOLL_COUNT, -1);
 		
 		Log.d(TAG, "epoll wait event num = %d\n", pollResult);
 
@@ -512,10 +555,12 @@ int main(int argc, char** argv)
 						
                         if (curInotifyEvent->mask & IN_CREATE) {
                 			/* 有新设备插入,根据设备文件执行挂载操作 */
-                			handleMonitorAction(ACTION_ADD, devPath);
+                			// handleMonitorAction(ACTION_ADD, devPath);
+							Log.d(TAG, "[%s: %d] [%s] Insert", __FILE__, __LINE__, devPath);
                         } else if (curInotifyEvent->mask & IN_DELETE) {
                 			/* 有设备拔出,执行卸载操作 */
-                			handleMonitorAction(ACTION_REMOVE, devPath);
+                			// handleMonitorAction(ACTION_REMOVE, devPath);
+							Log.d(TAG, "[%s: %d] [%s] Removed", __FILE__, __LINE__, devPath);
                 		}
                 	}
                 	curInotifyEvent --;
@@ -531,6 +576,10 @@ int main(int argc, char** argv)
 				}
 			}
 		}
+	#else
+		read_process_inotify_fd(mINotifyFd);
+	#endif
+
 	}
 	return 0;
 }
