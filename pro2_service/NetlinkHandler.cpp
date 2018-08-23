@@ -43,31 +43,7 @@ void NetlinkHandler::onEvent(NetlinkEvent *evt)
 {
     Log.d(TAG, ">>>>>>>>>>>>>>> Use VolumeManager deal NetlinkEvent.... now");
    
-    #if 0
-
-    VolumeManager *vm = VolumeManager::Instance();
-    const char *subsys = evt->getSubsystem();
-
-    if (!subsys) {
-        Log.w(TAG, "No subsystem found in netlink event");
-        return;
-    }
-
-    if (!strcmp(subsys, "block")) {		
-        vm->handleBlockEvent(evt);
-		
-	#ifdef USE_USB_MODE_SWITCH
-    } else if (!strcmp(subsys, "usb") || !strcmp(subsys, "scsi_device")) {
-        Log.w(TAG, "subsystem found in netlink event");
-        MiscManager *mm = MiscManager::Instance();
-        mm->handleEvent(evt);
-	#endif
-    }
-    #else
     VolumeManager *vm = VolumeManager::Instance();
     vm->handleBlockEvent(evt);
-
-    #endif
-
 }
 

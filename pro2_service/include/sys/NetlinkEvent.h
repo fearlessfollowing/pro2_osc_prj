@@ -8,8 +8,11 @@
 class NetlinkEvent {
     int     mSeq;
     char    *mPath;
-    int     mAction;
-    char    *mSubsystem;
+    int     mAction;                    /* 动作 */
+    int     mSubsys;                    /* 是USB还是SD */
+    char    *mBusAddr;                  /* 总线地址: usb1-2.1 */
+    char    *mDevNodeName;              /* 设备节点名: sda, sda1 */
+    
     char    *mParams[NL_PARAMS_MAX];
 
 public:

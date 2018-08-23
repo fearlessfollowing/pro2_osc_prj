@@ -13,6 +13,8 @@
         "tuple": "cpp",
         "future": "cpp",
         "istream": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "list": "cpp",
+        "deque": "cpp"
     }
 }

@@ -47,6 +47,7 @@ NetlinkEvent::~NetlinkEvent()
 
 void NetlinkEvent::dump() 
 {
+    #if 0
     int i;
 
     for (i = 0; i < NL_PARAMS_MAX; i++) {
@@ -54,6 +55,10 @@ void NetlinkEvent::dump()
             break;
         Log.d(TAG, "NL param '%s'\n", mParams[i]);
     }
+    #else
+
+
+    #endif
 }
 
 
@@ -73,31 +78,115 @@ has_prefix(const char* str, const char* end, const char* prefix, size_t prefixle
 #define HAS_CONST_PREFIX(str,end,prefix)  has_prefix((str),(end),prefix,CONST_STRLEN(prefix))
 
 
+#if 0
+add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg
+add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg/sdg1
+
+#endif
+
+
 bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size) 
 {
     const char *s = buffer;
     const char *end;
+    const char *pAction = s;        /* Action字段(add, remove, changed) */
+    const char *pArgs   = NULL;     /* 参数字段 */
+    const char *pBlockEvt = NULL;   /* 是否为块设备消息 */
+    const char *pAt = NULL;
+    const char *pSlash = NULL;
+    const char *pDevNode = NULL;
+    char cBusAddr[256] = {0};
     int param_idx = 0;
     int first = 1;
+    
 
     if (size == 0)
         return false;
 
     Log.d(TAG, ">>> parseAsciiNetlinkMessage: %s", buffer);
 
-    /* Ensure the buffer is zero-terminated, the code below depends on this */
     buffer[size-1] = '\0';
-
     end = s + size;
+
+    /* 对于非"block"的事件，直接丢弃 */
+    pBlockEvt = strstr(s, "block");
+    pAt = strchr(s, '@');
+
+    /*
+     * 对于Ubuntu linux其接收的消息数据格式如下：
+     * add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg
+     * add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg/sdg1        
+     */
+
+    if ((pBlockEvt != NULL) && (pAt != NULL)) {
+        if (!strncmp(pAction, "add", strlen("add"))) {
+            mAction = NlActionAdd;
+        } else if (!strncmp(pAction, "remove", strlen("remove"))) {
+            mAction = NlActionRemove;
+        } else {
+            return false;   /* 目前只处理 'add', 'remove'两种事件 */
+        }
+
+        /* 设备的子系统类型
+         * 设备所处的总线地址
+         * 设备文件名称
+         */
+        if (!strncmp(s, "usb", strlen("usb"))) {
+            mSubsys = VOLUME_SUBSYS_USB;
+        } else if (!strncmp(s, "mmcblk1", strlen("mmcblk1"))) {     /* "mmcblk0"是内部的EMMC,直接跳过 */
+            mSubsys = VOLUME_SUBSYS_SD;
+        } else {
+            return false;
+        }
+
+        if (mSubsys == VOLUME_SUBSYS_USB) {
+            const char* pColon = NULL;
+            pColon = strchr(s, ':');
+            if (pColon) {
+                strncpy(cBusAddr, pAt + 1, pColon - (pAt + 1));
+                Log.d(TAG, "Usb bus addr: %s" cBusAddr);
+
+                pSlash = strrchr(cBusAddr, '/');
+                if (pSlash) {
+                    mBusAddr = strdup(pSlash + 1);
+                    Log.d(TAG, "usb bus addr: %s", mBusAddr);
+                } else {
+                    return false;
+                }
+
+                pDevNode = strrchr(s, '/');
+                if (pDevNode) {
+                    mDevNodeName = strdup(pDevNode + 1);
+                    Log.d(TAG, "dev node name: %s", mDevNodeName);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+    } else {
+        return false;
+    }
+
+    #if 0
+
     while (s < end) {
         if (first) {
             const char *p;
+
             /* buffer is 0-terminated, no need to check p < end */
             for (p = s; *p != '@'; p++) {
-                if (!*p) { /* no '@', should not happen */
+                if (!*p) {  /* 字符串中没有'@'，这种情况不应该发生 */
                     return false;
                 }
             }
+
+            /*
+             * /devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg
+             * /devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg/sdg1
+             */
             mPath = strdup(p+1);
             first = 0;
         } else {
@@ -119,6 +208,8 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
         }
         s += strlen(s) + 1;
     }
+    #endif
+
     return true;
 }
 
