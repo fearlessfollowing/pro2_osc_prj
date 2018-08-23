@@ -114,6 +114,9 @@ COM_FLAGS += ' -DENABLE_DEBUG_HOSTAPD '
 #COM_FLAGS += ' -DENABLE_SHOW_BATTERY_TMP '
 
 
+# 卷管理器的监听模式
+COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
+
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
 
 # toolchains options

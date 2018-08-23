@@ -394,5 +394,91 @@ nameserver 114.114.114.114
 验证gvfs是否对磁盘的卸载有影响
 
 
+日期：2018年8月23日
+1.确认各个模组的卡号对应的USB总线上的总线-端口-子端口号
+卡1 - 
+卡1 - 
+卡1 - 
+卡1 - 
+卡1 - 
+卡1 - 
+
+
+
+1.模组的枚举时间长
+描述：
+Pro2的六个模组是通过2个USB2.0的HUB挂载在TX2的USB BUS-1上，在给USB 模组上电时，发现设备的枚举过程比较慢（有时达6，7秒），
+主要原因在于有时在给模组上电时（模组的电时单独供的），USB HUB的枚举会出错误，或个别模组的枚举会出错误，导致枚举时间长：
+
+
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=xhci-tegra/4p, 480M
+    |__ Port 2: Dev 30, If 0, Class=Hub, Driver=hub/4p, 480M
+        |__ Port 2: Dev 37, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+        |__ Port 3: Dev 33, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+        |__ Port 4: Dev 35, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+    |__ Port 3: Dev 28, If 0, Class=Hub, Driver=hub/4p, 480M
+        |__ Port 1: Dev 38, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+        |__ Port 2: Dev 36, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+        |__ Port 3: Dev 34, If 0, Class=Mass Storage, Driver=usb-storage, 480M
+        |__ Port 4: Dev 29, If 0, Class=Hub, Driver=hub/2p, 480M
+
+
+模组枚举出错：
+
+
+[64805.177981] usb 1-2.3: new full-speed USB device number 5 using xhci-tegra
+[64805.258167] usb 1-2.3: device descriptor read/64, error -32
+[64805.438161] usb 1-2.3: device descriptor read/64, error -32
+[64805.617987] usb 1-2.3: new full-speed USB device number 6 using xhci-tegra
+[64805.698164] usb 1-2.3: device descriptor read/64, error -32
+[64805.878213] usb 1-2.3: device descriptor read/64, error -32
+[64806.057999] usb 1-2.3: new full-speed USB device number 7 using xhci-tegra
+[64806.065351] usb 1-2.3: Device not responding to setup address.
+[64806.274446] usb 1-2.3: Device not responding to setup address.
+[64806.481988] usb 1-2.3: device not accepting address 7, error -71
+[64806.598309] usb 1-3: reset high-speed USB device number 2 using xhci-tegra
+[64806.801991] usb 1-2.3: new full-speed USB device number 8 using xhci-tegra
+[64806.809380] usb 1-2.3: Device not responding to setup address.
+[64807.018428] usb 1-2.3: Device not responding to setup address.
+[64807.225981] usb 1-2.3: device not accepting address 8, error -71
+[64807.232086] usb 1-2-port3: unable to enumerate USB device
+
+
+
+
+
+2.USB大容量设备的识别，挂载问题
+描述：机身后面的SD卡卡槽（本质上是USB SS1）
+- 机身后面的SD卡槽插入大SD卡（容量128G以上）或（卡套套小卡），出现识别困难（系统枚举设备时间太长），
+- 在偶尔能正常识别和挂载后，也会出现往卡中写入数据慢（这个过程调用sync会被卡住）
+
+[  870.878617] scsi 14:0:0:0: Direct-Access     Generic  MassStorageClass 1616 PQ: 0 ANSI: 6
+[  871.313912] sd 14:0:0:0: [sda] Spinning up disk...
+[  872.320961] ....................................................................................................not responding...
+[  971.731017] sd 14:0:0:0: [sda] Read Capacity(10) failed: Result: hostbyte=0x00 driverbyte=0x08
+[  971.739783] sd 14:0:0:0: [sda] Sense Key : 0x2 [current]
+[  971.745391] sd 14:0:0:0: [sda] ASC=0x4 ASCQ=0x1
+[  971.751519] sd 14:0:0:0: [sda] Test WP failed, assume Write Enabled
+[  971.759279] sd 14:0:0:0: [sda] Asking for cache data failed
+[  971.764931] sd 14:0:0:0: [sda] Assuming drive cache: write through
+[  971.776878] sd 14:0:0:0: [sda] Spinning up disk...
+[  971.784497] sd 14:0:0:0: [sda] Spinning up disk...
+[  972.784954] .
+[  972.792973] .....
+[ 1071.184964] .
+[ 1071.576957] .
+[ 1072.188968] .not responding...
+[ 1072.194975] sd 14:0:0:0: [sda] Read Capacity(10) failed: Result: hostbyte=0x00 driverbyte=0x08
+[ 1072.203612] sd 14:0:0:0: [sda] Sense Key : 0x2 [current]
+[ 1072.209035] sd 14:0:0:0: [sda] ASC=0x4 ASCQ=0x1
+[ 1072.216415] sd 14:0:0:0: [sda] Attached SCSI removable disk
+[ 1072.584961] .not responding...
+[ 1072.591815] sd 14:0:0:0: [sda] Spinning up disk...
+[ 1073.596967] ..................................................................................
+[ 1155.645115] usb 2-2: USB disconnect, device number 14
+[ 1155.665662] xhci-tegra 3530000.xhci: tegra_xhci_mbox_work mailbox command 6
+[ 1155.932958] .ready
+[ 1156.979617] xhci-tegra 3530000.xhci: tegra_xhci_mbox_work mailbox command 5
+[ 1156.986658] xhci-tegra 3530000.xhci: tegra_xhci_mbox_work ignore firmware MBOX_CMD_DEC_SSPI_CLOCK request
 
 

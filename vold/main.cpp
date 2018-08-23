@@ -45,6 +45,8 @@
 #include <dirent.h>
 #include <prop_cfg.h>
 
+#include "NetlinkManager.h"
+
 using namespace std;
 
 /*
@@ -68,7 +70,7 @@ std::mutex devMutex;
 
 #define VOLD_VER		"v2.4"
 
-#define TAG				"vold"
+#define TAG				"Vold"
 #define VOLD_LOG_PATH 	"/home/nvidia/insta360/log/vold_log"
 
 
@@ -476,7 +478,7 @@ int read_process_inotify_fd(int fd)
  * 卷操作线程：负责卷的挂载/卸载/格式化等操作
  * 
  */
-
+#if 0
 int main(int argc, char** argv)
 {
 	struct epoll_event eventItem;
@@ -583,5 +585,119 @@ int main(int argc, char** argv)
 	}
 	return 0;
 }
+#else
+
+static void do_coldboot(DIR *d, int lvl)
+{
+    struct dirent *de;
+    int dfd, fd;
+
+    dfd = dirfd(d);
+
+    fd = openat(dfd, "uevent", O_WRONLY);
+    if(fd >= 0) {
+        write(fd, "add\n", 4);
+        close(fd);
+    }
+
+    while((de = readdir(d))) {
+        DIR *d2;
+
+        if (de->d_name[0] == '.')
+            continue;
+
+        if (de->d_type != DT_DIR && lvl > 0)
+            continue;
+
+        fd = openat(dfd, de->d_name, O_RDONLY | O_DIRECTORY);
+        if(fd < 0)
+            continue;
+
+        d2 = fdopendir(fd);
+        if(d2 == 0)
+            close(fd);
+        else {
+            do_coldboot(d2, lvl + 1);
+            closedir(d2);
+        }
+    }
+}
+
+
+static void coldboot(const char *path)
+{
+    DIR *d = opendir(path);
+    if(d) {
+        do_coldboot(d, 0);
+        closedir(d);
+    }
+}
+
+
+int main(int argc, char* argv[])
+{
+    // VolumeManager *vm;
+    // CommandListener *cl;
+    NetlinkManager *nm;
+
+	/* 属性及日志系统初始化 */
+	arlog_configure(true, true, VOLD_LOG_PATH, false);    /* 配置日志 */
+
+    if (__system_properties_init()) {   /* 属性区域初始化 */
+		Log.e(TAG, "update_check service exit: __system_properties_init() failed");
+		return -1;
+	}
+	
+	property_set("sys.vold_ver", VOLD_VER);
+
+	Log.d(TAG, ">>>>> Vold Manager Service, sarting <<<<<");	
+
+	#if 0
+    if (!(vm = VolumeManager::Instance())) {	
+        Log.e(TAG, "Unable to create VolumeManager");
+        exit(1);
+    };
+	#endif
+
+    if (!(nm = NetlinkManager::Instance())) {	/* ����NetlinkManager���� */
+        Log.e(TAG, "Unable to create NetlinkManager");
+        exit(1);
+    };
+
+    // cl = new CommandListener();
+    // vm->setBroadcaster((SocketListener *) cl);
+    // nm->setBroadcaster((SocketListener *) cl);
+
+#if 0
+    if (vm->start()) {		/* do nothing, return 0 */
+        SLOGE("Unable to start VolumeManager (%s)", strerror(errno));
+        exit(1);
+    }
+#endif
+    if (nm->start()) {
+        Log.e(TAG, "Unable to start NetlinkManager (%s)", strerror(errno));
+        exit(1);
+    }
+
+
+    coldboot("/sys/block");
+
+	#if 0
+    if (cl->startListener()) {
+        Log.e(TAG, "Unable to start CommandListener (%s)", strerror(errno));
+        exit(1);
+    }
+	#endif
+
+    while (1) {
+		sleep(1000);
+    }
+
+    Log.i(TAG, "Vold exiting");
+    exit(0);
+
+}
+
+#endif
 
 

@@ -32,7 +32,9 @@
 
 #include <system_properties.h>
 
-#include <sys/StorageManager.h>
+// #include <sys/StorageManager.h>
+
+#include <sys/VolumeManager.h>
 
 #include <prop_cfg.h>
 
@@ -1213,7 +1215,6 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		/* 查询各个存储卡的信息 */
 		case MenuUI::UPDATE_STORAGE: {
 			Log.d(TAG, ">>>>>>>>>>>>>> fifo recv UPDATE_STORAGE");
-			//write_fifo(EVENT_QUERY_STORAGE);	/* 直接发送 */
 			break;
 		}
 
@@ -1240,9 +1241,17 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 cJSON *jsonArray = cJSON_CreateArray();
                 for (unsigned int i = 0; i < mDevList.size(); i++) {
                     cJSON *sub = cJSON_CreateObject();
-                    cJSON_AddStringToObject(sub, "dev_type", mDevList.at(i)->dev_type);
-                    cJSON_AddStringToObject(sub, "path", mDevList.at(i)->path);
-                    cJSON_AddStringToObject(sub, "name", mDevList.at(i)->name);
+                    
+                    #ifdef ENABLE_OLD_VOLUME_MANAGER
+                        cJSON_AddStringToObject(sub, "dev_type", mDevList.at(i)->dev_type);
+                        cJSON_AddStringToObject(sub, "path", mDevList.at(i)->path);
+                        cJSON_AddStringToObject(sub, "name", mDevList.at(i)->name);
+                    #else 
+                        cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd" );
+                        cJSON_AddStringToObject(sub, "path", mDevList.at(i)->pMountPath);
+                        cJSON_AddStringToObject(sub, "name", mDevList.at(i)->cDevNode);
+
+                    #endif
                     cJSON_AddItemToArray(jsonArray, sub);
                 }
 				
@@ -2450,14 +2459,14 @@ void fifo::read_fifo_thread()
                                         Log.d(TAG, "[%s: %d] TF card node info index[%d], total space[%d]M, left space[%d]",
                                                     __FILE__, __LINE__, tmpJsonIndex->valueint, tmpJsonTotalSpace->valueint, tmpJsonLeftSpace->valueint);
                                         tmpVol->iIndex = tmpJsonIndex->valueint;
-                                        tmpVol->total  = tmpJsonTotalSpace->valueint;
-                                        tmpVol->avail  = tmpJsonLeftSpace->valueint;
+                                        tmpVol->uTotal  = tmpJsonTotalSpace->valueint;
+                                        tmpVol->uAvail  = tmpJsonLeftSpace->valueint;
 
                                         /* 类型为"SD"
                                             * 外部TF卡的命名规则
                                             * 名称: "tf-1","tf-2","tf-3"....
                                             */
-                                        sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
+                                        snprintf(tmpVol->cVolName, sizeof(tmpVol->cVolName), "mSD%d", tmpJsonIndex->valueint);
                                         storageList.push_back(tmpVol);
 
                                         /* 直接将消息丢入UI线程的消息队列中 */
@@ -2530,18 +2539,18 @@ void fifo::read_fifo_thread()
                                                 tmpJsonSpeedTest    = cJSON_GetObjectItem(tmpJsonNode, "pro_suc");
 
                                                 tmpVol->iIndex      = tmpJsonIndex->valueint;
-                                                tmpVol->total       = tmpJsonTotalSpace->valueint;
-                                                tmpVol->avail       = tmpJsonLeftSpace->valueint;
+                                                tmpVol->uTotal       = tmpJsonTotalSpace->valueint;
+                                                tmpVol->uAvail       = tmpJsonLeftSpace->valueint;
                                                 tmpVol->iSpeedTest  = tmpJsonSpeedTest->valueint;
 
                                                 /* 类型为"SD"
                                                 * 外部TF卡的命名规则
                                                 * 名称: "tf-1","tf-2","tf-3"....
                                                 */
-                                                sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
+                                                sprintf(tmpVol->cVolName, "mSD%d", tmpJsonIndex->valueint);
                                                 Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d], speed[%d]",
-                                                            __FILE__, __LINE__, tmpVol->name, 
-                                                            tmpVol->iIndex, tmpVol->total, tmpVol->avail, tmpVol->iSpeedTest);
+                                                            __FILE__, __LINE__, tmpVol->cVolName, 
+                                                            tmpVol->iIndex, tmpVol->uTotal, tmpVol->uAvail, tmpVol->iSpeedTest);
 
                                                 storageList.push_back(tmpVol);
                                             }
@@ -2655,9 +2664,9 @@ void fifo::read_fifo_thread()
                                         * 外部TF卡的命名规则
                                         * 名称: "tf-1","tf-2","tf-3"....
                                         */
-                                        sprintf(tmpVol->name, "mSD%d", tmpJsonIndex->valueint);
+                                        snprintf(tmpVol->cVolName, sizeof(tmpVol->cVolName), "mSD%d", tmpJsonIndex->valueint);
                                         Log.d(TAG, "[%s: %d] mSD card node[%s] info index[%d], speed[%d]",
-                                                    __FILE__, __LINE__, tmpVol->name,  tmpVol->iIndex, tmpVol->iSpeedTest);
+                                                    __FILE__, __LINE__, tmpVol->cVolName,  tmpVol->iIndex, tmpVol->iSpeedTest);
 
                                         storageList.push_back(tmpVol);
                                     }
@@ -2698,8 +2707,10 @@ void fifo::write_exit_for_read()
     int fd = open(FIFO_FROM_CLIENT, O_WRONLY);
     CHECK_NE(fd, -1);
     int len = write(fd, buf, FIFO_HEAD_LEN);
+
     //pipe broken
     CHECK_EQ(len, FIFO_HEAD_LEN);
+
 //    Log.d(TAG,"write_exit_for_read over");
     close(fd);
 }

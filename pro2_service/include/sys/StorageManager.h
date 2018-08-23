@@ -10,6 +10,7 @@
 
 #define VOLUME_NAME_MAX 32
 
+#if 0
 
 enum {
 	VOLUME_TYPE_NV,
@@ -31,7 +32,7 @@ typedef struct stVol {
 	int 	iSpeedTest;		/* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
 } Volume;
 
-
+#endif
 
 
 

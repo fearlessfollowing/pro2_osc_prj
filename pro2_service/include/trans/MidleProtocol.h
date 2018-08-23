@@ -1,0 +1,5 @@
+
+
+class Pro2MidleProto {
+
+};

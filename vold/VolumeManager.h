@@ -33,6 +33,9 @@ public:
     int         start();
     int         stop();
 
+    /*
+     * 处理块设备事件的到来
+     */
     void        handleBlockEvent(NetlinkEvent *evt);
 
     int         addVolume(Volume *v);
@@ -71,5 +74,8 @@ private:
     void readInitialState();
     bool isMountpointMounted(const char *mp);
 };
+
+
+
 
 #endif

@@ -47,7 +47,7 @@
 #include <hw/battery_interface.h>
 #include <hw/oled_light.h>
 #include <hw/lan.h>
-#include <hw/dev_manager.h>
+// #include <hw/dev_manager.h>
 
 #include <hw/MenuUI.h>
 
@@ -1682,9 +1682,9 @@ void MenuUI::init()
     Log.d(TAG, "Create Dev Listener Object...");
 
 	/* 设备管理器: 监听设备的动态插拔 */
-    sp<ARMessage> dev_notify = obtainMessage(OLED_UPDATE_DEV_INFO);
-    mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
-    CHECK_NE(mDevManager, nullptr);
+    // sp<ARMessage> dev_notify = obtainMessage(OLED_UPDATE_DEV_INFO);
+    // mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
+    // CHECK_NE(mDevManager, nullptr);
 
     Log.d(TAG, "Create System Configure Object...");
     mProCfg = sp<pro_cfg>(new pro_cfg());
@@ -1874,6 +1874,16 @@ void MenuUI::init()
     sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
 	mInputManager = sp<InputManager>(new InputManager(inputNotify));
     CHECK_NE(mInputManager, nullptr);
+
+
+    /*******************************************************************************
+     * 启动卷管理器
+     *******************************************************************************/
+    VolumeManager* volInstance = VolumeManager::Instance();
+    if (volInstance) {
+        Log.d(TAG, "[%s: %d] Start Vol Manager!!!", __FILE__, __LINE__);
+        volInstance->start();
+    }
 
     Log.d(TAG, ">>>>>>>> Init MenUI object ok ......");
 }
@@ -2428,10 +2438,10 @@ bool MenuUI::check_allow_pic()
 bool MenuUI::start_speed_test()
 {
     bool ret = false;
-    if (!check_dev_speed_good(mLocalStorageList.at(mSavePathIndex)->path)) {
-        setCurMenu(MENU_SPEED_TEST);
-        ret = true;
-    }
+    // if (!check_dev_speed_good(mLocalStorageList.at(mSavePathIndex)->path)) {
+    //     setCurMenu(MENU_SPEED_TEST);
+    //     ret = true;
+    // }
     return ret;
 }
 
@@ -2448,7 +2458,7 @@ bool MenuUI::ismSDSpeedOk()
         unique_lock<mutex> lock(mRemoteDevLock);
         for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
             tmpVolume = mRemoteStorageList.at(i);
-            if ((tmpVolume->total > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
+            if ((tmpVolume->uTotal > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
                 iExitNum++;
             }
         }
@@ -2510,7 +2520,7 @@ bool MenuUI::takeVideoIsAgeingMode()
         }
     }
 
-    sprintf(cAginePath, "%s/factory.json", tmpVolume->path);
+    sprintf(cAginePath, "%s/factory.json", tmpVolume->pMountPath);
     if (access(cAginePath, F_OK) == 0) {
         return true;
     } else {
@@ -2583,7 +2593,7 @@ bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest
                     
                     if (mAct->size_per_act > 0) {
                         if (localStorageAvail()) {
-                            int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->avail >> 20);
+                            int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->uAvail >> 20);
                             if (size_M > AVAIL_SUBSTRACT) {
                                 size_M -= AVAIL_SUBSTRACT;
 
@@ -2950,7 +2960,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
             }
             #else
             if (mLocalStorageList.size() > 0) {
-                msg->set<char *>("path", mLocalStorageList.at(mSavePathIndex)->path);
+                msg->set<const char *>("path", mLocalStorageList.at(mSavePathIndex)->pMountPath);
             } else {
                 Log.e(TAG, "[%s:%d] No Local Storage, Waht's wrong!!!", __FILE__, __LINE__);
             }
@@ -3130,7 +3140,7 @@ void MenuUI::send_save_path_change()
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 	
     if (!checkHaveLocalSavePath()) {
-        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->path);
+        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->pMountPath);
     } else {
         snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", NONE_PATH);
     }
@@ -4271,7 +4281,7 @@ void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeL
 
         gStorageInfoItems[i]->stPos = tmPos;
         memcpy(&(gStorageInfoItems[i]->stVolumeInfo), mVolumeList.at(i).get(), sizeof(Volume));
-        Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->stVolumeInfo.name);
+        Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->stVolumeInfo.cVolName);
     }
 }
 
@@ -4285,6 +4295,7 @@ void MenuUI::getShowStorageInfo()
     mShowStorageList.clear();
     sp<Volume> tmpVolume;
 
+#if 0
    /* 将本地及远端的存储设备信息加入到mShowStorageList列表 */
     for (u32 i = 0; i < mLocalStorageList.size(); i++) {
         struct statfs diskInfo;
@@ -4318,6 +4329,7 @@ void MenuUI::getShowStorageInfo()
             Log.d(TAG, "%s not access", mLocalStorageList.at(i)->path);
         }
     }
+#endif
 
     {
 
@@ -4327,16 +4339,16 @@ void MenuUI::getShowStorageInfo()
             for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
 
                 /* 只显示存在的TF卡信息 */
-                if (mRemoteStorageList.at(i)->total > 0) {
+                if (mRemoteStorageList.at(i)->uTotal > 0) {
 
                     tmpVolume = (sp<Volume>)(new Volume());
 
-                    memset(tmpVolume->name, 0, sizeof(tmpVolume->name));
+                    memset(tmpVolume->cVolName, 0, sizeof(tmpVolume->cVolName));
                     
                     /* 名称不能超过3位 */
-                    sprintf(tmpVolume->name, "%s", mRemoteStorageList.at(i)->name);
-                    tmpVolume->total = mRemoteStorageList.at(i)->total;
-                    tmpVolume->avail = mRemoteStorageList.at(i)->avail;
+                    snprintf(tmpVolume->cVolName, sizeof(tmpVolume->cVolName), "%s", mRemoteStorageList.at(i)->cVolName);
+                    tmpVolume->uTotal = mRemoteStorageList.at(i)->uTotal;
+                    tmpVolume->uAvail = mRemoteStorageList.at(i)->uAvail;
                     tmpVolume->iIndex = mRemoteStorageList.at(i)->iIndex;
                     tmpVolume->iType = VOLUME_TYPE_MODULE;        
 
@@ -4349,8 +4361,8 @@ void MenuUI::getShowStorageInfo()
         Log.d(TAG, "mShowStorageList.size() = %d", mShowStorageList.size());
         for (u32 i = 0; i < mShowStorageList.size(); i++) {
             Log.d(TAG, "Volueme type: %d", mShowStorageList.at(i)->iType);
-            Log.d(TAG, "Volueme Total: %d MB", mShowStorageList.at(i)->total);
-            Log.d(TAG, "Volueme Free: %d MB", mShowStorageList.at(i)->avail);        
+            Log.d(TAG, "Volueme Total: %d MB", mShowStorageList.at(i)->uTotal);
+            Log.d(TAG, "Volueme Free: %d MB", mShowStorageList.at(i)->uAvail);        
         }
     #endif
 
@@ -4386,6 +4398,7 @@ bool MenuUI::localStorageAvail()
         int times = 3;
         int i = 0;
 
+        #if 0
         for (i = 0; i < times; i++) {
 
             struct statfs diskInfo;
@@ -4405,21 +4418,15 @@ bool MenuUI::localStorageAvail()
                 msg_util::sleep_ms(10);
             }
         }
+        #endif
 
-    #if 0
-        if (i == times) {
-            Log.d(TAG, "still fail to access %s", mLocalStorageList.at(mSavePathIndex)->path);
-                mLocalStorageList.at(mSavePathIndex)->avail = 0;
-        }
-        ret = true;
-    #else
+
         if (i < times) {
             ret = true;
         } else {
             ret = false;
         }
-         
-    #endif
+
     }
 
     return ret;
@@ -4436,8 +4443,8 @@ void MenuUI::calcRemoteRemainSpace()
         {
             unique_lock<mutex> lock(mRemoteDevLock);
             for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-                if (iTmpMinSize > mRemoteStorageList.at(i)->avail) {
-                    iTmpMinSize = mRemoteStorageList.at(i)->avail;
+                if (iTmpMinSize > mRemoteStorageList.at(i)->uAvail) {
+                    iTmpMinSize = mRemoteStorageList.at(i)->uAvail;
                 }
             }
         }
@@ -4470,7 +4477,7 @@ void MenuUI::calcRemainSpace()
         mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
         if (localStorageAvail()) {
             Log.d(TAG, "[%s: %d] Calc can take picture num in calcRemainSpace", __FILE__, __LINE__);                    
-            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail, CALC_MODE_TAKE_PIC);
+            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->uAvail, CALC_MODE_TAKE_PIC);
         }
     }
 
@@ -4488,7 +4495,7 @@ void MenuUI::calcRemainSpace()
     if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF) {    /* 拍照模式下计算剩余空间: 只计算大卡的即可 */
         mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
         if (localStorageAvail()) {
-            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
+            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->uAvail);
         }
     } else {
         
@@ -4498,7 +4505,7 @@ void MenuUI::calcRemainSpace()
         if (cur_menu == MENU_VIDEO_INFO && tl_count == 0) {
             mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
             if (localStorageAvail()) {
-                convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->avail);
+                convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->uAvail);
             }           
         } else {
             calcRemoteRemainSpace();
@@ -4711,7 +4718,7 @@ bool MenuUI::checkAllTfCardExist()
         unique_lock<mutex> lock(mRemoteDevLock);
         for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
             tmpVolume = mRemoteStorageList.at(i);
-            if (tmpVolume->total > 0) {     /* 总容量大于0,表示卡存在 */
+            if (tmpVolume->uTotal > 0) {     /* 总容量大于0,表示卡存在 */
                 iExitNum++;
             }
         }
@@ -4729,6 +4736,7 @@ bool MenuUI::check_save_path_usb()
 {
     bool bRet = false;
 	
+    #if 0
     Log.d(TAG, "mSavePathIndex is %d", mSavePathIndex);
 	
     if (mSavePathIndex != -1 && (get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type) == SET_STORAGE_USB)) {
@@ -4736,6 +4744,7 @@ bool MenuUI::check_save_path_usb()
     } else {
         disp_msg_box(DISP_LIVE_REC_USB);
     }
+    #endif
     return bRet;
 }
 
@@ -5080,6 +5089,7 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
     }
 }
 
+#if 0
 
 void MenuUI::reset_devmanager()
 {
@@ -5090,6 +5100,7 @@ void MenuUI::reset_devmanager()
     msg_util::sleep_ms(45000);
     Log.d(TAG,"reset_devmanager suc");
 }
+#endif
 
 
 
@@ -5321,9 +5332,9 @@ void MenuUI::startFormatDevice()
     tmpStorageItem = gStorageInfoItems[iIndex];
 
     
-    Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
+    Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.cVolName);
     
-    if (!strncmp(tmpStorageItem->stVolumeInfo.name, "mSD", strlen("mSD"))) {
+    if (!strncmp(tmpStorageItem->stVolumeInfo.cVolName, "mSD", strlen("mSD"))) {
         int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
         Log.d(TAG, "[%s: %d] Format mSD Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
 
@@ -5331,7 +5342,7 @@ void MenuUI::startFormatDevice()
         if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
             
             /* 格式化一张卡 */
-            Log.d(TAG, "[%s: %d] Format mSD Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.name);
+            Log.d(TAG, "[%s: %d] Format mSD Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.cVolName);
             iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
         } else {
             /* 格式化所有的卡 */
@@ -5352,14 +5363,14 @@ void MenuUI::startFormatDevice()
          * 获取卷的设备名称,挂载路径信息
          */
         Log.d(TAG, "[%s: %d] Volume name [%s] device node [%s], mount path[%s]", __FILE__, __LINE__, 
-                tmpStorageItem->stVolumeInfo.name, 
-                tmpStorageItem->stVolumeInfo.src,
-                tmpStorageItem->stVolumeInfo.path);
+                tmpStorageItem->stVolumeInfo.cVolName, 
+                tmpStorageItem->stVolumeInfo.cDevNode,
+                tmpStorageItem->stVolumeInfo.pMountPath);
         
         ICON_INFO* pDispType = NULL;
         int iDiskType = DISK_TYPE_USB;
 
-        if (!strcmp(tmpStorageItem->stVolumeInfo.name, "usb")) {
+        if (tmpStorageItem->stVolumeInfo.iVolSubsys == VOLUME_SUBSYS_USB) {
             /* disp formatting.. usb */
             pDispType = &usbDrvFormatingIconInfo;
             iDiskType = DISK_TYPE_USB;
@@ -5373,7 +5384,7 @@ void MenuUI::startFormatDevice()
 
         /* 添加格式化状态 */
         add_state(STATE_FORMATING);
-        int iResult = formatDev(tmpStorageItem->stVolumeInfo.src, tmpStorageItem->stVolumeInfo.path);
+        int iResult = formatDev(tmpStorageItem->stVolumeInfo.cDevNode, tmpStorageItem->stVolumeInfo.pMountPath);
 
         rm_state(STATE_FORMATING);
 
@@ -5589,19 +5600,19 @@ void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
     char cTotal[8] = {0};
     char cUsed[8]  = {0};
 
-    u64 used_size = pStorageItem->stVolumeInfo.total - pStorageItem->stVolumeInfo.avail;
+    u64 used_size = pStorageItem->stVolumeInfo.uTotal - pStorageItem->stVolumeInfo.uAvail;
 
 
 
 #ifdef ENABLE_DEBUG_MODE
         Log.d(TAG, "[%s:%d] dispStorageItem item name [%s], selected[%s]", __FILE__, __LINE__, 
-                        pStorageItem->stVolumeInfo.name, (bSelected == true) ? "yes": "no");
+                        pStorageItem->stVolumeInfo.cVolName, (bSelected == true) ? "yes": "no");
 #endif
 
-    convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->stVolumeInfo.total, cTotal, 8);
+    convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->stVolumeInfo.uTotal, cTotal, 8);
     convStorageSize2Str(STORAGE_UNIT_MB, used_size, cUsed, 8);
 
-    sprintf(cItems, "%s: %s/%s", pStorageItem->stVolumeInfo.name, cUsed, cTotal);
+    sprintf(cItems, "%s: %s/%s", pStorageItem->stVolumeInfo.cVolName, cUsed, cTotal);
 
     Log.d(TAG, "[%s: %d] Calc show Str Len %d", __FILE__, __LINE__, strlen(cItems));
     
@@ -6191,21 +6202,6 @@ void MenuUI::func_low_protect()
 #endif
 }
 
-bool MenuUI::isDevExist()
-{
-    int item = getMenuSelectIndex(MENU_SHOW_SPACE);
-    bool bFound = false;
-
-    for (u32 i = 0;i < mLocalStorageList.size(); i++) {
-        if (get_dev_type_index(mLocalStorageList.at(i)->dev_type) == item) {
-            bFound = true;
-            break;
-        }
-    }
-    Log.i(TAG, "isDevExist item %d bFound %d", item, bFound);
-    return bFound;
-}
-
 
 
 /*
@@ -6567,6 +6563,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 #endif
 
         case MENU_FORMAT: {
+            #if 0
             int item = getMenuSelectIndex(MENU_STORAGE);
             if (isDevExist()) {
                 switch(item) {
@@ -6588,6 +6585,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 rm_state(STATE_FORMAT_OVER);
                 setCurMenu(MENU_STORAGE);
             }
+            #endif
         }
         break;
 
@@ -7066,9 +7064,9 @@ void MenuUI::procPowerKeyEvent()
             int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
 
             /* 选中的项是TF卡 */
-            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.name,"mSD", strlen("mSD"))) {
+            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.cVolName, "mSD", strlen("mSD"))) {
                 
-                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->stVolumeInfo.name);
+                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->stVolumeInfo.cVolName);
                 /* 进入格式化模式选择菜单 */
                 setCurMenu(MENU_TF_FORMAT_SELECT);
 
@@ -9144,6 +9142,7 @@ void MenuUI::disp_ageing()
 }
 
 
+#if 0
 
 int MenuUI::get_dev_type_index(char *type)
 {
@@ -9157,6 +9156,7 @@ int MenuUI::get_dev_type_index(char *type)
     }
     return storage_index;
 }
+#endif
 
 
 
@@ -9196,6 +9196,7 @@ void MenuUI::disp_dev_msg_box(int bAdd, int type, bool bChange)
 
 void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
 {
+    #if 0
     int dev_change_type;
 
     // 0 -- add, 1 -- remove, -1 -- do nothing
@@ -9336,6 +9337,7 @@ void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
             disp_dev_msg_box(bAdd, dev_change_type, bChange);
         }
     }
+    #endif
 }
 
 
@@ -9814,9 +9816,9 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
                 if (tmpChangedVolume && tmpSourceVolume) {
                     if (tmpChangedVolume->iIndex == tmpSourceVolume->iIndex) {
                         
-                        tmpSourceVolume->total = tmpChangedVolume->total;
-                        tmpSourceVolume->avail = tmpChangedVolume->avail;
-                        if (tmpSourceVolume->total > 0) {
+                        tmpSourceVolume->uTotal = tmpChangedVolume->uTotal;
+                        tmpSourceVolume->uAvail = tmpChangedVolume->uAvail;
+                        if (tmpSourceVolume->uTotal > 0) {
                             bAdd = true;
                         } else {
                             bAdd = false;
