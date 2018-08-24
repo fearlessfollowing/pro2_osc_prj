@@ -116,9 +116,9 @@ VolumeManager::VolumeManager()
 	Volume* tmpVol = NULL;
 
 #ifdef ENABLE_VOLUME_MANAGER_USE_NETLINK
-    iListenerMode = VOLUME_MANAGER_LISTENER_MODE_NETLINK;
+    mListenerMode = VOLUME_MANAGER_LISTENER_MODE_NETLINK;
 #else
-    iListenerMode = VOLUME_MANAGER_LISTENER_MODE_INOTIFY;
+    mListenerMode = VOLUME_MANAGER_LISTENER_MODE_INOTIFY;
 #endif
 
     mVolumes.clear();
@@ -145,7 +145,7 @@ bool VolumeManager::start()
 
     Log.d(TAG, "[%s: %d] Start VolumeManager now ....", __FILE__, __LINE__);
 
-    if (iListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
+    if (mListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
         NetlinkManager* nm = NULL;
         if (!(nm = NetlinkManager::Instance())) {	
             Log.e(TAG, "[%s: %d] Unable to create NetlinkManager", __FILE__, __LINE__);
@@ -159,7 +159,7 @@ bool VolumeManager::start()
         }
     
     } else {
-        Log.d(TAG, "[%s: %d] VolumeManager Not Support Listener Mode[%d]", __FILE__, __LINE__, iListenerMode);
+        Log.d(TAG, "[%s: %d] VolumeManager Not Support Listener Mode[%d]", __FILE__, __LINE__, mListenerMode);
     }
     return bResult;
 }
@@ -169,7 +169,7 @@ bool VolumeManager::stop()
 {
     bool bResult = false;
 
-    if (iListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
+    if (mListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
         NetlinkManager* nm = NULL;
         if (!(nm = NetlinkManager::Instance())) {	
             Log.e(TAG, "[%s: %d] Unable to create NetlinkManager", __FILE__, __LINE__);
@@ -182,7 +182,7 @@ bool VolumeManager::stop()
         }
     
     } else {
-        Log.d(TAG, "[%s: %d] VolumeManager Not Support Listener Mode[%d]", __FILE__, __LINE__, iListenerMode);
+        Log.d(TAG, "[%s: %d] VolumeManager Not Support Listener Mode[%d]", __FILE__, __LINE__, mListenerMode);
     }
     return bResult;
 }
@@ -212,7 +212,6 @@ Volume* VolumeManager::isSupportedDev(const char* busAddr)
     }
     return tmpVol;
 }
-
 
 
 
@@ -288,6 +287,7 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
 done:
     return bResult;
 }
+
 
 bool VolumeManager::clearMountPath(const char* mountPath)
 {
@@ -386,13 +386,14 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
             break;
         }
 
+        /* 移除卷 */
         case NETLINK_ACTION_REMOVE: {
+            if ((tmpVol = isSupportedDev(evt->getBusAddr()))) { 
+                 unmountVolume(tmpVol, true);    /* 卸载卷 */
+            }
             break;
         }
-
-
     }    
-
 }
 
 int VolumeManager::listVolumes()
@@ -451,6 +452,43 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
     return iRet;
 }
 
+
+int VolumeManager::doUnmount(const char *path, bool force)
+{
+    int retries = 10;
+
+    if (mDebug) {
+        Log.d(TAG, "Unmounting {%s}, force = %d", path, force);
+    }
+
+    while (retries--) {
+        if (!umount(path) || errno == EINVAL || errno == ENOENT) {
+            Log.i(TAG, "%s sucessfully unmounted", path);
+            return 0;
+        }
+
+        int action = 0;
+        if (force) {
+            if (retries == 1) {
+                action = 2;     // SIGKILL
+            } else if (retries == 2) {
+                action = 1;     // SIGHUP
+            }
+        }
+
+        Log.e(TAG, "Failed to unmount %s (%s, retries %d, action %d)", path, strerror(errno), retries, action);
+
+        Process::killProcessesWithOpenFiles(path, action);
+        usleep(1000*30);
+    }
+
+    errno = EBUSY;
+    Log.e(TAG, "Giving up on unmount %s (%s)", path, strerror(errno));
+    return -1;
+}
+
+
+
 /*
  * unmountVolume - 卸载/强制卸载卷
  */
@@ -458,18 +496,275 @@ int VolumeManager::unmountVolume(Volume* pVol, bool force)
 {
     int iRet = 0;
 
+    if (pVol->iVolState != VOLUME_STATE_MOUNTED) {
+        Log.e("Volume [%s] unmount request when not mounted", pVol->pMountPath);
+        errno = EINVAL;
+        return -2;
+    }
+
+    pVol->iVolState = VOLUME_STATE_UNMOUNTING;
+    usleep(1000 * 1000);    // Give the framework some time to react
+
+    if (doUnmount(pVol->pMountPath, force) != 0) {
+        Log.e(TAG, "Failed to unmount %s (%s)", pVol->pMountPath, strerror(errno));
+        goto out_mounted;
+    }
+
+    Log.i(TAG, "[%s: %d] %s unmounted successfully", __FILE__, __LINE__, pVol->pMountPath);
+
+    pVol->iVolState = VOLUME_STATE_IDLE;
+    return 0;
+
+out_mounted:
+    Log.e(TAG, "[%s: %d] Unmount Volume[%s] Failed", __FILE__, __LINE__, pVol->pMountPath);
+    pVol->iVolState = VOLUME_STATE_MOUNTED;     /* 卸载失败 */
+    return -1;
+}
+
+#ifndef WIFEXITED
+#define WIFEXITED(status)	(((status) & 0xff) == 0)
+#endif /* !defined WIFEXITED */
+
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(status)	(((status) >> 8) & 0xff)
+#endif /* !defined WEXITSTATUS */
+
+#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
+
+
+
+static int forkExecvp(int argc, char* argv[], int *status)
+{
+    int iRet = 0;
+    pid_t pid;
+
+    pid = fork();
+
+    if (pid < 0) {
+        ERROR("Failed to fork\n");
+        iRet = -1;
+        goto err_fork;
+    } else if (pid == 0) {  /* 子进程: 使用execvp来替代执行的命令 */
+        char* argv_child[argc + 1];
+        memcpy(argv_child, argv, argc * sizeof(char *));
+        argv_child[argc] = NULL;
+
+        if (execvp(argv_child[0], argv_child)) {
+            Log.e(TAG, "executing %s failed: %s\n", argv_child[0], strerror(errno));
+        }
+    } else {
+        Log.d(TAG, ">>>>> Parent Process");
+
+        iRet = waitpid(pid, &status, WNOHANG);  /* 在此处等待子进程的退出 */
+        if (iRet < 0) {
+            iRet = errno;
+            Log.e(TAG, "waitpid failed with %s\n", strerror(errno));
+        }
+    }
+
+err_fork:
     return iRet;
 }
+
+
+
+
+
+int VolumeManager::check(const char *fsPath) 
+{
+    bool rw = true;
+    int pass = 1;
+    int rc = 0;
+
+    do {
+        const char *args[4];
+        int status;
+
+        args[0] = "fsck";
+        args[1] = "-p";
+        args[2] = "-f";
+        args[3] = fsPath;
+
+        rc = forkExecvp(ARRAY_SIZE(args), (char **)args, &status);
+        if (rc != 0) {
+            Log.e(TAG, "Filesystem check failed due to logwrap error");
+            errno = EIO;
+            return -1;
+        }
+
+        if (!WIFEXITED(status)) {
+            Log.e(TAG, "Filesystem check did not exit properly");
+            errno = EIO;
+            return -1;
+        }
+
+        status = WEXITSTATUS(status);
+
+        switch(status) {
+        case 0:
+            Log.d(TAG, "Filesystem check completed OK");
+            return 0;
+
+        case 2:
+            Log.d(TAG, "Filesystem check failed (not a FAT filesystem)");
+            errno = ENODATA;
+            return -1;
+
+        default:
+            Log.d(TAG, "Filesystem check failed (unknown exit code %d)", status);
+            errno = EIO;
+            return -1;
+        }
+    } while (0);
+
+    return 0;
+}
+
+
+int VolumeManager::formatFs2Ext4(const char *fsPath, unsigned int numSectors, const char *mountpoint) 
+{
+    int fd;
+    const char *args[7];
+    int rc;
+    int status;
+
+    args[0] = MKEXT4FS_PATH;
+    args[1] = "-J";
+    args[2] = "-a";
+    args[3] = mountpoint;
+
+    if (numSectors) {
+        char tmp[32];
+        snprintf(tmp, sizeof(tmp), "%u", numSectors * 512);
+        const char *size = tmp;
+        args[4] = "-l";
+        args[5] = size;
+        args[6] = fsPath;
+        rc = android_fork_execvp(ARRAY_SIZE(args), (char **)args, &status, false, true);
+    } else {
+        args[4] = fsPath;
+        rc = android_fork_execvp(5, (char **)args, &status, false, true);
+    }
+	
+    rc = android_fork_execvp(ARRAY_SIZE(args), (char **)args, &status, false, true);
+    if (rc != 0) {
+        SLOGE("Filesystem (ext4) format failed due to logwrap error");
+        errno = EIO;
+        return -1;
+    }
+
+    if (!WIFEXITED(status)) {
+        SLOGE("Filesystem (ext4) format did not exit properly");
+        errno = EIO;
+        return -1;
+    }
+
+    status = WEXITSTATUS(status);
+
+    if (status == 0) {
+        SLOGI("Filesystem (ext4) formatted OK");
+        return 0;
+    } else {
+        SLOGE("Format (ext4) failed (unknown exit code %d)", status);
+        errno = EIO;
+        return -1;
+    }
+    return 0;
+}
+
+
+int VolumeManager::formatFs2Exfat(const char *fsPath, unsigned int numSectors, const char *mountpoint) 
+{
+    int fd;
+    const char *args[7];
+    int rc;
+    int status;
+
+    args[0] = MKEXT4FS_PATH;
+    args[1] = "-J";
+    args[2] = "-a";
+    args[3] = mountpoint;
+
+    if (numSectors) {
+        char tmp[32];
+        snprintf(tmp, sizeof(tmp), "%u", numSectors * 512);
+        const char *size = tmp;
+        args[4] = "-l";
+        args[5] = size;
+        args[6] = fsPath;
+        rc = android_fork_execvp(ARRAY_SIZE(args), (char **)args, &status, false, true);
+    } else {
+        args[4] = fsPath;
+        rc = android_fork_execvp(5, (char **)args, &status, false, true);
+    }
+	
+    rc = android_fork_execvp(ARRAY_SIZE(args), (char **)args, &status, false, true);
+    if (rc != 0) {
+        SLOGE("Filesystem (ext4) format failed due to logwrap error");
+        errno = EIO;
+        return -1;
+    }
+
+    if (!WIFEXITED(status)) {
+        SLOGE("Filesystem (ext4) format did not exit properly");
+        errno = EIO;
+        return -1;
+    }
+
+    status = WEXITSTATUS(status);
+
+    if (status == 0) {
+        SLOGI("Filesystem (ext4) formatted OK");
+        return 0;
+    } else {
+        SLOGE("Format (ext4) failed (unknown exit code %d)", status);
+        errno = EIO;
+        return -1;
+    }
+    return 0;
+}
+
+
 
 /*
  * 格式化类型: 默认为exFat
  */
-int VolumeManager::formatVolume(const char *label, bool wipe)
+int VolumeManager::formatVolume(Volume* pVol, bool wipe)
 {
     int iRet = 0;
 
+    if (pVol->iVolState == VOLUME_STATE_NOMEDIA) {
+        errno = ENODEV;
+        return -1;       
+    } else if (pVol->iVolState != VOLUME_STATE_IDLE) {
+        errno = EBUSY;
+        return -1;
+    }
+
+    if (pVol->iVolState == VOLUME_STATE_MOUNTED) {
+        errno = EBUSY;
+        return -1;
+    }
+
+    pVol->iVolState == VOLUME_STATE_FORMATTING;
+
+    if (mDebug) {
+        Log.i(TAG, "Formatting volume %s (%s)", pVol->cDevNode, pVol->pMountPath);
+    }
+
+    if (Fat::format(devicePath, 0, wipe, label)) {
+        Log.e(TAG, "Failed to format (%s)", strerror(errno));
+        goto err;
+    }
+
+    system("sync");
+    iRet = 0;
+
+err:
+    pVol->iVolState == VOLUME_STATE_IDLE;
     return iRet;
 }
+
 
 void VolumeManager::setDebug(bool enable)
 {

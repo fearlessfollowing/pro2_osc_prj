@@ -21,6 +21,7 @@ src += ['NetlinkManager.cpp']
 src += ['SocketListener.cpp']
 src += ['SocketClient.cpp']
 src += ['VolumeManager.cpp']
+src += ['Process.cpp']
 
 src += [config.PRO2_SERVICE + '/util/arlog.c']
 src += [config.PRO2_SERVICE + '/util/ARMessage.cpp']
