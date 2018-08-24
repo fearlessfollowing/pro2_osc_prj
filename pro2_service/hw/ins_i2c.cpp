@@ -101,7 +101,7 @@ int ins_i2c::i2c_write(const u8 reg, const u8 *dat, unsigned int dat_len)
         res = write(i2c_fd, buf, write_len);
         if ( res != write_len) {
             /* ERROR HANDLING: i2c transaction failed */
-        	Log.w(TAG, "i2c write[%d] reg 0x%x res %d but write len  %d \n", i, reg, res, write_len);
+        	// Log.w(TAG, "i2c write[%d] reg 0x%x res %d but write len  %d \n", i, reg, res, write_len);
             msg_util::sleep_ms(2);
         } else {           
         	ret = 0;
@@ -112,8 +112,7 @@ int ins_i2c::i2c_write(const u8 reg, const u8 *dat, unsigned int dat_len)
     if (i >= times) {
         //skip battery
         if (i2c_addr != 0x55) {
-            Log.e(TAG, "really i2c write addr 0x%x reg 0x%x res %d but write len  %d",
-                  i2c_addr, reg, res, write_len);
+            // Log.e(TAG, "really i2c write addr 0x%x reg 0x%x res %d but write len  %d", i2c_addr, reg, res, write_len);
         }
     }
 

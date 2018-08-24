@@ -62,13 +62,16 @@ enum {
 };
 
 
+#define COM_NAME_MAX_LEN       64
+
 typedef struct stVol {
     int             iVolSubsys;         /* 卷的子系统： USB/SD */
     const char*     pBusAddr;           /* 总线地址: USB - "1-2.3" */
     const char*     pMountPath;         /* 挂载点：挂载点与总线地址是一一对应的 */
 
-    char            cVolName[64];       /* 卷的名称 */
-    char            cDevNode[128];      /* 设备节点名: 如'/dev/sdX' */
+    char            cVolName[COM_NAME_MAX_LEN];       /* 卷的名称 */
+    char            cDevNode[COM_NAME_MAX_LEN];      /* 设备节点名: 如'/dev/sdX' */
+    char            cVolFsType[COM_NAME_MAX_LEN];     /* 卷使用的文件系统类型 */
 
 	int		        iType;              /* 用于表示是内部设备还是外部设备 */
 	int		        iIndex;			    /* 索引号（对于模组上的小卡有用） */
@@ -217,9 +220,10 @@ typedef struct stVol {
 static Volume gSysVols[] = {
     {   /* SD卡 - 3.0 */
         VOLUME_SUBSYS_SD,
-        "usb2-2",
+        "2-2",
         "/mnt/sdcard",
         {0},             /* 动态生成 */
+        {0},
         {0},
         VOLUME_TYPE_NV,
         0,
@@ -231,10 +235,12 @@ static Volume gSysVols[] = {
 
     {   /* Udisk1 - 2.0/3.0 */
         VOLUME_SUBSYS_USB,
-        "usb2-1 usb1-2.1",           /* 接3.0设备时的总线地址 */
+        "2-1,1-2.1",            /* 接3.0设备时的总线地址 */
         "/mnt/udisk1",
-        {0},             /* 动态生成 */
-        {0},        
+        {0},                    /* 动态生成 */
+        {0}, 
+        {0},
+
         VOLUME_TYPE_NV,
         0,
         VOLUME_STATE_INIT,
@@ -244,10 +250,12 @@ static Volume gSysVols[] = {
     },
     {   /* Udisk2 - 2.0/3.0 */
         VOLUME_SUBSYS_USB,
-        "usb2-3",           /* 3.0 */
+        "2-3",           /* 3.0 */
         "/mnt/udisk2",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_NV,
         0,
         VOLUME_STATE_INIT,
@@ -262,6 +270,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD1",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         1,
         VOLUME_STATE_INIT,
@@ -276,6 +286,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD2",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         2,
         VOLUME_STATE_INIT,
@@ -290,6 +302,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD3",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         3,
         VOLUME_STATE_INIT,
@@ -304,6 +318,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD4",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         4,
         VOLUME_STATE_INIT,
@@ -318,6 +334,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD5",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         5,
         VOLUME_STATE_INIT,
@@ -332,6 +350,8 @@ static Volume gSysVols[] = {
         "/mnt/mSD6",
         {0},             /* 动态生成 */
         {0},
+        {0},
+
         VOLUME_TYPE_MODULE,
         6,
         VOLUME_STATE_INIT,
@@ -384,16 +404,20 @@ public:
 
     int         listVolumes();
 
-    int         mountVolume(Volume* pVol);
-
-    int         unmountVolume(const char *label, bool force, bool revert, bool badremove = false);
+    int         mountVolume(Volume* pVol, NetlinkEvent* pEvt);
 
     int         formatVolume(const char *label, bool wipe);
+
+    int         unmountVolume(Volume* pVol, bool force);
 
     void        disableVolumeManager(void) { mVolManagerDisabled = 1; }
 
     void        setDebug(bool enable);
 
+    Volume*     isSupportedDev(const char* busAddr);
+    bool        extractMetadata(const char* devicePath, char* volFsType, int iLen);
+    bool        clearMountPath(const char* mountPath);
+    bool        isValidFs(const char* devName, Volume* pVol);
 
     static VolumeManager *Instance();
 

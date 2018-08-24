@@ -59,6 +59,7 @@ ssize_t uevent_kernel_recv(int socket, void *buffer, size_t length, bool require
         errno = EIO;
         return -1;
     }
+    
     if (require_group && addr.nl_groups == 0) {
         bzero(buffer, length);
         errno = EIO;
@@ -107,19 +108,18 @@ int uevent_open_socket(int buf_sz, bool passcred)
 }
 
 
-#if 1
 
 
 NetlinkListener::NetlinkListener(int socket) : SocketListener(socket, false)
 {
     mFormat = NETLINK_FORMAT_ASCII;
 }
-#endif
 
 
 NetlinkListener::NetlinkListener(int socket, int format) :
                             SocketListener(socket, false), mFormat(format) 
 {
+    mFormat = NETLINK_FORMAT_ASCII;
 }
 
 
@@ -132,16 +132,14 @@ bool NetlinkListener::onDataAvailable(SocketClient *cli)
 
     count = TEMP_FAILURE_RETRY(uevent_kernel_multicast_uid_recv(socket, mBuffer, sizeof(mBuffer), &uid));
     if (count < 0) {
-        Log.e(TAG, "recvmsg failed (%s)", strerror(errno));
+        // Log.e(TAG, "recvmsg failed (%s)", strerror(errno));
         return false;
     }
 
     NetlinkEvent *evt = new NetlinkEvent();			
     if (evt->decode(mBuffer, count, mFormat)) {		
         onEvent(evt);								
-    } else if (mFormat != NETLINK_FORMAT_BINARY) {
-        Log.e(TAG, "Error decoding NetlinkEvent");
-    }
+    } 
 
     delete evt;		
     return true;	

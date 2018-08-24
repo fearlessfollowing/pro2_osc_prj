@@ -9,6 +9,7 @@
 #include <log/stlog.h>
 
 #include <sys/NetlinkEvent.h>
+#include <sys/VolumeManager.h>
 
 const int QLOG_NL_EVENT  = 112;
 
@@ -16,18 +17,13 @@ const int QLOG_NL_EVENT  = 112;
 #undef  TAG
 #define TAG "NetlinkEvent"
 
-const int NetlinkEvent::NlActionUnknown = 0;
-const int NetlinkEvent::NlActionAdd     = 1;
-const int NetlinkEvent::NlActionRemove  = 2;
-const int NetlinkEvent::NlActionChange  = 3;
 
 
 NetlinkEvent::NetlinkEvent() 
 {
-    mAction = NlActionUnknown;
+    mAction = NETLINK_ACTION_UNKOWN;
     memset(mParams, 0, sizeof(mParams));
     mPath = NULL;
-    mSubsystem = NULL;
 }
 
 NetlinkEvent::~NetlinkEvent() 
@@ -35,8 +31,14 @@ NetlinkEvent::~NetlinkEvent()
     int i;
     if (mPath)
         free(mPath);
-    if (mSubsystem)
-        free(mSubsystem);
+
+
+    if (mBusAddr)
+        free(mBusAddr);
+
+    if (mDevNodeName)
+        free(mDevNodeName);
+
     for (i = 0; i < NL_PARAMS_MAX; i++) {
         if (!mParams[i])
             break;
@@ -81,7 +83,7 @@ has_prefix(const char* str, const char* end, const char* prefix, size_t prefixle
 #if 0
 add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg
 add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg/sdg1
-
+https://devtalk.nvidia.com/default/board/188/jetson-tx2/2/
 #endif
 
 
@@ -103,7 +105,9 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
     if (size == 0)
         return false;
 
+#ifdef ENABLE_DEBUG_NETLINK_MSG
     Log.d(TAG, ">>> parseAsciiNetlinkMessage: %s", buffer);
+#endif
 
     buffer[size-1] = '\0';
     end = s + size;
@@ -120,31 +124,34 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
 
     if ((pBlockEvt != NULL) && (pAt != NULL)) {
         if (!strncmp(pAction, "add", strlen("add"))) {
-            mAction = NlActionAdd;
+            mAction = NETLINK_ACTION_ADD;
         } else if (!strncmp(pAction, "remove", strlen("remove"))) {
-            mAction = NlActionRemove;
+            mAction = NETLINK_ACTION_REMOVE;
         } else {
             return false;   /* 目前只处理 'add', 'remove'两种事件 */
         }
+        // Log.d(TAG, ">>>> Action is %s", (mAction == NETLINK_ACTION_ADD) ? "add" : "remove");
+
 
         /* 设备的子系统类型
          * 设备所处的总线地址
          * 设备文件名称
          */
-        if (!strncmp(s, "usb", strlen("usb"))) {
+        if (strstr(pAt, "usb")) {
             mSubsys = VOLUME_SUBSYS_USB;
-        } else if (!strncmp(s, "mmcblk1", strlen("mmcblk1"))) {     /* "mmcblk0"是内部的EMMC,直接跳过 */
+        } else if (strstr(pAt, "mmcblk1")) {     /* "mmcblk0"是内部的EMMC,直接跳过 */
             mSubsys = VOLUME_SUBSYS_SD;
         } else {
             return false;
         }
+
+        // Log.d(TAG, ">>>> subsystem is %d", mSubsys);
 
         if (mSubsys == VOLUME_SUBSYS_USB) {
             const char* pColon = NULL;
             pColon = strchr(s, ':');
             if (pColon) {
                 strncpy(cBusAddr, pAt + 1, pColon - (pAt + 1));
-                Log.d(TAG, "Usb bus addr: %s" cBusAddr);
 
                 pSlash = strrchr(cBusAddr, '/');
                 if (pSlash) {
@@ -165,7 +172,6 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
                 return false;
             }
         }
-
     } else {
         return false;
     }

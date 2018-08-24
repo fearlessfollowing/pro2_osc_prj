@@ -188,12 +188,12 @@ void SocketListener::runListener()
         }
         pthread_mutex_unlock(&mClientsLock);
 		
-        Log.i(TAG, "mListen=%d, max=%d, mSocketName=%s", mListen, max, mSocketName);
+        // Log.i(TAG, "mListen=%d, max=%d, mSocketName=%s", mListen, max, mSocketName);
 		
         if ((rc = select(max + 1, &read_fds, NULL, NULL, NULL)) < 0) {	
             if (errno == EINTR)
                 continue;
-            Log.e(TAG, "select failed (%s) mListen=%d, max=%d", strerror(errno), mListen, max);
+            // Log.e(TAG, "select failed (%s) mListen=%d, max=%d", strerror(errno), mListen, max);
             sleep(1);
             continue;
         } else if (!rc)

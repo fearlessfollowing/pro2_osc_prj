@@ -5,6 +5,14 @@
 
 #define NL_PARAMS_MAX 32
 
+enum {
+    NETLINK_ACTION_UNKOWN = 0,
+    NETLINK_ACTION_ADD = 1,
+    NETLINK_ACTION_REMOVE = 2,
+    NETLINK_ACTION_CHANGE = 3,
+    NETLINK_ACTION_MAX,
+};
+
 class NetlinkEvent {
     int     mSeq;
     char    *mPath;
@@ -16,24 +24,23 @@ class NetlinkEvent {
     char    *mParams[NL_PARAMS_MAX];
 
 public:
-    const static int NlActionUnknown;
-    const static int NlActionAdd;
-    const static int NlActionRemove;
-    const static int NlActionChange;
 
     NetlinkEvent();
     virtual ~NetlinkEvent();
 
-    bool decode(char *buffer, int size, int format = NetlinkListener::NETLINK_FORMAT_ASCII);
+    bool        decode(char *buffer, int size, int format = NetlinkListener::NETLINK_FORMAT_ASCII);
     const char *findParam(const char *paramName);
 
-    const char *getSubsystem() { return mSubsystem; }
-    int getAction() { return mAction; }
+    int         getSubsystem() { return mSubsys; }
+    char*       getDevNodeName() { return mDevNodeName; }
 
-    void dump();
+    int         getAction() { return mAction; }
+    char*       getBusAddr() { return mBusAddr; }
+
+    void        dump();
 
  protected:
-    bool parseAsciiNetlinkMessage(char *buffer, int size);
+    bool        parseAsciiNetlinkMessage(char *buffer, int size);
     
 };
 
