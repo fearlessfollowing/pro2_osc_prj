@@ -24,7 +24,7 @@ public:
 #else
     NetlinkListener(int socket, int format = NETLINK_FORMAT_ASCII);
 #endif
-    virtual ~NetlinkListener() {}
+    virtual ~NetlinkListener() { }
 
 protected:
     virtual bool onDataAvailable(SocketClient *cli);

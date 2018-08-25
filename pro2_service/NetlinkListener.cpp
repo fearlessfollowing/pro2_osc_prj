@@ -136,12 +136,14 @@ bool NetlinkListener::onDataAvailable(SocketClient *cli)
         return false;
     }
 
-    NetlinkEvent *evt = new NetlinkEvent();			
-    if (evt->decode(mBuffer, count, mFormat)) {		
-        onEvent(evt);								
-    } 
+    NetlinkEvent *evt = new NetlinkEvent();	
+    if (evt) {
+        if (evt->decode(mBuffer, count, mFormat)) {		
+            // onEvent(evt);								
+        } 
+        delete evt;		
+    }		
 
-    delete evt;		
     return true;	
 }
 

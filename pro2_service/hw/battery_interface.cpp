@@ -242,7 +242,7 @@ int battery_interface::read_value(int type, int16 *val)
         *val = (int16)(high << 8 | low);
         ret = 0;
     } else {
-		Log.e(TAG, "battery read_i error type %d", type);
+		// Log.e(TAG, "battery read_i error type %d", type);
         *val = 0;
     }
     return ret;
@@ -271,7 +271,7 @@ int battery_interface::read_tmp(double *int_tmp,double *tmp)
                 Log.e(TAG, "read tmp exceed deg %.2f", deg);
             }
         } else {
-            Log.e(TAG, "read tmp error");
+            // Log.e(TAG, "read tmp error");
             goto EXIT;
         }
         msg_util::sleep_ms(10);

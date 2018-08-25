@@ -1879,13 +1879,11 @@ void MenuUI::init()
     /*******************************************************************************
      * 启动卷管理器
      *******************************************************************************/
-    #if 0
     VolumeManager* volInstance = VolumeManager::Instance();
     if (volInstance) {
-        Log.d(TAG, "[%s: %d] Start Vol Manager!!!", __FILE__, __LINE__);
+        Log.d(TAG, "[%s: %d] +++++++++++++++++++++++++++++++++ Start Vold(2.4) Manager ++++++++++++++++++++++++++++++", __FILE__, __LINE__);
         volInstance->start();
     }
-    #endif
 
     Log.d(TAG, ">>>>>>>> Init MenUI object ok ......");
 }

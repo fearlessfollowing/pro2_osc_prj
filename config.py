@@ -119,6 +119,10 @@ COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
 
 COM_FLAGS += ' -DENABLE_USE_SYSTEM_VOL_MOUNTUMOUNT '
 
+# 调试Netlink消息
+COM_FLAGS += ' -DENABLE_DEBUG_NETLINK_MSG '
+
+
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
 
 # toolchains options

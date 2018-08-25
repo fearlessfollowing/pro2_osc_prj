@@ -13,11 +13,17 @@
 #include <string>
 #include <stdlib.h>
 
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+
 #include <dirent.h>
 
 #include <log/stlog.h>
 #include <util/msg_util.h>
 
+#include <sys/Process.h>
 #include <sys/NetlinkManager.h>
 #include <sys/VolumeManager.h> 
 #include <sys/NetlinkEvent.h>
@@ -497,7 +503,7 @@ int VolumeManager::unmountVolume(Volume* pVol, bool force)
     int iRet = 0;
 
     if (pVol->iVolState != VOLUME_STATE_MOUNTED) {
-        Log.e("Volume [%s] unmount request when not mounted", pVol->pMountPath);
+        Log.e(TAG, "Volume [%s] unmount request when not mounted, state[0x%x]", pVol->pMountPath, pVol->iVolState);
         errno = EINVAL;
         return -2;
     }
@@ -521,17 +527,6 @@ out_mounted:
     return -1;
 }
 
-#ifndef WIFEXITED
-#define WIFEXITED(status)	(((status) & 0xff) == 0)
-#endif /* !defined WIFEXITED */
-
-#ifndef WEXITSTATUS
-#define WEXITSTATUS(status)	(((status) >> 8) & 0xff)
-#endif /* !defined WEXITSTATUS */
-
-#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
-
-
 
 static int forkExecvp(int argc, char* argv[], int *status)
 {
@@ -541,7 +536,7 @@ static int forkExecvp(int argc, char* argv[], int *status)
     pid = fork();
 
     if (pid < 0) {
-        ERROR("Failed to fork\n");
+        Log.e(TAG, "Failed to fork");
         iRet = -1;
         goto err_fork;
     } else if (pid == 0) {  /* 子进程: 使用execvp来替代执行的命令 */
@@ -555,7 +550,7 @@ static int forkExecvp(int argc, char* argv[], int *status)
     } else {
         Log.d(TAG, ">>>>> Parent Process");
 
-        iRet = waitpid(pid, &status, WNOHANG);  /* 在此处等待子进程的退出 */
+        iRet = waitpid(pid, status, WNOHANG);  /* 在此处等待子进程的退出 */
         if (iRet < 0) {
             iRet = errno;
             Log.e(TAG, "waitpid failed with %s\n", strerror(errno));
@@ -567,10 +562,7 @@ err_fork:
 }
 
 
-
-
-
-int VolumeManager::check(const char *fsPath) 
+int VolumeManager::checkFs(const char *fsPath) 
 {
     bool rw = true;
     int pass = 1;
@@ -621,6 +613,7 @@ int VolumeManager::check(const char *fsPath)
 }
 
 
+#if 0
 int VolumeManager::formatFs2Ext4(const char *fsPath, unsigned int numSectors, const char *mountpoint) 
 {
     int fd;
@@ -724,7 +717,7 @@ int VolumeManager::formatFs2Exfat(const char *fsPath, unsigned int numSectors, c
     return 0;
 }
 
-
+#endif
 
 /*
  * 格式化类型: 默认为exFat
@@ -752,10 +745,12 @@ int VolumeManager::formatVolume(Volume* pVol, bool wipe)
         Log.i(TAG, "Formatting volume %s (%s)", pVol->cDevNode, pVol->pMountPath);
     }
 
+#if 0
     if (Fat::format(devicePath, 0, wipe, label)) {
         Log.e(TAG, "Failed to format (%s)", strerror(errno));
         goto err;
     }
+#endif
 
     system("sync");
     iRet = 0;
@@ -763,6 +758,12 @@ int VolumeManager::formatVolume(Volume* pVol, bool wipe)
 err:
     pVol->iVolState == VOLUME_STATE_IDLE;
     return iRet;
+}
+
+
+void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
+{
+
 }
 
 
