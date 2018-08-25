@@ -139,7 +139,7 @@ bool NetlinkListener::onDataAvailable(SocketClient *cli)
     NetlinkEvent *evt = new NetlinkEvent();	
     if (evt) {
         if (evt->decode(mBuffer, count, mFormat)) {		
-            // onEvent(evt);								
+            onEvent(evt);								
         } 
         delete evt;		
     }		

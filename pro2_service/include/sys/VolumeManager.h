@@ -80,6 +80,11 @@ enum {
     VOLUME_STATE_DISABLED   = 7,    /* 卷被禁止, 可以不上报UI */
 };
 
+enum {
+    VOLUME_SLOT_SWITCH_ENABLE   = 1,
+    VOLUME_SLOT_SWITCH_DISABLED = 2,
+    VOLUME_SLOT_SWITCH_MAX,
+};
 
 /*
  * Volume - 逻辑卷
@@ -98,6 +103,7 @@ typedef struct stVol {
 
     int             iVolState;          /* 卷所处的状态: No_Media/Init/Mounted/Formatting */
 
+    int             iVolSlotSwitch;     /* 是否使能该接口槽 */
 
     u64             uTotal;			    /* 总容量 */
     u64             uAvail;			    /* 剩余容量 */
@@ -106,60 +112,6 @@ typedef struct stVol {
 } Volume;
 
 
-
-#if 0
-
-08-23 21:51:12.567 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1
-08-23 21:51:12.570 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0
-08-23 21:51:12.583 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40
-08-23 21:51:12.583 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/scsi_host/host40
-08-23 21:51:13.591 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0
-08-23 21:51:13.591 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0
-08-23 21:51:13.592 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/scsi_disk/40:0:0:0
-08-23 21:51:13.592 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/scsi_device/40:0:0:0
-08-23 21:51:13.930 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/virtual/bdi/8:96
-08-23 21:51:13.939 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg
-08-23 21:51:13.939 D/NetlinkEvent( 1625): >>> 
-parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.1/1-2.1:1.0/host40/target40:0:0/40:0:0:0/block/sdg/sdg1
-
-
-08-23 21:52:21.142 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-3/1-3.2/1-3.2:1.0/host37/target37:0:0/37:0:0:0/block/sdd
-08-23 21:52:21.162 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-3/1-3.2/1-3.2:1.0/host37/target37:0:0/37:0:0:0/block/sdd
-08-23 21:52:21.162 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-3/1-3.2/1-3.2:1.0/host37/target37:0:0/37:0:0:0/block/sdd/sdd1
-08-23 21:52:33.430 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-3/1-3.3/1-3.3:1.0/host39/target39:0:0/39:0:0:0/block/sdf
-08-23 21:52:33.450 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-3/1-3.3/1-3.3:1.0/host39/target39:0:0/39:0:0:0/block/sdf
-08-23 21:52:33.450 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-3/1-3.3/1-3.3:1.0/host39/target39:0:0/39:0:0:0/block/sdf/sdf1
-
-
-08-23 21:53:07.734 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-2/1-2.2/1-2.2:1.0/host36/target36:0:0/36:0:0:0/block/sdc
-08-23 21:53:07.753 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: change@/devices/3530000.xhci/usb1/1-2/1-2.2/1-2.2:1.0/host36/target36:0:0/36:0:0:0/block/sdc
-08-23 21:53:07.753 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb1/1-2/1-2.2/1-2.2:1.0/host36/target36:0:0/36:0:0:0/block/sdc/sdc1
-
-08-23 21:54:05.708 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2
-08-23 21:54:05.718 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0
-08-23 21:54:05.729 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41
-08-23 21:54:05.730 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/scsi_host/host41
-08-23 21:54:06.736 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0
-08-23 21:54:06.736 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0/41:0:0:0
-08-23 21:54:06.738 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0/41:0:0:0/scsi_disk/41:0:0:0
-08-23 21:54:06.738 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0/41:0:0:0/scsi_device/41:0:0:0
-08-23 21:54:07.160 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/virtual/bdi/8:96
-08-23 21:54:07.170 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0/41:0:0:0/block/sdg
-08-23 21:54:07.170 D/NetlinkEvent( 1625): >>> parseAsciiNetlinkMessage: add@/devices/3530000.xhci/usb2/2-2/2-2.2/2-2.2:1.0/host41/target41:0:0/41:0:0:0/block/sdg/sdg1
-
-
-
-#endif
 
 
 static Volume gSysVols[] = {
@@ -174,6 +126,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_NV,
         0,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,      /* 机身后面的SD卡: 默认为使能状态 */
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -190,10 +143,12 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_NV,
         0,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,      /* 机身底部的USB接口: 默认为使能状态 */        
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
     },
+
     {   /* Udisk2 - 2.0/3.0 */
         VOLUME_SUBSYS_USB,
         "usb2-3",           /* 3.0 */
@@ -205,6 +160,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_NV,
         0,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_DISABLED,      /* 机身顶部的USB接口: 默认为禁止状态 */         
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -212,7 +168,7 @@ static Volume gSysVols[] = {
 
     {   /* mSD1 */
         VOLUME_SUBSYS_SD,
-        "usb1-2.3",                     /* usb1-3.2 usb1-2.3 */
+        "usb1-2.3",                         /* usb1-3.2 usb1-2.3 */
         "/mnt/mSD1",
         {0},             /* 动态生成 */
         {0},
@@ -221,6 +177,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         1,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF1: 默认为使能状态 */         
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -237,6 +194,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         2,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF2: 默认为使能状态 */          
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -253,6 +211,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         3,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF3: 默认为使能状态 */           
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -269,6 +228,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         4,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF4: 默认为使能状态 */           
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -285,6 +245,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         5,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF5: 默认为使能状态 */           
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,
@@ -301,6 +262,7 @@ static Volume gSysVols[] = {
         VOLUME_TYPE_MODULE,
         6,
         VOLUME_STATE_INIT,
+        VOLUME_SLOT_SWITCH_ENABLE,          /* TF6: 默认为使能状态 */           
         0,
         0,
         VOLUME_SPEED_TEST_FAIL,

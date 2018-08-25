@@ -125,7 +125,6 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
             pColon = strchr(s, ':');
             if (pColon) {
                 
-
                 strncpy(cBusAddr, s, pColon - s);
 
                 pSlash = strrchr(cBusAddr, '/');
@@ -136,11 +135,11 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
                     return false;
                 }
 
-                #if 0
+                #if 1
                 pDevNode = strrchr(s, '/');
                 if (pDevNode) {
-                    strncpy(mDevNodeName, pDevNode + 1, end - (pDevNode + 1));
-                    Log.d(TAG, "dev node name: %s", mDevNodeName);
+                    strcpy(mDevNodeName, pDevNode + 1);
+                    Log.d(TAG, "New Version dev node name: %s", mDevNodeName);
                 } else {
                     return false;
                 }

@@ -364,10 +364,13 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
         case NETLINK_ACTION_ADD: {
 
             /* 1.检查，检查该插入的设备是否在系统的支持范围内 */
-            if ((tmpVol = isSupportedDev(evt->getBusAddr()))) {
+            tmpVol = isSupportedDev(evt->getBusAddr());
+            
+            if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {
                 /* 2.检查卷对应的槽是否已经被挂载，如果已经挂载说明上次卸载出了错误
                  * 需要先进行强制卸载操作否则会挂载不上
                  */
+
                 if (isValidFs(evt->getDevNodeName(), tmpVol)) {
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
@@ -381,7 +384,7 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
 
-                    if (!mountVolume(tmpVol, evt)) {
+                    if (mountVolume(tmpVol, evt)) {
                         Log.e(TAG, "mount device[%s] failed, reason [%d]", tmpVol->cDevNode, errno);
                     } else {
                         Log.d(TAG, "mount device[%s] on path [%s] success", tmpVol->cDevNode, tmpVol->pMountPath);
@@ -394,7 +397,9 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 
         /* 移除卷 */
         case NETLINK_ACTION_REMOVE: {
-            if ((tmpVol = isSupportedDev(evt->getBusAddr()))) { 
+            tmpVol = isSupportedDev(evt->getBusAddr());
+            
+            if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) { 
                  unmountVolume(tmpVol, true);    /* 卸载卷 */
             }
             break;
@@ -427,6 +432,7 @@ int VolumeManager::listVolumes()
 
 /*
  * 挂载卷
+ * - 成功返回0; 失败返回-1
  */
 int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 {
@@ -450,6 +456,7 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
             break;
         } else {
             Log.e(TAG, "[%s: %d] Mount [%s] failed, errno[%d]", __FILE__, __LINE__, pVol->pMountPath, errno);
+            iRet = -1;
         }
         msg_util::sleep_ms(200);
     }
@@ -485,6 +492,7 @@ int VolumeManager::doUnmount(const char *path, bool force)
         Log.e(TAG, "Failed to unmount %s (%s, retries %d, action %d)", path, strerror(errno), retries, action);
 
         Process::killProcessesWithOpenFiles(path, action);
+
         usleep(1000*30);
     }
 
