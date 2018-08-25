@@ -6,6 +6,7 @@
 #include <vector>
 #include <mutex>
 #include <common/sp.h>
+#include <util/ARMessage.h>
 #include <sys/NetlinkEvent.h>
 
 enum {
@@ -86,6 +87,14 @@ enum {
     VOLUME_SLOT_SWITCH_MAX,
 };
 
+enum {
+    VOLUME_ACTION_ADD = 1,
+    VOLUME_ACTION_REMOVE = 2,
+    VOLUME_ACTION_UNSUPPORT = 3,
+    VOLUME_ACTION_MAX
+};
+
+
 /*
  * Volume - 逻辑卷
  */
@@ -105,8 +114,8 @@ typedef struct stVol {
 
     int             iVolSlotSwitch;     /* 是否使能该接口槽 */
 
-    u64             uTotal;			    /* 总容量 */
-    u64             uAvail;			    /* 剩余容量 */
+    u64             uTotal;			    /* 总容量:  (单位为MB) */
+    u64             uAvail;			    /* 剩余容量:(单位为MB) */
 
 	int 	        iSpeedTest;		    /* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
 } Volume;
@@ -293,7 +302,11 @@ private:
 
     int                     mVolManagerDisabled;
 
+    int                     mModuleVolNum;
+
     std::mutex				mLocaLDevLock;
+    std::mutex              mRemoteDevLock;
+
     u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
 public:
@@ -316,7 +329,7 @@ public:
     
     int         mountVolume(Volume* pVol, NetlinkEvent* pEvt);
 
-    int         unmountVolume(Volume* pVol, bool force);
+    int         unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force);
 
     int         doUnmount(const char *path, bool force);
 
@@ -336,16 +349,28 @@ public:
 
     int         checkFs(const char *fsPath);
 
+
+    void        updateVolumeSpace(Volume* pVol);
+
+
     /*
      * 检查是否存在本地卷
      */
-    bool        checkLockVolumeExist();
+    bool        checkLocalVolumeExist();
+    u64         getLocalVolLeftSize(bool bUseCached = false);
+    const char* getLocalVolMountPath();
 
     /*
      * 检查是否所有的TF卡都存在
      */
     bool        checkAllTfCardExist();
+    void        calcRemoteRemainSpace(bool bFactoryMode = false);
+    u64         getRemoteVolLeftMinSize();
 
+    void        updateLocalVolSpeedTestResult(int iResult);
+    void        updateRemoteVolSpeedTestResult(Volume* pVol);
+    bool        checkAllmSdSpeedOK();
+    bool        checkLocalVolSpeedOK();
 
     /*
      * 更新mSD的查询结果
@@ -361,15 +386,22 @@ public:
     /*
      * 更新远端卷的拔插处理
      */
-    void        handleRemoteVolumeHotplug(std::vector<sp<Volume>>& mList);
+    int         handleRemoteVolHotplug(std::vector<sp<Volume>>& volChangeList);
 
+    void        sendDevChangeMsg2UI(int iAction, std::vector<sp<Volume>> devList);
+
+    void        setNotifyRecv(sp<ARMessage> notify);
 
     static VolumeManager *Instance();
 
     Volume *lookupVolume(const char *label);
 
 private:
-    int         mListenerMode;          /* 监听模式 */
+    int         mListenerMode;                  /* 监听模式 */
+    Volume*     mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
+    Volume*     mSavedLocalVol;                 /* 上次保存 */
+
+	sp<ARMessage>	mNotify;
     VolumeManager();
 
 

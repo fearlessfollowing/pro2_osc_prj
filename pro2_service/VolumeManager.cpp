@@ -12,6 +12,9 @@
 #include <dirent.h>
 #include <string>
 #include <stdlib.h>
+#include <vector>
+
+#include <sys/vfs.h>    /* or <sys/statfs.h> */
 
 
 #include <sys/types.h>
@@ -22,6 +25,7 @@
 
 #include <log/stlog.h>
 #include <util/msg_util.h>
+#include <util/ARMessage.h>
 
 #include <sys/Process.h>
 #include <sys/NetlinkManager.h>
@@ -83,6 +87,40 @@ static void coldboot(const char *path)
 }
 
 
+static int forkExecvp(int argc, char* argv[], int *status)
+{
+    int iRet = 0;
+    pid_t pid;
+
+    pid = fork();
+
+    if (pid < 0) {
+        Log.e(TAG, "Failed to fork");
+        iRet = -1;
+        goto err_fork;
+    } else if (pid == 0) {  /* 子进程: 使用execvp来替代执行的命令 */
+        char* argv_child[argc + 1];
+        memcpy(argv_child, argv, argc * sizeof(char *));
+        argv_child[argc] = NULL;
+
+        if (execvp(argv_child[0], argv_child)) {
+            Log.e(TAG, "executing %s failed: %s", argv_child[0], strerror(errno));
+        }
+    } else {
+        Log.d(TAG, ">>>>> Parent Process");
+
+        iRet = waitpid(pid, status, WNOHANG);  /* 在此处等待子进程的退出 */
+        if (iRet < 0) {
+            iRet = errno;
+            Log.e(TAG, "waitpid failed with %s\n", strerror(errno));
+        }
+    }
+
+err_fork:
+    return iRet;
+}
+
+
 VolumeManager* VolumeManager::Instance() 
 {
     if (!sInstance)
@@ -131,6 +169,9 @@ VolumeManager::VolumeManager()
     mLocalVols.clear();
     mModuleVols.clear();
 
+    mCurrentUsedLocalVol = NULL;
+    mSavedLocalVol = NULL;
+
     /* 根据类型将各个卷加入到系统多个Vector中 */
     for (int i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
         tmpVol = &gSysVols[i];  
@@ -138,6 +179,7 @@ VolumeManager::VolumeManager()
 
         if (tmpVol->iType == VOLUME_TYPE_MODULE) {
             mLocalVols.push_back(tmpVol);
+            mModuleVolNum++;
         } else {
             mModuleVols.push_back(tmpVol);
         }
@@ -340,6 +382,7 @@ bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
     return bResult;
 }
 
+
 /*
  * 处理来自底层的事件
  * 1.Netlink
@@ -374,7 +417,7 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                 if (isValidFs(evt->getDevNodeName(), tmpVol)) {
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
-                        if (!unmountVolume(tmpVol, true)) { /* 强制卸载失败 */
+                        if (!unmountVolume(tmpVol, evt, true)) { /* 强制卸载失败 */
                             Log.e(TAG, "[%s: %d] Force umount volume[%s] failed !!!", __FILE__, __LINE__, tmpVol->pMountPath);
                             return;
                         } else {
@@ -385,10 +428,16 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
 
                     if (mountVolume(tmpVol, evt)) {
-                        Log.e(TAG, "mount device[%s] failed, reason [%d]", tmpVol->cDevNode, errno);
+                        Log.e(TAG, "mount device[%s -> %s] failed, reason [%d]", tmpVol->cDevNode, tmpVol->pMountPath, errno);
                     } else {
                         Log.d(TAG, "mount device[%s] on path [%s] success", tmpVol->cDevNode, tmpVol->pMountPath);
                         tmpVol->iVolState = VOLUME_STATE_MOUNTED;
+
+                        mSavedLocalVol = mCurrentUsedLocalVol;
+                        mCurrentUsedLocalVol = tmpVol;
+                        
+                        /* TODO: 通知UI有新的设备插入 */
+
                     }
                 }
             }
@@ -400,7 +449,14 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
             tmpVol = isSupportedDev(evt->getBusAddr());
             
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) { 
-                 unmountVolume(tmpVol, true);    /* 卸载卷 */
+                 if (!unmountVolume(tmpVol, evt, true)) {
+                     if (mCurrentUsedLocalVol == tmpVol) {
+                         mCurrentUsedLocalVol = mSavedLocalVol;
+                         mSavedLocalVol = NULL;
+                     }
+
+                     /* 发送存储设备移除,及当前存储设备路径的消息 */
+                 }
             }
             break;
         }
@@ -430,6 +486,194 @@ int VolumeManager::listVolumes()
     }
 }
 
+
+void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
+{
+    mNotify = notify;
+}
+
+
+void VolumeManager::sendDevChangeMsg2UI(int iAction, vector<sp<Volume>> devList)
+{
+    sp<ARMessage> msg = mNotify->dup();
+
+    msg->set<int>("action", iAction);    
+    msg->set<vector<sp<Volume>>>("dev_list", devList);
+    msg->post();    
+}
+
+
+bool VolumeManager::checkLocalVolumeExist()
+{
+    if (mCurrentUsedLocalVol) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+const char* VolumeManager::getLocalVolMountPath()
+{
+    if (mCurrentUsedLocalVol) {
+        return mCurrentUsedLocalVol->pMountPath;
+    } else {
+        return "none";
+    }
+}
+
+
+u64 VolumeManager::getLocalVolLeftSize(bool bUseCached)
+{
+    if (mCurrentUsedLocalVol) {
+        if (bUseCached == false) {
+            updateVolumeSpace(mCurrentUsedLocalVol);
+        } 
+        return mCurrentUsedLocalVol->uAvail;
+    } else {
+        return 0;
+    }    
+}
+
+
+bool VolumeManager::checkAllTfCardExist()
+{
+    Volume* tmpVolume = NULL;
+    int iExitNum = 0;
+    
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (u32 i = 0; i < mModuleVols.size(); i++) {
+            tmpVolume = mModuleVols.at(i);
+            if (tmpVolume->uTotal > 0) {     /* 总容量大于0,表示卡存在 */
+                iExitNum++;
+            }
+        }
+    }
+
+    if (iExitNum >= mModuleVolNum) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+void VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
+{
+    u64 iTmpMinSize = ~0UL;
+    
+    if (bFactoryMode) {
+        mReoteRecLiveLeftSize = 1024 * 256;    /* 单位为MB， 256GB */
+    } else {
+        {
+            unique_lock<mutex> lock(mRemoteDevLock);
+            for (u32 i = 0; i < mModuleVols.size(); i++) {
+                if (iTmpMinSize > mModuleVols.at(i)->uAvail) {
+                    iTmpMinSize = mModuleVols.at(i)->uAvail;
+                }
+            }
+        }
+        mReoteRecLiveLeftSize = iTmpMinSize;
+
+    }
+    Log.d(TAG, "[%s: %d] remote left space [%d]M", __FILE__, __LINE__, mReoteRecLiveLeftSize);
+
+}
+
+
+u64 VolumeManager::getRemoteVolLeftMinSize()
+{
+    return mReoteRecLiveLeftSize; 
+}
+
+
+void VolumeManager::updateLocalVolSpeedTestResult(int iResult)
+{
+    if (mCurrentUsedLocalVol) {
+        mCurrentUsedLocalVol->iSpeedTest = iResult;
+    }
+}
+
+
+void VolumeManager::updateRemoteVolSpeedTestResult(Volume* pVol)
+{
+    Volume* tmpVol = NULL;
+
+    unique_lock<mutex> lock(mRemoteDevLock); 
+    for (u32 i = 0; i < mModuleVols.size(); i++) {
+        tmpVol = mModuleVols.at(i);
+        if (tmpVol && pVol) {
+            if (tmpVol->iIndex == pVol->iIndex) {
+                tmpVol->iSpeedTest = pVol->iSpeedTest;
+            }
+        }  
+    }
+}
+
+bool VolumeManager::checkAllmSdSpeedOK()
+{
+    Volume* tmpVolume = NULL;
+    int iExitNum = 0;
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (u32 i = 0; i < mModuleVols.size(); i++) {
+            tmpVolume = mModuleVols.at(i);
+            if ((tmpVolume->uTotal > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
+                iExitNum++;
+            }
+        }
+    }
+
+    if (iExitNum >= mModuleVolNum) {
+        return true;
+    } else {
+        return false;
+    }    
+}
+
+bool VolumeManager::checkLocalVolSpeedOK()
+{
+    if (mCurrentUsedLocalVol) {
+        return (mCurrentUsedLocalVol->iSpeedTest == 1) ? true : false;
+    } else {
+        return false;
+    }
+}
+
+
+int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
+{
+    Volume* tmpSourceVolume = NULL;
+    int iAction = VOLUME_ACTION_UNSUPPORT;
+
+    if (volChangeList.size() > 1) {
+        Log.e(TAG, "[%s: %d] Hotplug Remote volume num than 1", __FILE__, __LINE__);
+    } else {
+        sp<Volume> tmpChangedVolume = volChangeList.at(0);
+
+        {
+            unique_lock<mutex> lock(mRemoteDevLock); 
+            for (u32 i = 0; i < mModuleVols.size(); i++) {
+                tmpSourceVolume = mModuleVols.at(i);
+                if (tmpChangedVolume && tmpSourceVolume) {
+                    if (tmpChangedVolume->iIndex == tmpSourceVolume->iIndex) {
+                        tmpSourceVolume->uTotal = tmpChangedVolume->uTotal;
+                        tmpSourceVolume->uAvail = tmpChangedVolume->uAvail;
+                        if (tmpSourceVolume->uTotal > 0) {
+                            iAction = VOLUME_ACTION_ADD;
+                        } else {
+                            iAction = VOLUME_ACTION_REMOVE;
+                        }                        
+                        break;
+                    }
+                }
+            }  
+        }
+    }
+    return iAction;
+}
+
+
 /*
  * 挂载卷
  * - 成功返回0; 失败返回-1
@@ -437,7 +681,8 @@ int VolumeManager::listVolumes()
 int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 {
     int iRet = 0;
-
+    unsigned long flags;
+    flags = MS_DIRSYNC | MS_NOATIME;
 
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
     char cTmpDevNode[COM_NAME_MAX_LEN] = {0};
@@ -446,6 +691,8 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 
     /* 挂载点为非挂载状态，但是挂载点有其他文件，会先删除 */
     clearMountPath(pVol->pMountPath);
+
+    Log.d(TAG, "[%s: %d] >>>>> Filesystem type: %s", __FILE__, __LINE__, pVol->cVolFsType);
 
     #ifdef ENABLE_USE_SYSTEM_VOL_MOUNTUMOUNT
     char cMountCmd[512] = {0};
@@ -460,6 +707,47 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
         }
         msg_util::sleep_ms(200);
     }
+    #else
+
+    #if 0
+    msg_util::sleep_ms(2000);
+
+    Log.e(TAG, "[%s: %d] Mount [%s -> %s, flags 0x%x]", 
+                __FILE__, __LINE__, pVol->cDevNode, pVol->pMountPath, flags);
+
+    if (access(pVol->cDevNode, F_OK) != 0) {
+        Log.e(TAG, "[%s: %d] Dev node [%s] not exist", __FILE__, __LINE__, pVol->cDevNode);
+    }
+
+    if (!strncmp(pVol->cVolFsType, "exfat", strlen("exfat"))) {  /* EXFAT挂载 */
+        return mount(pVol->cDevNode, pVol->pMountPath, "fuseblk", 0, NULL);
+    } else if (!strncmp(pVol->cVolFsType, "ext4", strlen("ext4"))) {
+
+    } else if (!strncmp(pVol->cVolFsType, "ext3", strlen("ext3"))) {
+
+    } else if (!strncmp(pVol->cVolFsType, "ext2", strlen("ext2"))) {
+
+    } else if (!strncmp(pVol->cVolFsType, "vfat", strlen("vfat"))) {
+
+    } else if (!strncmp(pVol->cVolFsType, "ntfs", strlen("ntfs"))) {
+
+    } else {
+        Log.e(TAG, "[%s: %s] Not support Filesystem type[%s]", __FILE__, __LINE__, pVol->cVolFsType);
+        iRet = -1;
+    }
+
+    #else
+    int status;
+    const char *args[4];
+    args[0] = "/bin/mount";
+    args[1] = pVol->cDevNode;
+    args[2] = pVol->pMountPath;
+
+    iRet = forkExecvp(ARRAY_SIZE(args), (char **)args, &status);
+    Log.d(TAG, "[%s: %d] forkExecvp return val 0x%x", __FILE__, __LINE__, iRet);
+    #endif
+
+
     #endif
 
     return iRet;
@@ -506,15 +794,22 @@ int VolumeManager::doUnmount(const char *path, bool force)
 /*
  * unmountVolume - 卸载/强制卸载卷
  */
-int VolumeManager::unmountVolume(Volume* pVol, bool force)
+int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
     int iRet = 0;
+
+    #if 0
+
+    if (strcmp(pVol->cDevNode, pEvt->getDevNodeName())) {   /* 设备名不一致,直接返回 */
+        return 0;
+    }
 
     if (pVol->iVolState != VOLUME_STATE_MOUNTED) {
         Log.e(TAG, "Volume [%s] unmount request when not mounted, state[0x%x]", pVol->pMountPath, pVol->iVolState);
         errno = EINVAL;
         return -2;
     }
+    #endif
 
     pVol->iVolState = VOLUME_STATE_UNMOUNTING;
     usleep(1000 * 1000);    // Give the framework some time to react
@@ -535,39 +830,6 @@ out_mounted:
     return -1;
 }
 
-
-static int forkExecvp(int argc, char* argv[], int *status)
-{
-    int iRet = 0;
-    pid_t pid;
-
-    pid = fork();
-
-    if (pid < 0) {
-        Log.e(TAG, "Failed to fork");
-        iRet = -1;
-        goto err_fork;
-    } else if (pid == 0) {  /* 子进程: 使用execvp来替代执行的命令 */
-        char* argv_child[argc + 1];
-        memcpy(argv_child, argv, argc * sizeof(char *));
-        argv_child[argc] = NULL;
-
-        if (execvp(argv_child[0], argv_child)) {
-            Log.e(TAG, "executing %s failed: %s\n", argv_child[0], strerror(errno));
-        }
-    } else {
-        Log.d(TAG, ">>>>> Parent Process");
-
-        iRet = waitpid(pid, status, WNOHANG);  /* 在此处等待子进程的退出 */
-        if (iRet < 0) {
-            iRet = errno;
-            Log.e(TAG, "waitpid failed with %s\n", strerror(errno));
-        }
-    }
-
-err_fork:
-    return iRet;
-}
 
 
 int VolumeManager::checkFs(const char *fsPath) 
@@ -619,6 +881,32 @@ int VolumeManager::checkFs(const char *fsPath)
 
     return 0;
 }
+
+
+/*
+ * 更新指定卷的存储容量信息
+ */
+void VolumeManager::updateVolumeSpace(Volume* pVol) 
+{
+    struct statfs diskInfo;
+    u64 totalsize = 0;
+    u64 used_size = 0;
+
+    /* 卡槽使能并且卷已经被挂载 */
+    if ((pVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (pVol->iVolState == VOLUME_STATE_MOUNTED)) {
+        if (!statfs(pVol->pMountPath, &diskInfo)) {
+            u64 blocksize = diskInfo.f_bsize;                                   //每个block里包含的字节数
+            totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
+            pVol->uTotal = (totalsize >> 20);
+            pVol->uAvail = ((diskInfo.f_bfree * blocksize) >> 20);
+        } else {
+            Log.d(TAG, "[%s: %d] statfs failed ...", __FILE__, __LINE__);
+        }
+    } else {
+        Log.d(TAG, "[%s: %d] Current Local Vol May Locked or Not Mounted!", __FILE__, __LINE__);
+    }
+}
+
 
 
 #if 0
@@ -771,7 +1059,25 @@ err:
 
 void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
 {
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);   
 
+        sp<Volume> tmpVolume = NULL;
+        Volume* localVolume = NULL;
+
+        for (u32 i = 0; i < mList.size(); i++) {
+            tmpVolume = mList.at(i);
+
+            for (u32 j = 0; j < mModuleVols.size(); j++) {
+                localVolume = mModuleVols.at(j);
+                if (tmpVolume && localVolume && (tmpVolume->iIndex == localVolume->iIndex)) {
+                    localVolume->uTotal = tmpVolume->uTotal;
+                    localVolume->uAvail = tmpVolume->uAvail;
+                    localVolume->iSpeedTest = tmpVolume->iSpeedTest;
+                }
+            }
+        }
+    }
 }
 
 

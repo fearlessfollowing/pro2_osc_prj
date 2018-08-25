@@ -161,7 +161,7 @@ enum {
     UI_MSG_SET_SN,
     UI_MSG_SET_SYNC_INFO,
 //    OLED_CHECK_LIVE_OR_REC,
-    OLED_UPDATE_DEV_INFO,
+    UI_UPDATE_DEV_INFO,
     UI_UPDATE_MID, //10
     OLED_DISP_BAT_LOW,
     OLED_UPDATE_CAPTURE_LIGHT,
@@ -1681,10 +1681,6 @@ void MenuUI::init()
 
     Log.d(TAG, "Create Dev Listener Object...");
 
-	/* 设备管理器: 监听设备的动态插拔 */
-    // sp<ARMessage> dev_notify = obtainMessage(OLED_UPDATE_DEV_INFO);
-    // mDevManager = sp<dev_manager>(new dev_manager(dev_notify));
-    // CHECK_NE(mDevManager, nullptr);
 
     Log.d(TAG, "Create System Configure Object...");
     mProCfg = sp<pro_cfg>(new pro_cfg());
@@ -1879,9 +1875,13 @@ void MenuUI::init()
     /*******************************************************************************
      * 启动卷管理器
      *******************************************************************************/
+
+	/* 设备管理器: 监听设备的动态插拔 */
+    sp<ARMessage> dev_notify = obtainMessage(UI_UPDATE_DEV_INFO);
     VolumeManager* volInstance = VolumeManager::Instance();
     if (volInstance) {
         Log.d(TAG, "[%s: %d] +++++++++++++++++++++++++++++++++ Start Vold(2.4) Manager ++++++++++++++++++++++++++++++", __FILE__, __LINE__);
+        volInstance->setNotifyRecv(dev_notify);
         volInstance->start();
     }
 
@@ -1952,41 +1952,22 @@ void MenuUI::sendExit()
  */
 void MenuUI::updateTfStorageInfo(bool bResult, vector<sp<Volume>>& mList)
 {
+    VolumeManager* vm = VolumeManager::Instance();
 
 #ifdef ENABLE_DEBUG_MODE    
     Log.d(TAG, "[%s: %d] updateTfStorageInfo <<<<<<<<<<<<", __FILE__, __LINE__);
 #endif
 
-#if 0
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);   
-        if (bResult) {  /* 查询成功 */
-            sp<Volume> tmpVolume = NULL;
-            sp<Volume> localVolume = NULL;
-
-            for (u32 i = 0; i < mList.size(); i++) {
-                tmpVolume = mList.at(i);
-
-                for (u32 j = 0; j < mRemoteStorageList.size(); j++) {
-                    localVolume = mRemoteStorageList.at(j);
-                    if (tmpVolume && localVolume && (tmpVolume->iIndex == localVolume->iIndex)) {
-                        memcpy(localVolume.get(), tmpVolume.get(), sizeof(Volume));
-                    }
-                }
-            }
-        } else {    /* 查询失败 */
-            Log.d(TAG, "[%s: %d] Query TF Card Failed ....", __FILE__, __LINE__);
-        }
-        /* 表示TF存储状态已经更新 */
-        mRemoteStorageUpdate = true;
-    }
-#else
     if (bResult) {
         VolumeManager* vm = VolumeManager::Instance();
-        vm->updateRemoteTfsInfo(mList);
+        if (vm) {
+            vm->updateRemoteTfsInfo(mList);
+        } else {
+            Log.e(TAG, "[%s: %d] Volume Manager Not init, What's wrong!!", __FILE__, __LINE__);
+        }
+    } else {
+        Log.d(TAG, "[%s: %d] Query TF Card Failed ....", __FILE__, __LINE__);
     }
-
-#endif
 
     if (mSysncQueryTfReq == true && mAsyncQueryTfReq == false) {    /* 同步 */
         mSysncQueryTfReq = false;
@@ -2454,51 +2435,12 @@ bool MenuUI::start_speed_test()
 }
 
 
-/*
- * 小卡速度是否OK
- */
-bool MenuUI::ismSDSpeedOk()
-{
-    sp<Volume> tmpVolume = NULL;
-    int iExitNum = 0;
-
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);
-        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-            tmpVolume = mRemoteStorageList.at(i);
-            if ((tmpVolume->uTotal > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
-                iExitNum++;
-            }
-        }
-    }
-
-    if (iExitNum >= mTfNum) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-/*
- * 本地存储设置速度是否OK
- */
-bool MenuUI::isLocalStorageSpeedOk()
-{
-    sp<Volume> tmpVolume = NULL;
-    {
-        unique_lock<mutex> lock(mLocaLDevLock);
-        if ((mLocalStorageList.size() > 0) && (mSavePathIndex > -1)) {
-            tmpVolume = mLocalStorageList.at(mSavePathIndex);
-        }
-    }
-
-    return (tmpVolume->iSpeedTest == 1) ? true : false;
-}
-
 bool MenuUI::checkVidLiveStorageSpeed()
 {
-    if (ismSDSpeedOk()) {
-        if (isLocalStorageSpeedOk()) {
+    VolumeManager* vm = VolumeManager::Instance();
+
+    if (vm->checkAllmSdSpeedOK()) {
+        if (vm->checkLocalVolSpeedOK()) {
             Log.d(TAG, "[%s: %d] All Card Speed is OK, very good !!", __FILE__, __LINE__);
         } else {
             /* 提示警告 */
@@ -2583,7 +2525,8 @@ bool MenuUI::check_live_save(ACTION_INFO* mAct)
 bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest)
 {
     bool bAllow = false;
-	
+
+#if 0	
     if (!checkHaveLocalSavePath()) {
 		
 		/* 去掉直播录像,必须录制在U盘的限制 */
@@ -2635,6 +2578,7 @@ bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest
             }
         }
     }
+#endif    
     return bAllow;
 }
 
@@ -2652,6 +2596,7 @@ void MenuUI::setGyroCalcDelay(int iDelay)
 //cmd -- for power off or set option
 bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 {
+
     bool bAllow = true;
     sp<ARMessage> msg = mNotify->dup();
     sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
@@ -2954,26 +2899,12 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
 
 
         case ACTION_SPEED_TEST: {
-            #if 0
-            if (checkHaveLocalSavePath()) {
-                Log.e(TAG, "action speed test mSavePathIndex -1");
-                bAllow = false;
-            } else {
-                if (!check_state_in(STATE_SPEED_TEST)) {
-                    msg->set<char *>("path", mLocalStorageList.at(mSavePathIndex)->path);
-                    oled_disp_type(SPEED_START);
-                } else {
-                    bAllow = false;
-                }
-            }
-            #else
-            if (mLocalStorageList.size() > 0) {
-                msg->set<const char *>("path", mLocalStorageList.at(mSavePathIndex)->pMountPath);
+            VolumeManager* vm = VolumeManager::Instance();
+            if (vm->checkLocalVolumeExist()) {
+                msg->set<const char *>("path", vm->getLocalVolMountPath());
             } else {
                 Log.e(TAG, "[%s:%d] No Local Storage, Waht's wrong!!!", __FILE__, __LINE__);
             }
-
-            #endif
             break;
         }
 
@@ -3122,17 +3053,19 @@ void MenuUI::postUiMessage(sp<ARMessage>& msg)
     msg->post();
 }
 
+
 /*
  * send_save_path_change - 设备的存储路径发生改变
  */
 void MenuUI::send_save_path_change()
 {
+    VolumeManager* vm = VolumeManager::Instance();
+
     switch (cur_menu) {
         case MENU_PIC_INFO:
         case MENU_VIDEO_INFO:
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF: {
-            //make update bottom before sent it to ws 20170710
             if (!check_cam_busy())  {	//not statfs while busy ,add 20170804
                 updateBottomSpace(true);
             }
@@ -3147,8 +3080,9 @@ void MenuUI::send_save_path_change()
     msg->set<int>("what", SAVE_PATH_CHANGE);
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 	
-    if (!checkHaveLocalSavePath()) {
-        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", mLocalStorageList.at(mSavePathIndex)->pMountPath);
+
+    if (vm->checkLocalVolumeExist()) {
+        snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", vm->getLocalVolMountPath());
     } else {
         snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", NONE_PATH);
     }
@@ -4397,74 +4331,6 @@ void MenuUI::getShowStorageInfo()
 }
 
 
-
-bool MenuUI::localStorageAvail()
-{
-    bool ret = false;
-
-    if (!checkHaveLocalSavePath()) {
-        int times = 3;
-        int i = 0;
-
-        #if 0
-        for (i = 0; i < times; i++) {
-
-            struct statfs diskInfo;
-            if (access(mLocalStorageList.at(mSavePathIndex)->path, F_OK) != -1) {
-
-                statfs(mLocalStorageList.at(mSavePathIndex)->path, &diskInfo);
-
-                /*
-                 * 老化模式下为了能让时间尽可能长,虚拟出足够长的录像时间
-                 */
-                mLocalStorageList.at(mSavePathIndex)->avail = diskInfo.f_bavail *diskInfo.f_bsize;
-				
-                Log.d(TAG, "remain ( %s %llu)\n", mLocalStorageList.at(mSavePathIndex)->path, mLocalStorageList.at(mSavePathIndex)->avail);
-                break;
-            }  else {
-                Log.d(TAG, "fail to access(%d) %s", i, mLocalStorageList.at(mSavePathIndex)->path);
-                msg_util::sleep_ms(10);
-            }
-        }
-        #endif
-
-
-        if (i < times) {
-            ret = true;
-        } else {
-            ret = false;
-        }
-
-    }
-
-    return ret;
-}
-
-
-void MenuUI::calcRemoteRemainSpace()
-{
-    u64 iTmpMinSize = ~0UL;
-    
-    if (takeVideoIsAgeingMode()) {
-        mReoteRecLiveLeftSize = 1024 * 256;    /* 单位为MB， 256GB */
-    } else {
-        {
-            unique_lock<mutex> lock(mRemoteDevLock);
-            for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-                if (iTmpMinSize > mRemoteStorageList.at(i)->uAvail) {
-                    iTmpMinSize = mRemoteStorageList.at(i)->uAvail;
-                }
-            }
-        }
-        mReoteRecLiveLeftSize = iTmpMinSize;
-
-    }
-
-    Log.d(TAG, "[%s: %d] remote left space [%d]M", __FILE__, __LINE__, mReoteRecLiveLeftSize);
-
-}
-
-
 /*
  * calcRemainSpace - 计算剩余空间
  * - 按当前挡位，可拍照的数目，保存在 mCanTakePicNum中
@@ -4474,6 +4340,7 @@ void MenuUI::calcRemoteRemainSpace()
 void MenuUI::calcRemainSpace()
 {
     Log.d(TAG, "Calc Remian Space now ......");
+    VolumeManager* vm = VolumeManager::Instance();
 
     /* 计算出各种模式下的剩余容量:
      * 对于拍照: 计算出大卡的剩余容量 / 当前模式下没组照片的大小 - 将结果保存在mCanTakePicNum中
@@ -4483,9 +4350,11 @@ void MenuUI::calcRemainSpace()
     #ifdef ENABLE_USE_NEW_CALC_MODE    
     {
         mCanTakePicNum = 0;     /* 重新计算之前将可拍照片的张数清0 */
-        if (localStorageAvail()) {
+        if (vm->checkLocalVolumeExist()) {
             Log.d(TAG, "[%s: %d] Calc can take picture num in calcRemainSpace", __FILE__, __LINE__);                    
-            convSize2LeftNumTime(mLocalStorageList.at(mSavePathIndex)->uAvail, CALC_MODE_TAKE_PIC);
+            convSize2LeftNumTime(vm->getLocalVolLeftSize(), CALC_MODE_TAKE_PIC);
+        } else {
+            Log.e(TAG, "[%s: %d] Local Storage Device Not exist ???", __FILE__, __LINE__);
         }
     }
 
@@ -4532,8 +4401,10 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
 {
     INFO_MENU_STATE(cur_menu, cam_state);
 
-    u64 size_M = (size >> 20);
-	
+    u64 size_M = size;
+
+	Log.d(TAG, "[%s: %d] >>>>>> convSize2LeftNumTime size = %d MB", __FILE__, __LINE__, size);
+
     if (size_M > AVAIL_SUBSTRACT) {
 		
         int rest_sec = 0;
@@ -4542,7 +4413,6 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
         size_M -= AVAIL_SUBSTRACT;;
         int item = 0;
 		
-
         switch (iMode) {
             case CALC_MODE_TAKE_PIC: {
                 if (mControlAct != nullptr) {
@@ -4701,45 +4571,6 @@ void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
 
 
 
-/*
- * checkHaveLocalSavePath - 检查有本地存储设备是否存在
- * 存在返回true; 否则返回false
- */
-bool MenuUI::checkHaveLocalSavePath()
-{
-    bool bRet = false;
-    if (mSavePathIndex == -1) {    
-        bRet = true;
-    }
-
-    Log.d(TAG, "[%s: %d] checkHaveLocalSavePath = %d", __FILE__, __LINE__, mSavePathIndex);
-    return bRet;
-}
-
-
-bool MenuUI::checkAllTfCardExist()
-{
-    sp<Volume> tmpVolume = NULL;
-    int iExitNum = 0;
-    
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);
-        for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-            tmpVolume = mRemoteStorageList.at(i);
-            if (tmpVolume->uTotal > 0) {     /* 总容量大于0,表示卡存在 */
-                iExitNum++;
-            }
-        }
-    }
-
-    if (iExitNum >= mTfNum) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
 bool MenuUI::check_save_path_usb()
 {
     bool bRet = false;
@@ -4765,7 +4596,8 @@ bool MenuUI::check_save_path_usb()
 void MenuUI::dispBottomLeftSpace()
 {
     char disk_info[16] = {0};
-    
+    VolumeManager* vm = VolumeManager::Instance();
+
     /*
      * 拍照时，显示剩余空间分为两大类：正在启动预览和非正在启动预览状态
      * - 正在启动预览时，统一不显示剩余空间
@@ -4797,10 +4629,11 @@ void MenuUI::dispBottomLeftSpace()
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF: {
             
+            /* 不满足存储条件: 没有插大卡或者没有插小卡 */
             #ifdef ENABLE_MODE_NO_TF_TAKEPIC
-                if (checkHaveLocalSavePath()) {     /* 不满足存储条件: 没有插大卡或者没有插小卡 */
+                if (!vm->checkLocalVolumeExist()) {     
             #else
-                if (checkHaveLocalSavePath() || !checkAllTfCardExist()) {     /* 不满足存储条件: 没有插大卡或者没有插小卡 */
+                if (!vm->checkLocalVolumeExist() || !(vm->checkAllTfCardExist())) {     /* 不满足存储条件: 没有插大卡或者没有插小卡 */
             #endif
                     Log.d(TAG, "[%s: %d] Current menu[%s] have not local stroage device, show none", __FILE__, __LINE__, getCurMenuStr(cur_menu));
                     disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);
@@ -4823,7 +4656,7 @@ void MenuUI::dispBottomLeftSpace()
                                                 mRemainInfo->remain_sec);
                             disp_str_fill((const u8 *) disk_info, 78, 48);
                     } else {
-                        if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
+                        if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
                             snprintf(disk_info, sizeof(disk_info), "%02d:%02d:%02d", 
                                                 mRemainInfo->remain_hour,
                                                 mRemainInfo->remain_min, 
@@ -4837,9 +4670,9 @@ void MenuUI::dispBottomLeftSpace()
                 } else {    /* timelapse模式 */
 
                 #ifdef ENABLE_TIME_LAPSE_STOR_SD
-                    if (checkHaveLocalSavePath()) {     /* SD卡不存在 */
+                    if (vm->checkLocalVolumeExist()) {     /* SD卡不存在 */
                 #else 
-                    if (checkHaveLocalSavePath() || !checkAllTfCardExist()) {
+                    if (vm->checkLocalVolumeExist() || !(vm->checkAllTfCardExist())) {
                 #endif
                         Log.d(TAG, "[%s: %d] Take timelapse, but no storage", __FILE__, __LINE__, getCurMenuStr(cur_menu));
                         disp_icon(ICON_LIVE_INFO_NONE_7848_50X16);                
@@ -6624,6 +6457,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 bool MenuUI::checkStorageSatisfy(int action)
 {
     bool bRet = false;
+    VolumeManager* vm = VolumeManager::Instance();
 
     Log.d(TAG, "checkStorageSatisfy (%d %d)", mLocalStorageList.size(), mSavePathIndex);
 
@@ -6631,9 +6465,9 @@ bool MenuUI::checkStorageSatisfy(int action)
         case ACTION_PIC: {  /* 拍照,只有大卡存在都可以拍照操作 */
 
         #ifdef ENABLE_MODE_NO_TF_TAKEPIC
-            if (!checkHaveLocalSavePath()) {
+            if (vm->checkLocalVolumeExist()) {
         #else
-            if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {
+            if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {
         #endif
                 Log.d(TAG, "[%s: %d] mCanTakePicNum = %d", __FILE__, __LINE__, mCanTakePicNum);
                 if (mCanTakePicNum > 0) {
@@ -6647,7 +6481,7 @@ bool MenuUI::checkStorageSatisfy(int action)
         }
 
         case ACTION_VIDEO: {
-            if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {
+            if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {
 
                 Log.d(TAG, "[%s: %d] Take Video Remain Info [%d:%d:%d]", __FILE__, __LINE__, 
                         mRemainInfo->remain_hour, mRemainInfo->remain_min, mRemainInfo->remain_sec);
@@ -7147,9 +6981,11 @@ void MenuUI::procPowerKeyEvent()
  */
 int MenuUI::isSatisfySpeedTestCond()
 {
-    if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {
+    VolumeManager* vm = VolumeManager::Instance();
+
+    if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {
         return COND_ALL_CARD_EXIST;
-    } else if (checkHaveLocalSavePath()) {
+    } else if (!(vm->checkLocalVolumeExist())) {
         return COND_NEED_SD_CARD;
     } else {
         return COND_NEED_TF_CARD;
@@ -7513,14 +7349,17 @@ void MenuUI::disp_live_ready()
  */
 void MenuUI::disp_ready_icon(bool bDispReady)
 {
+    VolumeManager* vm = VolumeManager::Instance();
+
+    ;
 	/* 调用存储管理器来判断显示图标 */
-    if (!checkHaveLocalSavePath() && checkAllTfCardExist()) {    /* 大卡,小卡都在 */
+    if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {    /* 大卡,小卡都在 */
 
 #ifdef ENABLE_DEBUG_MODE
         Log.d(TAG, "[%s: %d] ^++^ All Card is Exist ....", __FILE__, __LINE__);        
 #endif
         disp_icon(ICON_CAMERA_READY_20_16_76_32);
-    } else if (!checkHaveLocalSavePath() && !checkAllTfCardExist()) {   /* 大卡在,缺小卡 */
+    } else if (vm->checkLocalVolumeExist() && (vm->checkAllTfCardExist() == false)) {   /* 大卡在,缺小卡 */
 
 #ifdef ENABLE_DEBUG_MODE
         Log.d(TAG, "[%s: %d] Warnning Need TF Card ....", __FILE__, __LINE__);
@@ -7539,7 +7378,6 @@ void MenuUI::disp_ready_icon(bool bDispReady)
 
 void MenuUI::disp_shooting()
 {
-    // Log.d(TAG, "checkHaveLocalSavePath() is %d", checkHaveLocalSavePath());
     disp_icon(ICON_CAMERA_SHOOTING_2016_76X32);
     setLight(fli_light);
 }
@@ -8700,7 +8538,8 @@ int MenuUI::oled_disp_type(int type)
         /* 查询TF Card状态有两种情况: 预览和IDLE状态 
          * 修改：2018年8月13日
          */
-        case START_QUERY_STORAGE_SUC: {  /* 查询TF卡状态成功 */
+        case START_QUERY_STORAGE_SUC:
+        case START_QUERY_STORAGE_FAIL: {  /* 查询TF卡状态成功 */
             if (check_state_in(STATE_START_PREVIEWING)) {  /* 表示是预览后的查询 */
 
                 Log.d(TAG, "[%s: %d] Preview Success START_QUERY_STORAGE_SUC, current cam state: 0x%x", __FILE__, __LINE__, cam_state);
@@ -8716,6 +8555,7 @@ int MenuUI::oled_disp_type(int type)
             break;  
         }
 
+    #if 0
         case START_QUERY_STORAGE_FAIL: {  /* 查询TF卡状态失败: 当成无mSD卡处理 */
              if (check_state_in(STATE_START_PREVIEWING)) {  /* 表示是预览后的查询 */
 
@@ -8730,7 +8570,7 @@ int MenuUI::oled_disp_type(int type)
             }
             break;
         }
-
+    #endif
 			
         case START_PREVIEW_FAIL: {	/* 启动预览失败 */
             Log.d(TAG, "[%s: %d] START_PREVIEW_FAIL cur_menu [%s] cam state %d", __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);
@@ -9609,15 +9449,6 @@ void MenuUI::handleTfQueryResult()
 {
     Log.d(TAG, "[%s: %d] handleTfQueryResult >>>>>>>>>>>>>>>>>", __FILE__, __LINE__);
 
-    u32 tfSize = 0;
-    {
-        Log.d(TAG, "[%s: %d] Test  mRemoteDevLock >>>>>>>>>>>>>>>>>", __FILE__, __LINE__);
-        unique_lock<mutex> lock(mRemoteDevLock); 
-        tfSize = mRemoteStorageList.size();
-    }
-
-    // mRemoteStorageState = true;
-
     rm_state(STATE_QUERY_STORAGE);
 
     /* 查询之后，更新远端存储已更新标志 */
@@ -9626,11 +9457,7 @@ void MenuUI::handleTfQueryResult()
         Log.d(TAG, "[%s: %d] handleTfQueryResult >> Remain Space Updated cam_state(0x%x)", __FILE__, __LINE__, cam_state);
 
         if (check_state_in(STATE_START_PREVIEWING) || check_state_in(STATE_IDLE)) {
-            if (0 == tfSize) {
-                oled_disp_type(START_QUERY_STORAGE_FAIL);
-            } else {
-                oled_disp_type(START_QUERY_STORAGE_SUC);
-            }
+            oled_disp_type(START_QUERY_STORAGE_SUC);
         }
 
     } else if (cur_menu == MENU_SHOW_SPACE) {
@@ -9638,8 +9465,6 @@ void MenuUI::handleTfQueryResult()
     } else {
         Log.d(TAG, "[%s: %d] handleTfQueryResult >> Maybe Disp MsgBox here ...", __FILE__, __LINE__);
     }
-
-    mStoreUiState = 0;
 }
 
 
@@ -9810,36 +9635,14 @@ void MenuUI::handleorSetWifiConfig(sp<WifiConfig> &mConfig)
 void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
 {
     Log.d(TAG, "[%s: %d] Tf Card state Changed, Insert/Removed.....", __FILE__, __LINE__);
-    bool bAdd = false;
+    VolumeManager* vm = VolumeManager::Instance();
+    int iAction = 0;
 
-    if (mTfChangeList.size() > 1) {
-        Log.d(TAG, "[%s: %d] Checked Too much TF Card Changed at a time, Not support now ...");
-    } else {
-
-        sp<Volume> tmpChangedVolume = mTfChangeList.at(0);
-        {
-            unique_lock<mutex> lock(mRemoteDevLock); 
-            for (u32 i = 0; i < mRemoteStorageList.size(); i++) {
-                sp<Volume> tmpSourceVolume = mRemoteStorageList.at(i);
-                if (tmpChangedVolume && tmpSourceVolume) {
-                    if (tmpChangedVolume->iIndex == tmpSourceVolume->iIndex) {
-                        
-                        tmpSourceVolume->uTotal = tmpChangedVolume->uTotal;
-                        tmpSourceVolume->uAvail = tmpChangedVolume->uAvail;
-                        if (tmpSourceVolume->uTotal > 0) {
-                            bAdd = true;
-                        } else {
-                            bAdd = false;
-                        }                        
-                        Log.d(TAG, "[%s: %d] >>>>>>>>>>>> TF Card[%d] Action[%s] !!!", __FILE__, __LINE__, tmpSourceVolume->iIndex, (bAdd == true) ? "Insert": "Removed");
-                        break;
-                    }
-                }
-            }  
-        }
+    iAction = vm->handleRemoteVolHotplug(mTfChangeList);
+    if (iAction != VOLUME_ACTION_UNSUPPORT) {
 
         /* 有TF卡插入并且录像,直播模式下需要重新查询小卡状态 */
-        if (bAdd == true && (cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_VIDEO_SET_DEF || cur_menu == MENU_LIVE_SET_DEF )) { /* 有卡插入 */
+        if ((iAction == VOLUME_ACTION_ADD) && (cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_VIDEO_SET_DEF || cur_menu == MENU_LIVE_SET_DEF )) { /* 有卡插入 */
             asyncQueryTfCardState();
             msg_util::sleep_ms(50);
         }
@@ -9847,8 +9650,21 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
         /* 显示消息框:  
          * 消息框被清除后会显示进入消息框的菜单(重新进入菜单时，如果时MENU_PIC_INFO, MENU_VIDEO_INFO, MENU_LIVE_INFO 需要重新更新底部空间)
          */
-        disp_dev_msg_box(((bAdd == true)? ADD: REMOVE), SET_STORAGE_SD, false);
+        disp_dev_msg_box(((iAction == VOLUME_ACTION_ADD)? ADD: REMOVE), SET_STORAGE_SD, false);
     }
+}
+
+void MenuUI::handleUpdateDevInfo(int iAction, vector<sp<Volume>>& mList)
+{
+    /* 设置存储设备列表 */
+
+    /* 设置存储设备的路径 */
+
+    /* 更新存储设备列表(给Http) */
+    set_mdev_list(mList);	        /* 更新存储管理器的存储设备列表 */
+
+    // make send dev_list after sent save for update_bottom while current is pic ,vid menu
+    send_update_dev_list(mList);	/* 给Http发送更新设备列表消息 */
 }
 
 
@@ -9883,12 +9699,15 @@ void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
             Log.d(TAG, "[%s: %d] Format TF%d Card Success", __FILE__, __LINE__, iTfIndex);
         }
         
+        /* TODO: 将格式化的结果更新到VolumeManager */
+
     } else {
         /* 格式化失败 */
         Log.d(TAG, "[%s:%d] Format TF Card Failed..", __FILE__, __LINE__);
     }
 
     dispTfcardFormatReuslt(mTfFormatList, iTfIndex);
+
 
     /* 等待一会,重新进入MENU_TF_FORMAT_SELECT菜单 */
     msg_util::sleep_ms(1500);
@@ -9903,32 +9722,25 @@ void MenuUI::handleSppedTest(vector<sp<Volume>>& mSpeedTestList)
     sp<Volume> tmpResultVol = NULL;
     vector<sp<Volume>> testFailedList;
 
+    VolumeManager* vm = VolumeManager::Instance();
+
     testFailedList.clear();
     int iLocalTestFlag = 0;
 
     Log.d(TAG, "[%s: %d] Speed Test Handler", __FILE__, __LINE__);
     {
-        unique_lock<mutex> lock(mRemoteDevLock); 
         for (u32 i = 0; i < mSpeedTestList.size(); i++) {
             tmpResultVol = mSpeedTestList.at(i);
 
             if (tmpResultVol->iType == VOLUME_TYPE_NV) {
-                if (mSavePathIndex >= 0) {
-                    mLocalStorageList.at(mSavePathIndex)->iSpeedTest = tmpResultVol->iSpeedTest; 
-                    iLocalTestFlag = tmpResultVol->iSpeedTest; 
-                }
+                vm->updateLocalVolSpeedTestResult(tmpResultVol->iSpeedTest);
+                iLocalTestFlag = tmpResultVol->iSpeedTest; 
                 continue;
             }
 
-            for (u32 j = 0; j < mRemoteStorageList.size(); j++) {
-                tmpLocalVol = mRemoteStorageList.at(j);
-                if (tmpResultVol && tmpLocalVol && (tmpResultVol->iIndex == tmpLocalVol->iIndex)) {
-                    tmpLocalVol->iSpeedTest = tmpResultVol->iSpeedTest;
-                    if (tmpLocalVol->iSpeedTest == 0) {
-                        testFailedList.push_back(tmpLocalVol);
-                    }
-                    break;
-                }
+            vm->updateRemoteVolSpeedTestResult(tmpResultVol.get());
+            if (tmpResultVol->iSpeedTest == 0) {
+                testFailedList.push_back(tmpResultVol);
             }
         }
     }
@@ -10148,9 +9960,9 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 				sp<DEV_IP_INFO> tmpIpInfo;
 				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
 
-#ifdef ENABLE_DEBUG_NET
+                #ifdef ENABLE_DEBUG_NET
 				Log.d(TAG, "UI_MSG_UPDATE_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
-#endif
+                #endif
 				procUpdateIp(tmpIpInfo->ipAddr);
                	break;
             }
@@ -10191,14 +10003,12 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			/*
 			 * 更新存储设备列表(消息来自DevManager线程)
 			 */
-            case OLED_UPDATE_DEV_INFO: {
+            case UI_UPDATE_DEV_INFO: {
                 vector<sp<Volume>> mList;
+                int iAction = -1;
                 CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mList), true);
-
-				set_mdev_list(mList);	/* 更新存储管理器的存储设备列表 */
-				
-                // make send dev_list after sent save for update_bottom while current is pic ,vid menu
-                send_update_dev_list(mList);	/* 给Http发送更新设备列表消息 */
+                CHECK_EQ(msg->find<int>("action", &iAction), true);
+                handleUpdateDevInfo(iAction, mList);
                 break;
             }
 

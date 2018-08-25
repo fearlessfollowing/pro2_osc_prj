@@ -1242,16 +1242,10 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 for (unsigned int i = 0; i < mDevList.size(); i++) {
                     cJSON *sub = cJSON_CreateObject();
                     
-                    #ifdef ENABLE_OLD_VOLUME_MANAGER
-                        cJSON_AddStringToObject(sub, "dev_type", mDevList.at(i)->dev_type);
-                        cJSON_AddStringToObject(sub, "path", mDevList.at(i)->path);
-                        cJSON_AddStringToObject(sub, "name", mDevList.at(i)->name);
-                    #else 
-                        cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd" );
-                        cJSON_AddStringToObject(sub, "path", mDevList.at(i)->pMountPath);
-                        cJSON_AddStringToObject(sub, "name", mDevList.at(i)->cDevNode);
+                    cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd" );
+                    cJSON_AddStringToObject(sub, "path", mDevList.at(i)->pMountPath);
+                    cJSON_AddStringToObject(sub, "name", mDevList.at(i)->cDevNode);
 
-                    #endif
                     cJSON_AddItemToArray(jsonArray, sub);
                 }
 				

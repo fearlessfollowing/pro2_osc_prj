@@ -596,7 +596,6 @@ private:
 
 	void disp_cam_param(int higlight);
 
-    bool checkHaveLocalSavePath();
 
     bool check_save_path_usb();
     int get_dev_type_index(char *dev_type);
@@ -673,8 +672,6 @@ private:
      * 是返回true; 否返回false
      */
     int isSatisfySpeedTestCond();
-    bool ismSDSpeedOk();
-    bool isLocalStorageSpeedOk();
     bool checkVidLiveStorageSpeed();
     void dispTipStorageDevSpeedTest();    
     void dispWriteSpeedTest();
@@ -828,6 +825,7 @@ private:
 	void handleLongKeyMsg(int key, int64 ts);
 	void handleDispLightMsg(int menu, int state, int interval);
 	void handleUpdateMid();
+    void handleUpdateDevInfo(int iAction, std::vector<sp<Volume>>& mList);
 	
     /********************************************* 拍照部分 ****************************************************/
     void setTakePicDelay(int iDelay);
@@ -970,7 +968,6 @@ private:
 
     char                        mLocalIpAddr[32];        /* UI本地保存的IP地址 */
 
-    u32                         mStoreUiState;          /* 保存查询TF卡时系统的状态 */
     int                         mStoreQueryTfMenu;
 
 	/*
