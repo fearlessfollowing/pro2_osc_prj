@@ -1959,6 +1959,7 @@ void MenuUI::updateTfStorageInfo(bool bResult, vector<sp<Volume>>& mList)
     Log.d(TAG, "[%s: %d] updateTfStorageInfo <<<<<<<<<<<<", __FILE__, __LINE__);
 #endif
 
+#if 0
     {
         unique_lock<mutex> lock(mRemoteDevLock);   
         if (bResult) {  /* 查询成功 */
@@ -1981,6 +1982,13 @@ void MenuUI::updateTfStorageInfo(bool bResult, vector<sp<Volume>>& mList)
         /* 表示TF存储状态已经更新 */
         mRemoteStorageUpdate = true;
     }
+#else
+    if (bResult) {
+        VolumeManager* vm = VolumeManager::Instance();
+        vm->updateRemoteTfsInfo(mList);
+    }
+
+#endif
 
     if (mSysncQueryTfReq == true && mAsyncQueryTfReq == false) {    /* 同步 */
         mSysncQueryTfReq = false;

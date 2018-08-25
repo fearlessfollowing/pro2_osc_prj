@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <sys/ins_types.h>
 #include <vector>
+#include <mutext>
 
 enum {
     VOLUME_MANAGER_LISTENER_MODE_NETLINK,
@@ -285,8 +286,6 @@ class VolumeManager {
 private:
     static VolumeManager*   sInstance;
 
-private:
-
     std::vector<Volume*>    mVolumes;       /* 管理系统中所有的卷 */
 
     std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
@@ -295,6 +294,9 @@ private:
     bool                    mDebug;
 
     int                     mVolManagerDisabled;
+
+    std::mutex				mLocaLDevLock;
+    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
 public:
     virtual ~VolumeManager();
@@ -326,6 +328,34 @@ public:
     void        setDebug(bool enable);
 
 
+    /*
+     * 检查是否存在本地卷
+     */
+    bool        checkLockVolumeExist();
+
+    /*
+     * 检查是否所有的TF卡都存在
+     */
+    bool        checkAllTfCardExist();
+
+
+    /*
+     * 更新mSD的查询结果
+     */
+    void        updateRemoteTfsInfo(std::vector<sp<Volume>>& mList);
+
+    /*
+     * 更新所有卷的测速状态
+     */
+    void        updateVolumesSpeedTestState(std::vector<sp<Volume>>& mList);
+
+
+    /*
+     * 更新远端卷的拔插处理
+     */
+    void        handleRemoteVolumeHotplug(std::vector<sp<Volume>>& mList);
+
+
     static VolumeManager *Instance();
 
     Volume *lookupVolume(const char *label);
@@ -333,6 +363,7 @@ public:
 private:
     int         mListenerMode;          /* 监听模式 */
     VolumeManager();
+
 
 };
 
