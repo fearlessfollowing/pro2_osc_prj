@@ -94,6 +94,12 @@ enum {
     VOLUME_ACTION_MAX
 };
 
+enum {
+    VOLUME_PRIO_LOW     = 0,
+    VOLUME_PRIO_SD      = 1,     /* USB3.0 内部设备（SD） */
+    VOLUME_PRIO_UDISK   = 2,    /* USB3.0 移动硬盘 */
+    VOLUME_PRIO_MAX,
+};
 
 /*
  * Volume - 逻辑卷
@@ -109,6 +115,8 @@ typedef struct stVol {
 
 	int		        iType;              /* 用于表示是内部设备还是外部设备 */
 	int		        iIndex;			    /* 索引号（对于模组上的小卡有用） */
+
+    int             iPrio;              /* 卷的优先级 */
 
     int             iVolState;          /* 卷所处的状态: No_Media/Init/Mounted/Formatting */
 
@@ -134,6 +142,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_NV,
         0,
+        VOLUME_PRIO_SD,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,      /* 机身后面的SD卡: 默认为使能状态 */
         0,
@@ -151,6 +161,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_NV,
         0,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,      /* 机身底部的USB接口: 默认为使能状态 */        
         0,
@@ -168,6 +180,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_NV,
         0,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_DISABLED,      /* 机身顶部的USB接口: 默认为禁止状态 */         
         0,
@@ -185,6 +199,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         1,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF1: 默认为使能状态 */         
         0,
@@ -202,6 +218,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         2,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF2: 默认为使能状态 */          
         0,
@@ -219,6 +237,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         3,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF3: 默认为使能状态 */           
         0,
@@ -236,6 +256,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         4,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF4: 默认为使能状态 */           
         0,
@@ -253,6 +275,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         5,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF5: 默认为使能状态 */           
         0,
@@ -270,6 +294,8 @@ static Volume gSysVols[] = {
 
         VOLUME_TYPE_MODULE,
         6,
+        VOLUME_PRIO_LOW,
+
         VOLUME_STATE_INIT,
         VOLUME_SLOT_SWITCH_ENABLE,          /* TF6: 默认为使能状态 */           
         0,
@@ -297,6 +323,8 @@ private:
 
     std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
     std::vector<Volume*>    mModuleVols;    /* 模组卷 */
+
+    std::vector<Volume*>    mCurSaveVolList;
 
     bool                    mDebug;
 
@@ -360,6 +388,11 @@ public:
     u64         getLocalVolLeftSize(bool bUseCached = false);
     const char* getLocalVolMountPath();
 
+    void        setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt);
+    void        setSavepathChanged(int iAction, Volume* pVol);
+
+    std::vector<Volume*>& getCurSavepathList();
+
     /*
      * 检查是否所有的TF卡都存在
      */
@@ -371,6 +404,10 @@ public:
     void        updateRemoteVolSpeedTestResult(Volume* pVol);
     bool        checkAllmSdSpeedOK();
     bool        checkLocalVolSpeedOK();
+
+    bool        checkSavepathChanged();
+
+    void        setSavepathChanged(Volume* pVol);
 
     /*
      * 更新mSD的查询结果
@@ -388,18 +425,19 @@ public:
      */
     int         handleRemoteVolHotplug(std::vector<sp<Volume>>& volChangeList);
 
-    void        sendDevChangeMsg2UI(int iAction, std::vector<sp<Volume>> devList);
+    void        sendDevChangeMsg2UI(int iAction, int iType, std::vector<Volume*>& devList);
 
     void        setNotifyRecv(sp<ARMessage> notify);
 
-    static VolumeManager *Instance();
+    Volume*     lookupVolume(const char *label);
 
-    Volume *lookupVolume(const char *label);
+    static VolumeManager *Instance();
 
 private:
     int         mListenerMode;                  /* 监听模式 */
     Volume*     mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
     Volume*     mSavedLocalVol;                 /* 上次保存 */
+    bool        mBsavePathChanged;              /* 本地存储设备路径是否发生改变 */
 
 	sp<ARMessage>	mNotify;
     VolumeManager();

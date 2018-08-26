@@ -1953,14 +1953,13 @@ void MenuUI::sendExit()
 void MenuUI::updateTfStorageInfo(bool bResult, vector<sp<Volume>>& mList)
 {
     VolumeManager* vm = VolumeManager::Instance();
-
-#ifdef ENABLE_DEBUG_MODE    
+ 
     Log.d(TAG, "[%s: %d] updateTfStorageInfo <<<<<<<<<<<<", __FILE__, __LINE__);
-#endif
 
     if (bResult) {
         VolumeManager* vm = VolumeManager::Instance();
         if (vm) {
+            Log.d(TAG, "[%s: %d] >>>>>>>>>>>> calling vm->updateRemoteTfsInfo", __FILE__, __LINE__);
             vm->updateRemoteTfsInfo(mList);
         } else {
             Log.e(TAG, "[%s: %d] Volume Manager Not init, What's wrong!!", __FILE__, __LINE__);
@@ -3118,12 +3117,12 @@ void MenuUI::send_clear_msg_box(int delay)
 }
 
 
-void MenuUI::send_update_dev_list(std::vector<sp<Volume>> &mList)
+void MenuUI::send_update_dev_list(std::vector<Volume*>& mList)
 {
     sp<ARMessage> msg = mNotify->dup();
 
     msg->set<int>("what", UPDATE_DEV);
-    msg->set<std::vector<sp<Volume>>>("dev_list", mList);
+    msg->set<std::vector<Volume*>>("dev_list", mList);
     msg->post();
 }
 
@@ -9004,17 +9003,28 @@ int MenuUI::get_dev_type_index(char *type)
     }
     return storage_index;
 }
-#endif
 
+
+
+void MenuUI::dispTfcardMsgbox(int bAdd, int iIndex)
+{
+    switch (bAdd) {
+        case ADD: {
+
+            break;
+        }
+
+        case REMOVE: {
+            break;
+        }
+    }
+}
+#endif
 
 
 void MenuUI::disp_dev_msg_box(int bAdd, int type, bool bChange)
 {
     Log.d(TAG, "bAdd %d type %d", bAdd, type);
-
-    if (bChange) {
-        send_save_path_change();
-    } 
 
 	switch (bAdd) {
         //add
@@ -9040,6 +9050,9 @@ void MenuUI::disp_dev_msg_box(int bAdd, int type, bool bChange)
             break;
     }
 }
+
+
+
 
 
 void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
@@ -9451,6 +9464,7 @@ void MenuUI::handleTfQueryResult()
 
     rm_state(STATE_QUERY_STORAGE);
 
+
     /* 查询之后，更新远端存储已更新标志 */
     if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_TOP) { 
 
@@ -9654,14 +9668,20 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
     }
 }
 
-void MenuUI::handleUpdateDevInfo(int iAction, vector<sp<Volume>>& mList)
+void MenuUI::handleUpdateDevInfo(int iAction, int iType, vector<Volume*>& mList)
 {
+    VolumeManager* vm = VolumeManager::Instance();
+
+    int action = (iAction == VOLUME_ACTION_ADD)? ADD: REMOVE;
+    int type = (VOLUME_SUBSYS_SD == iType) ? SET_STORAGE_SD: SET_STORAGE_USB;
+
     /* 设置存储设备列表 */
+    disp_dev_msg_box(action, type, false);
 
     /* 设置存储设备的路径 */
-
-    /* 更新存储设备列表(给Http) */
-    set_mdev_list(mList);	        /* 更新存储管理器的存储设备列表 */
+    if (vm->checkSavepathChanged()) {
+        send_save_path_change();
+    }
 
     // make send dev_list after sent save for update_bottom while current is pic ,vid menu
     send_update_dev_list(mList);	/* 给Http发送更新设备列表消息 */
@@ -10004,11 +10024,14 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 			 * 更新存储设备列表(消息来自DevManager线程)
 			 */
             case UI_UPDATE_DEV_INFO: {
-                vector<sp<Volume>> mList;
+                vector<Volume*> mList;
                 int iAction = -1;
-                CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mList), true);
+                int iType = -1;
+                CHECK_EQ(msg->find<vector<Volume*>>("dev_list", &mList), true);
                 CHECK_EQ(msg->find<int>("action", &iAction), true);
-                handleUpdateDevInfo(iAction, mList);
+                CHECK_EQ(msg->find<int>("type", &iType), true);
+
+                handleUpdateDevInfo(iAction, iType, mList);
                 break;
             }
 

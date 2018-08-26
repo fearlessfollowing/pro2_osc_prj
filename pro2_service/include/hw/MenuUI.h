@@ -409,7 +409,7 @@ public:
     void send_get_key(int key);
     void send_long_press_key(int key,int64 ts);
     void send_init_disp();
-    void send_update_dev_list(std::vector<sp<Volume>> &mList);
+    void send_update_dev_list(std::vector<Volume*> &mList);
     void send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
 
     sp<ARMessage> obtainMessage(uint32_t what);
@@ -825,8 +825,8 @@ private:
 	void handleLongKeyMsg(int key, int64 ts);
 	void handleDispLightMsg(int menu, int state, int interval);
 	void handleUpdateMid();
-    void handleUpdateDevInfo(int iAction, std::vector<sp<Volume>>& mList);
-	
+    void handleUpdateDevInfo(int iAction, int iType, std::vector<Volume*>& mList);
+
     /********************************************* 拍照部分 ****************************************************/
     void setTakePicDelay(int iDelay);
     int convCapDelay2Index(int iDelay);

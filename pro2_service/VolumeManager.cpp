@@ -171,6 +171,7 @@ VolumeManager::VolumeManager()
 
     mCurrentUsedLocalVol = NULL;
     mSavedLocalVol = NULL;
+    mBsavePathChanged = false;
 
     /* 根据类型将各个卷加入到系统多个Vector中 */
     for (int i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
@@ -178,12 +179,13 @@ VolumeManager::VolumeManager()
         mVolumes.push_back(tmpVol);
 
         if (tmpVol->iType == VOLUME_TYPE_MODULE) {
-            mLocalVols.push_back(tmpVol);
+            mModuleVols.push_back(tmpVol);
             mModuleVolNum++;
         } else {
-            mModuleVols.push_back(tmpVol);
+            mLocalVols.push_back(tmpVol);
         }
     }
+    Log.d(TAG, "[%s: %d] Module Volume size = %d", __FILE__, __LINE__, mModuleVolNum);
 }
 
 
@@ -350,8 +352,6 @@ bool VolumeManager::clearMountPath(const char* mountPath)
 }
 
 
-
-
 bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 {
     char cDevNodePath[128] = {0};
@@ -381,6 +381,7 @@ bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
     }
     return bResult;
 }
+
 
 
 /*
@@ -431,12 +432,21 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                         Log.e(TAG, "mount device[%s -> %s] failed, reason [%d]", tmpVol->cDevNode, tmpVol->pMountPath, errno);
                     } else {
                         Log.d(TAG, "mount device[%s] on path [%s] success", tmpVol->cDevNode, tmpVol->pMountPath);
+
                         tmpVol->iVolState = VOLUME_STATE_MOUNTED;
 
-                        mSavedLocalVol = mCurrentUsedLocalVol;
-                        mCurrentUsedLocalVol = tmpVol;
+                        setVolCurPrio(tmpVol, evt);
+                        setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
+
                         
-                        /* TODO: 通知UI有新的设备插入 */
+                        /* TODO: 通知UI有新的设备插入 
+                         * 发送本地存储设备列表
+                         * 检查本地存储路径是否要发生改变，如果需要，设置mBsavePathChanged为true
+                         * - 通知UI线程有新设备插入,显示"USB Device Attached"
+                         * - 发送本地存储设备列表,由UI转给HTTP服务器
+                         * - 检查存储设备路径是否需要发生改变,如果需要改变mBsavePathChanged=true
+                         */
+                        sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
 
                     }
                 }
@@ -449,19 +459,119 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
             tmpVol = isSupportedDev(evt->getBusAddr());
             
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) { 
-                 if (!unmountVolume(tmpVol, evt, true)) {
-                     if (mCurrentUsedLocalVol == tmpVol) {
-                         mCurrentUsedLocalVol = mSavedLocalVol;
-                         mSavedLocalVol = NULL;
-                     }
+                if (!unmountVolume(tmpVol, evt, true)) {
 
-                     /* 发送存储设备移除,及当前存储设备路径的消息 */
+                    tmpVol->iVolState = VOLUME_STATE_INIT;
+                     
+                    setVolCurPrio(tmpVol, evt);
+                    setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);
+
+                    /* 发送存储设备移除,及当前存储设备路径的消息 */
+                    sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
                  }
             }
             break;
         }
     }    
 }
+
+
+vector<Volume*>& VolumeManager::getCurSavepathList()
+{
+    Volume* tmpVol = NULL;
+
+    mCurSaveVolList.clear();
+
+    for (u32 i = 0; i < mLocalVols.size(); i++) {
+        tmpVol = mLocalVols.at(i);
+        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)
+            && (tmpVol->iVolState == VOLUME_STATE_MOUNTED) ) { 
+            mCurSaveVolList.push_back(tmpVol);
+        }
+    }
+    return mCurSaveVolList;
+}
+
+/*
+ * 根据卷的传递的地址来改变卷的优先级
+ */
+void VolumeManager::setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt)
+{
+    /* 根据卷的地址重置卷的优先级 */
+    if (!strncmp(pEvt->getBusAddr(), "2-2", strlen("2-2"))) {
+        pVol->iPrio = VOLUME_PRIO_SD;
+    } else if (!strncmp(pEvt->getBusAddr(), "2-1", strlen("2-1"))) {
+        pVol->iPrio = VOLUME_PRIO_UDISK;
+    } else if (!strncmp(pEvt->getBusAddr(), "1-2.1", strlen("1-2.1"))) {
+        pVol->iPrio = VOLUME_PRIO_LOW;
+    } else if (!strncmp(pEvt->getBusAddr(), "2-3", strlen("2-3"))) {
+        pVol->iPrio = VOLUME_PRIO_UDISK;
+    } else {
+        pVol->iPrio = VOLUME_PRIO_LOW;
+    }
+
+}
+
+void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
+{
+    Volume* tmpVol = NULL;
+
+    switch (iAction) {
+        case VOLUME_ACTION_ADD: {
+            if (mCurrentUsedLocalVol == NULL) {
+                mCurrentUsedLocalVol = pVol;
+                mBsavePathChanged = true;       /* 表示存储设备路径发生了改变 */
+            } else {    /* 检查是否需要改变存储路径 */
+                /* 检查是否有更高速的设备插入，如果有 */
+                for (u32 i = 0; i < mLocalVols.size(); i++) {
+                    tmpVol = mLocalVols.at(i);
+                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)
+                        && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
+                        /* 挑选优先级更高的设备作为当前的存储设备 */
+                        if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
+                            mCurrentUsedLocalVol = tmpVol;
+                            mBsavePathChanged = true;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case VOLUME_ACTION_REMOVE: {
+            
+            Volume* oldVol = NULL;
+
+            if (mCurrentUsedLocalVol != NULL) { /* 重新选择一个已经挂载了的，优先级最高的设备作为当前的本地存储设备 */
+                oldVol = mCurrentUsedLocalVol;
+                mCurrentUsedLocalVol->iPrio = VOLUME_PRIO_LOW;
+
+                for (u32 i = 0; i < mLocalVols.size(); i++) {
+                    tmpVol = mLocalVols.at(i);
+                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
+                        
+                        /* 挑选优先级更高的设备作为当前的存储设备 */
+                        if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
+                            mCurrentUsedLocalVol = tmpVol;
+                            mBsavePathChanged = true;
+                        }
+                    }
+                } 
+
+                if (mCurrentUsedLocalVol == oldVol) {
+                    mBsavePathChanged = true;
+                    mCurrentUsedLocalVol = NULL;
+                }
+
+            } else {
+                mBsavePathChanged = false;
+            }
+            break;
+        }
+    }
+
+}
+
 
 int VolumeManager::listVolumes()
 {
@@ -493,12 +603,13 @@ void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
 }
 
 
-void VolumeManager::sendDevChangeMsg2UI(int iAction, vector<sp<Volume>> devList)
+void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>& devList)
 {
     sp<ARMessage> msg = mNotify->dup();
 
     msg->set<int>("action", iAction);    
-    msg->set<vector<sp<Volume>>>("dev_list", devList);
+    msg->set<int>("type", iType);    
+    msg->set<vector<Volume*>>("dev_list", devList);
     msg->post();    
 }
 
@@ -640,6 +751,14 @@ bool VolumeManager::checkLocalVolSpeedOK()
     }
 }
 
+/*
+ * checkSavepathChanged - 本地存储路径是否发生改变
+ */
+bool VolumeManager::checkSavepathChanged()
+{
+    return mBsavePathChanged;
+}
+
 
 int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
 {
@@ -657,12 +776,15 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
                 tmpSourceVolume = mModuleVols.at(i);
                 if (tmpChangedVolume && tmpSourceVolume) {
                     if (tmpChangedVolume->iIndex == tmpSourceVolume->iIndex) {
-                        tmpSourceVolume->uTotal = tmpChangedVolume->uTotal;
-                        tmpSourceVolume->uAvail = tmpChangedVolume->uAvail;
+                        tmpSourceVolume->uTotal     = tmpChangedVolume->uTotal;
+                        tmpSourceVolume->uAvail     = tmpChangedVolume->uAvail;
+                        tmpSourceVolume->iSpeedTest = tmpChangedVolume->iSpeedTest;
                         if (tmpSourceVolume->uTotal > 0) {
+                            Log.d(TAG, "[%s: %d] TF Card Add action", __FILE__, __LINE__);
                             iAction = VOLUME_ACTION_ADD;
                         } else {
                             iAction = VOLUME_ACTION_REMOVE;
+                            Log.d(TAG, "[%s: %d] TF Card Remove action", __FILE__, __LINE__);
                         }                        
                         break;
                     }
@@ -670,6 +792,7 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
             }  
         }
     }
+    Log.d(TAG, "[%s: %d] handleRemoteVolHotplug return action: %d", __FILE__, __LINE__, iAction);
     return iAction;
 }
 
@@ -797,11 +920,14 @@ int VolumeManager::doUnmount(const char *path, bool force)
 int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
     int iRet = 0;
+    string devnode = "/dev/";
+    devnode += pEvt->getDevNodeName();
 
-    #if 0
+    #if 1
+    Log.d(TAG, "[%s: %d] umount volume devname[%s], event devname[%s]", __FILE__, __LINE__, pVol->cDevNode, devnode.c_str());
 
-    if (strcmp(pVol->cDevNode, pEvt->getDevNodeName())) {   /* 设备名不一致,直接返回 */
-        return 0;
+    if (strcmp(pVol->cDevNode, devnode.c_str())) {   /* 设备名不一致,直接返回 */
+        return -1;
     }
 
     if (pVol->iVolState != VOLUME_STATE_MOUNTED) {
@@ -1067,10 +1193,13 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
 
         for (u32 i = 0; i < mList.size(); i++) {
             tmpVolume = mList.at(i);
+            Log.d(TAG, "[%s: %d] i = %d, volume index = %d", __FILE__, __LINE__, i, tmpVolume->iIndex);
+            Log.d(TAG, "[%s: %d] Module vols size = %d", __FILE__, __LINE__, mModuleVols.size());
 
             for (u32 j = 0; j < mModuleVols.size(); j++) {
                 localVolume = mModuleVols.at(j);
                 if (tmpVolume && localVolume && (tmpVolume->iIndex == localVolume->iIndex)) {
+                    Log.d(TAG, "[%s: %d] VolumeManager::updateRemoteTfsInfo total: 0x%x", __FILE__, __LINE__, tmpVolume->uTotal);
                     localVolume->uTotal = tmpVolume->uTotal;
                     localVolume->uAvail = tmpVolume->uAvail;
                     localVolume->iSpeedTest = tmpVolume->iSpeedTest;

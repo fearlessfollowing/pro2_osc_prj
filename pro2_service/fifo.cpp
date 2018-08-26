@@ -1226,8 +1226,8 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		 */
 		
         case MenuUI::UPDATE_DEV: {		/* 新的存储设备插入 */
-            vector<sp<Volume>> mDevList;
-            CHECK_EQ(msg->find<vector<sp<Volume>>>("dev_list", &mDevList), true);
+            vector<Volume*> mDevList;
+            CHECK_EQ(msg->find<vector<Volume*>>("dev_list", &mDevList), true);
 
 			Log.d(TAG, "update dev %d", mDevList.size());
 
