@@ -254,8 +254,6 @@ const char* NetDev::getNetDevIpFrmPhy()
     struct ifreq ifr;
     struct sockaddr_in *addr;
 
-    uint32_t ip = 0;
-
     strcpy(ifr.ifr_name, mDevName.c_str());
 
 

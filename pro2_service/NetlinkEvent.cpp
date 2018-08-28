@@ -130,7 +130,7 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
                 pSlash = strrchr(cBusAddr, '/');
                 if (pSlash) {
                     strncpy(mBusAddr, pSlash + 1, (pColon - (pSlash + 1)));
-                    Log.d(TAG, "usb bus addr: %s", mBusAddr);
+                    Log.d(TAG, "New Version usb bus addr: %s", mBusAddr);
                 } else {
                     return false;
                 }

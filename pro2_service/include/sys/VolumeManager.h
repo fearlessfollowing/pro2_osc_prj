@@ -316,29 +316,11 @@ class NetlinkEvent;
  * - 获取指定名称的卷
  */
 class VolumeManager {
-private:
-    static VolumeManager*   sInstance;
-
-    std::vector<Volume*>    mVolumes;       /* 管理系统中所有的卷 */
-
-    std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
-    std::vector<Volume*>    mModuleVols;    /* 模组卷 */
-
-    std::vector<Volume*>    mCurSaveVolList;
-
-    bool                    mDebug;
-
-    int                     mVolManagerDisabled;
-
-    int                     mModuleVolNum;
-
-    std::mutex				mLocaLDevLock;
-    std::mutex              mRemoteDevLock;
-
-    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
 public:
     virtual ~VolumeManager();
+
+    static u32 lefSpaceThreshold;
 
     /*
      * 启动/停止卷管理器
@@ -380,6 +362,7 @@ public:
 
     void        updateVolumeSpace(Volume* pVol);
 
+    void        syncTakePicLeftSapce(u32 uLeftSize);
 
     /*
      * 检查是否存在本地卷
@@ -392,6 +375,8 @@ public:
     void        setSavepathChanged(int iAction, Volume* pVol);
 
     std::vector<Volume*>& getCurSavepathList();
+
+    void        syncLocalDisk();
 
     /*
      * 检查是否所有的TF卡都存在
@@ -408,6 +393,7 @@ public:
     bool        checkSavepathChanged();
 
     void        setSavepathChanged(Volume* pVol);
+
 
     /*
      * 更新mSD的查询结果
@@ -431,6 +417,14 @@ public:
 
     Volume*     lookupVolume(const char *label);
 
+    /*
+     * 获取远端存储卷列表
+     */
+    std::vector<Volume*>& getRemoteVols();
+    std::vector<Volume*>& getLocalVols();
+
+
+
     static VolumeManager *Instance();
 
 private:
@@ -438,6 +432,27 @@ private:
     Volume*     mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
     Volume*     mSavedLocalVol;                 /* 上次保存 */
     bool        mBsavePathChanged;              /* 本地存储设备路径是否发生改变 */
+
+    static VolumeManager*   sInstance;
+
+    std::vector<Volume*>    mVolumes;       /* 管理系统中所有的卷 */
+
+    std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
+    std::vector<Volume*>    mModuleVols;    /* 模组卷 */
+
+    std::vector<Volume*>    mCurSaveVolList;
+
+    bool                    mDebug;
+
+    int                     mVolManagerDisabled;
+
+    int                     mModuleVolNum;
+
+    std::mutex				mLocaLDevLock;
+    std::mutex              mRemoteDevLock;
+
+    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
+
 
 	sp<ARMessage>	mNotify;
     VolumeManager();

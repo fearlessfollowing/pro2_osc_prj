@@ -116,15 +116,15 @@ void disp_update_info(int type)
 void disp_update_err_str(const char *str)
 {
     mOLEDModule->clear_area(0, 0);
-    disp_update_str((const u8 *)"Upgrade Fail", 20, 16);
-    disp_update_str((const u8 *)str, 20, 32);
+    disp_update_str((const u8 *)"Upgrade Fail", 32, 16);
+    disp_update_str((const u8 *)str, 32, 32);
     msg_util::sleep_ms(500);
 }
 
 void disp_update_error(int type)
 {
     mOLEDModule->clear_area(0, 0);
-    disp_update_str((const u8 *)"Upgrade Fail", 10, 16);
+    disp_update_str((const u8 *)"Upgrade Fail", 32, 16);
     for (u32 i = 0; i <= sizeof(mSysStr) / sizeof(mSysStr[0]); i++) {
         if (type == mSysStr[i].type) {
             disp_update_str((const u8 *)mSysStr[i].str, 55, 32);
@@ -154,7 +154,7 @@ void disp_start_reboot(int times)
 
     while (times > 0) {
         snprintf(buf,sizeof(buf), "reboot in %ds", times);
-        disp_update_str((const u8 *)buf, 20, 48);
+        disp_update_str((const u8 *)buf, 32, 48);
         msg_util::sleep_ms(1000);
         times--;
     }

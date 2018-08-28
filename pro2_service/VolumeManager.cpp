@@ -39,6 +39,8 @@ using namespace std;
 
 VolumeManager *VolumeManager::sInstance = NULL;
 
+u32 VolumeManager::lefSpaceThreshold = 1024U;
+
 
 static void do_coldboot(DIR *d, int lvl)
 {
@@ -512,6 +514,15 @@ void VolumeManager::setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt)
 
 }
 
+void VolumeManager::syncLocalDisk()
+{
+    string cmd = "sync -f ";
+    if (mCurrentUsedLocalVol != NULL) {
+        cmd += mCurrentUsedLocalVol->pMountPath;
+        system(cmd.c_str());
+    }
+}
+
 void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 {
     Volume* tmpVol = NULL;
@@ -700,8 +711,12 @@ u64 VolumeManager::getRemoteVolLeftMinSize()
 
 void VolumeManager::updateLocalVolSpeedTestResult(int iResult)
 {
-    if (mCurrentUsedLocalVol) {
+    string cmd = "touch ";
+    cmd += mCurrentUsedLocalVol->pMountPath;
+    cmd += "/.pro_suc";
+    if (mCurrentUsedLocalVol) { /* 在根目录的底层目录创建'.pro_suc' */
         mCurrentUsedLocalVol->iSpeedTest = iResult;
+        system(cmd.c_str());
     }
 }
 
@@ -861,7 +876,7 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 
     #else
     int status;
-    const char *args[4];
+    const char *args[3];
     args[0] = "/bin/mount";
     args[1] = pVol->cDevNode;
     args[2] = pVol->pMountPath;
@@ -1025,6 +1040,9 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
             totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
             pVol->uTotal = (totalsize >> 20);
             pVol->uAvail = ((diskInfo.f_bfree * blocksize) >> 20);
+            Log.d(TAG, "[%s: %d] Local Volume Tatol size = %ld MB", __FILE__, __LINE__, pVol->uTotal);
+            Log.d(TAG, "[%s: %d] Local Volume Avail size = %ld MB", __FILE__, __LINE__, pVol->uAvail);
+
         } else {
             Log.d(TAG, "[%s: %d] statfs failed ...", __FILE__, __LINE__);
         }
@@ -1033,6 +1051,15 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
     }
 }
 
+
+
+void VolumeManager::syncTakePicLeftSapce(u32 uLeftSize)
+{
+    if (mCurrentUsedLocalVol) {
+        Log.d(TAG, "[%s: %d] Update mCurrentUsedLocalVol Left size: %ld MB", __FILE__, __LINE__, uLeftSize + lefSpaceThreshold);
+        mCurrentUsedLocalVol->uAvail = uLeftSize + lefSpaceThreshold;
+    }
+}
 
 
 #if 0
@@ -1199,7 +1226,9 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
             for (u32 j = 0; j < mModuleVols.size(); j++) {
                 localVolume = mModuleVols.at(j);
                 if (tmpVolume && localVolume && (tmpVolume->iIndex == localVolume->iIndex)) {
-                    Log.d(TAG, "[%s: %d] VolumeManager::updateRemoteTfsInfo total: 0x%x", __FILE__, __LINE__, tmpVolume->uTotal);
+                    memset(localVolume->cVolName, 0, sizeof(localVolume->cVolName));
+                    
+                    strcpy(localVolume->cVolName, tmpVolume->cVolName);
                     localVolume->uTotal = tmpVolume->uTotal;
                     localVolume->uAvail = tmpVolume->uAvail;
                     localVolume->iSpeedTest = tmpVolume->iSpeedTest;
@@ -1209,6 +1238,19 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
     }
 }
 
+
+vector<Volume*>& VolumeManager::getRemoteVols()
+{
+    vector<Volume*>& remoteVols = mModuleVols;
+    return remoteVols;
+}
+
+
+vector<Volume*>& VolumeManager::getLocalVols()
+{
+    vector<Volume*>& localVols = mLocalVols;
+    return localVols;
+}
 
 void VolumeManager::setDebug(bool enable)
 {

@@ -45,7 +45,6 @@
 #include <dirent.h>
 #include <prop_cfg.h>
 
-#include "NetlinkManager.h"
 
 using namespace std;
 
@@ -478,7 +477,7 @@ int read_process_inotify_fd(int fd)
  * 卷操作线程：负责卷的挂载/卸载/格式化等操作
  * 
  */
-#if 0
+
 int main(int argc, char** argv)
 {
 	struct epoll_event eventItem;
@@ -509,23 +508,23 @@ int main(int argc, char** argv)
 
 	/* 1.初始化inotify和epoll */
 	mINotifyFd = inotify_init();
-	// mEpollFd = epoll_create(EPOLL_SIZE_HINT);
+	mEpollFd = epoll_create(EPOLL_SIZE_HINT);
 
 	/* 2.添加监控的目录(监听/dev/下设备文件的变化<当有设备插入时会生成设备文件;当有设备拔出时会删除设备文件> */
 	inotify_add_watch(mINotifyFd, WATCH_PATH, IN_DELETE | IN_CREATE);
 
 	/* 3.将Inotify添加到epoll中 */
-	// eventItem.events = EPOLLIN;
-	// eventItem.data.fd = mINotifyFd;
-	// epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mINotifyFd, &eventItem);
+	eventItem.events = EPOLLIN;
+	eventItem.data.fd = mINotifyFd;
+	epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mINotifyFd, &eventItem);
 
 	Log.d(TAG, "Starting watch /dev files changed now ...");
 
     while (true) {
 
-	#if 0
+		#if 1
 		/* 4.等待事件的带来 */
-		// int pollResult = epoll_wait(mEpollFd, mPendingEventItems, EPOLL_COUNT, -1);
+		int pollResult = epoll_wait(mEpollFd, mPendingEventItems, EPOLL_COUNT, -1);
 		
 		Log.d(TAG, "epoll wait event num = %d\n", pollResult);
 
@@ -557,11 +556,11 @@ int main(int argc, char** argv)
 						
                         if (curInotifyEvent->mask & IN_CREATE) {
                 			/* 有新设备插入,根据设备文件执行挂载操作 */
-                			// handleMonitorAction(ACTION_ADD, devPath);
+                			handleMonitorAction(ACTION_ADD, devPath);
 							Log.d(TAG, "[%s: %d] [%s] Insert", __FILE__, __LINE__, devPath);
                         } else if (curInotifyEvent->mask & IN_DELETE) {
                 			/* 有设备拔出,执行卸载操作 */
-                			// handleMonitorAction(ACTION_REMOVE, devPath);
+                			handleMonitorAction(ACTION_REMOVE, devPath);
 							Log.d(TAG, "[%s: %d] [%s] Removed", __FILE__, __LINE__, devPath);
                 		}
                 	}
@@ -585,119 +584,6 @@ int main(int argc, char** argv)
 	}
 	return 0;
 }
-#else
 
-static void do_coldboot(DIR *d, int lvl)
-{
-    struct dirent *de;
-    int dfd, fd;
-
-    dfd = dirfd(d);
-
-    fd = openat(dfd, "uevent", O_WRONLY);
-    if(fd >= 0) {
-        write(fd, "add\n", 4);
-        close(fd);
-    }
-
-    while((de = readdir(d))) {
-        DIR *d2;
-
-        if (de->d_name[0] == '.')
-            continue;
-
-        if (de->d_type != DT_DIR && lvl > 0)
-            continue;
-
-        fd = openat(dfd, de->d_name, O_RDONLY | O_DIRECTORY);
-        if(fd < 0)
-            continue;
-
-        d2 = fdopendir(fd);
-        if(d2 == 0)
-            close(fd);
-        else {
-            do_coldboot(d2, lvl + 1);
-            closedir(d2);
-        }
-    }
-}
-
-
-static void coldboot(const char *path)
-{
-    DIR *d = opendir(path);
-    if(d) {
-        do_coldboot(d, 0);
-        closedir(d);
-    }
-}
-
-
-int main(int argc, char* argv[])
-{
-    // VolumeManager *vm;
-    // CommandListener *cl;
-    NetlinkManager *nm;
-
-	/* 属性及日志系统初始化 */
-	arlog_configure(true, true, VOLD_LOG_PATH, false);    /* 配置日志 */
-
-    if (__system_properties_init()) {   /* 属性区域初始化 */
-		Log.e(TAG, "update_check service exit: __system_properties_init() failed");
-		return -1;
-	}
-	
-	property_set("sys.vold_ver", VOLD_VER);
-
-	Log.d(TAG, ">>>>> Vold Manager Service, sarting <<<<<");	
-
-	#if 0
-    if (!(vm = VolumeManager::Instance())) {	
-        Log.e(TAG, "Unable to create VolumeManager");
-        exit(1);
-    };
-	#endif
-
-    if (!(nm = NetlinkManager::Instance())) {	/* ����NetlinkManager���� */
-        Log.e(TAG, "Unable to create NetlinkManager");
-        exit(1);
-    };
-
-    // cl = new CommandListener();
-    // vm->setBroadcaster((SocketListener *) cl);
-    // nm->setBroadcaster((SocketListener *) cl);
-
-#if 0
-    if (vm->start()) {		/* do nothing, return 0 */
-        SLOGE("Unable to start VolumeManager (%s)", strerror(errno));
-        exit(1);
-    }
-#endif
-    if (nm->start()) {
-        Log.e(TAG, "Unable to start NetlinkManager (%s)", strerror(errno));
-        exit(1);
-    }
-
-
-    coldboot("/sys/block");
-
-	#if 0
-    if (cl->startListener()) {
-        Log.e(TAG, "Unable to start CommandListener (%s)", strerror(errno));
-        exit(1);
-    }
-	#endif
-
-    while (1) {
-		sleep(1000);
-    }
-
-    Log.i(TAG, "Vold exiting");
-    exit(0);
-
-}
-
-#endif
 
 

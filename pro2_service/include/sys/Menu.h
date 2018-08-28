@@ -78,6 +78,8 @@ enum {
     MENU_CALC_BLC,
     MENU_CALC_BPC,
 
+    MENU_UDISK_MODE,            /* U盘模式菜单 */
+
     //messagebox keep at the end mAebList
     MENU_DISP_MSG_BOX,          // 28
     MENU_MAX,                   // 29
@@ -468,6 +470,16 @@ static MENU_INFO mMenuInfos[] = {
         NULL,        
 	},
 #endif
+
+	{	/* MENU_DISP_MSG_BOX */
+    	MENU_TOP,
+		{0},
+		{0},
+        MENU_UDISK_MODE,
+        NULL,
+        NULL,        
+	},
+
 
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,

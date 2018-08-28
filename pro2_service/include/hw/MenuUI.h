@@ -113,6 +113,9 @@ typedef enum _type_ {
     START_BPC = 150,
     STOP_BPC  = 151,
 
+    ENTER_UDISK_MODE = 152,
+    EXIT_UDISK_DONE = 155,
+
 //    WRITE_FOR_BROKEN = 101,
     RESET_ALL_CFG = 102,
     MAX_TYPE,
@@ -361,6 +364,26 @@ enum {
 };
 
 
+enum {
+    FORMAT_ERR_SUC = 0,
+    FORMAT_ERR_UMOUNT_EXFAT = -1,
+    FORMAT_ERR_FORMAT_EXT4 = -2,
+    FORMAT_ERR_MOUNT_EXT4 = -3,
+    FORMAT_ERR_FSTRIM = -4,
+    FORMAT_ERR_UMOUNT_EXT4 = -5,
+    FORMAT_ERR_FORMAT_EXFAT = -6,
+    FORMAT_ERR_E4DEFRAG = -7,
+
+};
+
+
+enum {
+    DISK_TYPE_USB,
+    DISK_TYPE_SD,
+    DISK_TYPE_MAX
+};
+
+
 struct _icon_info_;
 struct _lr_menu_;
 struct _r_menu_;
@@ -511,7 +534,6 @@ private:
 
 
     void disp_format();
-    void reset_devmanager();
     void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int exec_sh_new(const char *buf);
 
@@ -571,73 +593,73 @@ private:
     void readkey_thread();
     void update_bottom_thread();
     void add_state(int state);
-    void update_by_controller(int action);
-    void minus_cam_state(int state);
-    void disp_tl_count(int count);
-    void set_tl_count(int count);
-    void rm_state(int state);
+    void    update_by_controller(int action);
+    void    minus_cam_state(int state);
+    void    disp_tl_count(int count);
+    void    set_tl_count(int count);
+    void    rm_state(int state);
 
-    void update_sys_info();
-    void restore_all();
+    void    update_sys_info();
+    void    restore_all();
 
-    void set_cur_menu_from_exit();
-    void handle_top_menu_power_key();
-    void send_oled_power_action();
+    void    set_cur_menu_from_exit();
+    void    handle_top_menu_power_key();
+    void    send_oled_power_action();
 	
-    void exit_sys_err();
-    void handle_wifi_action(int key);
-    void handle_setting_action(int key);
-    void sendExit();
-    void exitAll();
-    void set_org_addr(unsigned int addr);
-    void set_mdev_list(std::vector<sp<Volume>> &mList);
+    void    exit_sys_err();
+    void    handle_wifi_action(int key);
+    void    handle_setting_action(int key);
+    void    sendExit();
+    void    exitAll();
+    void    set_org_addr(unsigned int addr);
+    void    set_mdev_list(std::vector<sp<Volume>> &mList);
 
-    void sys_reboot(int cmd = REBOOT_SHUTDOWN);
+    void    sys_reboot(int cmd = REBOOT_SHUTDOWN);
 
-	void disp_cam_param(int higlight);
-
-
-    bool check_save_path_usb();
-    int get_dev_type_index(char *dev_type);
-
-    void get_save_path_remain();
-
-    void caculate_rest_info(u64 size = 0);
-    bool switch_dhcp_mode(int iDHCP);
-    void send_clear_msg_box(int delay = 1000);
-    void send_delay_msg(int msg_id, int delay);
-    void send_bat_low();
-    void send_read_bat();
-
-    void send_update_mid_msg(int interval = 1000);
-    void set_update_mid();
-    void increase_rec_time();
-    bool decrease_rest_time();
-    void disp_mid();
-    void flick_light();
-    void flick_low_bat_lig();
+	void    disp_cam_param(int higlight);
 
 
-    void add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
+    bool    check_save_path_usb();
+    int     get_dev_type_index(char *dev_type);
 
-    void disp_stitch_progress(sp<struct _stich_progress_> &mProgress);
-    void disp_qr_res(bool high = true);
+    void    get_save_path_remain();
+
+    void    caculate_rest_info(u64 size = 0);
+    bool    switch_dhcp_mode(int iDHCP);
+    void    send_clear_msg_box(int delay = 1000);
+    void    send_delay_msg(int msg_id, int delay);
+    void    send_bat_low();
+    void    send_read_bat();
+
+    void    send_update_mid_msg(int interval = 1000);
+    void    set_update_mid();
+    void    increase_rec_time();
+    bool    decrease_rest_time();
+    void    disp_mid();
+    void    flick_light();
+    void    flick_low_bat_lig();
+
+
+    void    add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
+
+    void    disp_stitch_progress(sp<struct _stich_progress_> &mProgress);
+    void    disp_qr_res(bool high = true);
 
     // action from controller
 //    void disp_control_def(int save_org,int rts,int hdmi);
-    void reset_last_info();
-    bool is_bat_low();
-    bool is_bat_charge();
+    void    reset_last_info();
+    bool    is_bat_low();
+    bool    is_bat_charge();
 
-    bool check_battery_change(bool bUpload = false);
+    bool    check_battery_change(bool bUpload = false);
 
-    void func_low_bat();
+    void    func_low_bat();
 
-    int get_battery_charging(bool *bCharge);
-    int read_tmp(double *int_tmp,double *tmp);
-    void set_flick_light();
-    void set_light();
-    bool check_cam_busy();
+    int     get_battery_charging(bool *bCharge);
+    int     read_tmp(double *int_tmp,double *tmp);
+    void    set_flick_light();
+    void    set_light();
+    bool    check_cam_busy();
 
 
 /******************************************************************************************************
@@ -646,110 +668,103 @@ private:
     /*
      * takeVideoIsAgeingMode - 老化录像模式
      */
-    bool takeVideoIsAgeingMode();
+    bool    takeVideoIsAgeingMode();
 
 
 /******************************************************************************************************
  * 显示类
  ******************************************************************************************************/
-	void dispIconByLoc(const ICON_INFO* pInfo);
+	void    dispIconByLoc(const ICON_INFO* pInfo);
 
 
     /*
      * 格式化
      */
-    void startFormatDevice();
-    int formatDev(const char* pDevNode, const char* pMountPath);
-    void handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
+    void    startFormatDevice();
+    int     formatDev(const char* pDevNode, const char* pMountPath);
+    void    handleTfFormated(std::vector<sp<Volume>>& mTfFormatList);
 
 
     /*
      * 测速
      */
-    void handleSppedTest(std::vector<sp<Volume>>& mSpeedTestList);
+    void    handleSppedTest(std::vector<sp<Volume>>& mSpeedTestList);
     /*
      * 是否满足测速条件
      * 是返回true; 否返回false
      */
-    int isSatisfySpeedTestCond();
-    bool checkVidLiveStorageSpeed();
-    void dispTipStorageDevSpeedTest();    
-    void dispWriteSpeedTest();
+    int     isSatisfySpeedTestCond();
+    bool    checkVidLiveStorageSpeed();
+    void    dispTipStorageDevSpeedTest();    
+    void    dispWriteSpeedTest();
 
-    void dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
+    void    dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
     /*
      * 检查直播时是否需要保存原片
      */
-    bool checkLiveNeedSave();    
+    bool    checkLiveNeedSave();    
 
     const char* getPicVidCfgNameByIndex(std::vector<struct stPicVideoCfg*> & mList, int iIndex);
     struct stPicVideoCfg* getPicVidCfgByName(std::vector<struct stPicVideoCfg*>& mList, const char* name);
 
 
 
-	void setGyroCalcDelay(int iDelay);
+	void    setGyroCalcDelay(int iDelay);
 	
 	// void set_disp_control(bool state);
 
-    bool switchEtherIpMode(int iMode);
+    bool    switchEtherIpMode(int iMode);
 
-    void update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
+    void    update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
 
 
     /************************************** 灯光管理 START *************************************************/
-    void setLightDirect(u8 val);
-    void setLight(u8 val);
-    void setLight();
-    void setAllLightOnOffForce(int iOnOff);
+    void    setLightDirect(u8 val);
+    void    setLight(u8 val);
+    void    setLight();
+    void    setAllLightOnOffForce(int iOnOff);
     /************************************** 灯光管理 END *************************************************/
 
 
     /************************************** 菜单相关 START *************************************************/
-    int getMenuSelectIndex(int menu);
-    int getCurMenuCurSelectIndex();
-    void updateMenuCurPageAndSelect(int menu, int iSelect);   
-    int getMenuLastSelectIndex(int menu);
-    int getCurMenuLastSelectIndex();    
-    void updateMenu();
-    void setCurMenu(int menu,int back_menu = -1);
-    void cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
+    int     getMenuSelectIndex(int menu);
+    int     getCurMenuCurSelectIndex();
+    void    updateMenuCurPageAndSelect(int menu, int iSelect);   
+    int     getMenuLastSelectIndex(int menu);
+    int     getCurMenuLastSelectIndex();    
+    void    updateMenu();
+    void    setCurMenu(int menu,int back_menu = -1);
+    void    cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
-    bool isQueryTfMenuShowLeftSpace();
+    bool    isQueryTfMenuShowLeftSpace();
  
-    bool getQueryResult(int iTimeout);
+    bool    getQueryResult(int iTimeout);
     /*
      * 系统信息
      */
-    void dispSysInfo();
+    void    dispSysInfo();
 
     /*
      * 存储相关: 计算剩余空间
      */
-    bool localStorageAvail();
-    void convSize2LeftNumTime(u64 size);    
-    void convSize2LeftNumTime(u64 size, int iMode);
-    void calcRemainSpace();
-    void dispBottomLeftSpace();
-    void calcRemoteRemainSpace();
+    void    convSize2LeftNumTime(u64 size, int iMode);
+    void    calcRemainSpace(bool bUseCached);
+    void    dispBottomLeftSpace();
 
-    void convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen);
+    void    convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen);
     
     /*
      * 检查存储是否满足操作的条件
      */
-    bool checkStorageSatisfy(int action = -1);
+    bool    checkStorageSatisfy(int action = -1);
 
-    /*
-     * TF-Card
-     */
-    bool checkAllTfCardExist();
 
     /*
      * 拍照部分
      */
-    void cfgPicModeItemCurVal(struct stPicVideoCfg* pPicCfg);
+    void    cfgPicModeItemCurVal(struct stPicVideoCfg* pPicCfg);
 
-
+    int     getCurOneGroupPicSize();
 
 
 /*************************************************************************************************
@@ -759,149 +774,144 @@ private:
     /*
      * 更新系统设置（来自客户端）
      */
-    void updateSysSetting(sp<struct _sys_setting_> &mSysSetting);
+    void    updateSysSetting(sp<struct _sys_setting_> &mSysSetting);
     /*
      * 更新指定名称的设置项的值
      */
-    void updateSetItemVal(const char* pSetItemName, int iVal);    
+    void    updateSetItemVal(const char* pSetItemName, int iVal);    
 
 
-    void dispSetItem(struct stSetItem* pItem, bool iSelected);
-    void procSetMenuKeyEvent();
-    void setMenuCfgInit();
-    void setSysMenuInit(MENU_INFO* pParentMenu, struct stSetItem** pSetItems);
-    void setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists, struct stSetItem** pSetItems, struct stIconPos* pIconPos);    
-    void updateMenuPage();
-    void updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
-    void dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
-    void updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
-    int get_setting_select(int type);
+    void    dispSetItem(struct stSetItem* pItem, bool iSelected);
+    void    procSetMenuKeyEvent();
+    void    setMenuCfgInit();
+    void    setSysMenuInit(MENU_INFO* pParentMenu, struct stSetItem** pSetItems);
+    void    setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists, struct stSetItem** pSetItems, struct stIconPos* pIconPos);    
+    void    updateMenuPage();
+    void    updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
+    void    dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
+    void    updateSetItemCurVal(std::vector<struct stSetItem*>& setItemList, const char* name, int iSetVal);
+    int     get_setting_select(int type);
 
 
     struct stSetItem* getSetItemByName(std::vector<struct stSetItem*>& mList, const char* name);
 
-    void dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected);
-    void dispShowStoragePage(struct stStorageItem** storageList);
+    void    dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected);
+    void    dispShowStoragePage(struct stStorageItem** storageList);
 
 
-    void volumeItemInit(MENU_INFO* pMenuInfo, std::vector<sp<Volume>>& mVolumeList);
-    void getShowStorageInfo();
+    void    volumeItemInit(MENU_INFO* pMenuInfo, std::vector<sp<Volume>>& mVolumeList);
+    void    getShowStorageInfo();
 
-    void updateInnerStoragePage(struct stStorageItem** pItemList, bool bUpdateLast);
+    void    updateInnerStoragePage(struct stStorageItem** pItemList, bool bUpdateLast);
 
-    void setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
-    void updateBottomMode(bool bLight);
+    void    setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
+    void    updateBottomMode(bool bLight);
 
     /* 显示底部的规格模式 */
-    void dispPicVidCfg(struct stPicVideoCfg* pCfg, bool bLight);
+    void    dispPicVidCfg(struct stPicVideoCfg* pCfg, bool bLight);
 
     /*
      * 显示底部信息: 
      * high - 表示是否高亮显示规格
      * bTrueLeftSpace - 是否真实的显示剩余空间,默认为true
      */
-    void dispBottomInfo(bool high = false, bool bTrueLeftSpace = true);
-    void updateBottomSpace(bool bNeedCalc);
-
+    void    dispBottomInfo(bool high = false, bool bTrueLeftSpace = true);
+    void    updateBottomSpace(bool bNeedCalc, bool bUseCached);
+    
     /************************************** 菜单相关 END *************************************************/
 
 
 	/* 
 	 * 网络接口 PicVideoCfg
 	 */
-	void sendWifiConfig(sp<WifiConfig> &mConfig);
-	void handleorSetWifiConfig(sp<WifiConfig> &mConfig);
+	void    sendWifiConfig(sp<WifiConfig> &mConfig);
+	void    handleorSetWifiConfig(sp<WifiConfig> &mConfig);
 
 
-	void handleGyroCalcEvent();
+	void    handleGyroCalcEvent();
 
 	/*
 	 * 消息处理
 	 */
-    void handleTfQueryResult();
-	void handleKeyMsg(int iKey);				/* 按键消息处理 */
-	void handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type);
-	void handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
-	void handleLongKeyMsg(int key, int64 ts);
-	void handleDispLightMsg(int menu, int state, int interval);
-	void handleUpdateMid();
-    void handleUpdateDevInfo(int iAction, int iType, std::vector<Volume*>& mList);
+    void    handleTfQueryResult();
+	void    handleKeyMsg(int iKey);				/* 按键消息处理 */
+	void    handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type);
+	void    handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
+	void    handleLongKeyMsg(int key, int64 ts);
+	void    handleDispLightMsg(int menu, int state, int interval);
+	void    handleUpdateMid();
+    void    handleUpdateDevInfo(int iAction, int iType, std::vector<Volume*>& mList);
 
     /********************************************* 拍照部分 ****************************************************/
-    void setTakePicDelay(int iDelay);
-    int convCapDelay2Index(int iDelay);
-    int convIndex2CapDelay(int iIndex);
+    void    setTakePicDelay(int iDelay);
+    int     convCapDelay2Index(int iDelay);
+    int     convIndex2CapDelay(int iIndex);
 
-    int convAebNumber2Index(int iAebNum);
-    int convIndex2AebNum(int iIndex);
+    int     convAebNumber2Index(int iAebNum);
+    int     convIndex2AebNum(int iIndex);
 
 
 
     /********************************************* 按键处理 ****************************************************/
-	void commUpKeyProc();
-    void commDownKeyProc();
-    void procBackKeyEvent();
-	void procPowerKeyEvent();
-	void procUpKeyEvent();
-	void procDownKeyEvent();
-	void procSettingKeyEvent();
-
-
+	void    commUpKeyProc();
+    void    commDownKeyProc();
+    void    procBackKeyEvent();
+	void    procPowerKeyEvent();
+	void    procUpKeyEvent();
+	void    procDownKeyEvent();
+	void    procSettingKeyEvent();
 
 	/*
 	 * 显示
 	 */
-	void uiShowStatusbarIp();			/* 显示IP地址 */
-	void procUpdateIp(const char* ipAddr);
-    void dispTfCardIsFormatting(int iType);
+	void    uiShowStatusbarIp();			/* 显示IP地址 */
+	void    procUpdateIp(const char* ipAddr);
+    void    dispTfCardIsFormatting(int iType);
 
 	/*
 	 * 存储管理器
 	 */
-	bool syncQueryTfCardState(int iTimeout);
-
-    bool asyncQueryTfCardState();
+    bool    asyncQueryTfCardState();
 
     /* 发送TF状态变化消息 */
-    void handleTfStateChanged(std::vector<sp<Volume>>& mTfChangeList);
+    void    handleTfStateChanged(std::vector<sp<Volume>>& mTfChangeList);
 
-    void showSpaceQueryTfCallback();
-
-
+    void    showSpaceQueryTfCallback();
 
 
-	sp<ARLooper> mLooper;
-    sp<ARHandler> mHandler;
-    std::thread th_msg_;
+
+private:
+
+	sp<ARLooper>                mLooper;
+    sp<ARHandler>               mHandler;
+    std::thread                 th_msg_;
 	
-    std::thread th_sound_;
+    std::thread                 th_sound_;
 
+    bool                        bExitMsg = false;
 
-
-    bool bExitMsg = false;
-
-    bool bExitUpdate = false;
-    bool bExitLight = false;
-    bool bExitSound = false;
-    bool bExitBat = false;
-    bool bSendUpdate = false;
-    bool bSendUpdateMid = false;
-    sp<ARMessage> mNotify;
+    bool                        bExitUpdate = false;
+    bool                        bExitLight = false;
+    bool                        bExitSound = false;
+    bool                        bExitBat = false;
+    bool                        bSendUpdate = false;
+    bool                        bSendUpdateMid = false;
+    sp<ARMessage>               mNotify;
 	
-    int cam_state = 0;
+    int                         cam_state = 0;
 
-    int     cur_menu = -1;
-    int     iLastEnterMenu;
-    int last_err = -1;
+    int                         cur_menu = -1;
+    int                         iLastEnterMenu;
+    int                         last_err = -1;
 
-	int set_photo_delay_index = 0;
+	int                         set_photo_delay_index = 0;
 	
 //option which power key react ,changed by both oled key and ws
-    int cur_option = 0;
+    int                         cur_option = 0;
 
 	//normally changed by up/down/power key in panel
-    int org_option = 0;
-    sp<pro_cfg>             mProCfg;
+    int                         org_option = 0;
+    sp<pro_cfg>                 mProCfg;
 	
 	// dev_type : 1 -- usb , 2 -- sd1 (3 --sd2 if exists)
     std::vector<sp<Volume>>     mSaveList;
@@ -920,8 +930,6 @@ private:
     sp<struct _rec_info_>       mRecInfo;
     sp<oled_light>              mOLEDLight;
 
-    // int cap_delay = 0;
-	
 
     u8 last_light = 0;
     u8 fli_light = 0;
@@ -940,28 +948,21 @@ private:
     sp<struct _wifi_config_>    mWifiConfig;
 
     bool                        bDispTop = false;
-    bool                        bRoot = false;
-    bool                        bAdb = false;
-    int                         adb_times = 0;
-    int                         adb_root_times = 0;
     int                         last_down_key = 0;
     int                         tl_count = -1;
     int                         aging_times = 0;
     int                         bat_jump_times = 0;
     int64                       last_key_ts = 0;
 	
-
-
 	sp<NetManager>              mNetManager;            /* 网络管理器对象强指针 */
 
     sp<dev_manager>             mDevManager;            /* 设备管理器对象强指针 */
 
     int                         mTakePicDelay = 0;      /* 拍照倒计时 */  
-
 	int	                        mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
 	
     bool                        bLiveSaveOrg = false;
-    int pipe_sound[2]; // 0 -- read , 1 -- write
+    int                         pipe_sound[2]; // 0 -- read , 1 -- write
 
     // during stiching and not receive stich finish
     bool                        bStiching = false;
@@ -978,12 +979,9 @@ private:
 	/*------------------------------------------------------------------------------
 	 * 存储管理部分
 	 */
-    bool                        mRemoteStorageState;
 
 	u32 	                    mMinStorageSpce;						/* 所有存储设备中最小存储空间大小(单位为MB) */
 
-
-    int                         mTfNum;
 
     /* 目前拍照都存储在大卡里
      * 步骤:
@@ -993,43 +991,35 @@ private:
      * 2. 以该规格拍完一张照片时
      * 3. 调整拍照规格时
      */
-	u32		                mCanTakePicNum;							/* 可拍照的张数 */
-	u32		                mCanTakeVidTime;						/* 可录像的时长(秒数) */
-	u32		                mCanTakeLiveTime;						/* 可直播录像的时长(秒数) */
+	u32		                    mCanTakePicNum;							        /* 可拍照的张数 */
+	u32		                    mCanTakeVidTime;						        /* 可录像的时长(秒数) */
+	u32		                    mCanTakeLiveTime;						        /* 可直播录像的时长(秒数) */
 
-    u32                     mCanTakeTimelapseNum;                   /* 可拍timelapse的张数 */
+    u32                         mCanTakeTimelapseNum;                           /* 可拍timelapse的张数 */
 
-    bool                    mSysncQueryTfReq;                       /* 以同步方式查询TF卡状态 */
-    bool                    mAsyncQueryTfReq;                       /* 以异步方式查询TF卡状态 */
+    bool                        mSysncQueryTfReq;                               /* 以同步方式查询TF卡状态 */
+    bool                        mAsyncQueryTfReq;                               /* 以异步方式查询TF卡状态 */
 
 
-	std::mutex				mRemoteDevLock;
-    bool                    mRemoteStorageUpdate = false;
+    bool                        mRemoteStorageUpdate = false;
     
-	std::vector<sp<Volume>> mRemoteStorageList;		                /* 存储列表 */
-    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
-	std::mutex				mLocaLDevLock;
-	std::vector<sp<Volume>> mLocalStorageList;		                /* 存储列表 */
-    u64                     mLocalRecLiveLeftTime;                  /* 本地存储设备,录像,直播的剩余时间 */
+    u64                         mLocalRecLiveLeftTime;                          /* 本地存储设备,录像,直播的剩余时间 */
 
+    std::vector<sp<Volume>>     mShowStorageList;                               /* 用于Storage列表中显示的存储设备列表 */
 
-    std::vector<sp<Volume>> mShowStorageList;                       /* 用于Storage列表中显示的存储设备列表 */
-
-	bool	                bFirstDev = true;
-	int		                mSavePathIndex = -1;
+	bool	                    bFirstDev = true;
     
-    bool                    mNeedSendAction = true;                 /* 是否需要发真实的请求给Camerad */
-    bool                    mCalibrateSrc;
+    bool                        mNeedSendAction = true;                         /* 是否需要发真实的请求给Camerad */
+    bool                        mCalibrateSrc;
 
-	sp<InputManager>        mInputManager;                          /* 按键输入管理器 */
+	sp<InputManager>            mInputManager;                                  /* 按键输入管理器 */
 
+    bool                        mSpeedTestUpdateFlag = false;                   /* 测速更新标志 */
 
-    bool                    mSpeedTestUpdateFlag = false;                   /* 测速更新标志 */
-
-    int                     mWhoReqSpeedTest = UI_REQ_TESTSPEED;
-    int                     mWhoReqEnterPrew = APP_REQ_PREVIEW;            /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
-    int                     mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
+    int                         mWhoReqSpeedTest = UI_REQ_TESTSPEED;
+    int                         mWhoReqEnterPrew = APP_REQ_PREVIEW;             /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
+    int                         mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
 
 	/*
 	 * 菜单管理相关 MENU_INFO stPicVideoCfg

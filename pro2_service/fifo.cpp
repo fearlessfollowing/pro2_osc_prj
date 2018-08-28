@@ -912,10 +912,10 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             break;
         #endif
 					
-        /* {"action": ACTION_SPEED_TEST, "paramters":{"path":"/media/nvidia/xxxx"}} */
+        /* {"action": ACTION_SPEED_TEST, "paramters":{"path":"/media/nvidia/xxxx"}} ACTION_SPEED_TEST*/
         case ACTION_SPEED_TEST: {
-            char *path;
-            CHECK_EQ(msg->find<char *>("path", &path), true);
+            const char *path;
+            CHECK_EQ(msg->find<const char *>("path", &path), true);
             param = cJSON_CreateObject();
             Log.d(TAG, "speed path %s", path);
             cJSON_AddStringToObject(param, "path", path);
@@ -1244,7 +1244,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                     
                     cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd" );
                     cJSON_AddStringToObject(sub, "path", mDevList.at(i)->pMountPath);
-                    cJSON_AddStringToObject(sub, "name", mDevList.at(i)->cDevNode);
+                    cJSON_AddStringToObject(sub, "name", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd");
 
                     cJSON_AddItemToArray(jsonArray, sub);
                 }

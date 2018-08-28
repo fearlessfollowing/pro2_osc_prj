@@ -51,13 +51,17 @@
 #include <util/md5.h>
 #include <log/arlog.h>
 #include <system_properties.h>
+#include <string>
 
 #include <sys/types.h>
 #include <dirent.h>
 #include <prop_cfg.h>
 
 
+#undef  TAG
 #define TAG "update_check"
+
+using namespace std;
 
 /*
  * 升级程序的日志文件路径
@@ -440,6 +444,7 @@ static bool search_updatebin_from_rmdev()
 		char buf[1024];
 		int iLen = -1;
 		char *delim = (char *)" ";
+		struct stat fileStat;
 
 		memset(buf, 0, sizeof(buf));
 		
@@ -465,6 +470,16 @@ static bool search_updatebin_from_rmdev()
 							continue;
 						}
 
+						if (stat(image_path, &fileStat)) {
+							continue;
+						} else {
+							if (S_ISREG(fileStat.st_mode)) {
+								Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
+							} else {
+								Log.d(TAG, "[%s: %d] Not regular file, pass it", __FILE__, __LINE__);
+								continue;
+							}
+						}
 						bRet = true;
 					} else {
 						Log.d(TAG, "no mount path?");
@@ -478,30 +493,13 @@ static bool search_updatebin_from_rmdev()
 	return bRet;
 }
 
-
-#if 0
-static bool is_fs_rw(const char* path)
-{
-	char tmp_file[512];
-	bool ret = false;
-	int fd;
-	
-	memset(tmp_file, 0, sizeof(tmp_file));
-	sprintf(tmp_file, "%s/tmpfile", path);
-
-	Log.e(TAG, "create tmp file [%s]\n", tmp_file);
-	if ((fd = open(tmp_file, O_CREAT | O_RDWR, 0666)) < 0) {
-		Log.e(TAG, "create tmpfile failed...");
- 	} else {
- 		ret = true;
-		close(fd);
-		unlink(tmp_file);
-	}
-	return ret;
-}
-#endif
-
-
+/*
+ * 1.检查设备文件存在
+ * 2.挂载设备文件
+ * 3.检查是否存在升级文件
+ * 4.拷贝设备文件到EMMC
+ * 5.卸载设备，启动update_app
+ */
 
 /*************************************************************************
 ** 方法名称: check_update_device_insert
@@ -660,8 +658,6 @@ static void set_sys_ver_prop(const char* ver_path)
 int main(int argc, char **argv)
 {
 	int iRet = -1;
-    // char image_path[1024];
-	// char upate_check_path[1024] = {0};
 	bool found = false;
 	bool result = false;
 	const char* pUcDelayStr = NULL;	
@@ -734,8 +730,8 @@ int main(int argc, char **argv)
 		Log.d(TAG, "[%s: %d] Copy image source path name: %s", __FILE__, __LINE__, cp_src_path);
 		Log.d(TAG, "[%s: %d] Copy image dest path name: %s", __FILE__, __LINE__, cp_dst_path);
 
+		/* 拷贝升级文件到/tmp下 */
 		sprintf(com_cmd, "cp -f %s %s", cp_src_path, cp_dst_path);
-		
 		for (int i = 0; i < 3; i++) {
 			if (system(com_cmd)) {
 				iCpCnt++;
@@ -798,8 +794,17 @@ EXIT:
 	 * 2.升级镜像不存在
 	 * 3.升级镜像提取错误
 	 */
-	Log.d(TAG, "needn't startup update_app, start app directly...");			
+	Log.d(TAG, "needn't startup update_app, start app directly...");	
+
 	arlog_close();	/* 关闭日志 */		
+	
+	system("killall vold_test");
+
+	/* 卸载挂载的升级设备 */
+	string cmd = "umount ";
+	cmd += gDevNodeFullPath;
+	system(cmd.c_str());
+
 	property_set(PROP_UC_START_APP, "true");	/* 不需要重启,直接通知init进程启动其他服务 */	
 
 	/* 关闭动画服务 */

@@ -803,6 +803,13 @@ static int start_update_app(const char* mount_point)
 				/** 根据mSections的各个section进行更新 */
 				sprintf(update_root_path, "%s/%s", TMP_UNZIP_PATH, PRO2_UPDATE_DIR);
 				iRet = update_sections(update_root_path, mSections);
+
+				/*
+				 * 检查是否安装了samba,如果没有安装，执行以下脚本安装samba服务
+				 */
+				Log.d(TAG, "[%s: %d] Execute install samba service now ...........", __FILE__, __LINE__);
+				system("chome +x /usr/local/bin/install_samba.sh");
+				system("/usr/local/bin/install_samba.sh");
 			}
         } else {	/* 提取升级包失败 */
 			Log.e(TAG, "start_update_app: get update_app form Insta360_Pro_Update.bin failed...");
