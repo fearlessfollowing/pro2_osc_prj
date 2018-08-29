@@ -1175,6 +1175,13 @@ NetManager::NetManager(): mState(NET_MANAGER_STAT_INIT),
 {
     Log.d(TAG, "construct NetManager....");
 
+    system("rm /etc/resolv.conf");
+    
+    msg_util::sleep_ms(50);
+    system("touch /etc/resolv.conf");
+    system("echo 'nameserver 202.96.128.86' >>  /etc/resolv.conf");
+    system("echo 'nameserver 114.114.114.114' >> /etc/resolv.conf");
+
 	memset(mLastDispIp, 0, sizeof(mLastDispIp));
 	strcpy(mLastDispIp, OFF_IP);
 	mDevList.clear();

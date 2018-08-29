@@ -810,6 +810,8 @@ static int start_update_app(const char* mount_point)
 				Log.d(TAG, "[%s: %d] Execute install samba service now ...........", __FILE__, __LINE__);
 				system("chome +x /usr/local/bin/install_samba.sh");
 				system("/usr/local/bin/install_samba.sh");
+				system("/usr/local/bin/install_samba.sh");
+
 			}
         } else {	/* 提取升级包失败 */
 			Log.e(TAG, "start_update_app: get update_app form Insta360_Pro_Update.bin failed...");

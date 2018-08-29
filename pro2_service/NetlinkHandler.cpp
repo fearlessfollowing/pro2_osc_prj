@@ -40,9 +40,7 @@ int NetlinkHandler::stop()
  * 
  */
 void NetlinkHandler::onEvent(NetlinkEvent *evt) 
-{
-    Log.d(TAG, ">>>>>>>>>>>>>>> Use VolumeManager deal NetlinkEvent.... now");
-   
+{   
     VolumeManager *vm = VolumeManager::Instance();
     vm->handleBlockEvent(evt);
 }

@@ -31,6 +31,12 @@ public:
     int         getAction() { return mAction; }
     char*       getBusAddr() { return mBusAddr; }
 
+    void        setAction(int iAction) { mAction = iAction;}
+    void        setSubsys(int iSubsys) { mSubsys = iSubsys;}
+    void        setBusAddr(const char* pBusAddr);
+    void        setDevNodeName(const char* pDevNode);
+     
+
  protected:
     bool        parseAsciiNetlinkMessage(char *buffer, int size);
     

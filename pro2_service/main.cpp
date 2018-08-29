@@ -69,7 +69,8 @@ int main(int argc ,char *argv[])
     property_set(PROP_PRO2_VER, PRO2_VER);
 
 
-    Log.d(TAG, "ro.version [%s]", property_get("ro.version"));
+    Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
+
 
     init_fifo();
     start_all();

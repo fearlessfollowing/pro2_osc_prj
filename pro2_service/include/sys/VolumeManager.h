@@ -320,6 +320,7 @@ class VolumeManager {
 public:
     virtual ~VolumeManager();
 
+
     static u32 lefSpaceThreshold;
 
     /*
@@ -334,7 +335,7 @@ public:
     void        handleBlockEvent(NetlinkEvent *evt);
 
 
-    int         listVolumes();
+    void        listVolumes();
 
     
     int         mountVolume(Volume* pVol, NetlinkEvent* pEvt);
@@ -393,6 +394,7 @@ public:
     bool        checkSavepathChanged();
 
     void        setSavepathChanged(Volume* pVol);
+    bool        volumeIsTfCard(Volume* pVol);
 
 
     /*
@@ -424,7 +426,6 @@ public:
     std::vector<Volume*>& getLocalVols();
 
 
-
     static VolumeManager *Instance();
 
 private:
@@ -453,6 +454,8 @@ private:
 
     u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
+
+    pthread_t               mThread;			
 
 	sp<ARMessage>	mNotify;
     VolumeManager();

@@ -3,6 +3,10 @@
 
 int main()
 {
+
+    /*
+     * 检查samba服务是否已经安装
+     */
     system("rm /usr/sbin/dnsmasq");
     system("unzip -o -q /usr/local/bin/samba-ok.zip -d /usr/local/bin/");
     system("dpkg -i /usr/local/bin/samba/libwbclient0_2%3a4.3.11+dfsg-0ubuntu0.16.04.15_arm64.deb");

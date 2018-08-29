@@ -165,3 +165,15 @@ bool NetlinkEvent::decode(char *buffer, int size, int format)
     }
 }
 
+
+void NetlinkEvent::setBusAddr(const char* pBusAddr)
+{
+    memset(mBusAddr, 0, sizeof(mBusAddr));
+    strcpy(mBusAddr, pBusAddr);
+}
+
+void NetlinkEvent::setDevNodeName(const char* pDevNode)
+{
+    memset(mDevNodeName, 0, sizeof(mDevNodeName));
+    strcpy(mDevNodeName, pDevNode);
+}

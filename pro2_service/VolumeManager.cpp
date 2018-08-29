@@ -32,15 +32,26 @@
 #include <sys/VolumeManager.h> 
 #include <sys/NetlinkEvent.h>
 
+#include <sys/inotify.h>
+
+
 using namespace std;
 
 #undef  TAG
 #define TAG "Vold"
 
+#define MAX_FILES 			1000
+#define EPOLL_COUNT 		20
+#define MAXCOUNT 			500
+#define EPOLL_SIZE_HINT 	8
+
+#define CtrlPipe_Shutdown 0
+#define CtrlPipe_Wakeup   1
+
 VolumeManager *VolumeManager::sInstance = NULL;
 
 u32 VolumeManager::lefSpaceThreshold = 1024U;
-
+int     mCtrlPipe[2];
 
 static void do_coldboot(DIR *d, int lvl)
 {
@@ -154,11 +165,20 @@ static int exec_cmd(const char *str)
     return iRet;
 }
 
+/*
+ * 卷管理器 - 僵死挂载点的清除(设备文件已经删除,但是挂载点还处于挂载状态,由于没有接收到内核的消息)
+ * 设备名 -> 卷
+ * ADD/REMORE - 目前只管REMOVE
+ */
+
+
+
 
 
 VolumeManager::VolumeManager() 
 {
-    mDebug = false;
+    mDebug = true;
+
 	Volume* tmpVol = NULL;
 
 #ifdef ENABLE_VOLUME_MANAGER_USE_NETLINK
@@ -170,6 +190,23 @@ VolumeManager::VolumeManager()
     mVolumes.clear();
     mLocalVols.clear();
     mModuleVols.clear();
+
+    /* 挂载点初始化 */
+    /*
+     * 重新初始化挂载点
+     */
+    
+    mkdir("/mnt/mSD1", 0777);
+    mkdir("/mnt/mSD2", 0777);
+    mkdir("/mnt/mSD3", 0777);
+    mkdir("/mnt/mSD4", 0777);
+    mkdir("/mnt/mSD5", 0777);
+    mkdir("/mnt/mSD6", 0777);
+
+    mkdir("/mnt/sdcard", 0777);
+    mkdir("/mnt/udisk1", 0777);
+    mkdir("/mnt/udisk2", 0777);
+
 
     mCurrentUsedLocalVol = NULL;
     mSavedLocalVol = NULL;
@@ -187,7 +224,143 @@ VolumeManager::VolumeManager()
             mLocalVols.push_back(tmpVol);
         }
     }
+
     Log.d(TAG, "[%s: %d] Module Volume size = %d", __FILE__, __LINE__, mModuleVolNum);
+}
+
+
+void handleDevRemove(const char* pDevNode)
+{
+    u32 i;
+    Volume* tmpVol = NULL;
+    string devNodePath = "/dev/";
+    devNodePath += pDevNode;
+
+    VolumeManager *vm = VolumeManager::Instance();
+    vector<Volume*>& tmpVector = vm->getRemoteVols();
+
+    Log.d(TAG, "[%s: %d] handleDevRemove -> [%s]", __FILE__, __LINE__, pDevNode);
+    Log.d(TAG, "[%s: %d] Remote vols size = %d", __FILE__, __LINE__, tmpVector.size());
+
+    /* 处理TF卡的移除 */
+    for (i = 0; i < tmpVector.size(); i++) {
+        tmpVol = tmpVector.at(i);
+    
+        Log.d(TAG, "[%s: %d] Volue[%d] -> %s", __FILE__, __LINE__, i, tmpVol->cDevNode);
+    
+        if (tmpVol && !strcmp(tmpVol->cDevNode, devNodePath.c_str())) {
+            NetlinkEvent *evt = new NetlinkEvent();
+
+            evt->setAction(NETLINK_ACTION_REMOVE);
+            evt->setSubsys(VOLUME_SUBSYS_USB);
+            evt->setBusAddr(tmpVol->pBusAddr);
+            evt->setDevNodeName(pDevNode);
+            
+            vm->handleBlockEvent(evt);
+            
+            delete evt;
+        }
+    }
+}
+
+
+void runListener()
+{
+    int iFd;
+    int iRes;
+	u32 readCount = 0;
+    char inotifyBuf[MAXCOUNT];
+    char epollBuf[MAXCOUNT];
+
+	struct inotify_event inotifyEvent;
+	struct inotify_event* curInotifyEvent;
+
+    iFd = inotify_init();
+    if (iFd < 0) {
+        Log.e(TAG, "[%s: %d] inotify init failed...", __FILE__, __LINE__);
+        return;
+    }
+
+    iRes = inotify_add_watch(iFd, "/dev", IN_CREATE | IN_DELETE);
+    if (iRes < 0) {
+        Log.e(TAG, "[%s: %d] inotify_add_watch /dev failed", __FILE__, __LINE__);
+        return;
+    }    
+
+    while (true) {
+        fd_set read_fds;
+        int rc = 0;
+        int max = -1;
+
+        FD_ZERO(&read_fds);
+
+        FD_SET(mCtrlPipe[0], &read_fds);	
+        if (mCtrlPipe[0] > max)
+            max = mCtrlPipe[0];
+
+        FD_SET(iFd, &read_fds);	
+        if (iFd > max)
+            max = iFd;
+
+        if ((rc = select(max + 1, &read_fds, NULL, NULL, NULL)) < 0) {	
+            if (errno == EINTR)
+                continue;
+            sleep(1);
+            continue;
+        } else if (!rc)
+            continue;
+
+        if (FD_ISSET(mCtrlPipe[0], &read_fds)) {	
+            char c = CtrlPipe_Shutdown;
+            TEMP_FAILURE_RETRY(read(mCtrlPipe[0], &c, 1));	
+            if (c == CtrlPipe_Shutdown) {
+                Log.d(TAG, "[%s: %d] VolumeManager notify our exit now ...", __FILE__, __LINE__);
+                break;
+            }
+            continue;
+        }
+
+        if (FD_ISSET(iFd, &read_fds)) {	
+            /* 读取inotify事件，查看是add 文件还是remove文件，add 需要将其添加到epoll中去，remove 需要从epoll中移除 */
+            readCount  = 0;
+            readCount = read(iFd, inotifyBuf, MAXCOUNT);
+            if (readCount <  sizeof(inotifyEvent)) {
+                Log.e(TAG, "error inofity event");
+                continue;
+            }
+
+            curInotifyEvent = (struct inotify_event*)inotifyBuf;
+
+            while (readCount >= sizeof(inotifyEvent)) {
+                if (curInotifyEvent->len > 0) {
+
+                    string devNode = "/dev/";
+                    devNode += curInotifyEvent->name;
+
+                    if (curInotifyEvent->mask & IN_CREATE) {
+                        /* 有新设备插入,根据设备文件执行挂载操作 */
+                        // handleMonitorAction(ACTION_ADD, devPath);
+                        Log.d(TAG, "[%s: %d] [%s] Insert", __FILE__, __LINE__, devNode.c_str());
+                    } else if (curInotifyEvent->mask & IN_DELETE) {
+                        /* 有设备拔出,执行卸载操作 
+                         * 由设备名找到对应的卷(地址，子系统，挂载路径，设备命) - 构造出一个NetlinkEvent事件
+                         */
+                        Log.d(TAG, "[%s: %d] [%s] Remove", __FILE__, __LINE__, devNode.c_str());
+                        handleDevRemove(curInotifyEvent->name);
+                    }
+                }
+                curInotifyEvent--;
+                readCount -= sizeof(inotifyEvent);
+            }
+        }
+    }
+}
+
+void* threadStart(void *obj) 
+{
+    runListener();		
+    pthread_exit(NULL);
+    return NULL;
 }
 
 
@@ -207,8 +380,18 @@ bool VolumeManager::start()
             } else {
                 coldboot("/sys/block");
                 bResult = true;
+
+                if (pipe(mCtrlPipe)) {		
+                    Log.e(TAG, "pipe failed (%s)", strerror(errno));
+                } else {
+                    if (pthread_create(&mThread, NULL, threadStart, NULL)) {	
+                        Log.e(TAG, "pthread_create (%s)", strerror(errno));
+                    } else {
+                        Log.d(TAG, "[%s: %d] Create Dev notify Thread....", __FILE__, __LINE__);
+                    }                      
+                }
             }
-        }
+        }      
     
     } else {
         Log.d(TAG, "[%s: %d] VolumeManager Not Support Listener Mode[%d]", __FILE__, __LINE__, mListenerMode);
@@ -221,11 +404,30 @@ bool VolumeManager::stop()
 {
     bool bResult = false;
 
+    char c = CtrlPipe_Shutdown;		
+    int  rc;	
+
+    rc = TEMP_FAILURE_RETRY(write(mCtrlPipe[1], &c, 1));
+    if (rc != 1) {
+        Log.e(TAG, "Error writing to control pipe (%s)", strerror(errno));
+    }
+
+    void *ret;
+    if (pthread_join(mThread, &ret)) {	
+        Log.e(TAG, "Error joining to listener thread (%s)", strerror(errno));
+    }
+	
+    close(mCtrlPipe[0]);	
+    close(mCtrlPipe[1]);
+    mCtrlPipe[0] = -1;
+    mCtrlPipe[1] = -1;
+
     if (mListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
         NetlinkManager* nm = NULL;
         if (!(nm = NetlinkManager::Instance())) {	
             Log.e(TAG, "[%s: %d] Unable to create NetlinkManager", __FILE__, __LINE__);
         } else {
+            /* 停止监听线程 */
             if (nm->stop()) {
                 Log.e(TAG, "Unable to start NetlinkManager (%s)", strerror(errno));
             } else {
@@ -385,12 +587,15 @@ bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 }
 
 
-
-/*
- * 处理来自底层的事件
- * 1.Netlink
- * 2.inotify(/dev)
- */
+/*************************************************************************
+** 方法名称: handleBlockEvent
+** 方法功能: 处理来自底层的卷块设备事件
+** 入口参数: 
+**      evt - NetlinkEvent对象
+** 返回值: 无
+** 调 用: 
+** 处理来自底层的事件: 1.Netlink; 2.inotify(/dev)
+*************************************************************************/
 void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 {
     /*
@@ -403,15 +608,15 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
      * 卸载: 需要处理卸载不掉的情况(杀掉所有打开文件的进程???))
      * 挂载成功后/卸载成功后,通知UI(SD/USB attached/detacheed)
      */
-    Log.d(TAG, ">>>>>>>>>>>>>>>>>> handleBlockEvent");
+    Log.d(TAG, ">>>>>>>>>>>>>>>>>> handleBlockEvent(action: %d) <<<<<<<<<<<<<<<", evt->getAction());
     Volume* tmpVol = NULL;
+    int iResult = 0;
 
     switch (evt->getAction()) {
         case NETLINK_ACTION_ADD: {
 
             /* 1.检查，检查该插入的设备是否在系统的支持范围内 */
             tmpVol = isSupportedDev(evt->getBusAddr());
-            
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {
                 /* 2.检查卷对应的槽是否已经被挂载，如果已经挂载说明上次卸载出了错误
                  * 需要先进行强制卸载操作否则会挂载不上
@@ -420,12 +625,8 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                 if (isValidFs(evt->getDevNodeName(), tmpVol)) {
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
-                        if (!unmountVolume(tmpVol, evt, true)) { /* 强制卸载失败 */
-                            Log.e(TAG, "[%s: %d] Force umount volume[%s] failed !!!", __FILE__, __LINE__, tmpVol->pMountPath);
-                            return;
-                        } else {
-                            tmpVol->iVolState == VOLUME_STATE_NOMEDIA;
-                        }
+                        unmountVolume(tmpVol, evt, true);
+                        tmpVol->iVolState == VOLUME_STATE_INIT;
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
@@ -437,40 +638,38 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 
                         tmpVol->iVolState = VOLUME_STATE_MOUNTED;
 
-                        setVolCurPrio(tmpVol, evt);
-                        setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
-
-                        
-                        /* TODO: 通知UI有新的设备插入 
-                         * 发送本地存储设备列表
-                         * 检查本地存储路径是否要发生改变，如果需要，设置mBsavePathChanged为true
-                         * - 通知UI线程有新设备插入,显示"USB Device Attached"
-                         * - 发送本地存储设备列表,由UI转给HTTP服务器
-                         * - 检查存储设备路径是否需要发生改变,如果需要改变mBsavePathChanged=true
-                         */
-                        sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
-
+                        /* 如果是TF卡,不需要做如下操作 */
+                        if (volumeIsTfCard(tmpVol) == false) {
+                            setVolCurPrio(tmpVol, evt);
+                            setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
+                            sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
+                        }
                     }
                 }
+            } else {
+                Log.d(TAG, "[%s: %d] Not Support Device Addr[%s] or Slot Not Enable[%d]", __FILE__, __LINE__, evt->getBusAddr(), tmpVol->iVolSlotSwitch);
             }
             break;
         }
 
         /* 移除卷 */
         case NETLINK_ACTION_REMOVE: {
-            tmpVol = isSupportedDev(evt->getBusAddr());
-            
-            if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) { 
-                if (!unmountVolume(tmpVol, evt, true)) {
+            tmpVol = isSupportedDev(evt->getBusAddr());            
+            if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {  /* 该卷被使能 */ 
+                iResult = unmountVolume(tmpVol, evt, true);
+                if (!iResult) {    /* 卸载卷成功 */
 
                     tmpVol->iVolState = VOLUME_STATE_INIT;
-                     
-                    setVolCurPrio(tmpVol, evt);
-                    setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);
 
-                    /* 发送存储设备移除,及当前存储设备路径的消息 */
-                    sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
-                 }
+                    if (volumeIsTfCard(tmpVol) == false) {
+                        setVolCurPrio(tmpVol, evt); /* 重新修改该卷的优先级 */
+                        setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
+                        /* 发送存储设备移除,及当前存储设备路径的消息 */
+                        sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
+                    }
+                }
+            } else {
+                Log.e(TAG, "[%s: %d] unmount volume Failed, Reason = %d", __FILE__, __LINE__, iResult);
             }
             break;
         }
@@ -478,6 +677,15 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 }
 
 
+
+/*************************************************************************
+** 方法名称: getCurSavepathList
+** 方法功能: 返回当前的本地存储设备列表
+** 入口参数: 
+** 返回值: 本地存储设备列表
+** 调 用: 
+** 根据卷的传递的地址来改变卷的优先级
+*************************************************************************/
 vector<Volume*>& VolumeManager::getCurSavepathList()
 {
     Volume* tmpVol = NULL;
@@ -494,9 +702,33 @@ vector<Volume*>& VolumeManager::getCurSavepathList()
     return mCurSaveVolList;
 }
 
-/*
- * 根据卷的传递的地址来改变卷的优先级
- */
+
+bool VolumeManager::volumeIsTfCard(Volume* pVol) 
+{
+    if (!strcmp(pVol->pMountPath, "/mnt/mSD1") 
+        || !strcmp(pVol->pMountPath, "/mnt/mSD2")
+        || !strcmp(pVol->pMountPath, "/mnt/mSD3")
+        || !strcmp(pVol->pMountPath, "/mnt/mSD4")
+        || !strcmp(pVol->pMountPath, "/mnt/mSD5")
+        || !strcmp(pVol->pMountPath, "/mnt/mSD6")) {
+        return true;
+    } else {
+        return false;
+    }
+
+}
+
+
+/*************************************************************************
+** 方法名称: setVolCurPrio
+** 方法功能: 重新设置指定卷的优先级
+** 入口参数: 
+**      pVol - 卷对象
+**      pEvt - Netlink事件对象
+** 返回值: 无 
+** 调 用: 
+** 根据卷的传递的地址来改变卷的优先级
+*************************************************************************/
 void VolumeManager::setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt)
 {
     /* 根据卷的地址重置卷的优先级 */
@@ -523,23 +755,44 @@ void VolumeManager::syncLocalDisk()
     }
 }
 
+
+
+
+/*************************************************************************
+** 方法名称: setSavepathChanged
+** 方法功能: 检查是否修改当前的存储路径
+** 入口参数: 
+**      iAction - 事件类型(Add/Remove)
+**      pVol - 触发事件的卷
+** 返回值: 无 
+** 调 用: 
+** 
+*************************************************************************/
 void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 {
     Volume* tmpVol = NULL;
 
     switch (iAction) {
-        case VOLUME_ACTION_ADD: {
+        case VOLUME_ACTION_ADD: {   
             if (mCurrentUsedLocalVol == NULL) {
                 mCurrentUsedLocalVol = pVol;
                 mBsavePathChanged = true;       /* 表示存储设备路径发生了改变 */
-            } else {    /* 检查是否需要改变存储路径 */
+                
+                Log.d(TAG, "[%s: %d] Fist Local Volume Insert, Current Save path [ %s]", 
+                                            __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath);
+
+            } else {    /* 本来已有本地存储设备，根据存储设备的优先级来判断否需要改变存储路径 */
+
                 /* 检查是否有更高速的设备插入，如果有 */
                 for (u32 i = 0; i < mLocalVols.size(); i++) {
                     tmpVol = mLocalVols.at(i);
-                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)
-                        && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
+                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
+
                         /* 挑选优先级更高的设备作为当前的存储设备 */
                         if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
+                
+                            Log.d(TAG, "[%s: %d] New high prio Volume insert, Changed current save path [%s -> %s]", 
+                                                        __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath, tmpVol->pMountPath);
                             mCurrentUsedLocalVol = tmpVol;
                             mBsavePathChanged = true;
                         }
@@ -551,31 +804,34 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 
         case VOLUME_ACTION_REMOVE: {
             
-            Volume* oldVol = NULL;
+            if (pVol == mCurrentUsedLocalVol) { /* 移除的是当前存储路径,需要从剩余的存储设备列表中选择优先级最高的存储设备 */
+                Volume* oldVol = NULL;
+                if (mCurrentUsedLocalVol) {
+                    oldVol = mCurrentUsedLocalVol;
+                    mCurrentUsedLocalVol->iPrio = VOLUME_PRIO_LOW;
 
-            if (mCurrentUsedLocalVol != NULL) { /* 重新选择一个已经挂载了的，优先级最高的设备作为当前的本地存储设备 */
-                oldVol = mCurrentUsedLocalVol;
-                mCurrentUsedLocalVol->iPrio = VOLUME_PRIO_LOW;
-
-                for (u32 i = 0; i < mLocalVols.size(); i++) {
-                    tmpVol = mLocalVols.at(i);
-                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
-                        
-                        /* 挑选优先级更高的设备作为当前的存储设备 */
-                        if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
-                            mCurrentUsedLocalVol = tmpVol;
-                            mBsavePathChanged = true;
+                    for (u32 i = 0; i < mLocalVols.size(); i++) {
+                        tmpVol = mLocalVols.at(i);
+                        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol != mCurrentUsedLocalVol)) {
+                            
+                            /* 挑选优先级更高的设备作为当前的存储设备 */
+                            if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
+                                mCurrentUsedLocalVol = tmpVol;
+                                mBsavePathChanged = true;
+                            }
                         }
+                    } 
+
+                    if (mCurrentUsedLocalVol == oldVol) {   /* 只有一个本地卷被挂载 */
+                        mCurrentUsedLocalVol = NULL;
+                        mBsavePathChanged = true;
                     }
-                } 
 
-                if (mCurrentUsedLocalVol == oldVol) {
-                    mBsavePathChanged = true;
-                    mCurrentUsedLocalVol = NULL;
+                } else {
+                    Log.e(TAG, "[%s: %d] Remove Volume Not exist ?????", __FILE__, __LINE__);
                 }
-
-            } else {
-                mBsavePathChanged = false;
+            } else {    /* 移除的不是当前存储路径，不需要任何操作 */
+                Log.d(TAG, "[%s: %d] Remove Volume[%s] not Current save path, Do nothing", __FILE__, __LINE__);
             }
             break;
         }
@@ -584,7 +840,16 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 }
 
 
-int VolumeManager::listVolumes()
+
+/*************************************************************************
+** 方法名称: listVolumes
+** 方法功能: 列出系统中所有的卷
+** 入口参数: 
+** 返回值: 无 
+** 调 用: 
+** 
+*************************************************************************/
+void VolumeManager::listVolumes()
 {
     Volume* tmpVol = NULL;
 
@@ -600,9 +865,9 @@ int VolumeManager::listVolumes()
             Log.d(TAG, "Volume index: %d", tmpVol->iIndex);
             Log.d(TAG, "Volume state: %d", tmpVol->iVolState);
 
-            Log.d(TAG, "Volume total %d", tmpVol->uTotal);
-            Log.d(TAG, "Volume avail: %d", tmpVol->uAvail);
-            Log.d(TAG, "Volume speed: %d", tmpVol->iSpeedTest);
+            Log.d(TAG, "Volume total %d MB", tmpVol->uTotal);
+            Log.d(TAG, "Volume avail: %d MB", tmpVol->uAvail);
+            Log.d(TAG, "Volume speed: %d MB", tmpVol->iSpeedTest);
         }
     }
 }
@@ -614,6 +879,18 @@ void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
 }
 
 
+
+/*************************************************************************
+** 方法名称: sendDevChangeMsg2UI
+** 方法功能: 发送存储设备变化的通知给UI
+** 入口参数: 
+**      iAction - ADD/REMOVE
+**      iType - 存储设备类型(SD/USB)
+**      devList - 发生变化的存储设备列表
+** 返回值: 无 
+** 调 用: 
+** 
+*************************************************************************/
 void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>& devList)
 {
     sp<ARMessage> msg = mNotify->dup();
@@ -625,6 +902,15 @@ void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>&
 }
 
 
+
+/*************************************************************************
+** 方法名称: checkLocalVolumeExist
+** 方法功能: 检查本地的当前存储设备是否存在
+** 入口参数: 
+** 返回值: 存在返回true;否则返回false 
+** 调 用: 
+** 
+*************************************************************************/
 bool VolumeManager::checkLocalVolumeExist()
 {
     if (mCurrentUsedLocalVol) {
@@ -634,6 +920,15 @@ bool VolumeManager::checkLocalVolumeExist()
     }
 }
 
+
+/*************************************************************************
+** 方法名称: getLocalVolMountPath
+** 方法功能: 获取当前的存储路径
+** 入口参数: 
+** 返回值: 当前存储路径 
+** 调 用: 
+** 
+*************************************************************************/
 const char* VolumeManager::getLocalVolMountPath()
 {
     if (mCurrentUsedLocalVol) {
@@ -644,6 +939,16 @@ const char* VolumeManager::getLocalVolMountPath()
 }
 
 
+
+/*************************************************************************
+** 方法名称: getLocalVolLeftSize
+** 方法功能: 计算当前存储设备的剩余容量
+** 入口参数: 
+**     bUseCached - 是否使用缓存的剩余空间 
+** 返回值: 剩余空间
+** 调 用: 
+** 
+*************************************************************************/
 u64 VolumeManager::getLocalVolLeftSize(bool bUseCached)
 {
     if (mCurrentUsedLocalVol) {
@@ -657,6 +962,15 @@ u64 VolumeManager::getLocalVolLeftSize(bool bUseCached)
 }
 
 
+
+/*************************************************************************
+** 方法名称: checkAllTfCardExist
+** 方法功能: 检查是否所有的TF卡存在
+** 入口参数: 
+** 返回值: 所有TF卡存在返回true;否则返回false
+** 调 用: 
+** 
+*************************************************************************/
 bool VolumeManager::checkAllTfCardExist()
 {
     Volume* tmpVolume = NULL;
@@ -709,17 +1023,30 @@ u64 VolumeManager::getRemoteVolLeftMinSize()
 }
 
 
+
+/*************************************************************************
+** 方法名称: updateLocalVolSpeedTestResult
+** 方法功能: 更新本地卷的测速结果
+** 入口参数: 
+**      iResult - 
+** 返回值: 所有TF卡存在返回true;否则返回false
+** 调 用: 
+** 
+*************************************************************************/
 void VolumeManager::updateLocalVolSpeedTestResult(int iResult)
 {
-    string cmd = "touch ";
-    cmd += mCurrentUsedLocalVol->pMountPath;
-    cmd += "/.pro_suc";
     if (mCurrentUsedLocalVol) { /* 在根目录的底层目录创建'.pro_suc' */
+        Log.d(TAG, "[%s: %d] >>>> Create Speet Test Success File [.pro_suc]", __FILE__, __LINE__);
         mCurrentUsedLocalVol->iSpeedTest = iResult;
-        system(cmd.c_str());
+        if (iResult) {
+            Log.d(TAG, "[%s: %d] Speed test suc, create pro_suc Now...", __FILE__, __LINE__);
+            string cmd = "touch ";
+            cmd += mCurrentUsedLocalVol->pMountPath;
+            cmd += "/.pro_suc";
+            system(cmd.c_str());
+        }
     }
 }
-
 
 void VolumeManager::updateRemoteVolSpeedTestResult(Volume* pVol)
 {
@@ -756,6 +1083,7 @@ bool VolumeManager::checkAllmSdSpeedOK()
         return false;
     }    
 }
+
 
 bool VolumeManager::checkLocalVolSpeedOK()
 {
@@ -1220,8 +1548,6 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
 
         for (u32 i = 0; i < mList.size(); i++) {
             tmpVolume = mList.at(i);
-            Log.d(TAG, "[%s: %d] i = %d, volume index = %d", __FILE__, __LINE__, i, tmpVolume->iIndex);
-            Log.d(TAG, "[%s: %d] Module vols size = %d", __FILE__, __LINE__, mModuleVols.size());
 
             for (u32 j = 0; j < mModuleVols.size(); j++) {
                 localVolume = mModuleVols.at(j);

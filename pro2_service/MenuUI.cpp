@@ -1650,26 +1650,6 @@ void MenuUI::init()
      * - 设置二级页中photodelay列表
      * - 设置二级页中aeb列表
      */
-    // mLocalStorageList.clear();
-    // mRemoteStorageList.clear();
-
-
-    /*
-     * 重新初始化挂载点
-     */
-    system("rm -rf /mnt/*");
-    
-    mkdir("/mnt/mSD1", 0777);
-    mkdir("/mnt/mSD2", 0777);
-    mkdir("/mnt/mSD3", 0777);
-    mkdir("/mnt/mSD4", 0777);
-    mkdir("/mnt/mSD5", 0777);
-    mkdir("/mnt/mSD6", 0777);
-
-    mkdir("/mnt/sdcard", 0777);
-    mkdir("/mnt/udisk1", 0777);
-    mkdir("/mnt/udisk2", 0777);
-
 
     Log.d(TAG, "init UI state: STATE_IDLE");
     cam_state = STATE_IDLE;
@@ -1729,16 +1709,7 @@ void MenuUI::init()
     memset(mWifiConfig.get(), 0, sizeof(WIFI_CONFIG));
 #endif
 
-
     Log.d(TAG, "Create System NetManager Object...");
-
-    system("rm /etc/resolv.conf");
-    
-    msg_util::sleep_ms(50);
-    system("touch /etc/resolv.conf");
-    system("echo 'nameserver 202.96.128.86' >>  /etc/resolv.conf");
-    system("echo 'nameserver 114.114.114.114' >> /etc/resolv.conf");
-
 
 #ifdef ENABLE_PESUDO_SN
 
@@ -1804,7 +1775,6 @@ void MenuUI::init()
 
     memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
     strcpy(mLocalIpAddr, "0.0.0.0");
-
 
     /* NetManager Subsystem Init
      * Eth0
