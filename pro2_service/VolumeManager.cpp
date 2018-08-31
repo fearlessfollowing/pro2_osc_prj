@@ -1,3 +1,18 @@
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: VolumeManager.cpp
+** 功能描述: 存储管理器（管理设备的外部内部设备）
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V1.0
+** 日     期: 2018年05月04日
+** 修改记录:
+** V1.0			Skymixos		2018-08-04		创建文件，添加注释
+******************************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,13 +62,14 @@ using namespace std;
 #define MAXCOUNT 			500
 #define EPOLL_SIZE_HINT 	8
 
-#define CtrlPipe_Shutdown 0
-#define CtrlPipe_Wakeup   1
+#define CtrlPipe_Shutdown   0
+#define CtrlPipe_Wakeup     1
 
 VolumeManager *VolumeManager::sInstance = NULL;
 
 u32 VolumeManager::lefSpaceThreshold = 1024U;
 int     mCtrlPipe[2];
+
 
 static void do_coldboot(DIR *d, int lvl)
 {
@@ -192,6 +208,7 @@ VolumeManager::VolumeManager()
     mVolumes.clear();
     mLocalVols.clear();
     mModuleVols.clear();
+
 
     /* 挂载点初始化 */
     /*
@@ -420,6 +437,34 @@ int VolumeManager::checkAllUdiskMounted()
     }
     return iMountedCnt;
 }
+
+
+bool VolumeManager::isMountpointMounted(const char *mp)
+{
+    char device[256];
+    char mount_path[256];
+    char rest[256];
+    FILE *fp;
+    char line[1024];
+
+    if (!(fp = fopen("/proc/mounts", "r"))) {
+        Log.e(TAG, "Error opening /proc/mounts (%s)", strerror(errno));
+        return false;
+    }
+
+    while (fgets(line, sizeof(line), fp)) {
+        line[strlen(line)-1] = '\0';
+        sscanf(line, "%255s %255s %255s\n", device, mount_path, rest);
+        if (!strcmp(mount_path, mp)) {
+            fclose(fp);
+            return true;
+        }
+    }
+
+    fclose(fp);
+    return false;
+}
+
 
 void VolumeManager::enterUdiskMode()
 {
@@ -759,9 +804,16 @@ bool VolumeManager::clearMountPath(const char* mountPath)
     if (access(mountPath, F_OK) != 0) {     /* 挂载点不存在,创建挂载点 */
         mkdir(mountPath, 0777);
     } else {
-        sprintf(cmd, "rm -rf %s/*", mountPath);
-        system(cmd);
+        if (isMountpointMounted(mountPath)) {
+            Log.d(TAG, "[%s: %d] Mount point -> %s has mounted!", __FILE__, __LINE__);
+            return false;
+        } else {
+            Log.d(TAG, "[%s: %d] Mount point[%s] not Mounted, clear mount point first!");
+            sprintf(cmd, "rm -rf %s/*", mountPath);
+            system(cmd);
+        }
     }
+    return true;
 }
 
 
@@ -1471,6 +1523,7 @@ int VolumeManager::doUnmount(const char *path, bool force)
     }
 
     while (retries--) {
+        
         if (!umount(path) || errno == EINVAL || errno == ENOENT) {
             Log.i(TAG, "%s sucessfully unmounted", path);
             return 0;

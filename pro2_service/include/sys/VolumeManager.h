@@ -432,6 +432,9 @@ public:
 
     std::vector<Volume*>& getSysStorageDevList();
 
+    bool isMountpointMounted(const char *mp);
+
+
     /*
      * U盘模式
      */
