@@ -13,8 +13,15 @@ enum {
     NETLINK_ACTION_MAX,
 };
 
+enum {
+    NETLINK_EVENT_SRC_KERNEL = 0,
+    NETLINK_EVENT_SRC_APP = 1,
+    NETLINK_EVENT_SRC_MAX
+};
+
 class NetlinkEvent {
     int     mAction;                    /* 动作 */
+    int     mEventSrc;                  /* 事件源: 来自内核还是来自应用层 */
     int     mSubsys;                    /* 是USB还是SD */
     char    mBusAddr[64];
     char    mDevNodeName[64];
@@ -29,13 +36,17 @@ public:
     char*       getDevNodeName() { return mDevNodeName; }
 
     int         getAction() { return mAction; }
-    char*       getBusAddr() { return mBusAddr; }
-
     void        setAction(int iAction) { mAction = iAction;}
+    
+    char*       getBusAddr() { return mBusAddr; }
     void        setSubsys(int iSubsys) { mSubsys = iSubsys;}
+    
     void        setBusAddr(const char* pBusAddr);
     void        setDevNodeName(const char* pDevNode);
      
+    int         getEventSrc() { return mEventSrc; }
+    void        setEventSrc(int iSrc) { mEventSrc = iSrc;}
+
 
  protected:
     bool        parseAsciiNetlinkMessage(char *buffer, int size);

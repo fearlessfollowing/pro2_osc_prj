@@ -34,6 +34,8 @@
 
 #include <sys/inotify.h>
 
+#include <sys/mount.h>
+
 
 using namespace std;
 
@@ -202,11 +204,29 @@ VolumeManager::VolumeManager()
     mkdir("/mnt/mSD4", 0777);
     mkdir("/mnt/mSD5", 0777);
     mkdir("/mnt/mSD6", 0777);
-
     mkdir("/mnt/sdcard", 0777);
     mkdir("/mnt/udisk1", 0777);
     mkdir("/mnt/udisk2", 0777);
 
+    umount2("/mnt/mSD1", MNT_FORCE);
+    umount2("/mnt/mSD2", MNT_FORCE);
+    umount2("/mnt/mSD3", MNT_FORCE);
+    umount2("/mnt/mSD4", MNT_FORCE);
+    umount2("/mnt/mSD5", MNT_FORCE);
+    umount2("/mnt/mSD6", MNT_FORCE);
+    umount2("/mnt/sdcard", MNT_FORCE);
+    umount2("/mnt/udisk1", MNT_FORCE);
+    umount2("/mnt/udisk2", MNT_FORCE);
+
+    Log.d(TAG, "[%s: %d] Umont All device now .....", __FILE__, __LINE__);
+
+    /*
+     * 初始化与模组交互的两个GPIO
+     */
+    system("echo 456 > /sys/class/gpio/export");
+    system("echo 478 > /sys/class/gpio/export");
+    system("echo out > /sys/class/gpio/gpio456/direction");
+    system("echo out > /sys/class/gpio/gpio478/direction");
 
     mCurrentUsedLocalVol = NULL;
     mSavedLocalVol = NULL;
@@ -364,6 +384,149 @@ void* threadStart(void *obj)
 }
 
 
+void VolumeManager::checkAllUdiskIdle()
+{
+    Volume* tmpVol = NULL;
+
+    for (u32 i = 0; i < mModuleVols.size(); i++) {
+        tmpVol = mModuleVols.at(i);
+        if (tmpVol) {
+            if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
+                Log.d(TAG, "[%s: %d] Current Volume(%s) is Mouted State, force unmount now....", __FILE__, __LINE__, tmpVol->pMountPath);
+                if (doUnmount(tmpVol->pMountPath, true)) {
+                    Log.e(TAG, "[%s: %d] Force Unmount Volume Failed!!!", __FILE__, __LINE__);
+                }
+                tmpVol->iVolState = VOLUME_STATE_IDLE;
+            }
+        }
+    }
+}
+
+/*
+ * 确保所有的U-Disk都挂载上了
+ */
+int VolumeManager::checkAllUdiskMounted()
+{
+    int iMountedCnt = 0;
+    Volume* tmpVol = NULL;
+
+    for (u32 i = 0; i < mModuleVols.size(); i++) {
+        tmpVol = mModuleVols.at(i);
+        if (tmpVol) {
+            if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
+                iMountedCnt++;
+            }
+        }
+    }
+    return iMountedCnt;
+}
+
+void VolumeManager::enterUdiskMode()
+{
+    /* 1.检查所有卷的状态，如果非IDLE状态（MOUNTED状态），先进行强制卸载操作
+     * 1.将gpio456, gpio478设置为1，0
+     * 2.调用power_manager power_on给所有的模组上电
+     * 3.等待所有的模组挂上
+     * 4.检查是否所有的模组都挂载成功
+     */
+    Log.d(TAG, "[%s: %d] Enter U-disk Mode now ...", __FILE__, __LINE__);
+    
+    mHandledAddUdiskVolCnt = 0;
+    setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_UDISK);
+    
+    checkAllUdiskIdle();
+
+    system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio456 = 1 */
+    system("power_manager power_on");
+
+    /* TODO: 等待所有的U盘都挂载上 */
+}
+
+bool VolumeManager::checkEnteredUdiskMode()
+{
+    if (mHandledAddUdiskVolCnt == mModuleVolNum) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+void VolumeManager::setVolumeManagerWorkMode(int iWorkMode)
+{
+    mVolumeManagerWorkMode = iWorkMode;
+}
+
+int VolumeManager::getVolumeManagerWorkMode()
+{
+    return mVolumeManagerWorkMode;
+}
+
+int VolumeManager::getCurHandleAddUdiskVolCnt()
+{
+    return mHandledAddUdiskVolCnt;
+}
+
+int VolumeManager::getCurHandleRemoveUdiskVolCnt()
+{
+    return mHandledRemoveUdiskVolCnt;
+}
+
+
+void VolumeManager::exitUdiskMode()
+{
+    /* 1.卸载掉所有的U盘
+     * 2.给模组断电
+     */
+    u32 i;
+    int iResult = -1;
+    Volume* tmpVol = NULL;
+
+    Log.d(TAG, "[%s: %d] Exit U-disk Mode now ...", __FILE__, __LINE__);
+    
+    mHandledRemoveUdiskVolCnt = 0;
+
+    /* 处理TF卡的移除 */
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (i = 0; i < mModuleVols.size(); i++) {
+
+            tmpVol = mModuleVols.at(i);
+        
+            Log.d(TAG, "[%s: %d] Volue[%d] -> %s", __FILE__, __LINE__, i, tmpVol->cDevNode);
+            if (tmpVol) {
+
+                NetlinkEvent *evt = new NetlinkEvent();        
+                evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+                evt->setAction(NETLINK_ACTION_REMOVE);
+                evt->setSubsys(VOLUME_SUBSYS_USB);
+                evt->setBusAddr(tmpVol->pBusAddr);
+                evt->setDevNodeName(tmpVol->cDevNode);            
+                iResult = handleBlockEvent(evt);
+                if (iResult) {
+                    Log.d(TAG, "[%s: %d] Remove Device Failed ...", __FILE__, __LINE__);
+                }       
+                delete evt;
+            }
+        }
+    }
+
+    msg_util::sleep_ms(1000);
+
+    system("power_manager power_off");    
+    system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
+    
+    setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_NORMAL);
+}
+
+/*
+ * 卷管理器新增功能: 2018年8月31日
+ * 1.监听/mnt下的文件变化   - (何时创建/删除文件，将其记录在日志中)
+ * 2.监听磁盘的容量变化     - (本地的正在使用的以及远端的小卡)
+ * 
+ */
+
+
 bool VolumeManager::start()
 {
     bool bResult = false;
@@ -381,6 +544,7 @@ bool VolumeManager::start()
                 coldboot("/sys/block");
                 bResult = true;
 
+            #ifdef ENABLE_REMOVE_LISTEN_THREAD
                 if (pipe(mCtrlPipe)) {		
                     Log.e(TAG, "pipe failed (%s)", strerror(errno));
                 } else {
@@ -390,6 +554,8 @@ bool VolumeManager::start()
                         Log.d(TAG, "[%s: %d] Create Dev notify Thread....", __FILE__, __LINE__);
                     }                      
                 }
+            #endif
+
             }
         }      
     
@@ -404,6 +570,7 @@ bool VolumeManager::stop()
 {
     bool bResult = false;
 
+#ifdef ENABLE_REMOVE_LISTEN_THREAD
     char c = CtrlPipe_Shutdown;		
     int  rc;	
 
@@ -421,6 +588,8 @@ bool VolumeManager::stop()
     close(mCtrlPipe[1]);
     mCtrlPipe[0] = -1;
     mCtrlPipe[1] = -1;
+
+#endif
 
     if (mListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
         NetlinkManager* nm = NULL;
@@ -442,6 +611,37 @@ bool VolumeManager::stop()
 }
 
 
+/*
+ * 获取系统中的当前存储设备列表
+ */
+vector<Volume*>& VolumeManager::getSysStorageDevList()
+{
+    vector<Volume*>& localVols = getCurSavepathList();
+    vector<Volume*>& remoteVols = getRemoteVols();
+    Volume* tmpVol = NULL;
+
+    Log.d(TAG, "[%s: %d] >>>>>> getSysStorageDevList", __FILE__, __LINE__);
+
+    mSysStorageVolList.clear();
+
+    for (u32 i = 0; i < localVols.size(); i++) {
+        tmpVol = localVols.at(i);
+        if (tmpVol) {
+            mSysStorageVolList.push_back(tmpVol);
+        }
+    }
+
+    for (u32 i = 0; i < remoteVols.size(); i++) {
+        tmpVol = remoteVols.at(i);
+        if (tmpVol && tmpVol->uTotal > 0) {
+            mSysStorageVolList.push_back(tmpVol);
+        }
+    }
+
+    Log.d(TAG, "[%s: %d] Current System Storage list size = %d", __FILE__, __LINE__, mSysStorageVolList.size());
+    return mSysStorageVolList;
+}
+
 
 VolumeManager::~VolumeManager()
 {
@@ -449,7 +649,6 @@ VolumeManager::~VolumeManager()
     mLocalVols.clear();
     mModuleVols.clear();
 }
-
 
 Volume* VolumeManager::isSupportedDev(const char* busAddr)
 {
@@ -466,7 +665,6 @@ Volume* VolumeManager::isSupportedDev(const char* busAddr)
     }
     return tmpVol;
 }
-
 
 
 bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int iLen)
@@ -543,17 +741,29 @@ done:
 }
 
 
+
+/*************************************************************************
+** 方法名称: clearMountPath
+** 方法功能: 清除挂载点
+** 入口参数: 
+**      mountPath - 挂载点路径
+** 返回值: 所有TF卡存在返回true;否则返回false
+** 调 用: 
+** 在清除挂载点前，需要判断该挂载点已经被挂载，如果已经被挂载先对其卸载
+** 如果被卸载成功或未被挂载,检查该挂载点是否干净,如果不干净,对其进行清除操作
+*************************************************************************/
 bool VolumeManager::clearMountPath(const char* mountPath)
 {
     char cmd[128] = {0};
     
-    if (access(mountPath, F_OK) != 0) {
+    if (access(mountPath, F_OK) != 0) {     /* 挂载点不存在,创建挂载点 */
         mkdir(mountPath, 0777);
     } else {
         sprintf(cmd, "rm -rf %s/*", mountPath);
         system(cmd);
     }
 }
+
 
 
 bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
@@ -587,6 +797,7 @@ bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 }
 
 
+
 /*************************************************************************
 ** 方法名称: handleBlockEvent
 ** 方法功能: 处理来自底层的卷块设备事件
@@ -596,7 +807,7 @@ bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 ** 调 用: 
 ** 处理来自底层的事件: 1.Netlink; 2.inotify(/dev)
 *************************************************************************/
-void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
+int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 {
     /*
      * 1.根据NetlinkEvent信息来查找对应的卷
@@ -630,9 +841,13 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
+                    if ( (getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
+                        mHandledAddUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
+                    }
 
                     if (mountVolume(tmpVol, evt)) {
                         Log.e(TAG, "mount device[%s -> %s] failed, reason [%d]", tmpVol->cDevNode, tmpVol->pMountPath, errno);
+                        iResult = -1;
                     } else {
                         Log.d(TAG, "mount device[%s] on path [%s] success", tmpVol->cDevNode, tmpVol->pMountPath);
 
@@ -656,24 +871,32 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
         case NETLINK_ACTION_REMOVE: {
             tmpVol = isSupportedDev(evt->getBusAddr());            
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {  /* 该卷被使能 */ 
+
+                if ( (getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
+                    mHandledRemoveUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
+                }
+
                 iResult = unmountVolume(tmpVol, evt, true);
                 if (!iResult) {    /* 卸载卷成功 */
 
                     tmpVol->iVolState = VOLUME_STATE_INIT;
-
                     if (volumeIsTfCard(tmpVol) == false) {
                         setVolCurPrio(tmpVol, evt); /* 重新修改该卷的优先级 */
                         setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
                         /* 发送存储设备移除,及当前存储设备路径的消息 */
                         sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
                     }
+                } else {
+                    Log.d(TAG, "[%s: %d] Unmount Failed!!", __FILE__, __LINE__);
+                    iResult = -1;
                 }
             } else {
                 Log.e(TAG, "[%s: %d] unmount volume Failed, Reason = %d", __FILE__, __LINE__, iResult);
             }
             break;
         }
-    }    
+    }  
+    return iResult;  
 }
 
 
@@ -689,13 +912,29 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 vector<Volume*>& VolumeManager::getCurSavepathList()
 {
     Volume* tmpVol = NULL;
+    struct statfs diskInfo;
+    u64 totalsize = 0;
+    u64 used_size = 0;
 
     mCurSaveVolList.clear();
 
     for (u32 i = 0; i < mLocalVols.size(); i++) {
         tmpVol = mLocalVols.at(i);
-        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)
-            && (tmpVol->iVolState == VOLUME_STATE_MOUNTED) ) { 
+        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolState == VOLUME_STATE_MOUNTED) ) { 
+
+            statfs(tmpVol->pMountPath, &diskInfo);
+
+            u64 blocksize = diskInfo.f_bsize;                                   //每个block里包含的字节数
+            totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
+            used_size = (diskInfo.f_blocks - diskInfo.f_bfree) * blocksize;     // 可用空间大小
+            used_size = used_size >> 20;
+
+            memset(tmpVol->cVolName, 0, sizeof(tmpVol->cVolName));
+            sprintf(tmpVol->cVolName, "%s", (tmpVol->iVolSubsys == VOLUME_SUBSYS_SD) ? "sd": "usb");
+            tmpVol->uTotal = totalsize >> 20;                 /* 统一将单位转换MB */
+            tmpVol->uAvail = tmpVol->uTotal - used_size;
+            tmpVol->iType = VOLUME_TYPE_NV;
+            
             mCurSaveVolList.push_back(tmpVol);
         }
     }
@@ -853,8 +1092,8 @@ void VolumeManager::listVolumes()
 {
     Volume* tmpVol = NULL;
 
-    for (u32 i = 0; i < mVolumes.size(); i++) {
-        tmpVol = mVolumes.at(i);
+    for (u32 i = 0; i < mModuleVols.size(); i++) {
+        tmpVol = mModuleVols.at(i);
         if (tmpVol) {
             Log.d(TAG, "Volume type: %s", (tmpVol->iVolSubsys == VOLUME_SUBSYS_SD) ? "VOLUME_SUBSYS_SD": "VOLUME_SUBSYS_USB" );
             Log.d(TAG, "Volume bus: %s", tmpVol->pBusAddr);
@@ -1148,15 +1387,17 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 {
     int iRet = 0;
     unsigned long flags;
+
     flags = MS_DIRSYNC | MS_NOATIME;
 
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
-    char cTmpDevNode[COM_NAME_MAX_LEN] = {0};
-    sprintf(cTmpDevNode, "fsck %s", pEvt->getDevNodeName());
-    system(cTmpDevNode);
+    string fsckStr = "fsck /dev/";
+    fsckStr += pEvt->getDevNodeName();
+    system(fsckStr.c_str());
+
 
     /* 挂载点为非挂载状态，但是挂载点有其他文件，会先删除 */
-    clearMountPath(pVol->pMountPath);
+    // clearMountPath(pVol->pMountPath);
 
     Log.d(TAG, "[%s: %d] >>>>> Filesystem type: %s", __FILE__, __LINE__, pVol->cVolFsType);
 
@@ -1203,6 +1444,7 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
     }
 
     #else
+
     int status;
     const char *args[3];
     args[0] = "/bin/mount";
@@ -1256,21 +1498,21 @@ int VolumeManager::doUnmount(const char *path, bool force)
 }
 
 
-
 /*
  * unmountVolume - 卸载/强制卸载卷
  */
 int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
     int iRet = 0;
-    string devnode = "/dev/";
-    devnode += pEvt->getDevNodeName();
 
-    #if 1
-    Log.d(TAG, "[%s: %d] umount volume devname[%s], event devname[%s]", __FILE__, __LINE__, pVol->cDevNode, devnode.c_str());
+    if (pEvt->getEventSrc() == NETLINK_EVENT_SRC_KERNEL) {
+        string devnode = "/dev/";
+        devnode += pEvt->getDevNodeName();
+        Log.d(TAG, "[%s: %d] umount volume devname[%s], event devname[%s]", __FILE__, __LINE__, pVol->cDevNode, devnode.c_str());
 
-    if (strcmp(pVol->cDevNode, devnode.c_str())) {   /* 设备名不一致,直接返回 */
-        return -1;
+        if (strcmp(pVol->cDevNode, devnode.c_str())) {   /* 设备名不一致,直接返回 */
+            return -1;
+        }
     }
 
     if (pVol->iVolState != VOLUME_STATE_MOUNTED) {
@@ -1278,7 +1520,6 @@ int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
         errno = EINVAL;
         return -2;
     }
-    #endif
 
     pVol->iVolState = VOLUME_STATE_UNMOUNTING;
     usleep(1000 * 1000);    // Give the framework some time to react
@@ -1291,6 +1532,7 @@ int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
     Log.i(TAG, "[%s: %d] %s unmounted successfully", __FILE__, __LINE__, pVol->pMountPath);
 
     pVol->iVolState = VOLUME_STATE_IDLE;
+
     return 0;
 
 out_mounted:

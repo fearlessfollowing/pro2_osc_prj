@@ -85,8 +85,10 @@ bool NetlinkEvent::parseAsciiNetlinkMessage(char *buffer, int size)
      * remove@/devices/3530000.xhci/usb2/2-1/2-1:1.0/host8/target8:0:0/8:0:0:0/block/sda/sda1
      * remove@/devices/3530000.xhci/usb2/2-1/2-1:1.0/host8/target8:0:0/8:0:0:0/block/sda     
      */
+    mEventSrc = NETLINK_EVENT_SRC_KERNEL;
 
     if ((pBlockEvt != NULL) && (pAt != NULL)) {
+
 
         memset(mDevNodeName, 0, sizeof(mDevNodeName));
         memset(mBusAddr, 0, sizeof(mBusAddr));

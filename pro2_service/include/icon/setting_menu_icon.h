@@ -2203,7 +2203,7 @@ typedef struct stSetItem {
 typedef struct stStorageItem {
 	const char* 	pItemName;								/* 设置项的名称 */
 	ICON_POS		stPos;									/* 坐标位置 */
-	Volume			stVolumeInfo;							/* 卷信息 */
+	Volume*			pStVolumeInfo;							/* 卷信息 */
 } SetStorageItem;
 
 

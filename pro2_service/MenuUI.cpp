@@ -2426,22 +2426,15 @@ bool MenuUI::checkVidLiveStorageSpeed()
 bool MenuUI::takeVideoIsAgeingMode()
 {
     #ifdef ENABLE_AGEING_MODE
-    char cAginePath[512] = {0};
-    sp<Volume> tmpVolume = NULL;
-    {
-        unique_lock<mutex> lock(mLocaLDevLock);
-        if ((mLocalStorageList.size() > 0) && (mSavePathIndex > -1)) {
-            tmpVolume = mLocalStorageList.at(mSavePathIndex);
-        }
-    }
-
-    sprintf(cAginePath, "%s/factory.json", tmpVolume->pMountPath);
-    if (access(cAginePath, F_OK) == 0) {
+    
+    VolumeManager* vm = VolumeManager::Instance();   
+    string localPath = vm->getLocalVolMountPath();
+    localPath += "/factory.json";
+    if (access(localPath.c_str(), F_OK) == 0) {
         return true;
     } else {
         return false;
     }
-
     #else 
     return false;
     #endif
@@ -2554,7 +2547,7 @@ void MenuUI::setGyroCalcDelay(int iDelay)
 	if (iDelay > 0)
 		mGyroCalcDelay = iDelay;
 	else 
-		mGyroCalcDelay = 4;	/* Default */
+		mGyroCalcDelay = 5;	/* Default */
 }
 
 
@@ -2821,7 +2814,7 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
             }
             break;
         }
-			
+
 
         case ACTION_CALIBRATION: {	/* 拼接校正 */
             if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
@@ -3001,7 +2994,10 @@ bool MenuUI::send_option_to_fifo(int option,int cmd,struct _cam_prop_ * pstProp)
             break;
         }
 
-			
+        case ACTION_QUIT_UDISK_MODE: {
+            break;
+        }
+
         SWITCH_DEF_ERROR(option)
     }
 
@@ -3551,11 +3547,22 @@ void MenuUI::procBackKeyEvent()
 		
         switch (cam_state) {
             //force back directly while state idle 17.06.08
-            case STATE_IDLE:
+            case STATE_IDLE: {
                 set_cur_menu_from_exit();
                 break;
+            }
 			
-            case STATE_PREVIEW:     /* 预览状态下,按返回键 */
+            case STATE_UDISK: {     /* 必须完全进入U盘才能返回 */
+                VolumeManager* vm = VolumeManager::Instance();
+                if (vm->checkEnteredUdiskMode()) {
+                    oled_disp_type(EXIT_UDISK_MODE);
+                } else {
+                    Log.e(TAG, "[%s: %d] Entering Udisk Mode, please Wait...", __FILE__, __LINE__);
+                }
+                break;
+            }
+
+            case STATE_PREVIEW: {    /* 预览状态下,按返回键 */
                 switch (cur_menu) {
                     case MENU_PIC_INFO:
                     case MENU_VIDEO_INFO:
@@ -3594,8 +3601,9 @@ void MenuUI::procBackKeyEvent()
                         break;
                 }
                 break;
+            }
 				
-            default:
+            default: {
                 switch (cur_menu) {
                     case MENU_QR_SCAN:
                         exit_qr_func();
@@ -3634,6 +3642,7 @@ void MenuUI::procBackKeyEvent()
                         break;
                 }
                 break;
+            }
         }
     }
 }
@@ -4170,7 +4179,7 @@ void MenuUI::updateMenu()
 /*
  * 使用mVolumeList来填充gStorageInfoItems
  */
-void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeList)
+void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<Volume*>& mVolumeList)
 {
     ICON_POS tmPos;
  
@@ -4201,8 +4210,8 @@ void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeL
         #endif
 
         gStorageInfoItems[i]->stPos = tmPos;
-        memcpy(&(gStorageInfoItems[i]->stVolumeInfo), mVolumeList.at(i).get(), sizeof(Volume));
-        Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->stVolumeInfo.cVolName);
+        gStorageInfoItems[i]->pStVolumeInfo = mVolumeList.at(i);
+        Log.d(TAG, "[%d] name: %s", i, gStorageInfoItems[i]->pStVolumeInfo->cVolName);
     }
 }
 
@@ -4213,6 +4222,7 @@ void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<sp<Volume>>& mVolumeL
 void MenuUI::getShowStorageInfo()
 {
     VolumeManager* vm = VolumeManager::Instance();
+    #if 0
     mShowStorageList.clear();
     sp<Volume> tmpVolume;
 
@@ -4255,7 +4265,6 @@ void MenuUI::getShowStorageInfo()
 
 
     {
-
         {
 
             for (u32 i = 0; i < remoteVols.size(); i++) {
@@ -4279,6 +4288,8 @@ void MenuUI::getShowStorageInfo()
             }
         }
 
+
+
     #ifdef ENABLE_DEBUG_MODE
         Log.d(TAG, "mShowStorageList.size() = %d", mShowStorageList.size());
         for (u32 i = 0; i < mShowStorageList.size(); i++) {
@@ -4289,9 +4300,12 @@ void MenuUI::getShowStorageInfo()
     #endif
 
     }
+    #endif
+
+    vector<Volume*>& showList = vm->getSysStorageDevList();
 
     /* 根据查询的结果来重新初始化菜单 */
-    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total = mShowStorageList.size();
+    mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.total = showList.size();
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.cur_page = 0;
 
@@ -4307,7 +4321,7 @@ void MenuUI::getShowStorageInfo()
     /* 将mShowStorageList的各项填入gStorageInfoItems列表中
      * 需要填入的项: 名称, 总容量, 空闲容量
      */
-    volumeItemInit(&mMenuInfos[MENU_SHOW_SPACE], mShowStorageList);
+    volumeItemInit(&mMenuInfos[MENU_SHOW_SPACE], showList);
 }
 
 
@@ -4868,11 +4882,14 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
         /* 重新显示正页时，清除整个页 */
         clear_area(pIconPos->xPos + pIconPos->iWidth, 16);
 
-        // Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
-
+#ifdef ENABLE_DEBUG_SET_PAGE
+        Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
+#endif
         while (start < end) {
 
-            // Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+#ifdef ENABLE_DEBUG_SET_PAGE        
+            Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+#endif
             pTempSetItem = setItemsList.at(start);
             
             if (pTempSetItem != NULL) {
@@ -5097,13 +5114,15 @@ void MenuUI::startFormatDevice()
     SettingItem* tmpFormatSelectItem = NULL;
 
     int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
+
     Log.d(TAG, "[%s:%d] Select Device index [%d] in MENU_SHOW_SPACE", __FILE__, __LINE__, iIndex);
+    
     tmpStorageItem = gStorageInfoItems[iIndex];
 
     
-    Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.cVolName);
+    Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->pStVolumeInfo->cVolName);
     
-    if (!strncmp(tmpStorageItem->stVolumeInfo.cVolName, "mSD", strlen("mSD"))) {
+    if (!strncmp(tmpStorageItem->pStVolumeInfo->cVolName, "mSD", strlen("mSD"))) {    /* 根据名称来区别是小卡还是大卡 */
         int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
         Log.d(TAG, "[%s: %d] Format mSD Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
 
@@ -5111,8 +5130,8 @@ void MenuUI::startFormatDevice()
         if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
             
             /* 格式化一张卡 */
-            Log.d(TAG, "[%s: %d] Format mSD Card [%s]", __FILE__, __LINE__, tmpStorageItem->stVolumeInfo.cVolName);
-            iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
+            Log.d(TAG, "[%s: %d] Format mSD Card [%s]", __FILE__, __LINE__, tmpStorageItem->pStVolumeInfo->cVolName);
+            iTfIndex = tmpStorageItem->pStVolumeInfo->iIndex;
         } else {
             /* 格式化所有的卡 */
             Log.d(TAG, "[%s: %d] Format All mSD Card", __FILE__, __LINE__);
@@ -5132,14 +5151,14 @@ void MenuUI::startFormatDevice()
          * 获取卷的设备名称,挂载路径信息
          */
         Log.d(TAG, "[%s: %d] Volume name [%s] device node [%s], mount path[%s]", __FILE__, __LINE__, 
-                tmpStorageItem->stVolumeInfo.cVolName, 
-                tmpStorageItem->stVolumeInfo.cDevNode,
-                tmpStorageItem->stVolumeInfo.pMountPath);
+                tmpStorageItem->pStVolumeInfo->cVolName, 
+                tmpStorageItem->pStVolumeInfo->cDevNode,
+                tmpStorageItem->pStVolumeInfo->pMountPath);
         
         ICON_INFO* pDispType = NULL;
         int iDiskType = DISK_TYPE_USB;
 
-        if (tmpStorageItem->stVolumeInfo.iVolSubsys == VOLUME_SUBSYS_USB) {
+        if (tmpStorageItem->pStVolumeInfo->iVolSubsys == VOLUME_SUBSYS_USB) {
             /* disp formatting.. usb */
             pDispType = &usbDrvFormatingIconInfo;
             iDiskType = DISK_TYPE_USB;
@@ -5153,7 +5172,8 @@ void MenuUI::startFormatDevice()
 
         /* 添加格式化状态 */
         add_state(STATE_FORMATING);
-        int iResult = formatDev(tmpStorageItem->stVolumeInfo.cDevNode, tmpStorageItem->stVolumeInfo.pMountPath);
+
+        int iResult = formatDev(tmpStorageItem->pStVolumeInfo->cDevNode, tmpStorageItem->pStVolumeInfo->pMountPath);
 
         rm_state(STATE_FORMATING);
 
@@ -5366,20 +5386,22 @@ void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
     char cTotal[8] = {0};
     char cUsed[8]  = {0};
 
-    u64 used_size = pStorageItem->stVolumeInfo.uTotal - pStorageItem->stVolumeInfo.uAvail;
+    u64 used_size = pStorageItem->pStVolumeInfo->uTotal - pStorageItem->pStVolumeInfo->uAvail;
 
-#if 0
+#ifdef ENABLE_DEBUG_SET_PAGE
         Log.d(TAG, "[%s:%d] dispStorageItem item name [%s], selected[%s]", __FILE__, __LINE__, 
                         pStorageItem->stVolumeInfo.cVolName, (bSelected == true) ? "yes": "no");
 #endif
 
-    convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->stVolumeInfo.uTotal, cTotal, 8);
+    convStorageSize2Str(STORAGE_UNIT_MB, pStorageItem->pStVolumeInfo->uTotal, cTotal, 8);
     convStorageSize2Str(STORAGE_UNIT_MB, used_size, cUsed, 8);
 
-    sprintf(cItems, "%s: %s/%s", pStorageItem->stVolumeInfo.cVolName, cUsed, cTotal);
+    sprintf(cItems, "%s: %s/%s", pStorageItem->pStVolumeInfo->cVolName, cUsed, cTotal);
 
+#ifdef ENABLE_DEBUG_SET_PAGE
     Log.d(TAG, "[%s: %d] Calc show Str Len %d", __FILE__, __LINE__, strlen(cItems));
-    
+#endif
+
     /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
     disp_str((const u8 *)cItems, pStorageItem->stPos.xPos, pStorageItem->stPos.yPos, bSelected, pStorageItem->stPos.iWidth);
 }
@@ -5409,13 +5431,18 @@ void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
     clear_area(0, 16);
     #endif
 
+    #ifdef ENABLE_DEBUG_SET_PAGE
 	/* 5/3 = 1 8 (3, 6, 5) 5 = (1*3) + 2 */
     Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
+    #endif
 
     if (mSelect->total) {
         while (start < end) {
 
+        #ifdef ENABLE_DEBUG_SET_PAGE
             Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
+        #endif
+
             pTempStorageItem = storageList[start];
             
             if (pTempStorageItem != NULL) {
@@ -6173,7 +6200,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         }
 
     #ifdef ENABLE_MENU_AEB	
-        case MENU_SET_AEB:
+        case MENU_SET_AEB: {
             Log.d(TAG, "[%s:%d] +++++>>> enter aeb Menu now .... ", __FILE__, __LINE__);
             clear_area(0, 16);	
 
@@ -6185,6 +6212,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
             dispSettingPage(mAebList);
             break;
+        }
     #endif
 
 		
@@ -6211,12 +6239,13 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
-        case MENU_LIVE_SET_DEF:
+        case MENU_LIVE_SET_DEF: {
             updateBottomMode(true); /* 从MENU_PIC_INFO/MENU_VIDE_INFO/MENU_LIVE_INFO进入到MENU_PIC_SET_DEF/MENU_VIDEO_SET_DEF/MENU_LIVE_SET_DEF只需高亮显示挡位即可 */
             break;
+        }
 		
 
-        case MENU_QR_SCAN:
+        case MENU_QR_SCAN: {
             clear_area();
 //          reset_last_info();
 //          Log.d(TAG,"disp MENU_QR_SCAN state is 0x%x",cam_state);
@@ -6231,42 +6260,47 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 }
             }
             break;
+        }
 
 			
         case MENU_CALIBRATION: {
             Log.d(TAG, "MENU_CALIBRATION GyroCalc delay %d", mGyroCalcDelay);
 
-            if (mGyroCalcDelay > 0) {
+            if (mGyroCalcDelay >= 0) {
                 disp_icon(ICON_CALIBRAT_AWAY128_16);
-                disp_calibration_res(3, mGyroCalcDelay--);  /* 解决屏幕显示比实际时间多一秒问题 */
+                // disp_calibration_res(3, mGyroCalcDelay);  /* 解决屏幕显示比实际时间多一秒问题 */
+                // send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_1HZ, false);
             } else {
                 disp_calibration_res(2);	/* 显示正在校正"gyro caclibrating..." */
             }
             break;
         }
 
+        #if 0
+        case MENU_SYS_DEV:
+            disp_sys_dev();
+            break;
+        #endif
 
-//            case MENU_SYS_DEV:
-//                disp_sys_dev();
-//                break;
-
-        case MENU_SYS_DEV_INFO:     /* 显示设备的信息 */
+        case MENU_SYS_DEV_INFO: {    /* 显示设备的信息 */
             dispSysInfo();
             break;
+        }
 
 
-        case MENU_SYS_ERR:          /* 显示系统错误菜单 */
+        case MENU_SYS_ERR: {         /* 显示系统错误菜单 */
             setLightDirect(BACK_RED|FRONT_RED);
             disp_icon(ICON_ERROR_128_64128_64);
             break;
+        }
 			
         case MENU_DISP_MSG_BOX:
             break;
 			
-        case MENU_LOW_BAT:
-//            disp_icon(ICON_LOW_BAT_128_64128_64);
+        case MENU_LOW_BAT: {
             disp_low_bat();
             break;
+        }
 
     #ifdef ENABLE_MENU_LOW_PROTECT	
        case MENU_LOW_PROTECT:
@@ -6372,9 +6406,11 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         }
 
         case MENU_UDISK_MODE: { /* 状态由外部锁定 */
+            VolumeManager* vm = VolumeManager::Instance();
             clear_area(0, 16);
             disp_str((const u8*)"Reading", 36, 16, false, 128);
             disp_str((const u8*)"all storage devices...", 4, 32, false, 128);
+            vm->enterUdiskMode();
             break;
         }
 
@@ -6433,6 +6469,8 @@ bool MenuUI::checkStorageSatisfy(int action)
                     Log.e(TAG, "[%s: %d] Disk is Full!!!", __FILE__, __LINE__);
                     disp_msg_box(DISP_DISK_FULL);
                 }                
+            } else {
+                bRet = false;   /* 卡不全时，不进入检查测速流程 */
             }
             break;
         }
@@ -6847,9 +6885,9 @@ void MenuUI::procPowerKeyEvent()
             int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
 
             /* 选中的项是TF卡 */
-            if (!strncmp(gStorageInfoItems[iIndex]->stVolumeInfo.cVolName, "mSD", strlen("mSD"))) {
+            if (!strncmp(gStorageInfoItems[iIndex]->pStVolumeInfo->cVolName, "mSD", strlen("mSD"))) {
                 
-                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->stVolumeInfo.cVolName);
+                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->pStVolumeInfo->cVolName);
                 /* 进入格式化模式选择菜单 */
                 setCurMenu(MENU_TF_FORMAT_SELECT);
 
@@ -7527,9 +7565,11 @@ void MenuUI::add_state(int state)
         case STATE_FORMATING:
             Log.d(TAG, "System enter Format state");
             break;
-
 			
         case STATE_FORMAT_OVER:
+            break;
+
+        case STATE_UDISK:
             break;
 			
         // SWITCH_DEF_ERROR(state)
@@ -8503,7 +8543,7 @@ int MenuUI::oled_disp_type(int type)
             /* 一秒之后发送该消息，感觉有点慢 
              * 出现进入菜单一秒后才开始倒计时（默认是屏幕刷新的更快了??） - 2018年8月22日
              */
-            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_0HZ);
+            send_update_light(MENU_CALIBRATION, STATE_CALIBRATING, INTERVAL_1HZ);
             if (cur_menu != MENU_CALIBRATION) {
                 setCurMenu(MENU_CALIBRATION);
             }
@@ -8795,14 +8835,34 @@ int MenuUI::oled_disp_type(int type)
 
 
         case ENTER_UDISK_MODE: {    /* 进入U盘模式 */
-            Log.d(TAG, "[%s: %d] Enter Udisk Mode ....", __FILE__, __LINE__);
-            setCurMenu(MENU_UDISK_MODE);
+            if (!check_state_in(STATE_UDISK)) {
+                Log.d(TAG, "[%s: %d] Enter Udisk Mode ....", __FILE__, __LINE__);
+                add_state(STATE_UDISK);
+                setCurMenu(MENU_UDISK_MODE);
+            } else {
+                Log.e(TAG, "[%s: %d] Enter Udisk Mode failed [%s -> 0x%x]", 
+                                __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);                
+            }
             break;
         }
 
-        case EXIT_UDISK_DONE: {     /* 退出U盘模式 */
-            Log.d(TAG, "[%s: %d] Exit Udisk Mode ....",  __FILE__, __LINE__);
-            procBackKeyEvent();
+        case EXIT_UDISK_MODE: {     /* 退出U盘模式 */
+            if ( (cur_menu == MENU_UDISK_MODE) && (check_state_in(STATE_UDISK)) ) {
+                Log.d(TAG, "[%s: %d] Exit Udisk Mode, Current Menu[%s]",  __FILE__, __LINE__, getCurMenuStr(cur_menu));
+                rm_state(STATE_UDISK);  /* 清除U盘状态 */
+
+                VolumeManager* vm = VolumeManager::Instance();
+                vm->exitUdiskMode();
+
+                procBackKeyEvent();
+
+                /* 通知Web,清除STATE_UDISK状态 */
+                send_option_to_fifo(ACTION_QUIT_UDISK_MODE);
+
+            } else {
+                Log.e(TAG, "[%s: %d] Not in MENU_UDISK_MODE && State not STATE_UDISK [%s -> 0x%x]", 
+                                __FILE__, __LINE__, getCurMenuStr(cur_menu), cam_state);
+            }
             break;
         }
 
@@ -8881,7 +8941,7 @@ void MenuUI::dispSetItem(struct stSetItem* pItem, bool iSelected)
         Log.e(TAG, "[%s:%d] Invalid setting item [%s], curVal[%d]", __FILE__, __LINE__, pItem->pItemName, pItem->iCurVal);
     } else {
 
-#ifdef ENABLE_DEBUG_MODE
+#ifdef ENABLE_DEBUG_SET_PAGE
         Log.d(TAG, "[%s:%d] dispSetItem item name [%s], curVal[%d] selected[%s]", __FILE__, __LINE__, 
                         pItem->pItemName, pItem->iCurVal, (iSelected == true) ? "yes": "no");
 #endif
@@ -8909,21 +8969,6 @@ void MenuUI::disp_ageing()
 
 
 #if 0
-
-int MenuUI::get_dev_type_index(char *type)
-{
-    int storage_index;
-    if (strcmp(type, dev_type[SET_STORAGE_SD]) == 0) {
-        storage_index = SET_STORAGE_SD;
-    } else if (strcmp(type, dev_type[SET_STORAGE_USB]) == 0) {
-        storage_index = SET_STORAGE_USB;
-    } else {
-        Log.e(TAG, "error dev type %s ", type);
-    }
-    return storage_index;
-}
-
-
 
 void MenuUI::dispTfcardMsgbox(int bAdd, int iIndex)
 {
@@ -8968,156 +9013,6 @@ void MenuUI::disp_dev_msg_box(int bAdd, int type, bool bChange)
             Log.w(TAG, "strange bAdd %d type %d\n", bAdd, type);
             break;
     }
-}
-
-
-
-
-
-void MenuUI::set_mdev_list(std::vector <sp<Volume>> &mList)
-{
-    #if 0
-    int dev_change_type;
-
-    // 0 -- add, 1 -- remove, -1 -- do nothing
-    int bAdd = CHANGE;
-    bool bDispBox = false;
-    bool bChange = true;
-	
-    if (bFirstDev) {	/* 第一次发送 */
-		
-        bFirstDev = false;
-        mLocalStorageList.clear();
-	
-        switch (mList.size()) {
-            case 0:
-                mSavePathIndex = -1;
-                break;
-			
-            case 1: {
-                sp<Volume> dev = sp<Volume>(new Volume());
-                memcpy(dev.get(), mList.at(0).get(), sizeof(Volume));
-                mLocalStorageList.push_back(dev);
-                mSavePathIndex = 0;
-				break;
-            }
-                
-			
-            case 2:
-                for (u32 i = 0; i < mList.size(); i++) {
-                    sp<Volume> dev = sp<Volume>(new Volume());
-                    memcpy(dev.get(), mList.at(i).get(), sizeof(Volume));
-                    if (get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB) {
-                        mSavePathIndex = i;
-                    }
-                    mLocalStorageList.push_back(dev);
-                }
-                break;
-				
-            default:
-                Log.d(TAG, "strange bFirstDev mList.size() is %d", mList.size());
-                break;
-        }
-        send_save_path_change();	/* 将当前选中的存储路径发送给Camerad */
-    } else {
-        Log.d(TAG, " new save list is %d , org save list %d", mList.size(), mLocalStorageList.size());
-        if (mList.size() == 0) {
-            bAdd = REMOVE;
-            mSavePathIndex = -1;
-            if (mLocalStorageList.size() == 0) {
-                Log.d(TAG,"strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
-                mLocalStorageList.clear();
-                send_save_path_change();
-                bChange = false;
-            } else {
-                dev_change_type = get_dev_type_index(mLocalStorageList.at(0)->dev_type);
-                mLocalStorageList.clear();
-                bDispBox = true;
-            }
-        } else {
-            if (mList.size() < mLocalStorageList.size()) {
-                //remove
-                bAdd = REMOVE;
-                switch (mList.size()) {
-                    case 1:
-                        if (get_dev_type_index(mList.at(0)->dev_type) == SET_STORAGE_SD) {
-                            dev_change_type = SET_STORAGE_USB;
-                            mSavePathIndex = 0;
-                        } else {
-                            dev_change_type = SET_STORAGE_SD;
-                            bChange = false;
-                        }
-                        mLocalStorageList.clear();
-                        mLocalStorageList.push_back(mList.at(0));
-                        bDispBox = true;
-                        break;
-
-                    default:
-                        Log.d(TAG,"2strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
-                        break;
-                }
-            } else if (mList.size() > mLocalStorageList.size()) {	//add
-                bAdd = ADD;
-                if (mLocalStorageList.size() == 0) {
-                    dev_change_type = get_dev_type_index(mList.at(0)->dev_type);
-                    sp<Volume> dev = sp<Volume>(new Volume());
-                    memcpy(dev.get(), mList.at(0).get(), sizeof(Volume));
-//                    snprintf(new_path, sizeof(new_path), "%s", mList.at(0)->path);
-                    mSavePathIndex = 0;
-                    mLocalStorageList.push_back(dev);
-                    bDispBox = true;
-                } else {
-//old is usb
-//                    CHECK_EQ(mList.size(), 2);
-                    switch (mList.size()) {
-                        case 2:
-                            dev_change_type = get_dev_type_index(mLocalStorageList.at(0)->dev_type);
-                            if (dev_change_type == SET_STORAGE_USB) {
-                                // new insert is sd
-                                dev_change_type = SET_STORAGE_SD;
-                            } else {
-                                // new insert is usb
-                                dev_change_type = SET_STORAGE_USB;
-                            }
-							
-                            mLocalStorageList.clear();
-                            for (unsigned int i = 0; i < mList.size(); i++) {
-                                sp<Volume> dev = sp<Volume>(new Volume());
-                                memcpy(dev.get(), mList.at(i).get(), sizeof(Volume));
-                                if (dev_change_type == SET_STORAGE_USB && get_dev_type_index(mList.at(i)->dev_type) == SET_STORAGE_USB) {
-                                    mSavePathIndex = i;
-                                    bChange = true;
-                                }
-                                mLocalStorageList.push_back(dev);
-                            }
-                            bDispBox = true;
-                            break;
-
-                        default:
-                            Log.d(TAG, "3strange save list size (%d %d)",mList.size(),mLocalStorageList.size());
-                            break;
-                    }
-                }
-            } else {
-                Log.d(TAG, "5strange save list size (%d %d)", mList.size(), mLocalStorageList.size());
-            }
-        }
-
-        if (mLocalStorageList.size() == 0 ) {
-            if (mSavePathIndex != -1) {
-                mSavePathIndex = -1;
-            }
-        } else if (mSavePathIndex >= (int)mLocalStorageList.size()) {
-            mSavePathIndex = mLocalStorageList.size() - 1;
-
-            Log.e(TAG, "force path select %d ",mSavePathIndex);
-        }
-		
-        if (bDispBox) {
-            disp_dev_msg_box(bAdd, dev_change_type, bChange);
-        }
-    }
-    #endif
 }
 
 
@@ -9288,9 +9183,10 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 {
 	switch (cur_menu) {
 		case MENU_DISP_MSG_BOX:
-		case MENU_SPEED_TEST:
+		case MENU_SPEED_TEST: {
 			procBackKeyEvent();
 			break;
+        }
 
 		#if 1
 		case MENU_LOW_BAT:
@@ -9300,7 +9196,7 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 		}
 		#endif
 		
-		default:
+		default: {
 			// get http req before getting low bat protect in flask 170922
 			if (check_state_in(STATE_LOW_BAT)) {				
 				Log.d(TAG, "STATE_LOW_BAT not allow (0x%x %d)", cam_state, disp_type->type);
@@ -9308,6 +9204,7 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 				exit_sys_err();
 			}
 			break;
+        }
 	}
 
 	// add param from controller or qr scan
@@ -9383,7 +9280,6 @@ void MenuUI::handleTfQueryResult()
 
     rm_state(STATE_QUERY_STORAGE);
 
-
     /* 查询之后，更新远端存储已更新标志 */
     if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_TOP) { 
 
@@ -9419,7 +9315,7 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 
 	unique_lock<mutex> lock(mutexState);
 	switch (menu) {
-		case MENU_PIC_INFO:
+		case MENU_PIC_INFO: {
 			if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
 	
 				if (mTakePicDelay == 0) {
@@ -9453,9 +9349,10 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 				setLight();
 			}
 			break;
+        }
 
 					
-		case MENU_CALIBRATION:
+		case MENU_CALIBRATION: {
 			
 			// Log.d(TAG, "GyroCal is %d, cur menu [%s]", mGyroCalcDelay, getCurMenuStr(cur_menu));
 			
@@ -9480,6 +9377,7 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 				setLight();
 			}
 			break;
+        }
 					
 		default:
 			break;
@@ -9619,6 +9517,7 @@ void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
     int iTfIndex = -1;
 
     int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
+
     Log.d(TAG, "[%s:%d] Select Device index [%d] in MENU_SHOW_SPACE", __FILE__, __LINE__, iIndex);
     tmpStorageItem = gStorageInfoItems[iIndex];
 
@@ -9626,7 +9525,7 @@ void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
 
     tmpFormatSelectItem = gTfFormatSelectItems[iMode];
     if (!strcmp(tmpFormatSelectItem->pItemName, SET_ITEM_NAME_TF_FOMART_THIS_CARD)) {
-        iTfIndex = tmpStorageItem->stVolumeInfo.iIndex;
+        iTfIndex = tmpStorageItem->pStVolumeInfo->iIndex;
     } else {
         iTfIndex = -1;
     }
@@ -9719,38 +9618,31 @@ void MenuUI::handleSppedTest(vector<sp<Volume>>& mSpeedTestList)
             case 1:
                 xStarPos = 46;
                 break;
-
             case 2:
                 xStarPos = 40;
                 break;
-
             case 3:
                 xStarPos = 34;
                 break;
-            
             case 4:
                 xStarPos = 28;
                 break;
-
             case 5:
                 xStarPos = 22;
                 break;
-            
             case 6:
                 xStarPos = 16;
                 break;
-            
             default:
                 break;
         }
 
-
         if (iLocalTestFlag == 0) {  /* 大卡不通过 */
             Log.d(TAG, "[%s: %d] Local SD speed test failed", __FILE__, __LINE__);
-            if (testFailedList.size() == 0) {   /* 大卡速度不够 */
+            if (testFailedList.size() == 0) {   /* 大卡速度不够，小卡速度通过 */
                 disp_str((const u8*)"SD/USB write", 28, 16, false, 128);
                 disp_str((const u8*)"speed are insufficient.", 6, 32, false, 128);
-            } else {
+            } else {    /* 大卡,部分小卡测速不通过 */
                 disp_str((const u8*)cMsg, xStarPos, 8, false, 128);
                 disp_str((const u8*)"SD/USB write", 28, 24, false, 128);
                 disp_str((const u8*)"speed are insufficient.", 6, 40, false, 128);
@@ -9775,7 +9667,6 @@ void MenuUI::handleSppedTest(vector<sp<Volume>>& mSpeedTestList)
             msg_util::sleep_ms(3000);
             procBackKeyEvent();
         }
-
     }
 }
 

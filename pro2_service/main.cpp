@@ -45,7 +45,7 @@ void init_fifo();
 void debug_version_info();
 
 
-#define PRO2_VER    "V0.2.16"
+#define PRO2_VER    "V0.2.18"
 
 
 int main(int argc ,char *argv[])

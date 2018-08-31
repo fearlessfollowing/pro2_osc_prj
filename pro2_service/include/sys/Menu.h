@@ -474,7 +474,7 @@ static MENU_INFO mMenuInfos[] = {
 	{	/* MENU_DISP_MSG_BOX */
     	MENU_TOP,
 		{0},
-		{0},
+		{0, 0, OLED_KEY_BACK, 0, 0},    /* 支持返回键 */
         MENU_UDISK_MODE,
         NULL,
         NULL,        

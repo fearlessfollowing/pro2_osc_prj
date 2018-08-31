@@ -16,7 +16,7 @@ enum {
 };
 
 
-#define VOLUME_NAME_MAX 32
+#define VOLUME_NAME_MAX     32
 
 #ifndef COM_NAME_MAX_LEN
 #define COM_NAME_MAX_LEN    64
@@ -31,9 +31,7 @@ enum {
 #define WEXITSTATUS(status)	(((status) >> 8) & 0xff)
 #endif /* !defined WEXITSTATUS */
 
-#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(x[0]))
-
-
+#define ARRAY_SIZE(x)	    (sizeof(x) / sizeof(x[0]))
 
 
 /* 卷:
@@ -94,47 +92,49 @@ enum {
     VOLUME_ACTION_MAX
 };
 
+
 enum {
     VOLUME_PRIO_LOW     = 0,
-    VOLUME_PRIO_SD      = 1,     /* USB3.0 内部设备（SD） */
-    VOLUME_PRIO_UDISK   = 2,    /* USB3.0 移动硬盘 */
+    VOLUME_PRIO_SD      = 1,        /* USB3.0 内部设备（SD） */
+    VOLUME_PRIO_UDISK   = 2,        /* USB3.0 移动硬盘 */
     VOLUME_PRIO_MAX,
 };
+
+enum {
+    VOLUME_MANAGER_WORKMODE_NORMAL = 0,
+    VOLUME_MANAGER_WORKMODE_UDISK  = 1,
+    VOLUME_MANAGER_WORKMODE_MAX,
+};
+
 
 /*
  * Volume - 逻辑卷
  */
 typedef struct stVol {
-    int             iVolSubsys;         /* 卷的子系统： USB/SD */
-    const char*     pBusAddr;           /* 总线地址: USB - "1-2.3" */
-    const char*     pMountPath;         /* 挂载点：挂载点与总线地址是一一对应的 */
+    int             iVolSubsys;                         /* 卷的子系统： USB/SD */
+    const char*     pBusAddr;                           /* 总线地址: USB - "1-2.3" */
+    const char*     pMountPath;                         /* 挂载点：挂载点与总线地址是一一对应的 */
 
-    char            cVolName[COM_NAME_MAX_LEN];       /* 卷的名称 */
-    char            cDevNode[COM_NAME_MAX_LEN];      /* 设备节点名: 如'/dev/sdX' */
+    char            cVolName[COM_NAME_MAX_LEN];         /* 卷的名称 */
+    char            cDevNode[COM_NAME_MAX_LEN];         /* 设备节点名: 如'/dev/sdX' */
     char            cVolFsType[COM_NAME_MAX_LEN];
 
-	int		        iType;              /* 用于表示是内部设备还是外部设备 */
-	int		        iIndex;			    /* 索引号（对于模组上的小卡有用） */
+	int		        iType;                              /* 用于表示是内部设备还是外部设备 */
+	int		        iIndex;			                    /* 索引号（对于模组上的小卡有用） */
+    int             iPrio;                              /* 卷的优先级 */
+    int             iVolState;                          /* 卷所处的状态: No_Media/Init/Mounted/Formatting */
+    int             iVolSlotSwitch;                     /* 是否使能该接口槽 */
 
-    int             iPrio;              /* 卷的优先级 */
-
-    int             iVolState;          /* 卷所处的状态: No_Media/Init/Mounted/Formatting */
-
-    int             iVolSlotSwitch;     /* 是否使能该接口槽 */
-
-    u64             uTotal;			    /* 总容量:  (单位为MB) */
-    u64             uAvail;			    /* 剩余容量:(单位为MB) */
-
-	int 	        iSpeedTest;		    /* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
+    u64             uTotal;			                    /* 总容量:  (单位为MB) */
+    u64             uAvail;			                    /* 剩余容量:(单位为MB) */
+	int 	        iSpeedTest;		                    /* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
 } Volume;
-
-
 
 
 static Volume gSysVols[] = {
     {   /* SD卡 - 3.0 */
         VOLUME_SUBSYS_SD,
-        "usb2-2",
+        "usb2-2,usb2-2.2",
         "/mnt/sdcard",
         {0},             /* 动态生成 */
         {0},
@@ -308,6 +308,11 @@ static Volume gSysVols[] = {
 
 class NetlinkEvent;
 
+/* 1.接收客户端发送的进入U盘模式命令
+ * 2.将命令转发给UI
+ * 3.UI设置gpio，然后给模组上电
+ * 4.全部模组挂载成功，
+ */
 
 /*
  * 底层: 接收Netlink消息模式, 监听设备文件模式
@@ -332,7 +337,7 @@ public:
     /*
      * 处理块设备事件的到来
      */
-    void        handleBlockEvent(NetlinkEvent *evt);
+    int         handleBlockEvent(NetlinkEvent *evt);
 
 
     void        listVolumes();
@@ -425,14 +430,31 @@ public:
     std::vector<Volume*>& getRemoteVols();
     std::vector<Volume*>& getLocalVols();
 
+    std::vector<Volume*>& getSysStorageDevList();
+
+    /*
+     * U盘模式
+     */
+    void        enterUdiskMode();
+    void        exitUdiskMode();
+    void        checkAllUdiskIdle();
+    int         checkAllUdiskMounted();
+
+    bool        checkEnteredUdiskMode();
+
+    int         getVolumeManagerWorkMode();
+    void        setVolumeManagerWorkMode(int iWorkMode);
+
+    int         getCurHandleAddUdiskVolCnt();
+    int         getCurHandleRemoveUdiskVolCnt();
 
     static VolumeManager *Instance();
 
 private:
-    int         mListenerMode;                  /* 监听模式 */
-    Volume*     mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
-    Volume*     mSavedLocalVol;                 /* 上次保存 */
-    bool        mBsavePathChanged;              /* 本地存储设备路径是否发生改变 */
+    int                     mListenerMode;                  /* 监听模式 */
+    Volume*                 mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
+    Volume*                 mSavedLocalVol;                 /* 上次保存 */
+    bool                    mBsavePathChanged;              /* 本地存储设备路径是否发生改变 */
 
     static VolumeManager*   sInstance;
 
@@ -442,6 +464,8 @@ private:
     std::vector<Volume*>    mModuleVols;    /* 模组卷 */
 
     std::vector<Volume*>    mCurSaveVolList;
+
+    std::vector<Volume*>    mSysStorageVolList;
 
     bool                    mDebug;
 
@@ -454,10 +478,15 @@ private:
 
     u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
+    int                     mVolumeManagerWorkMode;                     /* 卷管理器的工作模式: U盘模式;普通模式 */
+
+    int                     mHandledAddUdiskVolCnt;
+    int                     mHandledRemoveUdiskVolCnt;
+
 
     pthread_t               mThread;			
 
-	sp<ARMessage>	mNotify;
+	sp<ARMessage>	        mNotify;
     VolumeManager();
 
 

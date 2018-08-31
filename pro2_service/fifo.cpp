@@ -956,6 +956,11 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             break;
         }
 
+        case ACTION_QUIT_UDISK_MODE: {
+            Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUIT_UDISK_MODE");            
+            break;
+        }
+
         case ACTION_FORMAT_TFCARD: {    /* 格式化请求 */
             CHECK_EQ(msg->find<int>("index", &iIndex), true);
 

@@ -114,11 +114,14 @@ typedef enum _type_ {
     STOP_BPC  = 151,
 
     ENTER_UDISK_MODE = 152,
+    
+    EXIT_UDISK_MODE = 154,
     EXIT_UDISK_DONE = 155,
 
 //    WRITE_FOR_BROKEN = 101,
     RESET_ALL_CFG = 102,
     MAX_TYPE,
+
 } TYPE;
 
 
@@ -181,13 +184,14 @@ enum {
     STATE_PIC_STITCHING = 0x20,						/* 图片拼接状态 */
     
    //state just for camera
-    STATE_START_RECORDING = 0x40,					/* 正在启动录像状态 */
-    STATE_STOP_RECORDING = 0x80,					/* 正在停止录像状态 */
-    STATE_START_LIVING = 0x100,						/* 正在启动直播状态 */
-    STATE_STOP_LIVING = 0x200,						/* 正在停止直播状态 */
+    STATE_START_RECORDING   = 0x40,					/* 正在启动录像状态 */
+    STATE_STOP_RECORDING    = 0x80,					/* 正在停止录像状态 */
+    STATE_START_LIVING      = 0x100,				/* 正在启动直播状态 */
+    STATE_STOP_LIVING       = 0x200,				/* 正在停止直播状态 */
 
-	STATE_QUERY_STORAGE = 0x400,					/* 查询容量状态 */
-	
+	STATE_QUERY_STORAGE     = 0x400,				/* 查询容量状态 */
+	STATE_UDISK             = 0x800,
+
     STATE_CALIBRATING = 0x1000,						/* 正在校验状态 */
     STATE_START_PREVIEWING = 0x2000,				/* 正在启动预览状态 */
     STATE_STOP_PREVIEWING = 0x4000,					/* 正在停止预览状态 */
@@ -269,6 +273,7 @@ enum {
     ACTION_SET_STICH = 50,
 	ACTION_QUERY_STORAGE = 200,
 	ACTION_FORMAT_TFCARD = 201,
+    ACTION_QUIT_UDISK_MODE = 202,
 
 };
 
@@ -612,12 +617,10 @@ private:
     void    sendExit();
     void    exitAll();
     void    set_org_addr(unsigned int addr);
-    void    set_mdev_list(std::vector<sp<Volume>> &mList);
 
     void    sys_reboot(int cmd = REBOOT_SHUTDOWN);
 
 	void    disp_cam_param(int higlight);
-
 
     bool    check_save_path_usb();
     int     get_dev_type_index(char *dev_type);
@@ -660,6 +663,7 @@ private:
     void    set_flick_light();
     void    set_light();
     bool    check_cam_busy();
+
 
 
 /******************************************************************************************************
@@ -799,7 +803,7 @@ private:
     void    dispShowStoragePage(struct stStorageItem** storageList);
 
 
-    void    volumeItemInit(MENU_INFO* pMenuInfo, std::vector<sp<Volume>>& mVolumeList);
+    void    volumeItemInit(MENU_INFO* pMenuInfo, std::vector<Volume*>& mVolumeList);
     void    getShowStorageInfo();
 
     void    updateInnerStoragePage(struct stStorageItem** pItemList, bool bUpdateLast);
@@ -1006,7 +1010,7 @@ private:
 
     u64                         mLocalRecLiveLeftTime;                          /* 本地存储设备,录像,直播的剩余时间 */
 
-    std::vector<sp<Volume>>     mShowStorageList;                               /* 用于Storage列表中显示的存储设备列表 */
+    std::vector<Volume*>        mShowStorageList;                               /* 用于Storage列表中显示的存储设备列表 */
 
 	bool	                    bFirstDev = true;
     

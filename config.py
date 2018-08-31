@@ -72,7 +72,7 @@ COM_FLAGS += ' -DENABLE_MENU_AEB '
 
 
 # 使能老化模式开关（仅用于工厂测试）
-# COM_FLAGS += ' -DENABLE_AGEING_MODE '
+COM_FLAGS += ' -DENABLE_AGEING_MODE '
 
 
 # LED 调试信息开关
@@ -119,6 +119,9 @@ COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
 
 # 使用system来执行挂载操作
 # COM_FLAGS += ' -DENABLE_USE_SYSTEM_VOL_MOUNTUMOUNT '
+
+# 使能设备文件删除监听线程
+# COM_FLAGS += ' -DENABLE_REMOVE_LISTEN_THREAD '
 
 # 调试Netlink消息
 # COM_FLAGS += ' -DENABLE_DEBUG_NETLINK_MSG '
