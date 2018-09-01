@@ -65,11 +65,18 @@ using namespace std;
 #define CtrlPipe_Shutdown   0
 #define CtrlPipe_Wakeup     1
 
-VolumeManager *VolumeManager::sInstance = NULL;
 
-u32 VolumeManager::lefSpaceThreshold = 1024U;
 int     mCtrlPipe[2];
 
+VolumeManager *VolumeManager::sInstance = NULL;
+u32 VolumeManager::lefSpaceThreshold = 1024U;
+
+static Mutex gRecLeftMutex;
+static Mutex gLiveRecLeftMutex;
+static Mutex gRecMutex;
+static Mutex gLiveRecMutex;
+
+extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
 
 static void do_coldboot(DIR *d, int lvl)
 {
@@ -118,40 +125,6 @@ static void coldboot(const char *path)
 }
 
 
-static int forkExecvp(int argc, char* argv[], int *status)
-{
-    int iRet = 0;
-    pid_t pid;
-
-    pid = fork();
-
-    if (pid < 0) {
-        Log.e(TAG, "Failed to fork");
-        iRet = -1;
-        goto err_fork;
-    } else if (pid == 0) {  /* 子进程: 使用execvp来替代执行的命令 */
-        char* argv_child[argc + 1];
-        memcpy(argv_child, argv, argc * sizeof(char *));
-        argv_child[argc] = NULL;
-
-        if (execvp(argv_child[0], argv_child)) {
-            Log.e(TAG, "executing %s failed: %s", argv_child[0], strerror(errno));
-        }
-    } else {
-        Log.d(TAG, ">>>>> Parent Process");
-
-        iRet = waitpid(pid, status, WNOHANG);  /* 在此处等待子进程的退出 */
-        if (iRet < 0) {
-            iRet = errno;
-            Log.e(TAG, "waitpid failed with %s\n", strerror(errno));
-        }
-    }
-
-err_fork:
-    return iRet;
-}
-
-
 VolumeManager* VolumeManager::Instance() 
 {
     if (!sInstance)
@@ -160,37 +133,12 @@ VolumeManager* VolumeManager::Instance()
 }
 
 
-static int exec_cmd(const char *str)
-{
-    int status = system(str);
-    int iRet = -1;
-
-    if (-1 == status) {
-       Log.e(TAG, "exec_cmd>> system %s error\n", str);
-    } else {
-        // printf("exit status value = [0x%x]\n", status);
-        if (WIFEXITED(status)) {
-            if (0 == WEXITSTATUS(status)) {
-                iRet = 0;
-            } else {
-                Log.e(TAG, "exec_cmd>> %s fail script exit code: %d\n", str, WEXITSTATUS(status));
-				Log.e(TAG, "exec_cmd>> errno = %d, %s\n", errno, strerror(errno));
-            }
-        } else {
-            Log.e(TAG, "exec_cmd>> exit status %s error  = [%d]\n", str, WEXITSTATUS(status));
-        }
-    }
-    return iRet;
-}
 
 /*
  * 卷管理器 - 僵死挂载点的清除(设备文件已经删除,但是挂载点还处于挂载状态,由于没有接收到内核的消息)
  * 设备名 -> 卷
  * ADD/REMORE - 目前只管REMOVE
  */
-
-
-
 
 
 VolumeManager::VolumeManager() 
@@ -215,16 +163,6 @@ VolumeManager::VolumeManager()
      * 重新初始化挂载点
      */
     
-    mkdir("/mnt/mSD1", 0777);
-    mkdir("/mnt/mSD2", 0777);
-    mkdir("/mnt/mSD3", 0777);
-    mkdir("/mnt/mSD4", 0777);
-    mkdir("/mnt/mSD5", 0777);
-    mkdir("/mnt/mSD6", 0777);
-    mkdir("/mnt/sdcard", 0777);
-    mkdir("/mnt/udisk1", 0777);
-    mkdir("/mnt/udisk2", 0777);
-
     umount2("/mnt/mSD1", MNT_FORCE);
     umount2("/mnt/mSD2", MNT_FORCE);
     umount2("/mnt/mSD3", MNT_FORCE);
@@ -234,6 +172,16 @@ VolumeManager::VolumeManager()
     umount2("/mnt/sdcard", MNT_FORCE);
     umount2("/mnt/udisk1", MNT_FORCE);
     umount2("/mnt/udisk2", MNT_FORCE);
+
+    rmdir("/mnt/mSD1");
+    rmdir("/mnt/mSD2");
+    rmdir("/mnt/mSD3");
+    rmdir("/mnt/mSD4");
+    rmdir("/mnt/mSD5");
+    rmdir("/mnt/mSD6");
+    rmdir("/mnt/sdcard");
+    rmdir("/mnt/udisk1");
+    rmdir("/mnt/udisk2");
 
     Log.d(TAG, "[%s: %d] Umont All device now .....", __FILE__, __LINE__);
 
@@ -298,106 +246,6 @@ void handleDevRemove(const char* pDevNode)
             delete evt;
         }
     }
-}
-
-
-void runListener()
-{
-    int iFd;
-    int iRes;
-	u32 readCount = 0;
-    char inotifyBuf[MAXCOUNT];
-    char epollBuf[MAXCOUNT];
-
-	struct inotify_event inotifyEvent;
-	struct inotify_event* curInotifyEvent;
-
-    iFd = inotify_init();
-    if (iFd < 0) {
-        Log.e(TAG, "[%s: %d] inotify init failed...", __FILE__, __LINE__);
-        return;
-    }
-
-    iRes = inotify_add_watch(iFd, "/dev", IN_CREATE | IN_DELETE);
-    if (iRes < 0) {
-        Log.e(TAG, "[%s: %d] inotify_add_watch /dev failed", __FILE__, __LINE__);
-        return;
-    }    
-
-    while (true) {
-        fd_set read_fds;
-        int rc = 0;
-        int max = -1;
-
-        FD_ZERO(&read_fds);
-
-        FD_SET(mCtrlPipe[0], &read_fds);	
-        if (mCtrlPipe[0] > max)
-            max = mCtrlPipe[0];
-
-        FD_SET(iFd, &read_fds);	
-        if (iFd > max)
-            max = iFd;
-
-        if ((rc = select(max + 1, &read_fds, NULL, NULL, NULL)) < 0) {	
-            if (errno == EINTR)
-                continue;
-            sleep(1);
-            continue;
-        } else if (!rc)
-            continue;
-
-        if (FD_ISSET(mCtrlPipe[0], &read_fds)) {	
-            char c = CtrlPipe_Shutdown;
-            TEMP_FAILURE_RETRY(read(mCtrlPipe[0], &c, 1));	
-            if (c == CtrlPipe_Shutdown) {
-                Log.d(TAG, "[%s: %d] VolumeManager notify our exit now ...", __FILE__, __LINE__);
-                break;
-            }
-            continue;
-        }
-
-        if (FD_ISSET(iFd, &read_fds)) {	
-            /* 读取inotify事件，查看是add 文件还是remove文件，add 需要将其添加到epoll中去，remove 需要从epoll中移除 */
-            readCount  = 0;
-            readCount = read(iFd, inotifyBuf, MAXCOUNT);
-            if (readCount <  sizeof(inotifyEvent)) {
-                Log.e(TAG, "error inofity event");
-                continue;
-            }
-
-            curInotifyEvent = (struct inotify_event*)inotifyBuf;
-
-            while (readCount >= sizeof(inotifyEvent)) {
-                if (curInotifyEvent->len > 0) {
-
-                    string devNode = "/dev/";
-                    devNode += curInotifyEvent->name;
-
-                    if (curInotifyEvent->mask & IN_CREATE) {
-                        /* 有新设备插入,根据设备文件执行挂载操作 */
-                        // handleMonitorAction(ACTION_ADD, devPath);
-                        Log.d(TAG, "[%s: %d] [%s] Insert", __FILE__, __LINE__, devNode.c_str());
-                    } else if (curInotifyEvent->mask & IN_DELETE) {
-                        /* 有设备拔出,执行卸载操作 
-                         * 由设备名找到对应的卷(地址，子系统，挂载路径，设备命) - 构造出一个NetlinkEvent事件
-                         */
-                        Log.d(TAG, "[%s: %d] [%s] Remove", __FILE__, __LINE__, devNode.c_str());
-                        handleDevRemove(curInotifyEvent->name);
-                    }
-                }
-                curInotifyEvent--;
-                readCount -= sizeof(inotifyEvent);
-            }
-        }
-    }
-}
-
-void* threadStart(void *obj) 
-{
-    runListener();		
-    pthread_exit(NULL);
-    return NULL;
 }
 
 
@@ -487,6 +335,10 @@ void VolumeManager::enterUdiskMode()
     /* TODO: 等待所有的U盘都挂载上 */
 }
 
+/*
+ * 怎么来确认所有的盘都挂载成功???
+ */
+
 bool VolumeManager::checkEnteredUdiskMode()
 {
     if (mHandledAddUdiskVolCnt == mModuleVolNum) {
@@ -517,6 +369,132 @@ int VolumeManager::getCurHandleRemoveUdiskVolCnt()
     return mHandledRemoveUdiskVolCnt;
 }
 
+
+/*
+ * getLiveRecLeftSec - 获取已经直播录像的秒数
+ */
+u64 VolumeManager::getLiveRecSec()
+{
+    AutoMutex _l(gLiveRecLeftMutex);
+    return mLiveRecSec;
+}
+
+/*
+ * incOrClearLiveRecSec - 增加或清除直播录像的秒数
+ */
+void VolumeManager::incOrClearLiveRecSec(bool bClrFlg)
+{
+    AutoMutex _l(gLiveRecMutex);
+    if (bClrFlg) {
+        mLiveRecSec = 0;
+    } else {
+        mLiveRecSec++;
+    }
+}
+
+
+/*
+ * setLiveRecLeftSec - 设置可直播录像的剩余时长
+ */
+void VolumeManager::setLiveRecLeftSec(u64 leftSecs)
+{
+    AutoMutex _l(gLiveRecLeftMutex);
+    if (leftSecs < 0) {
+        mLiveRecLeftSec = 0; 
+    } else {
+        mLiveRecLeftSec = leftSecs;
+    }
+}
+
+/*
+ * decRecLefSec - 剩余可录像时长减1
+ */
+void VolumeManager::decLiveRecLeftSec()
+{
+    AutoMutex _l(gLiveRecLeftMutex);
+    if (mLiveRecLeftSec > 0) {
+        mLiveRecLeftSec--;    
+    } else {
+        Log.d(TAG, "[%s: %d] Warnning Live Record Left sec is 0", __FILE__, __LINE__);
+    }
+}
+
+
+/*
+ * getRecSec - 获取已录像的时间(秒数)
+ */
+u64 VolumeManager::getRecSec()
+{
+    AutoMutex _l(gRecMutex);
+    return mRecSec;
+}
+
+/*
+ * incOrClearRecSec - 增加或清除已录像的秒数
+ */
+void VolumeManager::incOrClearRecSec(bool bClrFlg)
+{
+    AutoMutex _l(gRecMutex);
+    if (bClrFlg) {
+        mRecSec = 0;
+    } else {
+        mRecSec++;
+    }
+}
+
+void VolumeManager::convSec2TimeStr(u64 secs, char* strBuf, int iLen)
+{
+    u64 sec, min, hour;
+    min = secs / 60;
+    sec = secs % 60;
+    hour = min / 60;
+    min = min % 60;
+
+    snprintf(strBuf, iLen, "%02d:%02d:%02d", hour, min, sec);
+}
+
+
+/*
+ * setRecLeftSec - 设置可录像的剩余秒数
+ */
+void VolumeManager::setRecLeftSec(u64 leftSecs)
+{
+    AutoMutex _l(gRecLeftMutex);
+    if (mRecLeftSec < 0) {
+        mRecLeftSec = 0;
+    } else {
+        mRecLeftSec = leftSecs;
+    }
+}
+
+/*
+ * decRecLefSec - 剩余可录像时长减1
+ */
+bool VolumeManager::decRecLeftSec()
+{
+    AutoMutex _l(gRecLeftMutex);
+    if (mRecLeftSec > 0) {
+        mRecLeftSec--;  
+        return true;  
+    } else {
+        Log.d(TAG, "[%s: %d] Warnning Record Left sec is 0", __FILE__, __LINE__);
+    }
+    return false;
+}
+
+
+u64 VolumeManager::getRecLeftSec()
+{
+    AutoMutex _l(gRecLeftMutex);    
+    return mRecLeftSec;
+}
+
+
+u64 VolumeManager::getLiveRecLeftSec()
+{
+    AutoMutex _l(gLiveRecLeftMutex);    
+    return mLiveRecLeftSec;
+}
 
 void VolumeManager::exitUdiskMode()
 {
@@ -564,12 +542,137 @@ void VolumeManager::exitUdiskMode()
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_NORMAL);
 }
 
+
+void VolumeManager::runFileMonitorListener()
+{
+    int iFd;
+    int iRes;
+	u32 readCount = 0;
+    char inotifyBuf[MAXCOUNT];
+    char epollBuf[MAXCOUNT];
+
+	struct inotify_event inotifyEvent;
+	struct inotify_event* curInotifyEvent;
+
+    iFd = inotify_init();
+    if (iFd < 0) {
+        Log.e(TAG, "[%s: %d] inotify init failed...", __FILE__, __LINE__);
+        return;
+    }
+
+    Log.d(TAG, "[%s: %d] Inotify init OK", __FILE__, __LINE__);
+
+    iRes = inotify_add_watch(iFd, "/mnt", IN_CREATE | IN_DELETE);
+    if (iRes < 0) {
+        Log.e(TAG, "[%s: %d] inotify_add_watch /mnt failed", __FILE__, __LINE__);
+        return;
+    }    
+
+    Log.d(TAG, "[%s: %d] Add Listener object /mnt", __FILE__, __LINE__);
+
+    while (true) {
+
+        fd_set read_fds;
+        int rc = 0;
+        int max = -1;
+
+        FD_ZERO(&read_fds);
+
+        FD_SET(mFileMonitorPipe[0], &read_fds);	
+        if (mFileMonitorPipe[0] > max)
+            max = mFileMonitorPipe[0];
+
+        FD_SET(iFd, &read_fds);	
+        if (iFd > max)
+            max = iFd;
+
+        if ((rc = select(max + 1, &read_fds, NULL, NULL, NULL)) < 0) {	
+            if (errno == EINTR)
+                continue;
+            sleep(1);
+            continue;
+        } else if (!rc)
+            continue;
+
+        if (FD_ISSET(mFileMonitorPipe[0], &read_fds)) {	
+            char c = CtrlPipe_Shutdown;
+            TEMP_FAILURE_RETRY(read(mFileMonitorPipe[0], &c, 1));	
+            if (c == CtrlPipe_Shutdown) {
+                Log.d(TAG, "[%s: %d] VolumeManager notify our exit now ...", __FILE__, __LINE__);
+                break;
+            }
+            continue;
+        }
+
+
+        if (FD_ISSET(iFd, &read_fds)) {	
+            /* 读取inotify事件，查看是add 文件还是remove文件，add 需要将其添加到epoll中去，remove 需要从epoll中移除 */
+            readCount  = 0;
+            readCount = read(iFd, inotifyBuf, MAXCOUNT);
+            if (readCount <  sizeof(inotifyEvent)) {
+                Log.e(TAG, "error inofity event");
+                continue;
+            }
+
+            curInotifyEvent = (struct inotify_event*)inotifyBuf;
+
+            while (readCount >= sizeof(inotifyEvent)) {
+                if (curInotifyEvent->len > 0) {
+
+                    string devNode = "/mnt/";
+                    devNode += curInotifyEvent->name;
+
+                    if (curInotifyEvent->mask & IN_CREATE) {
+                        /* 有新设备插入,根据设备文件执行挂载操作 */
+                        // handleMonitorAction(ACTION_ADD, devPath);
+                        Log.d(TAG, "[%s: %d] [%s] Insert", __FILE__, __LINE__, devNode.c_str());
+                    } else if (curInotifyEvent->mask & IN_DELETE) {
+                        /* 有设备拔出,执行卸载操作 
+                         * 由设备名找到对应的卷(地址，子系统，挂载路径，设备命) - 构造出一个NetlinkEvent事件
+                         */
+                        Log.d(TAG, "[%s: %d] [%s] Remove", __FILE__, __LINE__, devNode.c_str());
+                        // handleDevRemove(curInotifyEvent->name);
+                    }
+                }
+                curInotifyEvent--;
+                readCount -= sizeof(inotifyEvent);
+            }
+        }
+    }
+}
+
+
+void* fileMonitorThread(void *obj) 
+{
+    VolumeManager* me = reinterpret_cast<VolumeManager *>(obj);
+    Log.d(TAG, "[%s: %d] Enter Listener mode now ...", __FILE__, __LINE__);
+    me->runFileMonitorListener();		
+    pthread_exit(NULL);
+    return NULL;
+}
+
 /*
  * 卷管理器新增功能: 2018年8月31日
  * 1.监听/mnt下的文件变化   - (何时创建/删除文件，将其记录在日志中)
  * 2.监听磁盘的容量变化     - (本地的正在使用的以及远端的小卡)
  * 
  */
+
+bool VolumeManager::initFileMonitor()
+{
+    bool bResult = false;
+    if (pipe(mFileMonitorPipe)) {
+        Log.e(TAG, "[%s: %d] initFileMonitor pipe failed", __FILE__, __LINE__);
+    } else {
+        if (pthread_create(&mFileMonitorThread, NULL, fileMonitorThread, this)) {	
+            Log.e(TAG, "[%s: %d] pthread_create (%s)", __FILE__, __LINE__, strerror(errno));
+        } else {
+            Log.d(TAG, "[%s: %d] Create File Monitor notify Thread....", __FILE__, __LINE__);
+            bResult = true;
+        }  
+    }
+    return bResult;
+}
 
 
 bool VolumeManager::start()
@@ -589,16 +692,8 @@ bool VolumeManager::start()
                 coldboot("/sys/block");
                 bResult = true;
 
-            #ifdef ENABLE_REMOVE_LISTEN_THREAD
-                if (pipe(mCtrlPipe)) {		
-                    Log.e(TAG, "pipe failed (%s)", strerror(errno));
-                } else {
-                    if (pthread_create(&mThread, NULL, threadStart, NULL)) {	
-                        Log.e(TAG, "pthread_create (%s)", strerror(errno));
-                    } else {
-                        Log.d(TAG, "[%s: %d] Create Dev notify Thread....", __FILE__, __LINE__);
-                    }                      
-                }
+            #ifdef ENABLE_FILE_CHANGE_MONITOR
+                initFileMonitor();
             #endif
 
             }
@@ -611,29 +706,33 @@ bool VolumeManager::start()
 }
 
 
-bool VolumeManager::stop()
+bool VolumeManager::deInitFileMonitor()
 {
-    bool bResult = false;
-
-#ifdef ENABLE_REMOVE_LISTEN_THREAD
     char c = CtrlPipe_Shutdown;		
     int  rc;	
 
-    rc = TEMP_FAILURE_RETRY(write(mCtrlPipe[1], &c, 1));
+    rc = TEMP_FAILURE_RETRY(write(mFileMonitorPipe[1], &c, 1));
     if (rc != 1) {
         Log.e(TAG, "Error writing to control pipe (%s)", strerror(errno));
     }
 
     void *ret;
-    if (pthread_join(mThread, &ret)) {	
+    if (pthread_join(mFileMonitorThread, &ret)) {	
         Log.e(TAG, "Error joining to listener thread (%s)", strerror(errno));
     }
 	
-    close(mCtrlPipe[0]);	
-    close(mCtrlPipe[1]);
-    mCtrlPipe[0] = -1;
-    mCtrlPipe[1] = -1;
+    close(mFileMonitorPipe[0]);	
+    close(mFileMonitorPipe[1]);
+    mFileMonitorPipe[0] = -1;
+    mFileMonitorPipe[1] = -1;
+}
 
+bool VolumeManager::stop()
+{
+    bool bResult = false;
+
+#ifdef ENABLE_FILE_CHANGE_MONITOR
+    deInitFileMonitor();
 #endif
 
     if (mListenerMode == VOLUME_MANAGER_LISTENER_MODE_NETLINK) {
@@ -788,7 +887,7 @@ done:
 
 
 /*************************************************************************
-** 方法名称: clearMountPath
+** 方法名称: checkMountPath
 ** 方法功能: 清除挂载点
 ** 入口参数: 
 **      mountPath - 挂载点路径
@@ -797,10 +896,12 @@ done:
 ** 在清除挂载点前，需要判断该挂载点已经被挂载，如果已经被挂载先对其卸载
 ** 如果被卸载成功或未被挂载,检查该挂载点是否干净,如果不干净,对其进行清除操作
 *************************************************************************/
-bool VolumeManager::clearMountPath(const char* mountPath)
+bool VolumeManager::checkMountPath(const char* mountPath)
 {
     char cmd[128] = {0};
-    
+
+    Log.d(TAG, "[%s: %d] >>>>> checkMountPath [%s]", __FILE__, __LINE__, mountPath);    
+
     if (access(mountPath, F_OK) != 0) {     /* 挂载点不存在,创建挂载点 */
         mkdir(mountPath, 0777);
     } else {
@@ -808,7 +909,7 @@ bool VolumeManager::clearMountPath(const char* mountPath)
             Log.d(TAG, "[%s: %d] Mount point -> %s has mounted!", __FILE__, __LINE__);
             return false;
         } else {
-            Log.d(TAG, "[%s: %d] Mount point[%s] not Mounted, clear mount point first!");
+            Log.d(TAG, "[%s: %d] Mount point[%s] not Mounted, clear mount point first!", __FILE__, __LINE__, mountPath);
             sprintf(cmd, "rm -rf %s/*", mountPath);
             system(cmd);
         }
@@ -924,7 +1025,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
             tmpVol = isSupportedDev(evt->getBusAddr());            
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {  /* 该卷被使能 */ 
 
-                if ( (getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
+                if ((getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
                     mHandledRemoveUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
                 }
 
@@ -935,6 +1036,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     if (volumeIsTfCard(tmpVol) == false) {
                         setVolCurPrio(tmpVol, evt); /* 重新修改该卷的优先级 */
                         setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
+                        
                         /* 发送存储设备移除,及当前存储设备路径的消息 */
                         sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
                     }
@@ -950,7 +1052,6 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
     }  
     return iResult;  
 }
-
 
 
 /*************************************************************************
@@ -1069,7 +1170,7 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
                 mCurrentUsedLocalVol = pVol;
                 mBsavePathChanged = true;       /* 表示存储设备路径发生了改变 */
                 
-                Log.d(TAG, "[%s: %d] Fist Local Volume Insert, Current Save path [ %s]", 
+                Log.d(TAG, "[%s: %d] Fist Local Volume Insert, Current Save path [%s]", 
                                             __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath);
 
             } else {    /* 本来已有本地存储设备，根据存储设备的优先级来判断否需要改变存储路径 */
@@ -1077,8 +1178,15 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
                 /* 检查是否有更高速的设备插入，如果有 */
                 for (u32 i = 0; i < mLocalVols.size(); i++) {
                     tmpVol = mLocalVols.at(i);
-                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolSlotSwitch == VOLUME_STATE_MOUNTED)) {
-
+                    
+                    Log.d(TAG, "[%s: %d] Volume mount point[%s], slot sate[%d], mounted state[%d]", __FILE__, __LINE__,
+                                                                    tmpVol->pMountPath, tmpVol->iVolState, tmpVol->iVolState);
+                    
+                    if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol->iVolState == VOLUME_STATE_MOUNTED)) {
+                        
+                        Log.d(TAG, "[%s: %d] New Volume prio %d, Current Volue prio %d", __FILE__, __LINE__,
+                                            tmpVol->iPrio, mCurrentUsedLocalVol->iPrio);
+                        
                         /* 挑选优先级更高的设备作为当前的存储设备 */
                         if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
                 
@@ -1090,6 +1198,10 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
                     }
                 }
             }
+
+            if (mCurrentUsedLocalVol) {
+                Log.d(TAG, "[%s: %d] >>> After Add action, Current Local save path: %s", __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath);
+            }            
             break;
         }
 
@@ -1103,26 +1215,35 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 
                     for (u32 i = 0; i < mLocalVols.size(); i++) {
                         tmpVol = mLocalVols.at(i);
-                        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (tmpVol != mCurrentUsedLocalVol)) {
-                            
+                        if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) 
+                                && (tmpVol->iVolState == VOLUME_STATE_MOUNTED) && (tmpVol != mCurrentUsedLocalVol)) {
+
                             /* 挑选优先级更高的设备作为当前的存储设备 */
-                            if (tmpVol->iPrio > mCurrentUsedLocalVol->iPrio) {
+                            if (tmpVol->iPrio >= mCurrentUsedLocalVol->iPrio) {
                                 mCurrentUsedLocalVol = tmpVol;
                                 mBsavePathChanged = true;
+                                Log.d(TAG, "[%s: %d] Changed current save path [%s]", 
+                                                        __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath);
+
                             }
                         }
                     } 
 
                     if (mCurrentUsedLocalVol == oldVol) {   /* 只有一个本地卷被挂载 */
+                        Log.d(TAG, "[%s: %d] System Have one Volume,but removed, now is null", __FILE__, __LINE__);
                         mCurrentUsedLocalVol = NULL;
                         mBsavePathChanged = true;
+                    }
+
+                    if (mCurrentUsedLocalVol) {
+                        Log.d(TAG, "[%s: %d] >>>>> After remove action, Current Local save path: %s", __FILE__, __LINE__, mCurrentUsedLocalVol->pMountPath);
                     }
 
                 } else {
                     Log.e(TAG, "[%s: %d] Remove Volume Not exist ?????", __FILE__, __LINE__);
                 }
             } else {    /* 移除的不是当前存储路径，不需要任何操作 */
-                Log.d(TAG, "[%s: %d] Remove Volume[%s] not Current save path, Do nothing", __FILE__, __LINE__);
+                Log.d(TAG, "[%s: %d] Remove Volume[%s] not Current save path, Do nothing", __FILE__, __LINE__, pVol->pMountPath);
             }
             break;
         }
@@ -1285,7 +1406,7 @@ bool VolumeManager::checkAllTfCardExist()
 }
 
 
-void VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
+u64 VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
 {
     u64 iTmpMinSize = ~0UL;
     
@@ -1304,13 +1425,7 @@ void VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
 
     }
     Log.d(TAG, "[%s: %d] remote left space [%d]M", __FILE__, __LINE__, mReoteRecLiveLeftSize);
-
-}
-
-
-u64 VolumeManager::getRemoteVolLeftMinSize()
-{
-    return mReoteRecLiveLeftSize; 
+    return mReoteRecLiveLeftSize;
 }
 
 
@@ -1438,22 +1553,20 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
 int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
 {
     int iRet = 0;
-    unsigned long flags;
-
-    flags = MS_DIRSYNC | MS_NOATIME;
 
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
-    string fsckStr = "fsck /dev/";
-    fsckStr += pEvt->getDevNodeName();
-    system(fsckStr.c_str());
-
+    checkFs(pVol);
 
     /* 挂载点为非挂载状态，但是挂载点有其他文件，会先删除 */
-    // clearMountPath(pVol->pMountPath);
+    checkMountPath(pVol->pMountPath);
 
     Log.d(TAG, "[%s: %d] >>>>> Filesystem type: %s", __FILE__, __LINE__, pVol->cVolFsType);
 
     #ifdef ENABLE_USE_SYSTEM_VOL_MOUNTUMOUNT
+
+    unsigned long flags;
+    flags = MS_DIRSYNC | MS_NOATIME;
+
     char cMountCmd[512] = {0};
     sprintf(cMountCmd, "mount %s %s", pVol->cDevNode, pVol->pMountPath);
     for (int i = 0; i < 3; i++) {
@@ -1468,34 +1581,6 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
     }
     #else
 
-    #if 0
-    msg_util::sleep_ms(2000);
-
-    Log.e(TAG, "[%s: %d] Mount [%s -> %s, flags 0x%x]", 
-                __FILE__, __LINE__, pVol->cDevNode, pVol->pMountPath, flags);
-
-    if (access(pVol->cDevNode, F_OK) != 0) {
-        Log.e(TAG, "[%s: %d] Dev node [%s] not exist", __FILE__, __LINE__, pVol->cDevNode);
-    }
-
-    if (!strncmp(pVol->cVolFsType, "exfat", strlen("exfat"))) {  /* EXFAT挂载 */
-        return mount(pVol->cDevNode, pVol->pMountPath, "fuseblk", 0, NULL);
-    } else if (!strncmp(pVol->cVolFsType, "ext4", strlen("ext4"))) {
-
-    } else if (!strncmp(pVol->cVolFsType, "ext3", strlen("ext3"))) {
-
-    } else if (!strncmp(pVol->cVolFsType, "ext2", strlen("ext2"))) {
-
-    } else if (!strncmp(pVol->cVolFsType, "vfat", strlen("vfat"))) {
-
-    } else if (!strncmp(pVol->cVolFsType, "ntfs", strlen("ntfs"))) {
-
-    } else {
-        Log.e(TAG, "[%s: %s] Not support Filesystem type[%s]", __FILE__, __LINE__, pVol->cVolFsType);
-        iRet = -1;
-    }
-
-    #else
 
     int status;
     const char *args[3];
@@ -1503,14 +1588,44 @@ int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
     args[1] = pVol->cDevNode;
     args[2] = pVol->pMountPath;
 
-    iRet = forkExecvp(ARRAY_SIZE(args), (char **)args, &status);
-    Log.d(TAG, "[%s: %d] forkExecvp return val 0x%x", __FILE__, __LINE__, iRet);
+    iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+    if (iRet != 0) {
+        Log.e(TAG, "mount failed due to logwrap error");
+        return -1;
+    }
+
+    if (!WIFEXITED(status)) {
+        Log.e(TAG, "mount sub process did not exit properly");
+        return -1;
+    }
+
+    status = WEXITSTATUS(status);
+    if (status == 0) {
+        Log.d(TAG, ">>>> Mount Volume OK");
+        return 0;
+    } else {
+        Log.e(TAG, ">>> Mount Volume failed (unknown exit code %d)", status);
+        return -1;
+    }
+
+    /* 更新挂载节点的最后访问时间(避免MAC上不能通过Samba访问文件的BUG) */
+    // string updateAccessTime = "touch ";
+    // updateAccessTime += pVol->pMountPath;
+    // updateAccessTime += "/.access";
+    // system(updateAccessTime.c_str());
+
+    {
+        char lost_path[256] = {0};
+        sprintf(lost_path, "%s/LOST.DIR", pVol->pMountPath);
+        if (access(lost_path, F_OK)) {
+            if (mkdir(lost_path, 0755)) {
+                Log.e(TAG, "Unable to create LOST.DIR (%s)", strerror(errno));
+            }
+        }
+    }
+
     #endif
-
-
-    #endif
-
-    return iRet;
+    return 0;
 }
 
 
@@ -1584,6 +1699,10 @@ int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 
     Log.i(TAG, "[%s: %d] %s unmounted successfully", __FILE__, __LINE__, pVol->pMountPath);
 
+    if (rmdir(pVol->pMountPath)) {
+        Log.e(TAG, "[%s: %d] remove dir [%s] failed...", __FILE__, __LINE__, pVol->pMountPath);
+    }
+
     pVol->iVolState = VOLUME_STATE_IDLE;
 
     return 0;
@@ -1595,54 +1714,63 @@ out_mounted:
 }
 
 
-
-int VolumeManager::checkFs(const char *fsPath) 
+int VolumeManager::checkFs(Volume* pVol) 
 {
     bool rw = true;
     int pass = 1;
     int rc = 0;
+    int status;
+    
+    Log.d(TAG, "[%s: %d] >>> checkFs: Type[%s], Mount Point[%s]", __FILE__, __LINE__, pVol->cVolFsType, pVol->pMountPath);
 
-    do {
+    if (!strcmp(pVol->cVolFsType, "exfat")) {
+        const char *args[3];
+        args[0] = "/sbin/exfatfsck";
+        args[1] = "-V";
+        args[2] = pVol->cDevNode;
+
+        Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s %s", __FILE__, __LINE__, args[0], args[1], args[2]);
+        rc = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+    } else if (!strcmp(pVol->cVolFsType, "ext4") || !strcmp(pVol->cVolFsType, "ext3") || !strcmp(pVol->cVolFsType, "ext2")) {
         const char *args[4];
-        int status;
-
-        args[0] = "fsck";
+        args[0] = "/sbin/e2fsck";
         args[1] = "-p";
         args[2] = "-f";
-        args[3] = fsPath;
+        args[3] = pVol->cDevNode;
+        Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s %s", __FILE__, __LINE__, args[0], args[1], args[2], args[3]);        
+        rc = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+    }
 
-        rc = forkExecvp(ARRAY_SIZE(args), (char **)args, &status);
-        if (rc != 0) {
-            Log.e(TAG, "Filesystem check failed due to logwrap error");
-            errno = EIO;
-            return -1;
-        }
 
-        if (!WIFEXITED(status)) {
-            Log.e(TAG, "Filesystem check did not exit properly");
-            errno = EIO;
-            return -1;
-        }
+    if (rc != 0) {
+        Log.e(TAG, "Filesystem check failed due to logwrap error");
+        errno = EIO;
+        return -1;
+    }
 
-        status = WEXITSTATUS(status);
+    if (!WIFEXITED(status)) {
+        Log.e(TAG, "Filesystem check did not exit properly");
+        errno = EIO;
+        return -1;
+    }
 
-        switch(status) {
-        case 0:
-            Log.d(TAG, "Filesystem check completed OK");
-            return 0;
+    status = WEXITSTATUS(status);
 
-        case 2:
-            Log.d(TAG, "Filesystem check failed (not a FAT filesystem)");
-            errno = ENODATA;
-            return -1;
+    switch(status) {
+    case 0:
+        Log.d(TAG, "Filesystem check completed OK");
+        return 0;
 
-        default:
-            Log.d(TAG, "Filesystem check failed (unknown exit code %d)", status);
-            errno = EIO;
-            return -1;
-        }
-    } while (0);
+    case 2:
+        Log.d(TAG, "Filesystem check failed (not a FAT filesystem)");
+        errno = ENODATA;
+        return -1;
 
+    default:
+        Log.d(TAG, "Filesystem check failed (unknown exit code %d)", status);
+        errno = EIO;
+        return -1;
+    }
     return 0;
 }
 

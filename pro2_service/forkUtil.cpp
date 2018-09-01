@@ -1,10 +1,25 @@
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <string.h>
+#include <stdlib.h>
+#include <log/stlog.h>
+#include <poll.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <errno.h>
+#include <pthread.h>
+
+#undef  TAG
+#define TAG "forkUtil"
+
+#define ARRAY_SIZE(x)   (sizeof(x) / sizeof(*(x)))
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
 static pthread_mutex_t fd_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
 
 static void child(int argc, char* argv[]) 
 {
-    // create null terminated argv_child array
     char* argv_child[argc + 1];
     memcpy(argv_child, argv, argc * sizeof(char *));
     argv_child[argc] = NULL;
@@ -18,21 +33,16 @@ static int parent(const char *tag, int parent_read, pid_t pid, int *chld_sts)
 {
     int status = 0;
     char buffer[4096];
+    int rc = 0;
+    int sz;
+    bool found_child = false;
+
     struct pollfd poll_fds[] = {
         [0] = {
             .fd = parent_read,
             .events = POLLIN,
         },
     };
-    int rc = 0;
-    int fd;
-
-    int a = 0;  // start index of unprocessed data
-    int b = 0;  // end index of unprocessed data
-    int sz;
-    bool found_child = false;
-    char tmpbuf[256];
-
 
     while (!found_child) {
 		
@@ -89,7 +99,7 @@ err_poll:
 }
 
 
-int android_fork_execvp_ext(int argc, char* argv[], int *status, bool ignore_int_quit)
+int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit)
 {
 	pid_t pid;
     int parent_ptty;
@@ -159,9 +169,9 @@ int android_fork_execvp_ext(int argc, char* argv[], int *status, bool ignore_int
         child(argc, argv);
     } else {
         close(child_ptty);
-        if (ignore_int_quit) {
-            struct sigaction ignact;
 
+        if (bIgnorIntQuit) {
+            struct sigaction ignact;
             memset(&ignact, 0, sizeof(ignact));
             ignact.sa_handler = SIG_IGN;
             sigaction(SIGINT, &ignact, &intact);
@@ -171,11 +181,10 @@ int android_fork_execvp_ext(int argc, char* argv[], int *status, bool ignore_int
         rc = parent(argv[0], parent_ptty, pid, status);
     }
 
-    if (ignore_int_quit) {
+    if (bIgnorIntQuit) {
         sigaction(SIGINT, &intact, NULL);
         sigaction(SIGQUIT, &quitact, NULL);
     }
-
 
 err_fork:
     pthread_sigmask(SIG_SETMASK, &oldset, NULL);

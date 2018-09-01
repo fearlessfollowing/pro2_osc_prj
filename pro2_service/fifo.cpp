@@ -346,7 +346,6 @@ void fifo::send_err_type_code(int type, int code)
     sp<ARMessage> msg = obtainMessage(MSG_DISP_ERR_TYPE);
     mInfo->type = type;
     mInfo->err_code =code;
-//    mConfig->bopen = open;
     msg->set<sp<ERR_TYPE_INFO>>("err_type_info", mInfo);
     msg->post();
 }
@@ -853,6 +852,7 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
     int iIndex = -1;
 
     switch (action) {
+
         case ACTION_CUSTOM_PARAM: {
             sp<CAM_PROP> mCamProp;
             CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
@@ -961,13 +961,24 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             break;
         }
 
+        case ACTION_UPDATE_REC_LEFT_SEC: {
+            u64 recLefSecs;
+            u64 liveRecLeftSecs;
+            CHECK_EQ(msg->find<u64>("rec_left_sec", &recLefSecs), true);
+            CHECK_EQ(msg->find<u64>("live_rec_left_sec", &liveRecLeftSecs), true);
+
+            param = cJSON_CreateObject();
+            cJSON_AddNumberToObject(param, "rec_left", recLefSecs);
+            cJSON_AddNumberToObject(param, "live_rec_left", liveRecLeftSecs);
+            break;
+        }
+
+
         case ACTION_FORMAT_TFCARD: {    /* 格式化请求 */
             CHECK_EQ(msg->find<int>("index", &iIndex), true);
 
             cJSON *pJsonIndex = cJSON_CreateObject();
             
-            /* {"name":"camera._formatCameraMoudle"} */
-
             cJSON_AddNumberToObject(pJsonIndex, "index", iIndex);
 
             param = cJSON_CreateObject();
@@ -977,9 +988,10 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             break;
         }
 
-        case ACTION_SET_STICH:
+        case ACTION_SET_STICH: {
             Log.d(TAG,"stitch action");
             break;
+        }
 
         case ACTION_SET_OPTION: {
             int type;
@@ -1247,9 +1259,9 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 for (unsigned int i = 0; i < mDevList.size(); i++) {
                     cJSON *sub = cJSON_CreateObject();
                     
-                    cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd" );
+                    cJSON_AddStringToObject(sub, "dev_type", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "sd": "usb" );
                     cJSON_AddStringToObject(sub, "path", mDevList.at(i)->pMountPath);
-                    cJSON_AddStringToObject(sub, "name", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "usb": "sd");
+                    cJSON_AddStringToObject(sub, "name", (mDevList.at(i)->iVolSubsys == VOLUME_SUBSYS_SD) ? "sd": "usb");
 
                     cJSON_AddItemToArray(jsonArray, sub);
                 }
@@ -1258,7 +1270,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 
 				pSrt = cJSON_Print(root);
 
-				Log.d(TAG, "rec MSG_DEV_NOTIFY  %s", pSrt);
+				Log.d(TAG, ">>>>> rec MSG_DEV_NOTIFY  %s", pSrt);
                 write_fifo(EVENT_DEV_NOTIFY, pSrt);
                 if (nullptr != pSrt) {
                     free(pSrt);

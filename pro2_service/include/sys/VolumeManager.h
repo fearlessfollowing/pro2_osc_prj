@@ -9,6 +9,8 @@
 #include <util/ARMessage.h>
 #include <sys/NetlinkEvent.h>
 
+#include <sys/Mutex.h>
+
 enum {
     VOLUME_MANAGER_LISTENER_MODE_NETLINK,
     VOLUME_MANAGER_LISTENER_MODE_INOTIFY,
@@ -359,12 +361,11 @@ public:
 
     bool        extractMetadata(const char* devicePath, char* volFsType, int iLen);
 
-    bool        clearMountPath(const char* mountPath);
+    bool        checkMountPath(const char* mountPath);
 
     bool        isValidFs(const char* devName, Volume* pVol);
 
-    int         checkFs(const char *fsPath);
-
+    int         checkFs(Volume* pVol);
 
     void        updateVolumeSpace(Volume* pVol);
 
@@ -388,8 +389,7 @@ public:
      * 检查是否所有的TF卡都存在
      */
     bool        checkAllTfCardExist();
-    void        calcRemoteRemainSpace(bool bFactoryMode = false);
-    u64         getRemoteVolLeftMinSize();
+    u64         calcRemoteRemainSpace(bool bFactoryMode = false);
 
     void        updateLocalVolSpeedTestResult(int iResult);
     void        updateRemoteVolSpeedTestResult(Volume* pVol);
@@ -451,6 +451,28 @@ public:
     int         getCurHandleAddUdiskVolCnt();
     int         getCurHandleRemoveUdiskVolCnt();
 
+
+    /*
+     * 录像/直播存片 时间接口
+     */
+    u64         getRecSec();
+    void        incOrClearRecSec(bool bClrFlg = false);
+    void        setRecLeftSec(u64 leftSecs);
+    bool        decRecLeftSec();
+    u64         getRecLeftSec();
+
+    u64         getLiveRecSec();
+    void        incOrClearLiveRecSec(bool bClrFlg = false);
+
+    void        setLiveRecLeftSec(u64 leftSecs);
+    void        decLiveRecLeftSec();
+    u64         getLiveRecLeftSec();
+
+    /*
+     * 转换秒数为'00:00:00'格式字符串
+     */
+    void        convSec2TimeStr(u64 secs, char* strBuf, int iLen);
+
     static VolumeManager *Instance();
 
 private:
@@ -486,11 +508,25 @@ private:
     int                     mHandledAddUdiskVolCnt;
     int                     mHandledRemoveUdiskVolCnt;
 
+    u64                     mRecLeftSec;                                /* 当前挡位可录像的剩余时长 */
+    u64                     mRecSec;    
+
+    
+    u64                     mLiveRecLeftSec;                            /* 当前挡位直播存片的剩余时长 */
+    u64                     mLiveRecSec;
 
     pthread_t               mThread;			
 
 	sp<ARMessage>	        mNotify;
     VolumeManager();
+
+    pthread_t               mFileMonitorThread;
+    int                     mFileMonitorPipe[2];
+    bool                    initFileMonitor();
+    bool                    deInitFileMonitor();
+
+public:
+    void                    runFileMonitorListener();
 
 
 };

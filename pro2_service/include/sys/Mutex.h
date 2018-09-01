@@ -73,7 +73,7 @@ inline Mutex::~Mutex()
     pthread_mutex_destroy(&mMutex);
 }
 
-inline status_t Mutex::lock() 
+inline int Mutex::lock() 
 {
     return -pthread_mutex_lock(&mMutex);
 }
@@ -83,7 +83,7 @@ inline void Mutex::unlock()
     pthread_mutex_unlock(&mMutex);
 }
 
-inline status_t Mutex::tryLock() 
+inline int Mutex::tryLock() 
 {
     return -pthread_mutex_trylock(&mMutex);
 }
