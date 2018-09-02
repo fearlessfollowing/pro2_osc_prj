@@ -84,7 +84,7 @@ static int parent(const char *tag, int parent_read, pid_t pid, int *chld_sts)
 
     if (WIFEXITED(status)) {
         if (WEXITSTATUS(status)) {
-            Log.d(TAG, "[%s: %d] child terminated by exit(%d)", WEXITSTATUS(status));
+            Log.d(TAG, "[%s: %d] child terminated by exit(%d)", __FILE__, __LINE__, WEXITSTATUS(status));
         }
     } else {
         if (WIFSIGNALED(status)) {

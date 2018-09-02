@@ -66,7 +66,9 @@ using namespace std;
 #define CtrlPipe_Wakeup     1
 
 
-int     mCtrlPipe[2];
+#define MKFS_EXFAT "/sbin/mkexfatfs"
+
+// int     mCtrlPipe[2];
 
 VolumeManager *VolumeManager::sInstance = NULL;
 u32 VolumeManager::lefSpaceThreshold = 1024U;
@@ -998,7 +1000,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                         mHandledAddUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
                     }
 
-                    if (mountVolume(tmpVol, evt)) {
+                    if (mountVolume(tmpVol)) {
                         Log.e(TAG, "mount device[%s -> %s] failed, reason [%d]", tmpVol->cDevNode, tmpVol->pMountPath, errno);
                         iResult = -1;
                     } else {
@@ -1550,7 +1552,7 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
  * 挂载卷
  * - 成功返回0; 失败返回-1
  */
-int VolumeManager::mountVolume(Volume* pVol, NetlinkEvent* pEvt)
+int VolumeManager::mountVolume(Volume* pVol)
 {
     int iRet = 0;
 
@@ -1803,7 +1805,6 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
 }
 
 
-
 void VolumeManager::syncTakePicLeftSapce(u32 uLeftSize)
 {
     if (mCurrentUsedLocalVol) {
@@ -1919,44 +1920,102 @@ int VolumeManager::formatFs2Exfat(const char *fsPath, unsigned int numSectors, c
 
 #endif
 
-/*
- * 格式化类型: 默认为exFat
- */
+
+/*************************************************************************
+** 方法名称: formatVolume
+** 方法功能: 格式化指定的卷
+** 入口参数: 
+**      pVol - 卷对象
+**      wipe - 是否深度格式化标志(默认为true)
+** 返回值: 成功返回格式化成功;失败返回错误码(见FORMAT_ERR_SUC...)
+** 调 用: 
+** 
+*************************************************************************/
 int VolumeManager::formatVolume(Volume* pVol, bool wipe)
 {
     int iRet = 0;
 
-    if (pVol->iVolState == VOLUME_STATE_NOMEDIA) {
-        errno = ENODEV;
-        return -1;       
-    } else if (pVol->iVolState != VOLUME_STATE_IDLE) {
-        errno = EBUSY;
-        return -1;
-    }
+    /* 卷对应的卡槽必须要使能状态并且卷必须已经被挂载 */
+    if ((pVol->iVolSlotSwitch != VOLUME_SLOT_SWITCH_ENABLE) 
+        || (pVol->iVolState != VOLUME_STATE_MOUNTED) 
+        || !isMountpointMounted(pVol->pMountPath) ) {  
 
-    if (pVol->iVolState == VOLUME_STATE_MOUNTED) {
-        errno = EBUSY;
-        return -1;
+        Log.e(TAG, "[%s: %d] Volume slot not enable or Volume not mounted yet!", __FILE__, __LINE__);
+        return FORMAT_ERR_UNKOWN;
     }
 
     pVol->iVolState == VOLUME_STATE_FORMATTING;
 
+    /* 更改本地卷的存储路径 */
+    setSavepathChanged(VOLUME_ACTION_REMOVE, pVol);
+    // sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, pVol->iVolSubsys, getCurSavepathList());
+    
     if (mDebug) {
         Log.i(TAG, "Formatting volume %s (%s)", pVol->cDevNode, pVol->pMountPath);
     }
 
-#if 0
-    if (Fat::format(devicePath, 0, wipe, label)) {
-        Log.e(TAG, "Failed to format (%s)", strerror(errno));
-        goto err;
+    /*
+     * 1.卸载
+     * 2.格式化为exfat格式
+     * 3.重新挂载
+     */
+    if (!wipe) {
+        Log.d(TAG, "[%s: %d] Just simple format Volume", __FILE__, __LINE__);
+
+        if (doUnmount(pVol->pMountPath, true)) {
+            Log.d(TAG, "[%s: %d] Failed Unmount Volume, Fomart Failed ...", __FILE__, __LINE__);
+            iRet = FORMAT_ERR_UMOUNT_EXFAT;
+            goto err_umount_volume;
+        }
+
+        Log.d(TAG, "[%s: %d] Unmont Sucess!!", __FILE__, __LINE__);
+
+        if (!formatVolume2Exfat(pVol)) {
+            Log.d(TAG, "[%s: %d] Format Volume 2 Exfat Failed.", __FILE__, __LINE__);
+            iRet = FORMAT_ERR_FORMAT_EXFAT;
+            goto err_format_exfat;
+        }
+
+        Log.d(TAG, "[%s: %d] Format Volume 2 Exfat Success.", __FILE__, __LINE__);
+        iRet = FORMAT_ERR_SUC;
+        goto suc_format_exfat;
+
+    } else {
+        /* 
+        * 深度格式化:
+        * 1.卸载
+        * 2.格式化为ext4格式
+        * 3.挂载并trim（碎片整理）
+        * 4.卸载
+        * 5.格式化为Exfat
+        * 6.挂载
+        */
+        Log.d(TAG, "[%s: %d] Depp format Volume", __FILE__, __LINE__);
+        return FORMAT_ERR_SUC;
     }
-#endif
 
-    system("sync");
-    iRet = 0;
+suc_format_exfat:
+err_format_exfat:
+    
+    Log.d(TAG, "[%s: %d] Format Volume Failed/Success, Remount now..", __FILE__, __LINE__);
 
-err:
-    pVol->iVolState == VOLUME_STATE_IDLE;
+    if (mountVolume(pVol)) {
+        Log.d(TAG, "[%s: %d] Remount Volume[%s] Failed", __FILE__, __LINE__, pVol->cDevNode);
+        pVol->iVolState = VOLUME_STATE_ERROR;
+    } else {
+        Log.d(TAG, "[%s: %d] Format Volume[%s] Success", __FILE__, __LINE__, pVol->cDevNode);
+        pVol->iVolState = VOLUME_STATE_MOUNTED;
+        system("sync");
+        setSavepathChanged(VOLUME_ACTION_ADD, pVol);
+        
+        /*
+         * TODO: 通知Web不能走UI消息,当前消息没有处理完,UI不会处这个消息
+         */
+        // sendDevChangeMsg2UI(VOLUME_ACTION_ADD, pVol->iVolSubsys, getCurSavepathList());
+
+    }
+
+err_umount_volume:
     return iRet;
 }
 
@@ -2012,6 +2071,51 @@ Volume* lookupVolume(const char *label)
     Volume* tmpVol = NULL;
     
     return tmpVol;
+}
+
+
+bool VolumeManager::formatVolume2Exfat(Volume* pVol)
+{
+    /* 1.检查设备文件是否存在 */
+    /* 2.调用forkExecvpExt创建子进程进行格式化操作 */
+    if (access(pVol->cDevNode, F_OK) != 0) {
+        Log.e(TAG, "[%s: %d] formatVolume2Exfat -> No dev node[%s]", __FILE__, __LINE__, pVol->cDevNode);
+        return false;
+    } else {
+        int status;
+        const char *args[2];
+        args[0] = MKFS_EXFAT;
+        args[1] = pVol->cDevNode;
+    
+        Log.d(TAG, "[%s: %d] formatVolume2Exfat cmd [%s %s]", 
+                                __FILE__, __LINE__, args[0], args[1]);
+
+        int rc = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+        if (rc != 0) {
+            Log.e(TAG, "[%s: %d] Filesystem format failed due to logwrap error", __FILE__, __LINE__);
+            return false;
+        }
+
+        if (!WIFEXITED(status)) {
+            Log.e(TAG, "Format sub process did not exit properly");
+            return false;
+        }
+
+        status = WEXITSTATUS(status);
+        if (status == 0) {
+            Log.d(TAG, ">>>> Filesystem formatted OK");
+            return true;
+        } else {
+            Log.e(TAG, ">>> Mount Volume failed (unknown exit code %d)", status);
+            return false;
+        }        
+   }
+   return false;
+}
+
+bool VolumeManager::formatVolume2Ext4(Volume* pVol)
+{
+    return true;
 }
 
 

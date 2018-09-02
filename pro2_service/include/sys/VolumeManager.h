@@ -79,6 +79,7 @@ enum {
     VOLUME_STATE_UNMOUNTING = 5,
     VOLUME_STATE_FORMATTING = 6,
     VOLUME_STATE_DISABLED   = 7,    /* 卷被禁止, 可以不上报UI */
+    VOLUME_STATE_ERROR      = 8,
 };
 
 enum {
@@ -117,7 +118,7 @@ enum {
     FORMAT_ERR_UMOUNT_EXT4 = -5,
     FORMAT_ERR_FORMAT_EXFAT = -6,
     FORMAT_ERR_E4DEFRAG = -7,
-
+    FORMAT_ERR_UNKOWN = - 8,
 };
 
 
@@ -361,28 +362,16 @@ public:
 
     void        listVolumes();
 
-    
-    int         mountVolume(Volume* pVol, NetlinkEvent* pEvt);
 
     int         unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force);
 
-    int         doUnmount(const char *path, bool force);
 
-    int         formatVolume(Volume* pVol, bool wipe = true);
+    int         formatVolume(Volume* pVol, bool wipe = false);
     
     void        disableVolumeManager(void) { mVolManagerDisabled = 1; }
 
     void        setDebug(bool enable);
 
-    Volume*     isSupportedDev(const char* busAddr);
-
-    bool        extractMetadata(const char* devicePath, char* volFsType, int iLen);
-
-    bool        checkMountPath(const char* mountPath);
-
-    bool        isValidFs(const char* devName, Volume* pVol);
-
-    int         checkFs(Volume* pVol);
 
     void        updateVolumeSpace(Volume* pVol);
 
@@ -395,8 +384,7 @@ public:
     u64         getLocalVolLeftSize(bool bUseCached = false);
     const char* getLocalVolMountPath();
 
-    void        setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt);
-    void        setSavepathChanged(int iAction, Volume* pVol);
+
 
     std::vector<Volume*>& getCurSavepathList();
 
@@ -448,9 +436,6 @@ public:
     std::vector<Volume*>& getLocalVols();
 
     std::vector<Volume*>& getSysStorageDevList();
-
-    bool isMountpointMounted(const char *mp);
-
 
     /*
      * U盘模式
@@ -542,8 +527,29 @@ private:
     bool                    initFileMonitor();
     bool                    deInitFileMonitor();
 
+    int         mountVolume(Volume* pVol);
+
+    int         doUnmount(const char *path, bool force);
+    bool        extractMetadata(const char* devicePath, char* volFsType, int iLen);
+
+    void        setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt);
+    void        setSavepathChanged(int iAction, Volume* pVol);
+
+    bool        checkMountPath(const char* mountPath);
+    bool        isMountpointMounted(const char *mp);
+
+    bool        isValidFs(const char* devName, Volume* pVol);
+
+    int         checkFs(Volume* pVol);
+    Volume*     isSupportedDev(const char* busAddr);
+
+    bool        formatVolume2Exfat(Volume* pVol);
+    bool        formatVolume2Ext4(Volume* pVol);
+
+
+
 public:
-    void                    runFileMonitorListener();
+    void        runFileMonitorListener();
 
 
 };

@@ -3435,7 +3435,7 @@ void MenuUI::procBackKeyEvent()
         }
 #endif        
     } else if (cur_menu == MENU_FORMAT_INDICATION) {
-        // rm_state(STATE_FORMAT_OVER);
+        rm_state(STATE_FORMAT_OVER);
         
         /* 格式化完成之前不能返回 */
         if (!check_state_in(STATE_FORMATING))
@@ -4064,11 +4064,6 @@ void MenuUI::updateMenu()
             updateInnerSetPage(mTfFormatSelList, true);
             break;
 
-
-        case MENU_FORMAT:
-            disp_format();
-            break;
-		
         default:
             Log.w(TAG, " Unkown join Update Menu [%d]", cur_menu);
             break;
@@ -4819,6 +4814,8 @@ ERROR:
 }
 
 
+
+
 void MenuUI::dispTipStorageDevSpeedTest() 
 {
     clear_area();
@@ -4960,38 +4957,56 @@ void MenuUI::startFormatDevice()
         int iResult = vm->formatVolume(tmpStorageItem->pStVolumeInfo);
         #endif
 
+        add_state(STATE_FORMAT_OVER);
         rm_state(STATE_FORMATING);
+
+        /*
+         * 格式化成功
+         *  - 显示格式化成功的消息框
+         * 格式化失败
+         *  - 停留在格式化失败的页面，由用户按返回或确认键返回 
+         */
 
         ICON_INFO* pFormatResult = NULL;
         switch(iResult) {
-            case FORMAT_ERR_SUC:        /* 格式化成功 */
+            case FORMAT_ERR_SUC: {       /* 格式化成功 */
                 if (iDiskType == DISK_TYPE_USB) {
                     pFormatResult = &usbFormatedSucIconInfo;
                 } else {
                     pFormatResult = &sdFormatedSucIconInfo;
                 }
-                break;  
 
-            case FORMAT_ERR_FSTRIM:     /* 格式化成功，但可能有碎片 */
+                dispIconByLoc(pFormatResult);
+                msg_util::sleep_ms(2000);
+                procBackKeyEvent();
+                break;  
+            
+            }
+
+            case FORMAT_ERR_FSTRIM: {    /* 格式化成功，但可能有碎片 */
                 if (iDiskType == DISK_TYPE_USB) {
                     pFormatResult = &usbFormatedButFragmentIconInfo;
                 } else {
                     pFormatResult = &sdFormatedButFragmentIconInfo;
                 }
                 break;
+            }
 
-            default:                    /* 格式化失败 */
+            /* 
+             * 格式化失败,停留在该页面(MENU_FORMAT_INDICATION)
+             * 状态为STATE_FORMAT_OVER
+             * 按返回或者确认键盘返回上一级菜单
+             */
+            default: {                   /* 格式化失败 */
                 if (iDiskType == DISK_TYPE_USB) {
                     pFormatResult = &usbDrvFormatFailedIconInfo;
                 } else {
                     pFormatResult = &sdFormatFailedIconInfo;
                 }
+                dispIconByLoc(pFormatResult);                
                 break;
+            }
         }
-
-        if (pFormatResult)
-            dispIconByLoc(pFormatResult);
-
     }
 }
 
@@ -5131,29 +5146,6 @@ ERROR:
 
     return iErrNo;
 }
-
-
-
-
-void MenuUI::disp_format()
-{
-    //force clear STATE_FORMAT_OVER
-    rm_state(STATE_FORMAT_OVER);
-
-#ifdef ONLY_EXFAT
-    disp_icon(ICON_SD_FORMAT_EXFAT_LIGHT90_16);
-#else
-    //exfat high
-    if (getMenuSelectIndex(MENU_FORMAT) == 0) {
-        disp_icon(ICON_SD_FORMAT_EXFAT_LIGHT90_16);
-        disp_icon(ICON_SD_FORMAT_EXT4_NORMAL90_16);
-    } else {
-        disp_icon(ICON_SD_FORMAT_EXFAT_NORMAL90_16);
-        disp_icon(ICON_SD_FORMAT_EXT4_LIGHT90_16);
-    }
-#endif
-}
-
 
 
 /*
@@ -6156,33 +6148,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             break;
 #endif
 
-        case MENU_FORMAT: {
-            #if 0
-            int item = getMenuSelectIndex(MENU_STORAGE);
-            if (isDevExist()) {
-                switch(item) {
-                    case SET_STORAGE_SD:
-                        disp_icon(ICON_SD_FORMAT_IC_DEFAULT_38_48_0_1638_48);
-                        break;
-                    case SET_STORAGE_USB:
-                        disp_icon(ICON_USB_FORMAT_IC_DEFAULT_38_48_0_1638_48);
-                        break;
-                    SWITCH_DEF_ERROR(select)
-                }
-                disp_format();
-#ifdef ONLY_EXFAT
-                clear_area(38,32,90,32);
-#else
-                clear_area(38,48,90,16);
-#endif
-            } else {
-                rm_state(STATE_FORMAT_OVER);
-                setCurMenu(MENU_STORAGE);
-            }
-            #endif
-        }
-        break;
-
 
         case MENU_CALC_BLC:
         case MENU_CALC_BPC: {   /* 设置菜单 */
@@ -6537,7 +6502,7 @@ void MenuUI::procPowerKeyEvent()
             break;
 
 
-        case MENU_PIC_INFO:		/* 拍照子菜单 */
+        case MENU_PIC_INFO: {		/* 拍照子菜单 */
 
             /* 检查存储设备是否存在，是否有剩余空间来拍照 */
             if (checkStorageSatisfy(ACTION_PIC)) {
@@ -6545,8 +6510,8 @@ void MenuUI::procPowerKeyEvent()
                     oled_disp_type(CAPTURE);
                 }
             } 
-
             break;
+        }
 		
         case MENU_VIDEO_INFO:	/* 录像子菜单 */
             send_option_to_fifo(ACTION_VIDEO);  /* 录像/停止录像 */
@@ -6642,14 +6607,10 @@ void MenuUI::procPowerKeyEvent()
         case MENU_FORMAT_INDICATION:    /* 进入真正的格式化 */
             if (check_state_equal(STATE_IDLE)) {
                 startFormatDevice();    /* 进行设备格式化 */
-            }
-            #if 0 
-            else if (check_state_equal(STATE_FORMAT_OVER)) {
+            } else if (check_state_equal(STATE_FORMAT_OVER)) {
                 rm_state(STATE_FORMAT_OVER);
                 set_cur_menu_from_exit();
-            }
-            #endif 
-            else {
+            } else {
                 Log.w(TAG, "Formatting state 0x%x", cam_state);
             }
             break;
@@ -6675,19 +6636,21 @@ void MenuUI::procPowerKeyEvent()
             /* 选中的项是TF卡 */
             if (!strncmp(gStorageInfoItems[iIndex]->pStVolumeInfo->cVolName, "mSD", strlen("mSD"))) {
                 
-                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", __FILE__, __LINE__, gStorageInfoItems[iIndex]->pStVolumeInfo->cVolName);
-                /* 进入格式化模式选择菜单 */
-                setCurMenu(MENU_TF_FORMAT_SELECT);
+                Log.d(TAG, "[%s: %d] You selected [%s] Card!!", 
+                        __FILE__, __LINE__, gStorageInfoItems[iIndex]->pStVolumeInfo->cVolName);                
+                
+                setCurMenu(MENU_TF_FORMAT_SELECT);      /* 进入格式化模式选择菜单 */
 
-            } else {    /* 选中的是大SD卡或USB硬盘 */
-                setCurMenu(MENU_FORMAT_INDICATION);
+            } else {    
+                setCurMenu(MENU_FORMAT_INDICATION);     /* 选中的是大SD卡或USB硬盘 */
             }
             break;
         }
 
-        case MENU_TF_FORMAT_SELECT:
+        case MENU_TF_FORMAT_SELECT: {
             setCurMenu(MENU_FORMAT_INDICATION);
             break;
+        }
 
         /*
          * 根据选择的值进入对应的下级别菜单
@@ -6728,11 +6691,7 @@ void MenuUI::procPowerKeyEvent()
 
 			break;
         }
-            
-        case MENU_FORMAT:
-            setCurMenu(MENU_FORMAT_INDICATION);
-            break;
-		
+            		
         SWITCH_DEF_ERROR(cur_menu)
     }
 }
@@ -9183,7 +9142,6 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 }
 
 
-
 /*
  * 将消息丢给NetManager进行配置
  */
@@ -9289,8 +9247,13 @@ void MenuUI::handleUpdateDevInfo(int iAction, int iType, vector<Volume*>& mList)
     int action = (iAction == VOLUME_ACTION_ADD)? ADD: REMOVE;
     int type = (VOLUME_SUBSYS_SD == iType) ? SET_STORAGE_SD: SET_STORAGE_USB;
 
-    /* 设置存储设备列表 */
-    if (cur_menu != MENU_UDISK_MODE) {
+    Log.d(TAG, "[%s: %d] handleUpdateDevInfo -> Current Menu[%s], cam_state[%d]",
+                __FILE__, __LINE__, getMenuName(cur_menu), cam_state);
+    /* 设置存储设备列表
+     * 格式化菜单及U盘菜单不显示设备拔插的消息框
+     */
+    if (((cur_menu != MENU_UDISK_MODE) || (cur_menu != MENU_FORMAT_INDICATION))
+        && (!check_state_in(STATE_QUERY_STORAGE)) ) {
         disp_dev_msg_box(action, type, false);
     }
 
