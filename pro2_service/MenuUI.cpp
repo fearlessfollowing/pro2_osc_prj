@@ -680,11 +680,11 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
 
 
 
-void MenuUI::write_p(int *p, int val)
+void MenuUI::write_p(int p, int val)
 {
     char c = (char)val;
     int  rc;
-    rc = write_pipe(p, &c, 1);
+    rc = write(p, &c, 1);
     if (rc != 1) {
         Log.d("Error writing to control pipe (%s) val %d", strerror(errno), val);
         return;
@@ -4891,16 +4891,15 @@ void MenuUI::startFormatDevice()
     int iTfIndex = -1;
     SetStorageItem* tmpStorageItem = NULL;
     SettingItem* tmpFormatSelectItem = NULL;
+    VolumeManager* vm = VolumeManager::Instance();
 
+    /* 选中的MENU_SHOW_SPACE菜单中的第几项 */
     int iIndex = getMenuSelectIndex(MENU_SHOW_SPACE);
-
-    Log.d(TAG, "[%s:%d] Select Device index [%d] in MENU_SHOW_SPACE", __FILE__, __LINE__, iIndex);
-    
     tmpStorageItem = gStorageInfoItems[iIndex];
-
-    
+        
     Log.d(TAG, "[%s: %d] Volume name [%s]", __FILE__, __LINE__, tmpStorageItem->pStVolumeInfo->cVolName);
     
+    /* 选中的是小卡 */
     if (!strncmp(tmpStorageItem->pStVolumeInfo->cVolName, "mSD", strlen("mSD"))) {    /* 根据名称来区别是小卡还是大卡 */
         int iMode = getMenuSelectIndex(MENU_TF_FORMAT_SELECT);
         Log.d(TAG, "[%s: %d] Format mSD Method [%s]", __FILE__, __LINE__, (iIndex == 0) ? "Format One TF Card": "Format All TF Card");
@@ -4923,7 +4922,7 @@ void MenuUI::startFormatDevice()
         /* 状态机添加格式化状态 */
         send_option_to_fifo(ACTION_FORMAT_TFCARD, iTfIndex);
 
-    } else {    /* 本地存储设备 */
+    } else {    /* 大卡或USB设备 */
         Log.d(TAG, "[%s: %d] Format Native USB Device", __FILE__, __LINE__);
 
         /*
@@ -4937,6 +4936,7 @@ void MenuUI::startFormatDevice()
         ICON_INFO* pDispType = NULL;
         int iDiskType = DISK_TYPE_USB;
 
+        /* 根据子系统类型来显示格式化的SD还是USB设备 */
         if (tmpStorageItem->pStVolumeInfo->iVolSubsys == VOLUME_SUBSYS_USB) {
             /* disp formatting.. usb */
             pDispType = &usbDrvFormatingIconInfo;
@@ -4949,10 +4949,16 @@ void MenuUI::startFormatDevice()
         clear_area(0, 16);
         dispIconByLoc(pDispType);
 
-        /* 添加格式化状态 */
+        /* 添加格式化状态
+         * TODO: 通知web当前处于格式化状态，以免客户端的误操作
+         */
         add_state(STATE_FORMATING);
 
+        #if 0
         int iResult = formatDev(tmpStorageItem->pStVolumeInfo->cDevNode, tmpStorageItem->pStVolumeInfo->pMountPath);
+        #else
+        int iResult = vm->formatVolume(tmpStorageItem->pStVolumeInfo);
+        #endif
 
         rm_state(STATE_FORMATING);
 
@@ -9955,7 +9961,6 @@ void MenuUI::deinit()
     Log.d(TAG, "deinit\n");
 	
     setLightDirect(LIGHT_OFF);
-    mDevManager = nullptr;
 
 	mNetManager = nullptr;
 

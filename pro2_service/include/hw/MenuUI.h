@@ -171,50 +171,49 @@ typedef struct _save_path_ {
 } SAVE_PATH;
 
 
-//state logical coding is different from ws for no preview in oled key menu
 enum {
-    STATE_IDLE = 0x00,								/* 空间状态 */
-    STATE_RECORD = 0x01,							/* 录像状态 */
-    STATE_TAKE_CAPTURE_IN_PROCESS = 0x02,			/* 拍照正在处理状态 */
-    STATE_COMPOSE_IN_PROCESS = 0x04,
+    STATE_IDLE                      = 0x00,			/* 空间状态 */
+    STATE_RECORD                    = 0x01,			/* 录像状态 */
+    STATE_TAKE_CAPTURE_IN_PROCESS   = 0x02,			/* 拍照正在处理状态 */
+    STATE_COMPOSE_IN_PROCESS        = 0x04,
     
     //nothing to matter with preview state in oled action
-    STATE_PREVIEW = 0x08,							/* 预览状态 */
-    STATE_LIVE = 0x10,								/* 直播状态 */
-    STATE_PIC_STITCHING = 0x20,						/* 图片拼接状态 */
+    STATE_PREVIEW                   = 0x08,					/* 预览状态 */
+    STATE_LIVE                      = 0x10,					/* 直播状态 */
+    STATE_PIC_STITCHING             = 0x20,					/* 图片拼接状态 */
     
    //state just for camera
-    STATE_START_RECORDING   = 0x40,					/* 正在启动录像状态 */
-    STATE_STOP_RECORDING    = 0x80,					/* 正在停止录像状态 */
-    STATE_START_LIVING      = 0x100,				/* 正在启动直播状态 */
-    STATE_STOP_LIVING       = 0x200,				/* 正在停止直播状态 */
+    STATE_START_RECORDING           = 0x40,					/* 正在启动录像状态 */
+    STATE_STOP_RECORDING            = 0x80,					/* 正在停止录像状态 */
+    STATE_START_LIVING              = 0x100,				/* 正在启动直播状态 */
+    STATE_STOP_LIVING               = 0x200,				/* 正在停止直播状态 */
 
-	STATE_QUERY_STORAGE     = 0x400,				/* 查询容量状态 */
-	STATE_UDISK             = 0x800,
+	STATE_QUERY_STORAGE             = 0x400,				/* 查询容量状态 */
+	STATE_UDISK                     = 0x800,
 
-    STATE_CALIBRATING = 0x1000,						/* 正在校验状态 */
-    STATE_START_PREVIEWING = 0x2000,				/* 正在启动预览状态 */
-    STATE_STOP_PREVIEWING = 0x4000,					/* 正在停止预览状态 */
-    STATE_START_QR = 0x8000,						/* 启动QR */
-    STATE_RESTORE_ALL = 0x10000,
-    STATE_STOP_QRING = 0x20000,
-    STATE_START_QRING = 0x40000,
-    STATE_LIVE_CONNECTING = 0x80000,
-    STATE_LOW_BAT = 0x100000,
-    STATE_POWER_OFF = 0x200000,
-    STATE_SPEED_TEST = 0x400000,
-    STATE_START_GYRO = 0x800000,
-    STATE_NOISE_SAMPLE = 0x1000000,
-    STATE_FORMATING = 0x2000000,
-    STATE_FORMAT_OVER = 0x4000000,
+    STATE_CALIBRATING               = 0x1000,				/* 正在校验状态 */
+    STATE_START_PREVIEWING          = 0x2000,				/* 正在启动预览状态 */
+    STATE_STOP_PREVIEWING           = 0x4000,				/* 正在停止预览状态 */
+    STATE_START_QR                  = 0x8000,				/* 启动QR */
+    STATE_RESTORE_ALL               = 0x10000,
+    STATE_STOP_QRING                = 0x20000,
+    STATE_START_QRING               = 0x40000,
+    STATE_LIVE_CONNECTING           = 0x80000,
+    STATE_LOW_BAT                   = 0x100000,
+    STATE_POWER_OFF                 = 0x200000,
+    STATE_SPEED_TEST                = 0x400000,
+    STATE_START_GYRO                = 0x800000,
+    STATE_NOISE_SAMPLE              = 0x1000000,
+    STATE_FORMATING                 = 0x2000000,
+    STATE_FORMAT_OVER               = 0x4000000,
 
-    STATE_BLC_CALIBRATE = 0x10000000,
-//    STATE_CAP_FINISHING = 0x1000000,
-//    STATE_LIVE_FINISHING = 0x2000000,
-//    STATE_REC_FINISHING = 0x4000000,
-//    STATE_CAL_FINISHING = 0x8000000,
-//    STATE_SYS_ERR = 0x8000002
-	STATE_PLAY_SOUND = 0x20000000,
+    STATE_BLC_CALIBRATE             = 0x10000000,
+//    STATE_CAP_FINISHING           = 0x1000000,
+//    STATE_LIVE_FINISHING          = 0x2000000,
+//    STATE_REC_FINISHING           = 0x4000000,
+//    STATE_CAL_FINISHING           = 0x8000000,
+//    STATE_SYS_ERR                 = 0x8000002
+	STATE_PLAY_SOUND                = 0x20000000,
 
 
 };
@@ -372,17 +371,6 @@ enum {
 };
 
 
-enum {
-    FORMAT_ERR_SUC = 0,
-    FORMAT_ERR_UMOUNT_EXFAT = -1,
-    FORMAT_ERR_FORMAT_EXT4 = -2,
-    FORMAT_ERR_MOUNT_EXT4 = -3,
-    FORMAT_ERR_FSTRIM = -4,
-    FORMAT_ERR_UMOUNT_EXT4 = -5,
-    FORMAT_ERR_FORMAT_EXFAT = -6,
-    FORMAT_ERR_E4DEFRAG = -7,
-
-};
 
 
 enum {
@@ -422,45 +410,45 @@ public:
 		UPDATE_STORAGE,
     };
 
-    void postUiMessage(sp<ARMessage>& msg);
+    void    postUiMessage(sp<ARMessage>& msg);
 
     explicit MenuUI(const sp<ARMessage> &notify);
-    ~MenuUI();
-    void handleMessage(const sp<ARMessage> &msg);
+            ~MenuUI();
+    void    handleMessage(const sp<ARMessage> &msg);
 	
-    void send_disp_str(sp<struct _disp_type_> &sp_disp);
-    void send_disp_err(sp<struct _err_type_info_> &sp_disp);
+    void    send_disp_str(sp<struct _disp_type_> &sp_disp);
+    void    send_disp_err(sp<struct _err_type_info_> &sp_disp);
 
 
     //net type 0 -- default to wlan
-    void send_disp_ip(int ip, int net_type = 0);
-    void send_disp_battery(int battery, bool charge);
+    void    send_disp_ip(int ip, int net_type = 0);
+    void    send_disp_battery(int battery, bool charge);
 
-    void send_sys_info(sp<SYS_INFO> &mSysInfo);
-    void send_get_key(int key);
-    void send_long_press_key(int key,int64 ts);
-    void send_init_disp();
-    void send_update_dev_list(std::vector<Volume*> &mList);
-    void send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
+    void    send_sys_info(sp<SYS_INFO> &mSysInfo);
+    void    send_get_key(int key);
+    void    send_long_press_key(int key,int64 ts);
+    void    send_init_disp();
+    void    send_update_dev_list(std::vector<Volume*> &mList);
+    void    send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
 
     sp<ARMessage> obtainMessage(uint32_t what);
 
     //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
 
-    void updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
-    void sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
-    void notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
-    void sendSpeedTestResult(std::vector<sp<Volume>>& mChangedList);
+    void    updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
+    void    sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
+    void    notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
+    void    sendSpeedTestResult(std::vector<sp<Volume>>& mChangedList);
 
 private:
 
     MenuUI();
 
-    bool start_speed_test();
-    bool check_rec_tl();
-    void disp_dev_msg_box(int bAdd,int type,bool bChange = false);
-    void start_qr_func();
-    void exit_qr_func();
+    bool    start_speed_test();
+    bool    check_rec_tl();
+    void    disp_dev_msg_box(int bAdd,int type,bool bChange = false);
+    void    start_qr_func();
+    void    exit_qr_func();
 
     /*
      * 获取当前菜单的SECLECT_INFO Volume
@@ -499,108 +487,101 @@ private:
     bool check_state_in(int state);
     bool check_live();
 
-    void update_menu_page();
+    void    update_menu_page();
 
     //void update_menu_sys_setting(bool bUpdateLast = false);
-    void update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
-    void disp_scroll();
-    void set_back_menu(int item,int menu);
-    int get_back_menu(int item);
+    void    update_menu_disp(const int *icon_light,const int *icon_normal = nullptr);
+    void    disp_scroll();
+    void    set_back_menu(int item,int menu);
+    int     get_back_menu(int item);
 
-    int get_select();
-
-
-#if 0
-    void disp_wifi_connect();
-#endif
-
-
+    int     get_select();
     
-    int get_last_select();
+    int     get_last_select();
 
-    void disp_org_rts(int org,int rts,int hdmi = -1);
-    void disp_org_rts(sp<struct _action_info_> &mAct,int hdmi = -1);
-    void send_save_path_change();
-    void oled_init_disp();
-    void disable_sys_wifi();
-    void init_cfg_select();
+    void    disp_org_rts(int org,int rts,int hdmi = -1);
+    void    disp_org_rts(sp<struct _action_info_> &mAct,int hdmi = -1);
+    void    send_save_path_change();
+    void    oled_init_disp();
 
-    void disp_msg_box(int type);
+    void    init_cfg_select();
+
+    void    disp_msg_box(int type);
     const u8 *get_disp_str(int lan_index);
-    bool send_option_to_fifo(int option,int cmd = -1,struct _cam_prop_ * pstProp = nullptr);
-    void fix_live_save_per_act(struct _action_info_ *mAct);
-    bool check_live_save(struct _action_info_ *mAct);
-    bool start_live_rec(const struct _action_info_ *mAct,struct _action_info_  *dest);
-    bool check_allow_pic();
+    bool    send_option_to_fifo(int option,int cmd = -1,struct _cam_prop_ * pstProp = nullptr);
+    void    fix_live_save_per_act(struct _action_info_ *mAct);
+    bool    check_live_save(struct _action_info_ *mAct);
+    bool    start_live_rec(const struct _action_info_ *mAct,struct _action_info_  *dest);
+    bool    check_allow_pic();
 
     //reset camera state and disp as begging
-    int oled_reset_disp(int type);
-    void disp_video_setting();
+    int     oled_reset_disp(int type);
+    void    disp_video_setting();
 
 //    void disp_pic_setting();
-    void disp_live_setting();
+    void    disp_live_setting();
 
 
-    void disp_format();
-    void format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
-    int exec_sh_new(const char *buf);
+    void    disp_format();
+    void    format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
+    int     exec_sh_new(const char *buf);
 
 
-    void disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
-    void disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
-    void clear_icon(u32 type);
-    void disp_icon(u32 type);
-    void disp_ageing();
-    void set_lan(int lan);
-    int oled_disp_err(sp<struct _err_type_info_> &mErr);
-    int get_error_back_menu(int force_menu = -1);
-    void set_oled_power(unsigned int on);
-    void set_led_power(unsigned int on);
-    int oled_disp_type(int type);
-    void disp_sys_err(int type,int back_menu = -1);
-    void disp_err_str(int type);
-    void disp_err_code(int code,int back_menu);
-    void disp_top_info();
+    void    disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
+    void    disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
+    void    clear_icon(u32 type);
+    void    disp_icon(u32 type);
+    void    disp_ageing();
 
-    int oled_disp_battery();
-    void clear_area(u8 x,u8 y, u8 w,u8 h);
-    void clear_area(u8 x = 0,u8 y = 0);
-    bool check_allow_update_top();
-    void handleWifiAction();
-    void disp_wifi(bool bState, int disp_main = -1);
-    int wifi_stop();
+    int     oled_disp_err(sp<struct _err_type_info_> &mErr);
+    int     get_error_back_menu(int force_menu = -1);
+    void    set_oled_power(unsigned int on);
+    void    set_led_power(unsigned int on);
+    int     oled_disp_type(int type);
+    void    disp_sys_err(int type,int back_menu = -1);
+    void    disp_err_str(int type);
+    void    disp_err_code(int code,int back_menu);
+    void    disp_top_info();
 
-    int start_wifi_ap(int disp_main = -1);
-    void start_wifi(int disp_main = -1);
-    bool start_wifi_sta(int disp_main = -1);
-    void wifi_config(sp<struct _wifi_config_> &config);
-    void set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo);
-    void write_sys_info(sp<SYS_INFO> &mSysInfo);
+    int     oled_disp_battery();
+    void    clear_area(u8 x,u8 y, u8 w,u8 h);
+    void    clear_area(u8 x = 0,u8 y = 0);
+    bool    check_allow_update_top();
+    void    handleWifiAction();
+    void    disp_wifi(bool bState, int disp_main = -1);
+    int     wifi_stop();
 
-    void read_sn();
-    void read_uuid();
+    int     start_wifi_ap(int disp_main = -1);
+    void    start_wifi(int disp_main = -1);
 
-    bool read_sys_info(int type);
-    bool read_sys_info(int type, const char *name);
-    void read_ver_info();
+    void    wifi_config(sp<struct _wifi_config_> &config);
+    void    set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo);
+    void    write_sys_info(sp<SYS_INFO> &mSysInfo);
 
-    void init();
+    void    read_sn();
+    void    read_uuid();
 
-    void init_menu_select();
-    void deinit();
-    void init_handler_thread();
-    void init_readkey_thread();
-    void init_sound_thread();
-    void sound_thread();
-    void play_sound(u32 type);
-    void send_update_light(int menu, int state,int interval,bool bLight = false,int sound_id = -1);
-    void write_p(int *p, int val);
-    void stop_readkey_thread();
-    void stop_update_bottom_thread();
-    void stop_bat_thread();
-    void readkey_thread();
-    void update_bottom_thread();
-    void add_state(int state);
+    bool    read_sys_info(int type);
+    bool    read_sys_info(int type, const char *name);
+    void    read_ver_info();
+
+    void    init();
+
+    void    init_menu_select();
+    void    deinit();
+
+    void    init_handler_thread();
+    
+    void    init_sound_thread();
+    
+    void    sound_thread();
+    void    play_sound(u32 type);
+    void    send_update_light(int menu, int state,int interval,bool bLight = false,int sound_id = -1);
+    void    write_p(int p, int val);
+    void    stop_update_bottom_thread();
+    void    stop_bat_thread();
+
+    void    add_state(int state);
     void    update_by_controller(int action);
     void    minus_cam_state(int state);
     void    disp_tl_count(int count);
@@ -611,15 +592,12 @@ private:
     void    restore_all();
 
     void    set_cur_menu_from_exit();
-    void    handle_top_menu_power_key();
-    void    send_oled_power_action();
+    
 	
     void    exit_sys_err();
-    void    handle_wifi_action(int key);
-    void    handle_setting_action(int key);
+
     void    sendExit();
     void    exitAll();
-    void    set_org_addr(unsigned int addr);
 
     void    sys_reboot(int cmd = REBOOT_SHUTDOWN);
 
@@ -706,6 +684,7 @@ private:
     void    dispWriteSpeedTest();
 
     void    dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
+   
     /*
      * 检查直播时是否需要保存原片
      */
@@ -746,6 +725,7 @@ private:
     bool    isQueryTfMenuShowLeftSpace();
  
     bool    getQueryResult(int iTimeout);
+
     /*
      * 系统信息
      */
@@ -759,12 +739,7 @@ private:
     void    dispBottomLeftSpace();
 
     void    convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen);
-    
-    /*
-     * 检查存储是否满足操作的条件
-     */
-    bool    checkStorageSatisfy(int action = -1);
-
+    bool    checkStorageSatisfy(int action);
 
     /*
      * 拍照部分
@@ -926,10 +901,6 @@ private:
 	// int save_select;
     sp<oled_module>             mOLEDModule;
 
-
-    // char used_space[2][8]; //for disp
-    // char total_space[2][8];
-
     /*
      * 录像/直播的可存储的剩余时长
      */
@@ -963,13 +934,12 @@ private:
 	
 	sp<NetManager>              mNetManager;            /* 网络管理器对象强指针 */
 
-    sp<dev_manager>             mDevManager;            /* 设备管理器对象强指针 */
-
     int                         mTakePicDelay = 0;      /* 拍照倒计时 */  
 	int	                        mGyroCalcDelay = 0;		/* 陀螺仪校正的倒计时时间(单位为S) */
 	
     bool                        bLiveSaveOrg = false;
-    int                         pipe_sound[2]; // 0 -- read , 1 -- write
+
+    int                         pipe_sound[2];          // 0 -- read , 1 -- write
 
     // during stiching and not receive stich finish
     bool                        bStiching = false;

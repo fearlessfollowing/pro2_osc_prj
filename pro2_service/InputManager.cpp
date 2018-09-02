@@ -63,7 +63,7 @@ InputManager::InputManager(const sp<ARMessage> &notify): mNotify(notify)
 	/* 构造一个线程对象 */
     if (!haveInstance) {
 		haveInstance = true;
-    	init_pipe(mCtrlPipe);
+    	pipe(mCtrlPipe);
 		loopThread = thread([this]{ inputEventLoop();});
 	}
 
@@ -76,11 +76,11 @@ InputManager::InputManager(const sp<ARMessage> &notify): mNotify(notify)
 }
 
 
-void InputManager::writePipe(int *p, int val)
+void InputManager::writePipe(int p, int val)
 {
     char c = (char)val;
     int  rc;
-    rc = write_pipe(p, &c, 1);
+    rc = write(p, &c, 1);
     if (rc != 1) {
         Log.d(TAG, "Error writing to control pipe (%s) val %d", strerror(errno), val);
         return;
@@ -94,11 +94,16 @@ void InputManager::exit()
 	Log.d(TAG, "stop detect mCtrlPipe[0] %d", mCtrlPipe[0]);
 
     if (mCtrlPipe[0] != -1) {
-        writePipe(mCtrlPipe, Pipe_Shutdown);
+        writePipe(mCtrlPipe[1], Pipe_Shutdown);
         if (loopThread.joinable()) {
             loopThread .join();
         }
-        close_pipe(mCtrlPipe);
+
+        close(mCtrlPipe[0]);
+        close(mCtrlPipe[1]);
+        mCtrlPipe[0] = -1;
+        mCtrlPipe[1] = -1;
+
     }
 	
     Log.d(TAG, "stop detect mCtrlPipe[0] %d over", mCtrlPipe[0]);
@@ -280,7 +285,7 @@ int InputManager::inputEventLoop()
 			#endif
 			
 			char c = Pipe_Wakeup;
-			read_pipe(mCtrlPipe, &c, 1);
+			read(mCtrlPipe[0], &c, 1);
 
 			
             if (c == Pipe_Shutdown) {
@@ -319,13 +324,18 @@ int InputManager::inputEventLoop()
 
                             int iIntervalMs =  key_interval / 1000;
 
+                            #ifdef DEBUG_INPUT_MANAGER
 							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, iIntervalMs);
+                            #endif
+
                             switch (event.value) {
 								case UP:
                                     if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < (LONG_PRESS_MSEC * 1000))) {
 										if (event.code == last_down_key) {
+                                            #ifdef DEBUG_INPUT_MANAGER
                                             Log.d(TAG, "---> OK report key code [%d]", event.code); 
-											reportEvent(event.code);
+											#endif
+                                            reportEvent(event.code);
                                         } else {
 											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);
 										}

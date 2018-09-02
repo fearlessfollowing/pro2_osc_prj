@@ -51,7 +51,7 @@ private:
 	struct pollfd *ufds = nullptr;
 	int nfds;
 
-	void writePipe(int *p, int val);
+	void writePipe(int p, int val);
 	int openDevice(const char *device);
 
 	int inputEventLoop();

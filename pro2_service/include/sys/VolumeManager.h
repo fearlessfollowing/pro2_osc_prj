@@ -108,6 +108,18 @@ enum {
     VOLUME_MANAGER_WORKMODE_MAX,
 };
 
+enum {
+    FORMAT_ERR_SUC = 0,
+    FORMAT_ERR_UMOUNT_EXFAT = -1,
+    FORMAT_ERR_FORMAT_EXT4 = -2,
+    FORMAT_ERR_MOUNT_EXT4 = -3,
+    FORMAT_ERR_FSTRIM = -4,
+    FORMAT_ERR_UMOUNT_EXT4 = -5,
+    FORMAT_ERR_FORMAT_EXFAT = -6,
+    FORMAT_ERR_E4DEFRAG = -7,
+
+};
+
 
 /*
  * Volume - 逻辑卷
@@ -135,174 +147,179 @@ typedef struct stVol {
 
 static Volume gSysVols[] = {
     {   /* SD卡 - 3.0 */
-        VOLUME_SUBSYS_SD,
-        "usb2-2,usb2-2.2",
-        "/mnt/sdcard",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
-
-        VOLUME_TYPE_NV,
-        0,
-        VOLUME_PRIO_SD,
-
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,      /* 机身后面的SD卡: 默认为使能状态 */
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb2-2,usb2-2.2",
+        .pMountPath     = "/mnt/sdcard",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
+        .iType          = VOLUME_TYPE_NV,
+        .iIndex         = 0,
+        .iPrio          = VOLUME_PRIO_SD,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,      /* 机身后面的SD卡: 默认为使能状态 */
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* Udisk1 - 2.0/3.0 */
-        VOLUME_SUBSYS_USB,
-        "usb2-1,usb1-2.1",           /* 接3.0设备时的总线地址 */
-        "/mnt/udisk1",
-        {0},             /* 动态生成 */
-        {0},  
-        {0},
-
-        VOLUME_TYPE_NV,
-        0,
-        VOLUME_PRIO_LOW,
-
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,      /* 机身底部的USB接口: 默认为使能状态 */        
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolSubsys     = VOLUME_SUBSYS_USB,
+        .pBusAddr       = "usb2-1,usb1-2.1",           /* 接3.0设备时的总线地址 */
+        .pMountPath     = "/mnt/udisk1",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},  
+        .cVolFsType     = {0},
+        .iType          = VOLUME_TYPE_NV,
+        .iIndex         = 0,
+        .iPrio          = VOLUME_PRIO_LOW,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,      /* 机身底部的USB接口: 默认为使能状态 */        
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* Udisk2 - 2.0/3.0 */
-        VOLUME_SUBSYS_USB,
-        "usb2-3",           /* 3.0 */
-        "/mnt/udisk2",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_USB,
+        .pBusAddr       = "usb2-3",           /* 3.0 */
+        .pMountPath     = "/mnt/udisk2",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_NV,
-        0,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_NV,
+        .iIndex         = 0,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_DISABLED,      /* 机身顶部的USB接口: 默认为禁止状态 */         
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_DISABLED,      /* 机身顶部的USB接口: 默认为禁止状态 */         
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD1 */
-        VOLUME_SUBSYS_SD,
-        "usb1-2.3",                         /* usb1-3.2 usb1-2.3 */
-        "/mnt/mSD1",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-2.3",                         /* usb1-3.2 usb1-2.3 */
+        .pMountPath     = "/mnt/mSD1",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        1,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 1,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF1: 默认为使能状态 */         
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF1: 默认为使能状态 */         
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD2 */
-        VOLUME_SUBSYS_SD,
-        "usb1-2.2",
-        "/mnt/mSD2",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-2.2",
+        .pMountPath     = "/mnt/mSD2",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        2,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 2,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF2: 默认为使能状态 */          
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF2: 默认为使能状态 */          
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD3 */
-        VOLUME_SUBSYS_SD,
-        "usb1-3.3",
-        "/mnt/mSD3",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-3.3",
+        .pMountPath     = "/mnt/mSD3",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        3,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 3,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF3: 默认为使能状态 */           
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF3: 默认为使能状态 */           
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD4 */
-        VOLUME_SUBSYS_SD,
-        "usb1-3.2",
-        "/mnt/mSD4",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-3.2",
+        .pMountPath     = "/mnt/mSD4",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        4,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 4,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF4: 默认为使能状态 */           
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF4: 默认为使能状态 */           
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD5 */
-        VOLUME_SUBSYS_SD,
-        "usb1-3.1",
-        "/mnt/mSD5",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-3.1",
+        .pMountPath     = "/mnt/mSD5",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        5,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 5,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF5: 默认为使能状态 */           
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF5: 默认为使能状态 */           
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },
 
     {   /* mSD6 */
-        VOLUME_SUBSYS_SD,
-        "usb1-2.4",
-        "/mnt/mSD6",
-        {0},             /* 动态生成 */
-        {0},
-        {0},
+        .iVolSubsys     = VOLUME_SUBSYS_SD,
+        .pBusAddr       = "usb1-2.4",
+        .pMountPath     = "/mnt/mSD6",
+        .cVolName       = {0},             /* 动态生成 */
+        .cDevNode       = {0},
+        .cVolFsType     = {0},
 
-        VOLUME_TYPE_MODULE,
-        6,
-        VOLUME_PRIO_LOW,
+        .iType          = VOLUME_TYPE_MODULE,
+        .iIndex         = 6,
+        .iPrio          = VOLUME_PRIO_LOW,
 
-        VOLUME_STATE_INIT,
-        VOLUME_SLOT_SWITCH_ENABLE,          /* TF6: 默认为使能状态 */           
-        0,
-        0,
-        VOLUME_SPEED_TEST_FAIL,
+        .iVolState      = VOLUME_STATE_INIT,
+        .iVolSlotSwitch = VOLUME_SLOT_SWITCH_ENABLE,          /* TF6: 默认为使能状态 */           
+        
+        .uTotal         = 0,
+        .uAvail         = 0,
+        .iSpeedTest     = VOLUME_SPEED_TEST_FAIL,
     },          
 
 };
@@ -351,7 +368,7 @@ public:
 
     int         doUnmount(const char *path, bool force);
 
-    int         formatVolume(Volume* pVol, bool wipe);
+    int         formatVolume(Volume* pVol, bool wipe = true);
     
     void        disableVolumeManager(void) { mVolManagerDisabled = 1; }
 
