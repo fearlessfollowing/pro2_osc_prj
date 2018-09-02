@@ -1,18 +1,20 @@
-Import('com_env')
-#######################################################
-# Compile for vold_test
+####################################################################################################### 
 # Copyright Insta360 @ 2016 - 2025
-#######################################################
+# Author:       Skymixos
+# Date:         2018-07-25
+# Version:      V0.1
+# Description:  Compile for pro2_service
+#######################################################################################################
+
+Import('com_env')
 
 import config
 
-src = ['pro_uevent.c']
-src += ['fifo.cpp']
+src = ['fifo.cpp']
 src += ['MenuUI.cpp']
 src += ['InputManager.cpp']
-src += ['net_manager.cpp']
+src += ['NetManager.cpp']
 src += ['pro_cfg.cpp']
-#src += ['dev_manager.cpp']
 src += ['main.cpp']
 src += ['NetlinkEvent.cpp']
 src += ['NetlinkHandler.cpp']
