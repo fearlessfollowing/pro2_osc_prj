@@ -468,7 +468,9 @@ int battery_interface::read_RelativeStateOfCharge(u16 *val)
 {
     int ret = read_value(READ_RELATIVE_STATE_OF_CHARGE, val);
     if (ret == 0) {
+        #ifdef DEBUG_BATTERY
 		Log.d(TAG, "read_RelativeStateOfCharge *val 0x%x %d", *val, *val);
+        #endif
     }
     return ret;
 }

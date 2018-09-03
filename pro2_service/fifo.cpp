@@ -38,6 +38,11 @@
 
 #include <prop_cfg.h>
 
+#include <json/value.h>
+#include <json/json.h>
+
+
+
 using namespace std;
 
 static QR_STRUCT mQRInfo[] = {
@@ -406,7 +411,7 @@ void fifo::send_disp_str_type(sp<DISP_TYPE> &dis_type)
 ** 调     用: 
 **
 *************************************************************************/
-void fifo::write_fifo(int iEvent, char *str)
+void fifo::write_fifo(int iEvent, const char *str)
 {
     get_write_fd();
     char data[4096] = {0x00};
@@ -850,8 +855,22 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
 {
     cJSON *param = nullptr;
     int iIndex = -1;
+    Json::FastWriter writer;
 
     switch (action) {
+        
+        case ACTION_PIC: {
+            Json::Value* pTakePicJson;
+            Json::Value root;
+            CHECK_EQ(msg->find<Json::Value*>("take_pic", &pTakePicJson), true);
+
+            root["action"] = ACTION_PIC;
+            root["parameters"] = *pTakePicJson;
+            string jsonstr = writer.write(root);
+		    Log.d(TAG, "Action Pic: %s", jsonstr.c_str());
+            write_fifo(EVENT_OLED_KEY, jsonstr.c_str());
+            break;
+        }
 
         case ACTION_CUSTOM_PARAM: {
             sp<CAM_PROP> mCamProp;
@@ -1169,11 +1188,14 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
                 handleUiReqWithNoAction(root, action, msg);
             }
 
-            pSrt = cJSON_Print(root);
-			
-            Log.d(TAG, ">>>>> send str %s", pSrt);
+            if (action != ACTION_PIC) {
+                pSrt = cJSON_Print(root);
+                
+                Log.d(TAG, ">>>>> send str %s", pSrt);
 
-            write_fifo(EVENT_OLED_KEY, pSrt);
+                write_fifo(EVENT_OLED_KEY, pSrt);
+
+            }
         }
 			break;
 

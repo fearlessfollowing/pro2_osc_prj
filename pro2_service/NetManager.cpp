@@ -298,7 +298,7 @@ bool NetDev::setNetDevIp2Phy(const char* ip)
         if (ioctl(sockfd, SIOCSIFADDR, &ifr)) {
             Log.e(TAG, "setNetDevIp2Phy -> [%s:%s] failed", getDevName().c_str(), ip);
         } else {
-            Log.d(TAG, "setNetDevIp2Phy -> [%s:%s] Success", getDevName().c_str(), ip);
+            // Log.d(TAG, "setNetDevIp2Phy -> [%s:%s] Success", getDevName().c_str(), ip);
 
             ifr.ifr_flags |= IFF_UP;
             if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == -1)

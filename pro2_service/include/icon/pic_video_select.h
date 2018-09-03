@@ -1,6 +1,9 @@
 #ifndef _PIC_VIDEO_SELECT_H_
 #define _PIC_VIDEO_SELECT_H_
 
+#include <json/value.h>
+#include <json/writer.h>
+#include <json/json.h>
 
 #define PIC_VIDEO_LIVE_ITEM_MAX 10
 
@@ -532,6 +535,7 @@ typedef struct stPicVideoCfg {
 	int						iRawStorageRatio;	/* 使能RAW时的存储比例 */					
 	struct stIconPos		stPos;
     struct _action_info_*   pStAction;
+	Json::Value*			jsonCmd;
 	const u8 * 				stLightIcon[PIC_VIDEO_LIVE_ITEM_MAX];	/* 选中时的图标列表 */
 	const u8 * 				stNorIcon[PIC_VIDEO_LIVE_ITEM_MAX];		/* 未选中时的图标列表 */
 } PicVideoCfg;
@@ -687,53 +691,61 @@ static ACTION_INFO picCustomerDefault = {
 };
 
 
+
+
 PicVideoCfg pic8K_3D_OF = {
-	TAKE_PIC_MODE_8K_3D_OF,		// pItemName
-	1,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍
-	{0},						// stPos
-	&pic8K3DOFDefault,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_8K_3D_OF,		// pItemName
+	iItemMaxVal: 		1,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍
+	stPos:				{0},						// stPos
+	pStAction: 			&pic8K3DOFDefault,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		pic8K3DOFLight_78X16,
 		pic8K3DOFRAWLight_78X16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8K3DOFNor_78X16,
 		pic8K3DOF_RAW_Nor_78x16,
 	}
 };
 
+
+
 PicVideoCfg pic8K_3D = {
-	TAKE_PIC_MODE_8K_3D,		// pItemName
-	1,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍	
-	{0},						// stPos
-	&pic8K3DDefault,
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_8K_3D,		// pItemName
+	iItemMaxVal:		1,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍	
+	stPos:				{0},						// stPos
+	pStAction:			&pic8K3DDefault,
+	jsonCmd:			nullptr,	
+	stLightIcon:		{	/* 选中时的图标列表 */
 		pic8K3DLight_78x16,
 		pic8K3DRAWLight_78X16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8K3DNor_78x16,
 		pic8K3DRAWNor_78X16
 	}
 };
 
 
+
 PicVideoCfg pic8K = {
-	TAKE_PIC_MODE_8K,		// pItemName
-	1,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍	
-	{0},						// stPos
-	&pic8KDefault,
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_8K,		// pItemName
+	iItemMaxVal:		1,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍	
+	stPos:				{0},						// stPos
+	pStAction:			&pic8KDefault,
+	jsonCmd:			nullptr,	
+	stLightIcon:		{	/* 选中时的图标列表 */
 		pic8KLight_78x16,
 		pic8KRAWLight_78X16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8KNor_78x16,
 		pic8KRAWNor_78X16
 	}
@@ -741,13 +753,14 @@ PicVideoCfg pic8K = {
 
 
 PicVideoCfg picAEB = {
-	TAKE_PIC_MODE_AEB,			// pItemName
-	7,							// iItemMaxVal
-	0,							// iCurVal
-	10,							// 10倍
-	{0},						// stPos
-	&picAebDefault,
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_AEB,			// pItemName
+	iItemMaxVal:		7,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	10,							// 10倍
+	stPos:				{0},						// stPos
+	pStAction:			&picAebDefault,
+	jsonCmd:			nullptr,	
+	stLightIcon:		{	/* 选中时的图标列表 */
 		picAEB3Light_78X16,
 		picAEB5Light_78X16,
 		picAEB7Light_78X16,
@@ -757,7 +770,7 @@ PicVideoCfg picAEB = {
 		picAEB7_RAW_Light_78X16,
 		picAEB9_RAW_Light_78X16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		picAEB3Nor_78X16,
 		picAEB5Nor_78X16,
 		picAEB7Nor_78X16,
@@ -771,17 +784,18 @@ PicVideoCfg picAEB = {
 
 
 PicVideoCfg picBurst = {
-	TAKE_PIC_MODE_BURST,		// pItemName
-	1,							// iItemMaxVal
-	0,							// iCurVal
-	10,							// 10倍	
-	{0},						// stPos
-	&picBurstDefault,
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_BURST,		// pItemName
+	iItemMaxVal:		1,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	10,							// 10倍	
+	stPos:				{0},						// stPos
+	pStAction:			&picBurstDefault,
+	jsonCmd:			nullptr,	
+	stLightIcon:		{	/* 选中时的图标列表 */
 		picBurstLight_78x16,
 		picBurstRAWLight_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		picBurstNor_78x16,
 		picBurstRAWNor_78x16,
 	}
@@ -789,13 +803,14 @@ PicVideoCfg picBurst = {
 
 
 PicVideoCfg picCustomer = {
-	TAKE_PIC_MODE_CUSTOMER,		// pItemName
-	0,							// iItemMaxVal
-	0,							// iCurVal
-	20,
-	{0},						// stPos
-	&picCustomerDefault,
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_PIC_MODE_CUSTOMER,		// pItemName
+	iItemMaxVal:		0,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,
+	stPos:				{0},						// stPos
+	pStAction:			&picCustomerDefault,
+	jsonCmd:			nullptr,	
+	stLightIcon:		{	/* 选中时的图标列表 */
 		picVidCustmLight_78x16,
 	},
 	{	/* 未选中时的图标列表 */
@@ -804,36 +819,11 @@ PicVideoCfg picCustomer = {
 };
 
 
+
 /*
  * 系统含有SD卡/USB硬件及TF卡时支持的拍照模式（目前只支持该种模式）
  */
 PicVideoCfg* gPicAllModeCfgList[] = {
-	&pic8K_3D_OF,
-	&pic8K_3D,
-	&pic8K,
-	&picAEB,
-	&picBurst,
-	&picCustomer,
-};
-
-
-/*
- * 系统仅含SD卡/USB移动硬盘时支持的拍照规格
- */
-PicVideoCfg* gPicSdModeCfgList[] = {
-	&pic8K_3D_OF,
-	&pic8K_3D,
-	&pic8K,
-	&picAEB,
-	&picBurst,
-	&picCustomer,
-};
-
-
-/*
- * 系统仅含TF卡时支持的拍照规格
- */
-PicVideoCfg* gPicTFModeCfgList[] = {
 	&pic8K_3D_OF,
 	&pic8K_3D,
 	&pic8K,
@@ -1424,121 +1414,129 @@ static ACTION_INFO vid_Customer_Action = {
 
 
 static PicVideoCfg vid8K_30F_3D_Cfg = {
-	TAKE_VID_MODE_8K_30F_3D,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid8K_30F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MODE_8K_30F_3D,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos: 				{0},							// stPos
+	pStAction: 			&vid8K_30F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd: 			nullptr,
+	stLightIcon: 		{	/* 选中时的图标列表 */
 		vid_8K30F3D_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon: 			{	/* 未选中时的图标列表 */
 		vid_8K30F3D_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid8K_60F_Cfg = {
-	TAKE_VID_MODE_8K_60F,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid8K_60F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MODE_8K_60F,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid8K_60F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_8K60F_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_8K60F_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid8K_5F_Cfg = {
-	TAKE_VID_MODE_8K_5F,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid8K_5F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MODE_8K_5F,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid8K_5F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_8K5F_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_8K5F_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid6K_60F_3D_Cfg = {
-	TAKE_VID_MODE_6K_60F_3D,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid6K_60F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MODE_6K_60F_3D,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid6K_60F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_6K60F3D_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_6K60F3D_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid4K_120F_3D_Cfg = {
-	TAKE_VID_MODE_4K_120F_3D,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid4K_120F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MODE_4K_120F_3D,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid4K_120F_3D_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_4K120F3D_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K120F3D_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid4K_30F_RTS_Cfg = {
-	TAKE_VID_4K_30F_RTS,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid4K_30F_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_4K_30F_RTS,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid4K_30F_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_4K30F_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K30F_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
-	TAKE_VID_4K_30F_3D_RTS,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid4K_30F_3D_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_4K_30F_3D_RTS,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid4K_30F_3D_RTS_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_4K30F3D_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K30F3D_Nor_78x16,
 	}
 };
 
 static PicVideoCfg vid_Customer_Cfg = {
-	TAKE_VID_MOD_CUSTOMER,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	0,								// 5倍
-	{0},							// stPos
-	&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_VID_MOD_CUSTOMER,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		picVidCustmLight_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		picVidCustmNor_78x16,
 	}
 };
@@ -1552,7 +1550,6 @@ PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid4K_120F_3D_Cfg,
 	&vid4K_30F_RTS_Cfg,
 	&vid4K_30F_3D_RTS_Cfg,
-
 	&vid_Customer_Cfg,
 };
 
@@ -1857,79 +1854,84 @@ static ACTION_INFO live_Customer_ActionInfo = {
 
 
 PicVideoCfg live4K_30F_Cfg = {
-	TAKE_LIVE_MODE_4K_30F,		// pItemName
-	0,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍
-	{0},						// stPos
-	&live4K_30F_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_LIVE_MODE_4K_30F,		// pItemName
+	iItemMaxVal:		0,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍
+	stPos:				{0},						// stPos
+	pStAction:			&live4K_30F_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		live4K_30F_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_Nor_78x16,
 	}
 };
 
 PicVideoCfg live4K_30F_HDMI_Cfg = {
-	TAKE_LIVE_MODE_4K_30F_HDMI,		// pItemName
-	0,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍
-	{0},						// stPos
-	&live4K_30F_HDMI_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_LIVE_MODE_4K_30F_HDMI,		// pItemName
+	iItemMaxVal:		0,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍
+	stPos:				{0},						// stPos
+	pStAction:			&live4K_30F_HDMI_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		live4K_30F_HDMI_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_HDMI_Nor_78x16,
 	}
 };
 
 
 PicVideoCfg live4K_30F_3D_Cfg = {
-	TAKE_LIVE_MODE_4K_30F_3D,		// pItemName
-	0,							// iItemMaxVal
-	0,							// iCurVal
-	5,							// 5倍
-	{0},						// stPos
-	&live4K_30D_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_LIVE_MODE_4K_30F_3D,		// pItemName
+	iItemMaxVal:		0,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	5,							// 5倍
+	stPos:				{0},						// stPos
+	pStAction:			&live4K_30D_ActionInfo,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		live4K_30F_3D_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_3D_Nor_78x16,
 	}
 };
 
 
 PicVideoCfg live4K_30F_3D_HDMI_Cfg = {
-	TAKE_LIVE_MODE_4K_30F_3D_HDMI,			// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	5,								// 5倍
-	{0},							// stPos
-	&live4K_30D_HDMI_ActionInfo,	/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_LIVE_MODE_4K_30F_3D_HDMI,			// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	5,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&live4K_30D_HDMI_ActionInfo,	/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		live4K_30F_3D_HDMI_Light_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_3D_HDMI_Nor_78x16,
 	}
 };
 
 
 PicVideoCfg live_Customer_Cfg = {
-	TAKE_LIVE_MODE_CUSTOMER,		// pItemName
-	0,								// iItemMaxVal
-	0,								// iCurVal
-	5,								// 5倍
-	{0},							// stPos
-	&live4K_30D_HDMI_ActionInfo,	/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	{	/* 选中时的图标列表 */
+	pItemName:			TAKE_LIVE_MODE_CUSTOMER,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	5,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&live4K_30D_HDMI_ActionInfo,	/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
 		picVidCustmLight_78x16,
 	},
-	{	/* 未选中时的图标列表 */
+	stNorIcon:			{	/* 未选中时的图标列表 */
 		picVidCustmNor_78x16,
 	}
 };
@@ -1946,6 +1948,25 @@ PicVideoCfg* gLiveAllModeCfgList[] = {
 
 /******************************** 直播部分：END **************************************/
 
+/* 
+ * 默认的参数(当配置文件不存在或者解析配置文件出错时使用)
+ */
+static const char* pCmdTakePic_8K3DOF 	= "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 7680, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
+static const char* pCmdTakePic_8KOF 	= "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"pano\", \"height\": 3840, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
+static const char* pCmdTakePic_8K 		= "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
+static const char* pCmdTakePic_AEB 		= "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"hdr\": {\"enable\": true, \"count\": 9, \"min_ev\": -10, \"max_ev\": 10}, \"origin\": {\"mime\": \"raw+jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}} ";
+static const char* pCmdTakePic_Burst 	= "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"burst\": {\"enable\": true, \"count\": 10}, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
+static const char* pCmdTakePic_Customer = "{\"name\": \"camera._takePicture\", \"parameters\": {\"delay\": 0, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 7680, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
 
+
+// static const char* pCmdTakeVid_8K30F3D =
+
+
+
+static const char* pCmdLive_4K30F 		= "{\"name\": \"camera._startLive\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 20000, \"saveOrigin\": false, \"width\": 2560, \"height\": 1440, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"pano\", \"height\": 1920, \"width\": 3840, \"liveOnHdmi\": false, \"fileSave\": false, \"framerate\": 30, \"bitrate\": 20000, \"mime\": \"h264\"}, \"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}, \"autoConnect\": {\"enable\": true, \"interval\": 1000, \"count\": -1}}}";
+static const char* pCmdLive_4K30FHDMI 	= "{\"name\": \"camera._startLive\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 20000, \"saveOrigin\": false, \"width\": 2560, \"height\": 1440, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"pano\", \"height\": 1920, \"width\": 3840, \"liveOnHdmi\": true, \"fileSave\": false, \"framerate\": 30, \"bitrate\": 20000, \"mime\": \"h264\"}, \"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}, \"autoConnect\": {\"enable\": true, \"interval\": 1000, \"count\": -1}}}";
+static const char* pCmdLive_4K30F3D		= "{\"name\": \"camera._startLive\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 20000, \"saveOrigin\": false, \"width\": 1920, \"height\": 1440, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 3840, \"width\": 3840, \"liveOnHdmi\": false, \"fileSave\": false, \"framerate\": 30, \"bitrate\": 30000, \"mime\": \"h264\"}, \"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}, \"autoConnect\": {\"enable\": true, \"interval\": 1000, \"count\": -1}}}";
+static const char* pCmdLive_4K30F3DHDMI	= "{\"name\": \"camera._startLive\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 20000, \"saveOrigin\": false, \"width\": 1920, \"height\": 1440, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 1920, \"width\": 3840, \"liveOnHdmi\": true, \"fileSave\": false, \"framerate\": 30, \"bitrate\": 20000, \"mime\": \"h264\"}, \"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}, \"autoConnect\": {\"enable\": true, \"interval\": 1000, \"count\": -1}}}";
+static const char* pCmdLive_Customer	= "{\"name\": \"camera._startLive\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 20000, \"saveOrigin\": false, \"width\": 2560, \"height\": 1440, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"pano\", \"height\": 1920, \"width\": 3840, \"liveOnHdmi\": false, \"fileSave\": false, \"framerate\": 30, \"bitrate\": 20000, \"mime\": \"h264\"}, \"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}, \"autoConnect\": {\"enable\": true, \"interval\": 1000, \"count\": -1}}}";
 
 #endif /* _PIC_VIDEO_SELECT_H_ */

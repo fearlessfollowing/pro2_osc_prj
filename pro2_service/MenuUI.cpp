@@ -60,7 +60,8 @@
 #include <sys/Menu.h>
 
 #include <sys/mount.h>
-
+#include <iostream>
+#include <fstream>
 
 #include <icon/setting_menu_icon.h>
 
@@ -1385,11 +1386,12 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
         int size = pParentMenu->mSelectInfo.total;
         ICON_POS tmPos = {0, 48, 78, 16};
         int iIndex = 0;
+        string cfgItemJsonFilePath;
 
         PicVideoCfg** pSetItems = static_cast<PicVideoCfg**>(pParentMenu->priv);
         
         switch (pParentMenu->iMenuId) {
-            case MENU_PIC_SET_DEF:       /* PIC */
+            case MENU_PIC_SET_DEF: {      /* PIC */
                 iIndex = mProCfg->get_val(KEY_ALL_PIC_DEF); /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
 
@@ -1399,15 +1401,64 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                  * 以及传递参数的ACTION_INFO的值
                  */
                 for (int i = 0; i < size; i++) {
+
                     pSetItems[i]->stPos = tmPos;
+                    Json::Reader reader;
+                    Json::Value* pRoot = new Json::Value();
+                    bool bParseFileFlag = false;
 
                     /* TODO: 在此处为各个项设置对应的ACTION_INFO
                      * 通过解析配置文件得到的ACTION_INFO列表(通过名称进行匹配)
                      */
+                    /* 根据当前项的名称，找到对应的 */
+                    cfgItemJsonFilePath = JSON_CFG_FILE_PATH;
+                    cfgItemJsonFilePath +=  pSetItems[i]->pItemName;
+                    cfgItemJsonFilePath += ".json";
+                    const char* path = cfgItemJsonFilePath.c_str();
+                    Log.d(TAG, "[%s: %d] Takepic [%s] Configure json file path: %s", __FILE__, __LINE__, pSetItems[i]->pItemName, path);
+
+                    if (access(path, F_OK) == 0) {
+                        std::ifstream is;  
+                        is.open (path, std::ios::binary); 
+                        if (reader.parse(is, *pRoot, false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, path);
+                            pSetItems[i]->jsonCmd = pRoot;
+                            bParseFileFlag = true;
+                        } 
+                    }
+
+                    if (bParseFileFlag == false) {
+                        Log.d(TAG, "[%s: %d] Json cfg file not exist or Parse Failed, Used Default Configuration", __FILE__, __LINE__);
+                        
+                        const char* pCommJsonCmd = NULL;
+                        if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_8K_3D_OF)) {
+                            pCommJsonCmd = pCmdTakePic_8K3DOF;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_8K_3D)) {
+                            pCommJsonCmd = pCmdTakePic_8KOF;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_8K)) {
+                            pCommJsonCmd = pCmdTakePic_8K;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_AEB)) {
+                            pCommJsonCmd = pCmdTakePic_AEB;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_BURST)) {
+                            pCommJsonCmd = pCmdTakePic_Burst;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+                            pCommJsonCmd = pCmdTakePic_Customer;
+                        } 
+                        
+                        if (reader.parse(pCommJsonCmd, *pRoot, false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, pCommJsonCmd);
+                            pSetItems[i]->jsonCmd = pRoot;
+                        } else {
+                            Log.e(TAG, "[%s: %d] Parse Json String Failed!", __FILE__, __LINE__);
+                            pSetItems[i]->jsonCmd = NULL;
+                        }
+                    }
+
                     cfgPicModeItemCurVal(pSetItems[i]);
                     pItemLists.push_back(pSetItems[i]);
                 }
                 break;
+            }
 
             case MENU_VIDEO_SET_DEF:
                 iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF); /* 当前所中的项 */
@@ -2464,9 +2515,10 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
 
     switch (option) {
 
-        case ACTION_PIC: {	/* 拍照动作 */
+        case ACTION_PIC: {	/* 拍照动作： 因为有倒计时,倒计时完成需要检查存储设备还是否存在 */
 
             Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
+            Json::Value* pTakePicJson = NULL;
 
             /* customer和非customer */
             iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
@@ -2475,14 +2527,17 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
             if (pTmpPicVidCfg) {
                 
                 Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+                pTakePicJson = pTmpPicVidCfg->jsonCmd;
 
             #ifdef ENABLE_MENU_AEB
+
+                PIC_ORG* pTmpAeb = NULL;
 
                 /* 根据AEB当前的选项来更新PIC_ORG参数,不管当前选中的是否AEB项 */
                 pAebSetItem = getSetItemByName(mSetItemsList, SET_ITEM_NAME_AEB);
                 pAebPicVidCfg = getPicVidCfgByName(mPicAllItemsList, TAKE_PIC_MODE_AEB);
                 if (pAebSetItem && pAebPicVidCfg) {
-                    PIC_ORG* pTmpAeb = pAebSetItem->stOrigArg[pAebSetItem->iCurVal];
+                    pTmpAeb = pAebSetItem->stOrigArg[pAebSetItem->iCurVal];
                     memcpy(&(pAebPicVidCfg->pStAction->stOrgInfo.stOrgAct.mOrgP), pTmpAeb, sizeof(PIC_ORG));
                     Log.d(TAG, "[%s: %d] Current AEB info: hdr_count: %d, min_ev: %d, max_ev: %d", 
                                 __FILE__, __LINE__, pTmpAeb->hdr_count, pTmpAeb->min_ev, pTmpAeb->max_ev);
@@ -2491,7 +2546,20 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                     Log.w(TAG, "[%s:%d] Warnning Aeb Item lossed, please check!!!", __FILE__, __LINE__);
                 }
 
+                if ( !((*pTakePicJson)["parameters"]["hdr"].isNull()) ) {
+                    (*pTakePicJson)["parameters"]["hdr"]["count"] = pTmpAeb->hdr_count;
+                    (*pTakePicJson)["parameters"]["hdr"]["min_ev"] = pTmpAeb->min_ev;
+                    (*pTakePicJson)["parameters"]["hdr"]["max_ev"] = pTmpAeb->max_ev;
+                }
+
             #endif
+
+                if (mProCfg->get_val(KEY_RAW)) {
+                    (*pTakePicJson)["parameters"]["origin"]["mime"] = "raw+jpeg";
+                } else {
+                    (*pTakePicJson)["parameters"]["origin"]["mime"] = "jpeg";
+                }
+
 
                 if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {    
 
@@ -2505,16 +2573,19 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                         send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stProp);
                     }
 
+                    #if 0
+
                     /* 打印Customer的参数 
                      * 对于拍摄timelapse比较特殊，发送的时录像的命令
                      */
                     Log.d(TAG, "[%s: %d] ACTION_PIC Customer mode: %s", __FILE__, __LINE__, (mActionInfo->mode == MODE_3D)? "MODE_3D": "MODE_PANO");
                     Log.d(TAG, "[%s: %d] ACTION_PIC Customer size_by_per: %d", __FILE__, __LINE__, mActionInfo->size_per_act);
                     Log.d(TAG, "[%s: %d] ACTION_PIC Customer delay: %d", __FILE__, __LINE__, mActionInfo->delay);
-
+                    #endif
 
                 } else {    /* 非Customer模式 */
 
+                    #if 0
                     /* 根据是否开启RAW来设置 */
                     int iRaw = mProCfg->get_val(KEY_RAW);
                     int iAebVal = mProCfg->get_val(KEY_AEB);
@@ -2534,9 +2605,15 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                             iAebVal);
                     
                     memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
+                    #endif
                 }
 
-                msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                if (pTakePicJson) {
+                    msg->set<Json::Value*>("take_pic", pTakePicJson);
+                } else {
+                    Log.e(TAG, "[%s: %d] Take picture Json not exist, What's wront !!!", __FILE__, __LINE__);
+                    abort();
+                }
             } else {
                 Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
                 abort();
@@ -2654,7 +2731,7 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
 
                     /* Customer模式 */
                     if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
-                        Log.d(TAG, "[%s: %d] Customer mode Take Pic", __FILE__, __LINE__);
+                        Log.d(TAG, "[%s: %d] Customer mode Live", __FILE__, __LINE__);
                         memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_LIVE_DEF), sizeof(ACTION_INFO));
             
 
@@ -4656,14 +4733,14 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
         /* 重新显示正页时，清除整个页 */
         clear_area(pIconPos->xPos + pIconPos->iWidth, 16);
 
-#ifdef ENABLE_DEBUG_SET_PAGE
+    #ifdef ENABLE_DEBUG_SET_PAGE
         Log.d(TAG, "start %d end  %d select %d ", start, end, iIndex);
-#endif
+    #endif
         while (start < end) {
 
-#ifdef ENABLE_DEBUG_SET_PAGE        
+        #ifdef ENABLE_DEBUG_SET_PAGE        
             Log.d(TAG, "[%s:%d] dispSettingPage -> cur index [%d] in lists", __FILE__, __LINE__, start);
-#endif
+        #endif
             pTempSetItem = setItemsList.at(start);
             
             if (pTempSetItem != NULL) {
@@ -4741,9 +4818,9 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
                 goto ERROR;
             }
             Log.d(TAG,"err_trim %d",err_trim);
-#ifdef NEW_FORMAT
+    #ifdef NEW_FORMAT
             reset_devmanager();
-#else
+    #else
             snprintf(buf,sizeof(buf),"mountufsd %s %s "
                     "-o uid=1023,gid=1023,fmask=0700,dmask=0700,force",
                      src,path);
@@ -4752,7 +4829,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
             }  else {
                 Log.d(TAG,"mountufsd suc");
             }
-#endif
+    #endif
 
             if (err_trim) {
                 goto ERROR_TRIM;
@@ -4770,7 +4847,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
             msg_util::sleep_ms(3000);
             break;
 
-#ifndef ONLY_EXFAT
+        #ifndef ONLY_EXFAT
         //ext4
         case 1:
             snprintf(buf,sizeof(buf),"umount -f %s",path);
@@ -4799,7 +4876,7 @@ void MenuUI::format(const char *src,const char *path,int trim_err_icon,int err_i
             }
             disp_icon(suc_icon);
             break;
-#endif
+        #endif
         SWITCH_DEF_ERROR(getMenuSelectIndex(MENU_FORMAT));
     }
 
@@ -4977,7 +5054,7 @@ void MenuUI::startFormatDevice()
                 }
 
                 dispIconByLoc(pFormatResult);
-                msg_util::sleep_ms(2000);
+                msg_util::sleep_ms(1000);
                 procBackKeyEvent();
                 break;  
             
@@ -5733,7 +5810,7 @@ void MenuUI::disp_low_protect(bool bStart)
 void MenuUI::disp_low_bat()
 {
     clear_area();
-    disp_str((const u8 *)"Low Battery ",8,16);
+    disp_str((const u8 *)"Low Battery ", 32, 32);
     setLightDirect(BACK_RED|FRONT_RED);
 }
 
@@ -6096,7 +6173,12 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
 
         case MENU_SET_TEST_SPEED: {
-            dispTipStorageDevSpeedTest();           
+            if (mSpeedTestUpdateFlag == false) {    /* 未发起测速的情况 */
+                /* 来自UI的：提示是否确认测速 */
+                dispTipStorageDevSpeedTest();
+            } else {
+                procBackKeyEvent();     /* 测速完成，由于拔卡或插卡导致冲进进入MENU_SPEE_TEST的情况 */
+            }            
             break;
         }
 
@@ -6107,8 +6189,12 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 clear_area(); 
                 dispWriteSpeedTest();  
             } else {
-                /* 来自UI的：提示是否确认测速 */
-                dispTipStorageDevSpeedTest();
+                if (mSpeedTestUpdateFlag == false) {    /* 未发起测速的情况 */
+                    /* 来自UI的：提示是否确认测速 */
+                    dispTipStorageDevSpeedTest();
+                } else {
+                    procBackKeyEvent();     /* 测速完成，由于拔卡或插卡导致冲进进入MENU_SPEE_TEST的情况 */
+                }
             }
             break;            
         }
@@ -6670,6 +6756,7 @@ void MenuUI::procPowerKeyEvent()
                     int iCond = isSatisfySpeedTestCond();
                     if (iCond == COND_ALL_CARD_EXIST) {
                         if (!check_state_in(STATE_SPEED_TEST)) {
+                            mSpeedTestUpdateFlag = false;
                             setCurMenu(MENU_SET_TEST_SPEED);
                         } else {
                             Log.e(TAG, "[%s: %d] Current is Test Speed state ...", __FILE__, __LINE__);
@@ -6688,8 +6775,13 @@ void MenuUI::procPowerKeyEvent()
                     }
                 }
             }
-
 			break;
+        }
+
+        case MENU_LOW_BAT: {
+            procBackKeyEvent();
+            msg_util::sleep_ms(500);
+            break;
         }
             		
         SWITCH_DEF_ERROR(cur_menu)
@@ -9867,10 +9959,10 @@ bool MenuUI::check_battery_change(bool bUpload)
 
         if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
 
-            Log.d(TAG, "[%s: %d ] bat low menu[%s] %d state 0x%x bStiching %d", __FILE__, __LINE__,
-                    getMenuName(cur_menu), cam_state, bStiching);
+            Log.d(TAG, "[%s: %d ] bat low menu[%s] %d state 0x%x", __FILE__, __LINE__,
+                    getMenuName(cur_menu), cam_state);
 
-            if (check_state_in(STATE_RECORD) || checkLiveNeedSave() || bStiching) {
+            if ((check_state_in(STATE_RECORD) && cur_menu == MENU_VIDEO_INFO) || checkLiveNeedSave() || bStiching) {
                 setCurMenu(MENU_LOW_BAT, MENU_TOP);
                 add_state(STATE_LOW_BAT);
                 func_low_bat();

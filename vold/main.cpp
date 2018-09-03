@@ -332,6 +332,11 @@ static void handleAddAction(const char* deviceName)
             for (int i = 0; i < 3; i++) {
                 sprintf(clear_path, "rm -rf %s/*", mountPath);
                 system(clear_path);
+				
+				if (access(mountPath, F_OK) != 0) {
+					mkdir(mountPath, 0700);
+				}
+
                 sprintf(mount_cmd, "mount %s %s", deviceName, mountPath);
 				iRet = exec_cmd(mount_cmd);
                 if (iRet) {

@@ -51,7 +51,8 @@ src += [config.LIBCUTILS + '/system_properties.c']
 
 
 com_env['CXXFLAGS'] += ' -I' + config.PRO2_SERVICE + '/include'
-com_env['LINKFLAGS'] += ' -lrt -lpthread '
+com_env['LINKFLAGS'] += '-L ' + config.PRO2_SERVICE 
+com_env['LINKFLAGS'] += ' -lrt -lpthread -ljsoncpp'
 pro2_service_obj = com_env.Object(src)
 
 Return('pro2_service_obj')

@@ -157,7 +157,7 @@ private:
 	
     void write_exit_for_read();
 
-	void write_fifo(int iEvent , char *str = nullptr);
+	void write_fifo(int iEvent , const char *str = nullptr);
 	
     void send_disp_str_type(sp<struct _disp_type_> &dis_type);
 	

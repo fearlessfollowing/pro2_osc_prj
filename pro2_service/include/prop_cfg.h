@@ -117,6 +117,8 @@ const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
 const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #endif
 
+#define JSON_CFG_FILE_PATH      "/home/nvidia/insta360/etc/"
+
 /* 
  * FIFO路径
  */

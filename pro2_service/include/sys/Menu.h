@@ -262,7 +262,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_LOW_BAT */
     	MENU_TOP,
     	{0},
-    	{0},
+    	{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
         MENU_LOW_BAT,
         NULL,
         NULL,        

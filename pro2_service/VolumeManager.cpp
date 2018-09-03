@@ -316,6 +316,12 @@ bool VolumeManager::isMountpointMounted(const char *mp)
 }
 
 
+#if 0
+void VolumeManager::doEnterUdiskMode()
+{
+}
+#endif
+
 void VolumeManager::enterUdiskMode()
 {
     /* 1.检查所有卷的状态，如果非IDLE状态（MOUNTED状态），先进行强制卸载操作
@@ -343,11 +349,15 @@ void VolumeManager::enterUdiskMode()
 
 bool VolumeManager::checkEnteredUdiskMode()
 {
+    #if 0
     if (mHandledAddUdiskVolCnt == mModuleVolNum) {
         return true;
     } else {
         return false;
     }
+    #else
+    return true;
+    #endif
 }
 
 
@@ -1010,6 +1020,15 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 
                         /* 如果是TF卡,不需要做如下操作 */
                         if (volumeIsTfCard(tmpVol) == false) {
+
+                            string testSpeedPath = tmpVol->pMountPath;
+                            testSpeedPath + "/.pro_suc";
+    
+                            if (access(testSpeedPath.c_str(), F_OK) == 0) {
+                                tmpVol->iSpeedTest = 1;
+                            } else {
+                                tmpVol->iSpeedTest = 0;
+                            }
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());

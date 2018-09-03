@@ -197,7 +197,7 @@ elif PLATFORM == 'aarch64':
     CXXFLAGS += ' -std=c++11 -frtti '
     CPPPATH = INC_PATH
     LDFLAGS = ''
-    LINKLIBS = ''
+    LINKLIBS = '-L ' + PRO2_SERVICE
     CPATH = ''
     LPATH = ''
 
