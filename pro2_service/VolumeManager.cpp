@@ -158,7 +158,7 @@ VolumeManager::VolumeManager()
     mVolumes.clear();
     mLocalVols.clear();
     mModuleVols.clear();
-
+    mNotify = nullptr;
 
     /* 挂载点初始化 */
     /*
@@ -507,6 +507,22 @@ u64 VolumeManager::getLiveRecLeftSec()
     AutoMutex _l(gLiveRecLeftMutex);    
     return mLiveRecLeftSec;
 }
+
+
+void VolumeManager::unmountCurLocalVol()
+{
+    if (mCurrentUsedLocalVol) {
+        NetlinkEvent *evt = new NetlinkEvent();        
+        evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+        evt->setAction(NETLINK_ACTION_REMOVE);
+        evt->setSubsys(VOLUME_SUBSYS_USB);
+        evt->setBusAddr(tmpVol->pBusAddr);
+        evt->setDevNodeName(tmpVol->cDevNode);            
+        handleBlockEvent(evt);
+        delete evt;
+    }
+}
+
 
 void VolumeManager::exitUdiskMode()
 {
@@ -1326,12 +1342,14 @@ void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
 *************************************************************************/
 void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>& devList)
 {
-    sp<ARMessage> msg = mNotify->dup();
-
-    msg->set<int>("action", iAction);    
-    msg->set<int>("type", iType);    
-    msg->set<vector<Volume*>>("dev_list", devList);
-    msg->post();    
+    if (mNotify != nullptr) {
+        sp<ARMessage> msg = mNotify->dup();
+        msg->set<int>("action", iAction);    
+        msg->set<int>("type", iType);    
+        msg->set<vector<Volume*>>("dev_list", devList);
+        msg->post();
+    }
+    
 }
 
 

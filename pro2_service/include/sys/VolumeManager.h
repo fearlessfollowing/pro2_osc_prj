@@ -360,6 +360,8 @@ public:
     int         handleBlockEvent(NetlinkEvent *evt);
 
 
+    void        unmountCurLocalVol();
+
     void        listVolumes();
 
 
