@@ -276,7 +276,7 @@ void fifo::init()
     make_fifo();
     init_thread();
 
-    //set in the end
+    // //set in the end
     notify = obtainMessage(MSG_GET_OLED_KEY);
 
     mOLEDHandle = (sp<MenuUI>)(new MenuUI(notify)); //oled_handler::getSysUiObj(notify);
@@ -450,102 +450,43 @@ void fifo::write_fifo(int iEvent, const char *str)
     } 
 }
 
-
-
-const char* getActionStr(int iAction)
+#define ACTION_NAME(n) case n: return #n
+const char *getActionName(int iAction)
 {
-	const char* pRet = NULL;
-	
-	switch (iAction) {
-	case ACTION_REQ_SYNC:
-		pRet = "ACTION_REQ_SYNC";
-		break;
+    switch (iAction) {
+        ACTION_NAME(ACTION_REQ_SYNC);
+        ACTION_NAME(ACTION_PIC);
+        ACTION_NAME(ACTION_VIDEO);
+        ACTION_NAME(ACTION_LIVE);
+        ACTION_NAME(ACTION_PREVIEW);
+        ACTION_NAME(ACTION_CALIBRATION);
+        ACTION_NAME(ACTION_QR);
+        ACTION_NAME(ACTION_SET_OPTION);
+        ACTION_NAME(ACTION_LOW_BAT);
+        ACTION_NAME(ACTION_SPEED_TEST);
+        ACTION_NAME(ACTION_POWER_OFF);
+        ACTION_NAME(ACTION_GYRO);
+        ACTION_NAME(ACTION_NOISE);
+        ACTION_NAME(ACTION_CUSTOM_PARAM);
+        ACTION_NAME(ACTION_LIVE_ORIGIN);
+        ACTION_NAME(ACTION_AGEING);
+        ACTION_NAME(ACTION_AWB);
+        ACTION_NAME(ACTION_SET_STICH);
+        ACTION_NAME(ACTION_QUERY_STORAGE);
+        ACTION_NAME(ACTION_FORMAT_TFCARD);
 
-	case ACTION_PIC:
-		pRet = "ACTION_PIC";
-		break;
+#ifdef ENABLE_MENU_STITCH_BOX
+        ACTION_NAME(MENU_STITCH_BOX);
+#endif
 
-	case ACTION_VIDEO:
-		pRet = "ACTION_VIDEO";
-		break;
+        ACTION_NAME(ACTION_QUIT_UDISK_MODE);
+        ACTION_NAME(ACTION_UPDATE_REC_LEFT_SEC);
+        ACTION_NAME(ACTION_UPDATE_LIVE_REC_LEFT_SEC);
 
-	case ACTION_LIVE:
-		pRet = "ACTION_LIVE";
-		break;
-	
-	case ACTION_PREVIEW:
-		pRet = "ACTION_PREVIEW";
-		break;
 
-	case ACTION_CALIBRATION:
-		pRet = "ACTION_PREVIEW";
-		break;
-		
-	case ACTION_QR:
-		pRet = "ACTION_QR";
-		break;
-
-	case ACTION_SET_OPTION:
-		pRet = "ACTION_SET_OPTION";
-		break;
-		
-	case ACTION_LOW_BAT:
-		pRet = "ACTION_LOW_BAT";
-		break;
-
-	case ACTION_SPEED_TEST:
-		pRet = "ACTION_SPEED_TEST";
-		break;
-
-	case ACTION_POWER_OFF:
-		pRet = "ACTION_POWER_OFF";
-		break;
-		
-	case ACTION_GYRO:
-		pRet = "ACTION_GYRO";
-		break;
-		
-	case ACTION_NOISE:
-		pRet = "ACTION_NOISE";
-		break;
-
-	case ACTION_CUSTOM_PARAM:
-		pRet = "ACTION_CUSTOM_PARAM";
-		break;
-
-	case ACTION_LIVE_ORIGIN:
-		pRet = "ACTION_LIVE_ORIGIN";
-		break;
-		
-		//force at end 0620
-	case ACTION_AGEING:
-		pRet = "ACTION_AGEING";
-		break;
-	
-	case ACTION_AWB:
-		pRet = "ACTION_AWB";
-		break;
-		
-	case ACTION_SET_STICH:
-		pRet = "ACTION_SET_STICH";
-		break;
-		
-	case ACTION_QUERY_STORAGE:
-		pRet = "ACTION_QUERY_STORAGE";
-		break;
-
-    case ACTION_FORMAT_TFCARD:
-        pRet = "ACTION_FORMAT_TFCARD";
-        break;
-
-	default:
-		pRet = "Unkown ACTION";
-		break;
-
-	}
-	return pRet;
+    default: return "Unkown Action";
+    }    
 }
-
 
 /* {
     *		"action":ACTION_PIC, 
@@ -572,6 +513,8 @@ const char* getActionStr(int iAction)
     *		}
     * }
     */	
+
+#if 1
 void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
 {
     Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
@@ -656,6 +599,8 @@ void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *par
     cJSON_AddItemToObject(root, "parameters", param);
 
 }
+#endif
+
 
 void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
 {
@@ -1157,7 +1102,7 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
             CHECK_EQ(msg->find<int>("action", &action), true);
 
 			/* {"action": [0/9]} */
-			Log.d(TAG, "FIFO RECV OLED ACTION [%s]", getActionStr(action));
+			Log.d(TAG, "FIFO RECV OLED ACTION [%s]", getActionName(action));
 			
             cJSON_AddNumberToObject(root, "action", action);
 
@@ -1381,13 +1326,7 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 
 		#endif
 		
-        #if 0
-            case MSG_TRAN_INNER_UPDATE_TF: {
-                mOLEDHandle->updateTfStorageInfo(disp_type);
-                break;
-            }
-        #endif
-
+  
 			/* OSC -> FIFO -> UI 
 			 * 通知UI进入某个显示界面
 			 */
@@ -1487,6 +1426,9 @@ void fifo::init_thread()
                    });
     CHECK_EQ(reply.get(), true);
 }
+
+
+
 
 
 const char* getRecvCmdType(int iType)
@@ -2258,6 +2200,64 @@ void fifo::handleStitchProgress(sp<DISP_TYPE>& mDispType, cJSON *subNode)
     GET_CJSON_OBJ_ITEM_DOUBLE(child, subNode, "runing_task_progress", mDispType->mStichProgress->runing_task_progress);
 }
 
+#if 0
+void fifo::msgRecvThread()
+{
+    char buf[1024] = {0};
+    char result[1024] = {0}; 
+    int error_times = 0;
+	Json::Reader reader;
+    sp<Json::Value> recvJsonRoot = nullptr;
+
+    while (true) {
+        memset(buf, 0, sizeof(buf));
+        memset(result, 0, sizeof(result));
+
+        get_read_fd();	/* 获取FIFO读端的fd */
+    
+        int iReadLen = read(read_fd, buf, FIFO_HEAD_LEN);
+        if (iReadLen != FIFO_HEAD_LEN) {	/* 头部读取错误 */
+            Log.w(TAG, "ReadFifoThread: read fifo head mismatch(rec[%d] act[%d])", len, FIFO_HEAD_LEN);
+            if (++error_times >= 3) {
+                Log.e(TAG, ">> read fifo broken?");
+                close_read_fd();
+            }
+        } else {
+            if (msg_what == CMD_EXIT) {	/* 如果是退出消息 */
+				Log.d(TAG, "[%s: %d]rec cmd exit", __FILE__, __LINE__);
+                break;
+            } else {
+                /* 头部的后4字节代表本次数据传输的长度 */
+                int iActDataLen = bytes_to_int(&buf[FIFO_DATA_LEN_OFF]);
+                CHECK_NE(iActDataLen, 0);
+
+                /* 读取传输的数据 */
+                iReadLen = read(read_fd, &buf[FIFO_HEAD_LEN], iActDataLen);
+                if (iReadLen != iActDataLen) {
+                    Log.e(TAG, "[%s: %d] Read Len not qual Actual Len", __FILE__, __LINE__);
+                    if (++error_times >= 3) {
+                        Log.e(TAG, " 2read fifo broken? ");
+                        close_read_fd();
+                    }                
+                } else {
+                    recvJsonRoot = (sp<Json::Value>)(new Json::Value());
+                    if (!reader.parse(&buf[FIFO_HEAD_LEN], *(recvJsonRoot.get()), false)) {
+                        Log.e(TAG, "[%s: %d] Parse recv msg 2 json failed", __FILE__, __LINE__);
+                        delete recvJsonRoot;
+                        continue;
+                    } else {
+                        
+                    }
+                    
+                }
+            }
+
+        }
+    
+    }
+}
+#endif
+
 
 /*************************************************************************
 ** 方法名称: read_fifo_thread
@@ -2328,6 +2328,18 @@ void fifo::read_fifo_thread()
                     }
 					
                     Log.d(TAG, "ReadFifoThread Msg From Http(%s) fifo test %s", getRecvCmdType(msg_what), &buf[FIFO_HEAD_LEN]);
+
+                    Json::Value rootJson;
+                    Json::Reader reader;
+                    Json::FastWriter writer;
+	                if (!reader.parse(&buf[FIFO_HEAD_LEN], rootJson, false)) {
+		                Log.e(TAG, "[%s: %d] bad json format!", __FILE__, __LINE__);
+		                continue;
+	                }
+
+                    string jsonstr = writer.write(rootJson);
+                    Log.d(TAG, "---------------[Recv Message]: %s", jsonstr.c_str());
+
 
 					/* 根据消息的类型做出处理 */
                     switch (msg_what) {

@@ -412,13 +412,18 @@ public:
 
     void    postUiMessage(sp<ARMessage>& msg);
 
-    explicit MenuUI(const sp<ARMessage> &notify);
+            MenuUI();
+
+            MenuUI(const sp<ARMessage> &notify);
             ~MenuUI();
     void    handleMessage(const sp<ARMessage> &msg);
 	
     void    send_disp_str(sp<struct _disp_type_> &sp_disp);
     void    send_disp_err(sp<struct _err_type_info_> &sp_disp);
 
+
+    void    start();            
+    void    stop();
 
     //net type 0 -- default to wlan
     void    send_disp_ip(int ip, int net_type = 0);
@@ -441,8 +446,6 @@ public:
     void    sendSpeedTestResult(std::vector<sp<Volume>>& mChangedList);
 
 private:
-
-    MenuUI();
 
     bool    start_speed_test();
     bool    check_rec_tl();

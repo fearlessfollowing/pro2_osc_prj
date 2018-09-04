@@ -39,9 +39,9 @@ static OLED_STR mSysStr[] = {
 	{ERR_READ_VER_LEN, 				"707"},
 	{ERR_READ_APP_LEN, 				"708"},
 	{ERR_GET_APP_ZIP, 				"709"},
-	{ERR_TAR_APP_ZIP, 				"710"},
-	{ERR_GET_APP,					"711"},
-	{CHECK_FAIL,		 			"714"},
+	{ERR_UNZIP_APP, 				"710"},
+	{ERR_GET_PRO_UPDATE,            "711"},
+	{ERR_UNZIP_PRO_UPDATE,		 	"714"},
 
 	
 	//disp in update_app

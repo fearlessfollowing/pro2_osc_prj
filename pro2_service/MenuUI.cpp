@@ -395,6 +395,7 @@ const char *getMenuName(int cmd)
         MENU_NAME(MENU_GYRO_START);
         MENU_NAME(MENU_SPEED_TEST);
         MENU_NAME(MENU_RESET_INDICATION);
+
 #ifdef MENU_WIFI_CONNECT
         MENU_NAME(MENU_WIFI_CONNECT);
 #endif
@@ -405,6 +406,7 @@ const char *getMenuName(int cmd)
 #ifdef ENABLE_MENU_STITCH_BOX
         MENU_NAME(MENU_STITCH_BOX);
 #endif
+
         MENU_NAME(MENU_FORMAT);
         MENU_NAME(MENU_FORMAT_INDICATION);
         MENU_NAME(MENU_SET_PHOTO_DEALY);
@@ -502,6 +504,31 @@ MenuUI::MenuUI(const sp<ARMessage> &notify): mNotify(notify)
     send_init_disp();		    /* 给消息处理线程发送初始化显示消息 */
 
 }
+
+
+MenuUI::MenuUI()
+{
+    Log.d(TAG, "MenuUI contructr......");
+}
+
+
+void MenuUI::start()
+{
+    init_handler_thread();	    /* 初始化消息处理线程 */
+
+    Log.d(TAG, "Core UI thread created ... ");
+    init();					    /* MenuUI内部成员初始化 */
+
+    Log.d(TAG, "Send Init display Msg");
+
+    // send_init_disp();		    /* 给消息处理线程发送初始化显示消息 */
+}
+
+void MenuUI::stop()
+{
+    /* 发送停止消息 */
+}
+
 
 
 /*************************************************************************
@@ -9341,11 +9368,11 @@ void MenuUI::handleUpdateDevInfo(int iAction, int iType, vector<Volume*>& mList)
 
     Log.d(TAG, "[%s: %d] handleUpdateDevInfo -> Current Menu[%s], cam_state[%d]",
                 __FILE__, __LINE__, getMenuName(cur_menu), cam_state);
+    
     /* 设置存储设备列表
      * 格式化菜单及U盘菜单不显示设备拔插的消息框
      */
-    if (((cur_menu != MENU_UDISK_MODE) || (cur_menu != MENU_FORMAT_INDICATION))
-        && (!check_state_in(STATE_QUERY_STORAGE)) ) {
+    if (((cur_menu != MENU_UDISK_MODE) && (cur_menu != MENU_FORMAT_INDICATION)) && (!check_state_in(STATE_QUERY_STORAGE)) ) {
         disp_dev_msg_box(action, type, false);
     }
 

@@ -57,6 +57,14 @@
 #include <dirent.h>
 #include <prop_cfg.h>
 
+#include <sys/Process.h>
+#include <sys/NetlinkManager.h>
+#include <sys/VolumeManager.h> 
+#include <sys/NetlinkEvent.h>
+
+#include <sys/inotify.h>
+
+#include <sys/mount.h>
 
 #undef  TAG
 #define TAG "update_check"
@@ -76,12 +84,12 @@ using namespace std;
 #define UPDAE_CHECK_VER		"V3.0"
 
 
+extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
+
 static const char *get_key()
 {
     return FP_KEY;
 }
-
-
 
 
 static bool check_is_digit(const char* data)
@@ -94,7 +102,6 @@ static bool check_is_digit(const char* data)
 	        break;
 	    }
     }
-
     if (p >= data + strlen(data))
 	    return true;
     else
@@ -256,12 +263,13 @@ static void setLastFirmVer2Prop(const char* ver_path)
 static int copyUpdateFile2Memory(const char* dstFile, const char* srcFile)
 {
 	int status;
+	int iRet = 0;
 
     const char *args[4];
     args[0] = "/bin/cp";
     args[1] = "-f";
     args[2] = srcFile;
-	args[3] = dstFile
+	args[3] = dstFile;
 
 	Log.d(TAG, "[%s: %d] Copy Cmd [%s %s %s %s]", __FILE__, __LINE__, args[0], args[1], args[2], args[3]);
 
@@ -301,7 +309,98 @@ enum {
 	
 };
 
-static int iPro2UpdateOffset = 0;
+static u32 iPro2UpdateOffset = 0;
+#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
+#define PRO_UPDATE_ZIP	"pro2_update.zip"
+
+#if 0
+/*************************************************************************
+** 方法名称: check_header_match
+** 方法功能: 检查UPDATE_HEADER是否合法
+** 入口参数: 
+**		pstTmp - 头部数据制作
+** 返 回 值: 成功返回0;失败返回-1
+** 调     用: start_update_app
+**
+*************************************************************************/
+static bool check_header_match(UPDATE_HEADER * pstTmp)
+{
+    bool bRet = false;
+    if (pstTmp->cid == get_cid()) {
+        if (pstTmp->mid == get_mid()) {
+            bRet = true;
+        } else {
+            Log.e(TAG, "header mismatch mid(%d %d)\n", pstTmp->mid, get_mid());
+        }
+    } else {
+        Log.e(TAG, "header mismatch cid (%d %d) mid(%d %d)\n", pstTmp->cid, get_cid(), pstTmp->mid, get_mid());
+    }
+    return bRet;
+}
+#endif
+
+static int getPro2UpdatePackage(FILE* fp, u32 offset)
+{
+	u8 buf[1024 * 1024] = {0};
+	u32 uReadLen = 0;
+	u32 uHeadLen = 0;
+	UPDATE_HEADER gstHeader;
+	
+	fseek(fp, offset, SEEK_SET);
+
+	uReadLen = fread(buf, 1, HEADER_CONENT_LEN, fp);
+	if (uReadLen != HEADER_CONENT_LEN) {
+		Log.e(TAG, "[%s: %d] get_unzip_update_app: header len mismatch(%d %d)", __FILE__, __LINE__, uReadLen, HEADER_CONENT_LEN);
+		return ERROR_GET_PRO2_UPDAET_ZIP;
+	}
+
+
+	uHeadLen = bytes_to_int(buf);
+	if (uHeadLen != sizeof(UPDATE_HEADER)) {
+		Log.e(TAG, "[%s: %d] get_unzip_update_app: header content len mismatch1(%u %zd)", __FILE__, __LINE__, uHeadLen, sizeof(UPDATE_HEADER));
+		return ERROR_GET_PRO2_UPDAET_ZIP;
+	}
+
+	/* 从镜像中读取UPDATE_HEADER */
+	memset(buf, 0, sizeof(buf));
+	uHeadLen = fread(buf, 1, uHeadLen, fp);
+	if (uHeadLen != uHeadLen) {
+		Log.e(TAG, "[%s: %d]get_unzip_update_app: header content len mismatch2(%d %d)", __FILE__, __LINE__, uHeadLen, uHeadLen);
+		return ERROR_GET_PRO2_UPDAET_ZIP;
+	}	
+
+	memcpy(&gstHeader, buf, uHeadLen);
+
+	#if 0
+	/* 检查头部 */
+	if (!check_header_match(&gstHeader)) {
+		Log.e(TAG, "get_unzip_update_app: check header match failed...");
+		return ERROR_GET_PRO2_UPDAET_ZIP;
+	}	
+	#endif
+
+
+	int iPro2updateZipLen = bytes_to_int(gstHeader.len);
+	string pro2UpdatePath = TMP_UNZIP_PATH;
+	pro2UpdatePath += PRO_UPDATE_ZIP;
+	const char* pPro2UpdatePackagePath = pro2UpdatePath.c_str();
+
+	/* 提取升级压缩包:    pro2_update.zip */
+	if (gen_file(pPro2UpdatePackagePath, iPro2updateZipLen, fp)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
+		if (tar_zip(pPro2UpdatePackagePath, TMP_UNZIP_PATH) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
+			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+			return ERROR_SUCCESS;
+		} else {
+			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+			return ERROR_UNZIP_PRO2_UPDATE;
+		}
+	} else {
+		Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
+		return ERROR_GET_PRO2_UPDAET_ZIP;
+	}	
+
+}
+
 
 /*************************************************************************
 ** 方法名称: getUpdateApp
@@ -313,25 +412,17 @@ static int iPro2UpdateOffset = 0;
 *************************************************************************/
 static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 {
-    int bRet = -1;
     FILE *fp = nullptr;
 
     u8 buf[1024 * 1024];
 
     const char *key = get_key();
-    u32 update_app_len;
-    u32 read_len;
 	u32 uReadLen = 0;
-	char update_app_name[1024];
 	char ver_str[128] = {0};
 	SYS_VERSION* pVer = NULL;
-	
-
-	memset(update_app_name, 0, sizeof(update_app_name));
-	sprintf(update_app_name, "%s/%s", image_path, UPDATE_IMAGE_FILE);
-	
+		
     if (!check_file_key_md5(pUpdateFilePathName)) {		/* 文件的MD5值进行校验: 校验失败返回-1 */
-        Log.e(TAG, "[%s: %d] Update File MD5 Check Error", __FILE__, __LINE__);
+        Log.e(TAG, "[%s: %d] Update File[%s] MD5 Check Error", __FILE__, __LINE__, pUpdateFilePathName);
 		return ERROR_MD5_CHECK;
     }
 
@@ -366,7 +457,7 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
     memset(buf, 0, sizeof(buf));
     uReadLen = fread(buf, 1, sizeof(SYS_VERSION), fp);
     if (uReadLen != sizeof(SYS_VERSION)) {
-        Log.e(TAG, "[%s: %d] read version len mismatch(%u 1)", read_len);
+        Log.e(TAG, "[%s: %d] read version len mismatch(%u 1)", uReadLen);
         fclose(fp);
 		return ERROR_READ_LEN;
     }
@@ -389,8 +480,7 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
     memset(buf, 0, sizeof(buf));
     uReadLen = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp);
     if (uReadLen != UPDATE_APP_CONTENT_LEN) {
-        Log.e(TAG, "[%s: %d] update app len mismatch(%d %d)", __FILE__, __LINE__, read_len, UPDATE_APP_CONTENT_LEN);
-        fclose(fd);
+        Log.e(TAG, "[%s: %d] update app len mismatch(%d %d)", __FILE__, __LINE__, uReadLen, UPDATE_APP_CONTENT_LEN);
 		return ERROR_READ_LEN;
     }
 	iPro2UpdateOffset += uReadLen;	/* UPDATE_APP_CONTENT_LEN */
@@ -433,6 +523,16 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 	return 0;
 }
 
+static void resetSdSlot()
+{
+	system("echo 253 > /sys/class/gpio/export");
+	system("echo 0 > /sys/class/gpio/gpio253/value");
+	msg_util::sleep_ms(1000);
+	system("echo 1 > /sys/class/gpio/gpio253/value");
+	msg_util::sleep_ms(500);
+
+}
+
 
 /*************************************************************************
 ** 方法名称: main
@@ -447,8 +547,6 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 int main(int argc, char **argv)
 {
 	int iRet = -1;
-	bool found = false;
-	bool result = false;
 	const char* pUcDelayStr = NULL;	
 	long iDelay = 0;
 
@@ -468,8 +566,10 @@ int main(int argc, char **argv)
 
 	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);
 
-	/* update_check中清除清空挂载目录中的一切 */
-	system("rm -rf /mnt/*");
+	/*
+	 * 复位一下SD卡模块，使得在又SD卡的情况下可以识别到
+	 */
+	resetSdSlot();
 
 	/** 启动卷管理器,用于挂载升级设备 */
     VolumeManager* vm = VolumeManager::Instance();
@@ -497,6 +597,7 @@ int main(int argc, char **argv)
 
 	if (vm->checkLocalVolumeExist()) {	/* 卷存在，并且已经挂载 */
 		string updateFilePathName = vm->getLocalVolMountPath();
+		updateFilePathName += "/";
 		updateFilePathName += UPDATE_IMAGE_FILE;
 
 		const char* pUpdateFilePathName = updateFilePathName.c_str();
@@ -511,11 +612,21 @@ int main(int argc, char **argv)
 				if (S_ISREG(fileStat.st_mode)) {
 					Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
 
-					string dstUpdateFilePath = "/tmp/";
+					string dstUpdateFilePath;
+					const char* pImgDstPath = property_get(PROP_UPDATE_IMAG_DST_PATH);
+					if (pImgDstPath) {
+						dstUpdateFilePath = pImgDstPath;
+					} else {
+						dstUpdateFilePath = "/mnt/tmp";
+					}
+					if (access(dstUpdateFilePath.c_str(), F_OK) != 0) {
+						mkdir(dstUpdateFilePath.c_str(), 0766);
+					}
+
+					dstUpdateFilePath += "/";
 					dstUpdateFilePath += UPDATE_IMAGE_FILE;
 					const char* pDstUpdateFilePath = dstUpdateFilePath.c_str();
 					
-
 					int i, iError = 0;
 					for (i = 0; i < 3; i++) {
 						/* 拷贝升级文件到/tmp */
@@ -541,12 +652,31 @@ int main(int argc, char **argv)
 						}
 					} else {
 						Log.e(TAG, "[%s: %d] Parse update file Failed", __FILE__, __LINE__);
+						int iType;
 						arlog_close();	
 
 						/* 提示失败的原因，并倒计时重启 */
 						vm->unmountCurLocalVol();
 						init_oled_module();
-						disp_update_error(ERR_GET_APP);
+
+						switch (iError) {
+							case ERROR_GET_UPDATE_APP_ZIP:
+								iType = ERR_GET_APP_ZIP;
+								break;
+							case ERROR_UNZIP_UPDATE_APP:
+								iType = ERR_UNZIP_APP;
+								break;
+							case ERROR_GET_PRO2_UPDAET_ZIP:
+								iType = ERR_GET_PRO_UPDATE;
+								break;
+							case ERROR_UNZIP_PRO2_UPDATE:
+								iType = ERR_UNZIP_PRO_UPDATE;
+								break;
+							default:
+								iType = ERR_GET_APP_ZIP;
+								break;
+						}
+						disp_update_error(iType);
 						disp_start_reboot(5);
 						start_reboot();
 					}
@@ -564,7 +694,7 @@ int main(int argc, char **argv)
 		}
 
 	} else {
-		Log.d(TAG, "[%s: %d] Local storage device Not exist or Not Mounted, start app now ...");
+		Log.d(TAG, "[%s: %d] Local storage device Not exist or Not Mounted, start app now ...", __FILE__, __LINE__);
 		goto no_update_device;
 	}
 

@@ -175,15 +175,15 @@ VolumeManager::VolumeManager()
     umount2("/mnt/udisk1", MNT_FORCE);
     umount2("/mnt/udisk2", MNT_FORCE);
 
-    rmdir("/mnt/mSD1");
-    rmdir("/mnt/mSD2");
-    rmdir("/mnt/mSD3");
-    rmdir("/mnt/mSD4");
-    rmdir("/mnt/mSD5");
-    rmdir("/mnt/mSD6");
-    rmdir("/mnt/sdcard");
-    rmdir("/mnt/udisk1");
-    rmdir("/mnt/udisk2");
+    // rmdir("/mnt/mSD1");
+    // rmdir("/mnt/mSD2");
+    // rmdir("/mnt/mSD3");
+    // rmdir("/mnt/mSD4");
+    // rmdir("/mnt/mSD5");
+    // rmdir("/mnt/mSD6");
+    // rmdir("/mnt/sdcard");
+    // rmdir("/mnt/udisk1");
+    // rmdir("/mnt/udisk2");
 
     Log.d(TAG, "[%s: %d] Umont All device now .....", __FILE__, __LINE__);
 
@@ -516,8 +516,8 @@ void VolumeManager::unmountCurLocalVol()
         evt->setEventSrc(NETLINK_EVENT_SRC_APP);
         evt->setAction(NETLINK_ACTION_REMOVE);
         evt->setSubsys(VOLUME_SUBSYS_USB);
-        evt->setBusAddr(tmpVol->pBusAddr);
-        evt->setDevNodeName(tmpVol->cDevNode);            
+        evt->setBusAddr(mCurrentUsedLocalVol->pBusAddr);
+        evt->setDevNodeName(mCurrentUsedLocalVol->cDevNode);            
         handleBlockEvent(evt);
         delete evt;
     }

@@ -297,7 +297,7 @@ bool check_file_key_md5(const char *file_path)
     fd = open(file_path, O_RDONLY);
     if (-1 == fd) {
         perror("open");
-        return -1;
+        return false;
     }
 
     // init md5

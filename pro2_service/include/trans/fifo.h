@@ -114,6 +114,8 @@ class fifo {
 public:
     ~fifo();
 
+    fifo();
+    
     void start_all();
     void stop_all(bool delay = true);
     void handleMessage(const std::shared_ptr<ARMessage> &msg);
@@ -128,7 +130,6 @@ public:
 
 private:
 
-    fifo();
 
     sp<ARLooper> mLooper;
     sp<ARHandler> mHandler;

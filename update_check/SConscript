@@ -15,8 +15,22 @@ src += [config.PRO2_SERVICE + '/hw/oled_module.cpp']
 src += [config.PRO2_SERVICE + '/util/arlog.c']
 src += [config.PRO2_SERVICE + '/util/stlog.cpp']
 src += [config.PRO2_SERVICE + '/util/md5.cpp']
+src += [config.PRO2_SERVICE + '/util/ARMessage.cpp']
+src += [config.PRO2_SERVICE + '/util/ARLooper.cpp']
 src += [config.PRO2_SERVICE + '/util/update_oled.cpp']
 src += [config.PRO2_SERVICE + '/util/update_util.cpp']
+
+src += [config.PRO2_SERVICE + '/NetlinkEvent.cpp']
+src += [config.PRO2_SERVICE + '/NetlinkHandler.cpp']
+src += [config.PRO2_SERVICE + '/NetlinkListener.cpp']
+src += [config.PRO2_SERVICE + '/NetlinkManager.cpp']
+src += [config.PRO2_SERVICE + '/SocketListener.cpp']
+src += [config.PRO2_SERVICE + '/SocketClient.cpp']
+src += [config.PRO2_SERVICE + '/VolumeManager.cpp']
+src += [config.PRO2_SERVICE + '/Process.cpp']
+src += [config.PRO2_SERVICE + '/forkUtil.cpp']
+
+
 
 src += [config.LIBLOG + '/logd_write.c']
 src += [config.LIBLOG + '/log_event_write.c']

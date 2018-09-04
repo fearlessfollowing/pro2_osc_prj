@@ -36,6 +36,8 @@
 
 #include <prop_cfg.h>
 
+#include <hw/MenuUI.h>
+#include <sys/MidProto.h>
 
 #undef TAG
 #define TAG "pro2_service"
@@ -71,10 +73,23 @@ int main(int argc ,char *argv[])
 
     Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
 
-
+#if 1
     init_fifo();
     start_all();
+#else 
+    MidProtoManager* pm = MidProtoManager::Instance();
+    sp<MenuUI> mu = (sp<MenuUI>)(new MenuUI());
 
+    if (pm) {
+        pm->setRecvUi(mu);
+        pm->start();
+    }
+
+    if (mu) {
+        mu->start();
+    }
+
+#endif
     while (1) {
         msg_util::sleep_ms(5 * 1000);
     }

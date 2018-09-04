@@ -1152,6 +1152,7 @@ void NetManager::dispatchIpPolicy(int iPolicy)
 void NetManager::sendIpInfo2Ui()
 {
 
+	
 #ifdef ENABLE_DEBUG_NETM
 
     /* Get Global UI object */

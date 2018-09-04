@@ -98,6 +98,7 @@
 #define PROP_SYS_TZ1                "sys.timezone1"
 #define PROP_SYS_TIME               "sys.hw_time"
 
+#define PROP_UPDATE_IMAG_DST_PATH   "sys.img_dst_path"
 
 #define PROP_MAX_DISK_SLOT_NUM	    10
 

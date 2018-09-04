@@ -332,9 +332,7 @@ int InputManager::inputEventLoop()
 								case UP:
                                     if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < (LONG_PRESS_MSEC * 1000))) {
 										if (event.code == last_down_key) {
-                                            #ifdef DEBUG_INPUT_MANAGER
                                             Log.d(TAG, "---> OK report key code [%d]", event.code); 
-											#endif
                                             reportEvent(event.code);
                                         } else {
 											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);

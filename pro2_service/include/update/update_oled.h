@@ -18,9 +18,9 @@ enum {
     ERR_READ_VER_LEN,		/* 获取版本长度失败 */
     ERR_READ_APP_LEN,		/* 获取升级程序长度失败 */
     ERR_GET_APP_ZIP,		/* 提取升级程序压缩文件失败 */
-    ERR_TAR_APP_ZIP,		/* 解压缩升级程序失败 */
-    ERR_GET_APP,			/* 获取升级程序失败 */
-    CHECK_FAIL,
+    ERR_UNZIP_APP,		    /* 解压缩升级程序失败 */
+    ERR_GET_PRO_UPDATE,		/* 获取升级程序失败 */
+    ERR_UNZIP_PRO_UPDATE,
     
     //start from app
     //error 8XX

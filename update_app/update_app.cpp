@@ -1155,7 +1155,7 @@ int main(int argc, char **argv)
     iRet = start_update_app(pUpdatePackagePath);		/* 传递的是固件所在的存储路径 */
 
 	/** 根据返回值统一处理 */
-	deal_update_result(iRet, update_image_path);
+	deal_update_result(iRet, pUpdatePackagePath);
     return iRet;
 }
 
