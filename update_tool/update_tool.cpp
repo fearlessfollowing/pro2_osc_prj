@@ -186,8 +186,7 @@ static u32 write_update_app(FILE *fp_bin, SYS_VERSION* pVer)
     fseek(fp_read, 0L, SEEK_SET);	/* 将原文件"update_app.zip"文件指针定位到开头 */
 
 	/* 4.写入"update_app.zip"文件的内容 */
-    while ((read_len = fread(buf, 1, sizeof(buf), fp_read)) > 0)
-    {
+    while ((read_len = fread(buf, 1, sizeof(buf), fp_read)) > 0) {
         write_len = fwrite(buf, 1, read_len, fp_bin);
         CHECK_EQ(write_len, read_len);
         read_file_len += write_len;

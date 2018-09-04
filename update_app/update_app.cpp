@@ -645,15 +645,15 @@ static bool check_require_exist(const char* mount_point, std::vector<sp<UPDATE_S
 
 
 /*************************************************************************
-** 方法名称: get_unzip_update_app
+** 方法名称: getPro2UpdatePackage
 ** 方法功能: 从镜像文件中获取升级包
 ** 入口参数: 
-**		mount_pointer - 挂载点路径（如：/mnt/udisk1/ + Insta360_Pro2_Update.bin）
+**		pUpdatePackagePath - 升级包的路径
 ** 返 回 值: 成功返回0;失败返回-1
 ** 调     用: start_update_app
 **
 *************************************************************************/
-static bool get_unzip_update_app(const char* mount_point)
+static bool getPro2UpdatePackage(const char* pUpdatePackagePath)
 {
     bool bRet = false;
 	char image_full_path[512] = {0};
@@ -661,22 +661,15 @@ static bool get_unzip_update_app(const char* mount_point)
 	char pro_update_path[1024];
 	char com_cmd[1024] = {0};
 
-	memset(image_full_path, 0, sizeof(image_full_path));
-	sprintf(image_full_path, "%s/%s", mount_point, UPDATE_IMAGE_FILE);
 
 	/* 1.将固件拷贝到TMP_UNZIP_PATH目录下
 	 * 将/mnt/udiskX/Insta360_Pro2_Update.bin拷贝到/tmp/update/目录下
 	 */
-	if (access(TMP_UNZIP_PATH, F_OK)) {	
-		mkdir(TMP_UNZIP_PATH, 0666);
+	if (access(pUpdatePackagePath, F_OK)) {	
+		return false;
 	}
 
-	Log.d(TAG, "Copy src[%s] ---> dst[%s]", image_full_path, TMP_UNZIP_PATH);
-	sprintf(com_cmd, "cp %s %s", image_full_path, TMP_UNZIP_PATH);
-	if (system(com_cmd)) {	/* 拷贝失败?? */
-		Log.e(TAG, "Copy Update binaray to [%s] failed, what??", TMP_UNZIP_PATH);
-		return false;
-	} else {	/* Success */
+	{	/* Success */
 
 		/* 打开拷贝后的文件 */
 		sprintf(image_cp_dst_path, "%s/%s", TMP_UNZIP_PATH, UPDATE_IMAGE_FILE);
@@ -774,7 +767,7 @@ EXIT:
 ** 调     用: OS
 **
 *************************************************************************/
-static int start_update_app(const char* mount_point)
+static int start_update_app(const char* pUpdatePackagePath)
 {
     int iRet = -1;
 	sp<UPDATE_SECTION> pbin_sec;
@@ -792,7 +785,7 @@ static int start_update_app(const char* mount_point)
 	 */
     if (is_bat_enough()) {	/* 电量充足 */
 		
-        if (get_unzip_update_app(mount_point))	{	/* 提取解压升级包成功 */
+        if (getPro2UpdatePackage(pUpdatePackagePath))	{	/* 提取解压升级包成功 */
 
 			/* 判断pro_update/bill.list文件是否存在
 			 * 系统将根据该文件进行程序升级
@@ -1120,8 +1113,8 @@ static void deal_update_result(int ret, const char* mount_point)
 int main(int argc, char **argv)
 {
     int iRet = -1;
-	const char* update_image_path = NULL;
-	char delete_file_path[512] = {0};
+	const char* pUpdatePackagePath = NULL;
+
 
 	/* 注册信号处理 */
 	registerSig(default_signal_handler);
@@ -1141,10 +1134,12 @@ int main(int argc, char **argv)
 	property_set(PROP_SYS_UA_VER, UAPP_VER);
 	
 	/* 1.获取升级包的路径：/mnt/udisk1/XXX */
-	update_image_path = property_get(PROP_SYS_UPDATE_IMG_PATH);
+	pUpdatePackagePath = property_get(PROP_SYS_UPDATE_IMG_PATH);
 
-	Log.d(TAG, "get update image path [%s]", update_image_path);
+	Log.d(TAG, "get update image path [%s]", pUpdatePackagePath);
 
+#if 0
+	char delete_file_path[512] = {0};
 	/* 2.根据文件夹中是否有flag_delete文件来决定升级成功后是否删除固件 */
 	sprintf(delete_file_path, "%s/flag_delete", update_image_path);
 	if (access(delete_file_path, F_OK) != 0) {
@@ -1155,8 +1150,9 @@ int main(int argc, char **argv)
 		Log.d(TAG, "flag file [%s] exist", delete_file_path);
 
 	}
+#endif	
 
-    iRet = start_update_app(update_image_path);		/* 传递的是固件所在的存储路径 */
+    iRet = start_update_app(pUpdatePackagePath);		/* 传递的是固件所在的存储路径 */
 
 	/** 根据返回值统一处理 */
 	deal_update_result(iRet, update_image_path);

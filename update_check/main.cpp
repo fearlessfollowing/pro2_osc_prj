@@ -296,8 +296,12 @@ enum {
 	ERROR_LOW_VERSION = -5,
 	ERROR_GET_UPDATE_APP_ZIP = -6,
 	ERROR_UNZIP_UPDATE_APP = -7,
+	ERROR_GET_PRO2_UPDAET_ZIP = -8,
+	ERROR_UNZIP_PRO2_UPDATE = -9,
 	
 };
+
+static int iPro2UpdateOffset = 0;
 
 /*************************************************************************
 ** 方法名称: getUpdateApp
@@ -307,7 +311,7 @@ enum {
 ** 调     用: main
 **
 *************************************************************************/
-static int getUpdateApp(const char* pUpdateFilePathName)
+static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 {
     int bRet = -1;
     FILE *fp = nullptr;
@@ -349,12 +353,14 @@ static int getUpdateApp(const char* pUpdateFilePathName)
 		fclose(fp);
 		return ERROR_READ_LEN;
     }
+
 	
     if (strcmp((const char *)buf, key) != 0) {
         Log.e(TAG, "[%s: %d] key mismatch(%s %s)", __FILE__, __LINE__, key, buf);
 		fclose(fp);
 		return ERROR_KEY_MISMATCH;
     }
+	iPro2UpdateOffset += uReadLen;
 
 	/* 提取比较版本 */
     memset(buf, 0, sizeof(buf));
@@ -377,7 +383,7 @@ static int getUpdateApp(const char* pUpdateFilePathName)
 		fclose(fp);
 		return ERROR_LOW_VERSION;
 	}
-
+	iPro2UpdateOffset += uReadLen;
 
 	/* 提取update_app.zip文件的长度 */
     memset(buf, 0, sizeof(buf));
@@ -387,11 +393,14 @@ static int getUpdateApp(const char* pUpdateFilePathName)
         fclose(fd);
 		return ERROR_READ_LEN;
     }
-	
+	iPro2UpdateOffset += uReadLen;	/* UPDATE_APP_CONTENT_LEN */
+
 	int iUpdateAppLen = bytes_to_int(buf);
 	string updateAppPathName = "/tmp";
 	updateAppPathName += UPDATE_APP_ZIP;
 	const char* pUpdateAppPathName = updateAppPathName.c_str();
+
+	iPro2UpdateOffset += iUpdateAppLen;	/* 得到pro2_update HEAD_LEN在文件中的偏移 */
 
 	Log.d(TAG, "[%s: %d] update_app.zip full path: %s", pUpdateAppPathName);
 	
@@ -400,8 +409,16 @@ static int getUpdateApp(const char* pUpdateFilePathName)
 		/* 将update_app直接解压到/usr/local/bin/目录下 */
         if (tar_zip(pUpdateAppPathName, UPDATE_APP_DEST_PATH) == 0) {	/* 直接将其解压到/usr/local/bin目录下 */
 			Log.d(TAG, "[%s: %d] unzip update_app to [%s] Success", __FILE__, __LINE__, UPDATE_APP_DEST_PATH);
+			
+			int iErr = getPro2UpdatePackage(fp, iPro2UpdateOffset);
+			if (iErr == ERROR_SUCCESS) {
+				Log.d(TAG, "[%s: %d] get Pro2_update Success", __FILE__, __LINE__);
+			} else {
+				Log.d(TAG, "[%s: %d] get Pro2_update Failed", __FILE__, __LINE__);
+			}
 			fclose(fp);
-			return ERROR_SUCCESS;
+			return iErr;
+
         } else {	/* 解压update_app.zip文件出错 */
 			Log.e(TAG, "[%s: %d] unzip update_app.zip failed...", __FILE__, __LINE__);
             fclose(fp);
@@ -498,12 +515,13 @@ int main(int argc, char **argv)
 					dstUpdateFilePath += UPDATE_IMAGE_FILE;
 					const char* pDstUpdateFilePath = dstUpdateFilePath.c_str();
 					
-					/* 拷贝升级文件到/tmp */
-					copyUpdateFile2Memory(pDstUpdateFilePath, pUpdateFilePathName);
 
 					int i, iError = 0;
 					for (i = 0; i < 3; i++) {
-						iError = getUpdateApp(pDstUpdateFilePath);
+						/* 拷贝升级文件到/tmp */
+						copyUpdateFile2Memory(pDstUpdateFilePath, pUpdateFilePathName);		
+
+						iError = getUpdateAppAndPro2update(pDstUpdateFilePath);
 						if (iError == ERROR_SUCCESS || iError == ERROR_LOW_VERSION) {
 							break;
 						}
@@ -512,6 +530,7 @@ int main(int argc, char **argv)
 					if (i < 3) {	/* 成功提取或者版本低 */
 						if (iError == ERROR_SUCCESS) {
 							vm->unmountCurLocalVol();
+							property_set(PROP_SYS_UPDATE_IMG_PATH, pUpdateFilePathName);
 							property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
 							Log.d(TAG, "[%s: %d] Enter the real update program", __FILE__, __LINE__);
 							arlog_close();	
@@ -529,9 +548,13 @@ int main(int argc, char **argv)
 						init_oled_module();
 						disp_update_error(ERR_GET_APP);
 						disp_start_reboot(5);
+						start_reboot();
 					}
 				} else {
-					Log.d(TAG, "[%s: %d] Update file is Not regular file", __FILE__, __LINE__);
+					Log.d(TAG, "[%s: %d] Update file is Not regular file, delete it", __FILE__, __LINE__);
+					string delUpdateFile = "rm ";
+					delUpdateFile += pUpdateFilePathName;
+					system(delUpdateFile.c_str());
 					goto err_regula_update_file;
 				}
 			}
@@ -546,8 +569,8 @@ int main(int argc, char **argv)
 	}
 
 
-err_low_ver:
 err_regula_update_file:
+err_low_ver:
 err_stat:
 no_update_file:
 	vm->unmountCurLocalVol();
