@@ -112,6 +112,9 @@ struct sensor_firm_item firm_items[SENSOR_FIRM_CNT] = {
 
 static UPDATE_HEADER gstHeader;
 
+
+extern int exec_sh(const char *str);
+
 /*
  * sections - 段链表
  * fn - 配置文件路径名

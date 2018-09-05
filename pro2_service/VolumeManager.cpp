@@ -11,6 +11,7 @@
 ** 日     期: 2018年05月04日
 ** 修改记录:
 ** V1.0			Skymixos		2018-08-04		创建文件，添加注释
+** V2.0         skymixos        2018-09-05      存储事件直接通过传输层发送，去掉从UI层发送
 ******************************************************************************************************/
 
 #include <stdio.h>
@@ -35,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <prop_cfg.h>
 
 #include <dirent.h>
 
@@ -47,9 +49,17 @@
 #include <sys/VolumeManager.h> 
 #include <sys/NetlinkEvent.h>
 
+#include <system_properties.h>
+
 #include <sys/inotify.h>
 
 #include <sys/mount.h>
+
+#include <json/value.h>
+#include <json/json.h>
+
+
+#include <trans/fifo.h>
 
 
 using namespace std;
@@ -68,7 +78,6 @@ using namespace std;
 
 #define MKFS_EXFAT "/sbin/mkexfatfs"
 
-// int     mCtrlPipe[2];
 
 VolumeManager *VolumeManager::sInstance = NULL;
 u32 VolumeManager::lefSpaceThreshold = 1024U;
@@ -164,7 +173,8 @@ VolumeManager::VolumeManager()
     /*
      * 重新初始化挂载点
      */
-    
+    property_set(PROP_RO_MOUNT_TF, "true");     /* 只读的方式挂载TF卡 */    
+
     umount2("/mnt/mSD1", MNT_FORCE);
     umount2("/mnt/mSD2", MNT_FORCE);
     umount2("/mnt/mSD3", MNT_FORCE);
@@ -1047,6 +1057,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             }
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
+                            sendCurrentSaveListNotify();
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
                         }
                     }
@@ -1073,6 +1084,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     if (volumeIsTfCard(tmpVol) == false) {
                         setVolCurPrio(tmpVol, evt); /* 重新修改该卷的优先级 */
                         setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
+                        sendCurrentSaveListNotify();
                         
                         /* 发送存储设备移除,及当前存储设备路径的消息 */
                         sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
@@ -1201,6 +1213,8 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 {
     Volume* tmpVol = NULL;
 
+    mBsavePathChanged = false;
+
     switch (iAction) {
         case VOLUME_ACTION_ADD: {   
             if (mCurrentUsedLocalVol == NULL) {
@@ -1286,8 +1300,81 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
         }
     }
 
+    if (mBsavePathChanged == true) {
+        if (mCurrentUsedLocalVol) {
+            sendSavepathChangeNotify(mCurrentUsedLocalVol->pMountPath);
+        } else {
+            sendSavepathChangeNotify("none");
+        }
+    }
 }
 
+
+void VolumeManager::sendSavepathChangeNotify(const char* pSavePath)
+{
+    string savePathStr;
+    Json::FastWriter writer;
+    Json::Value savePathRoot;
+
+    sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());    
+    sp<ARMessage> msg = mNotify->dup();
+    msg->setWhat(MSG_SAVE_PATH_CHANGE);   
+
+    savePathRoot["path"] = pSavePath;    
+    savePathStr = writer.write(savePathRoot);
+    snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", savePathStr.c_str());
+
+    msg->set<sp<SAVE_PATH>>("save_path", mSavePath);
+    fifo::getSysTranObj()->postTranMessage(msg);
+}
+
+#if 0
+
+void VolumeManager::asyncQueryTfCardState()
+{
+    /* 禁止输入管理器 */
+
+
+
+    /* 使能输入管理器 */
+}
+
+#endif
+
+void VolumeManager::sendCurrentSaveListNotify()
+{
+    vector<Volume*>& curDevList = getCurSavepathList();
+    Volume* tmpVol = NULL;
+    string devListStr;
+    Json::FastWriter writer;
+    Json::Value curDevListRoot;
+    Json::Value jarray;
+
+    for (u32 i = 0; i < curDevList.size(); i++) {
+	    Json::Value	tmpNode;        
+        tmpVol = curDevList.at(i);
+        tmpNode["dev_type"] = (tmpVol->iVolSubsys == VOLUME_SUBSYS_SD) ? "sd": "usb";
+        tmpNode["path"] = tmpVol->pMountPath;
+        tmpNode["name"] = (tmpVol->iVolSubsys == VOLUME_SUBSYS_SD) ? "sd": "usb";
+        jarray.append(tmpNode);
+    }
+
+    curDevListRoot["dev_list"] = jarray;
+    devListStr = writer.write(curDevListRoot);
+
+    Log.d(TAG, "[%s: %d] Current Save List: %s", __FILE__, __LINE__, devListStr.c_str());
+    
+    if (devListStr.c_str()) {
+
+    }
+    sp<ARMessage> msg = mNotify->dup();
+    sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
+
+    msg->setWhat(MSG_UPDATE_CURRENT_SAVE_LIST);   
+    snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", devListStr.c_str());
+    msg->set<sp<SAVE_PATH>>("dev_list", mSavePath);
+    fifo::getSysTranObj()->postTranMessage(msg);
+}
 
 
 /*************************************************************************
@@ -1349,7 +1436,7 @@ void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>&
         msg->set<vector<Volume*>>("dev_list", devList);
         msg->post();
     }
-    
+
 }
 
 
@@ -1620,14 +1707,24 @@ int VolumeManager::mountVolume(Volume* pVol)
     }
     #else
 
-
     int status;
-    const char *args[3];
-    args[0] = "/bin/mount";
-    args[1] = pVol->cDevNode;
-    args[2] = pVol->pMountPath;
+    if (!strcmp("true", property_get(PROP_RO_MOUNT_TF)) && volumeIsTfCard(pVol)) {
+        const char *args[5];
+        args[0] = "/bin/mount";
+        args[1] = "-o";
+        args[2] = "ro";
+        args[3] = pVol->cDevNode;
+        args[4] = pVol->pMountPath;
 
-    iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+        iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+    } else {
+        const char *args[3];
+        args[0] = "/bin/mount";
+        args[1] = pVol->cDevNode;
+        args[2] = pVol->pMountPath;
+        iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+    }
+
     if (iRet != 0) {
         Log.e(TAG, "mount failed due to logwrap error");
         return -1;

@@ -42,6 +42,7 @@
 #define PROP_UC_START_UPDATE 		"sys.uc_update_app"
 #define PROP_UC_START_APP 			"sys.uc_start_app"
 
+#define PROP_RO_MOUNT_TF            "sys.tf_mount_ro"
 
 /*
  * 模组的数组/TF卡的数目

@@ -52,6 +52,9 @@ public:
         return mWhat;
     }
 
+    void setWhat(uint32_t what) {
+        mWhat = what;
+    }
 	
     void setHandler(sp<ARHandler> handler) {
         mHandler = handler;

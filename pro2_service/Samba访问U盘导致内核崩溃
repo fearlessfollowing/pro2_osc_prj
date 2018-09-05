@@ -1,0 +1,57 @@
+
+
+[  479.249662] usb 2-2: Disable of device-initiated U1 failed.
+[  479.255312] usb 2-2: Disable of device-initiated U2 failed.
+[  479.260921] Unable to handle kernel paging request at virtual address 175c11f674267ded
+[  479.268824] pgd = ffffffc1bdfa8000
+[  479.272218] [175c11f674267ded] *pgd=0000000000000000, *pud=0000000000000000
+[  479.279187] Internal error: Oops: 96000004 [#1] PREEMPT SMP
+[  479.284748] Modules linked in: bcmdhd fuse pci_tegra bluedroid_pm
+[  479.290888] CPU: 3 PID: 715 Comm: usb-storage Not tainted 4.4.38 #35
+[  479.297229] Hardware name: quill (DT)
+[  479.300882] task: ffffffc1df2b9900 ti: ffffffc1e1658000 task.ti: ffffffc1e1658000
+[  479.308355] PC is at xhci_slot_copy+0x2c/0x94
+[  479.312704] LR is at xhci_change_max_exit_latency+0x74/0x218
+[  479.318350] pc : [<ffffffc000709b50>] lr : [<ffffffc000705bfc>] pstate: 200000c5
+[  479.325729] sp : ffffffc1e165bad0
+[  479.329035] x29: ffffffc1e165bad0 x28: 0000000000000000
+[  479.334354] x27: 0000000000000000 x26: 0000000000000040
+[  479.339672] x25: ffffff800917d000 x24: ffffffc1e1479000
+[  479.344992] x23: 0000000000000000 x22: ffffffc1ece9e2ac
+[  479.350313] x21: ffffffc1df078600 x20: ffffffc07a94e000
+[  479.355634] x19: ffffffc1ece9e260 x18: 0000000000000001
+[  479.360951] x17: 0000007face25750 x16: ffffffc000b65a60
+[  479.366269] x15: ffffffc000b65a60 x14: 0ffffffffffffffe
+[  479.371588] x13: 0000000000000010 x12: ffffffc00127d000
+[  479.376907] x11: 0000000000000006 x10: 00000000000008b0
+[  479.382226] x9 : ffffffc1e165b790 x8 : ffffffc1df2ba210
+[  479.387544] x7 : 0000000000000001 x6 : 0000000000000000
+[  479.392862] x5 : 0000000000000000 x4 : 0000000000000020
+[  479.398181] x3 : ffffff800917d000 x2 : 175c11f674267ded
+[  479.403499] x1 : ffffff800917d040 x0 : ffffffc1ece9e260
+
+[  479.410303] Process usb-storage (pid: 715, stack limit = 0xffffffc1e1658020)
+[  479.417337] Call trace:
+[  479.419779] [<ffffffc000709b50>] xhci_slot_copy+0x2c/0x94
+[  479.425167] [<ffffffc00070645c>] xhci_disable_usb3_lpm_timeout+0x6c/0x90
+[  479.431857] [<ffffffc0006d97e4>] usb_disable_link_state+0x68/0x108
+[  479.438024] [<ffffffc0006dab40>] usb_disable_lpm+0x94/0xc4
+[  479.443497] [<ffffffc0006dab98>] usb_unlocked_disable_lpm+0x28/0x4c
+[  479.449751] [<ffffffc0006dbf48>] usb_reset_and_verify_device+0xb8/0x3b8
+[  479.456351] [<ffffffc0006dc334>] usb_reset_device+0xec/0x27c
+[  479.462000] [<ffffffc00071c3f0>] usb_stor_port_reset+0x58/0x68
+[  479.467821] [<ffffffc00071c484>] usb_stor_invoke_transport+0x84/0x450
+[  479.474248] [<ffffffc00071b234>] usb_stor_transparent_scsi_command+0xc/0x14
+[  479.481196] [<ffffffc00071d888>] usb_stor_control_thread+0x13c/0x200
+[  479.487540] [<ffffffc0000c1f30>] kthread+0xe0/0xf4
+[  479.492323] [<ffffffc000084f90>] ret_from_fork+0x10/0x40
+[  479.497931] ---[ end trace 0e9116e5ddcdb2cf ]---
+[  479.502605] note: usb-storage[715] exited with preempt_count 1
+[  479.508435] ------------[ cut here ]------------
+[  479.513042] WARNING: at ffffffc0000a9074 [verbose debug info unavailable]
+[  479.519815] Modules linked in: bcmdhd fuse pci_tegra bluedroid_pm
+
+[  479.527431] CPU: 3 PID: 715 Comm: usb-storage Tainted: G      D         4.4.38 #35
+[  479.534985] Hardware name: quill (DT)
+[  479.538639] task: ffffffc1df2b9900 ti: ffffffc1e1658000 task.ti: ffffffc1e1658000
+[  479.546111] PC is at __local_bh_enable_ip+0x68/0xb8

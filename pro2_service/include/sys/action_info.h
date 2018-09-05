@@ -1,7 +1,11 @@
 #ifndef _ACTION_INFO_H_
 #define _ACTION_INFO_H_
 
+#include <json/value.h>
+#include <json/json.h>
+
 #define CONTROL_SET_CUSTOM (10)
+
 
 /*
  * PIC_ORG - 拍照的原片信息
@@ -159,6 +163,9 @@ typedef struct _stich_progress_ {
 
 
 typedef struct _disp_type_ {
+    /*
+     * 46 - 设置指定的参数
+     */
     int                 type;			// oled_disp_type
     
     //info according to type
@@ -168,6 +175,7 @@ typedef struct _disp_type_ {
     sp<STICH_PROGRESS>  mStichProgress;
     sp<ACTION_INFO>     mAct;
     sp<SYS_SETTING>     mSysSetting;
+    Json::Value         jsonArg;        /* 新版本将使用jsonArg来保存接收到的参数 */
 } DISP_TYPE;
 
 typedef struct _wifi_config_ {

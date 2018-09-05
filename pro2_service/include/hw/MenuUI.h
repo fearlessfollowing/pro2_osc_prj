@@ -43,10 +43,10 @@ typedef enum _type_ {
     PIC_ORG_FINISH ,            // 21,
     START_LIVE_CONNECTING ,     // 22,
 
-
     START_CALIBRATIONING = 27 , // 27,
     CALIBRATION_SUC,
     CALIBRATION_FAIL,
+
     START_PREVIEWING ,          // 30,
     START_PREVIEW_SUC,          // 31
     START_PREVIEW_FAIL,
@@ -118,7 +118,6 @@ typedef enum _type_ {
     EXIT_UDISK_MODE = 154,
     EXIT_UDISK_DONE = 155,
 
-//    WRITE_FOR_BROKEN = 101,
     RESET_ALL_CFG = 102,
     MAX_TYPE,
 
@@ -166,7 +165,7 @@ typedef struct _remain_info_ {
 } REMAIN_INFO;
 
 typedef struct _save_path_ {
-    char path[128];
+    char path[256];
 //    sp<REMAIN_INFO> mRemain;
 } SAVE_PATH;
 
@@ -453,6 +452,8 @@ private:
     void    start_qr_func();
     void    exit_qr_func();
 
+    void    add_qr_res(int type, Json::Value& actionJson, int control_act);
+
     /*
      * 获取当前菜单的SECLECT_INFO Volume
      */
@@ -648,6 +649,8 @@ private:
     void    set_light();
     bool    check_cam_busy();
 
+
+    void    writeJson2File(const char* filePath, Json::Value& jsonRoot);
 
 
 /******************************************************************************************************

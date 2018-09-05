@@ -27,23 +27,22 @@ struct _sync_init_info_;
  * FIFO与UI线程交互的消息
  */
 enum {
-//    MSG_POLL_TIMER,
-    MSG_GET_OLED_KEY,
+
+    MSG_UI_KEY,
     MSG_DEV_NOTIFY,
 
-//    MSG_DISP_STR,
     MSG_DISP_STR_TYPE,
     MSG_DISP_ERR_TYPE,
 
-    //    MSG_DISP_EXT,
     MSG_SET_WIFI_CONFIG,
     MSG_SET_SYS_INFO,
     MSG_SET_SYNC_INFO,
 
     MSG_START_POWER_OFF,
 
-    // while boot with usb inserted
-    MSG_INIT_SCAN,
+    MSG_SAVE_PATH_CHANGE,       /* 本地存储路径改变 */
+
+    MSG_UPDATE_CURRENT_SAVE_LIST,
 
     MSG_TRAN_INNER_UPDATE_TF,
     MSG_EXIT,
@@ -110,86 +109,99 @@ typedef struct _qr_struct_ {
 } QR_STRUCT;
 
 
+/*
+ * fifo - 传输层对象（单例模式）
+ * 外部可以通过getSysTranObj来给传输层传递消息（通过传输层的线程将消息发送出去）
+ */
 class fifo {
 public:
     ~fifo();
 
     fifo();
     
-    void start_all();
-    void stop_all(bool delay = true);
-    void handleMessage(const std::shared_ptr<ARMessage> &msg);
+    void            start_all();
+    void            stop_all(bool delay = true);
+    void            handleMessage(const std::shared_ptr<ARMessage> &msg);
 
-    static sp<fifo> getSysTranObj();
+    static sp<fifo>& getSysTranObj();
 
-    void postTranMessage(sp<ARMessage>& msg, int interval = 0);
+    void            postTranMessage(sp<ARMessage>& msg);
 
-    //sp<ARMessage> dupMessage();
-
-    void sendUiMessage(sp<ARMessage>& msg);
+    void            sendUiMessage(sp<ARMessage>& msg);
 
 private:
 
+    sp<ARLooper>        mLooper;
+    sp<ARHandler>       mHandler;
+    std::thread         th_msg_;
+    std::thread         th_read_fifo_;
+    int                 write_fd = -1;
+    int                 read_fd = -1;
+    sp<ARMessage>       notify;
+    bool                bWFifoStop = false;
 
-    sp<ARLooper> mLooper;
-    sp<ARHandler> mHandler;
-    std::thread th_msg_;
-    std::thread th_read_fifo_;
-    int write_fd = -1;
-    int read_fd = -1;
+    bool                bExit = false;
+    bool                bReadThread = false;
+
+
+
+    void                init();
+    void                deinit();
+    int                 make_fifo();
+    void                init_thread();
+    void                sendExit();
+
+	int                 get_write_fd();
+    int                 get_read_fd();
+    void                close_read_fd();
+    void                close_write_fd();
 	
-    void init();
-    void deinit();
-    int make_fifo();
-    void init_thread();
-    void sendExit();
-
-    sp<ARMessage> notify;
-
-    sp<ARMessage> obtainMessage(uint32_t what);
-    void handle_oled_notify(const sp<ARMessage> &msg);
-
-	int get_write_fd();
-    int get_read_fd();
-    void close_read_fd();
-    void close_write_fd();
+    void                read_fifo_thread();
 	
-    void read_fifo_thread();
-	
-    void write_exit_for_read();
+    void                write_exit_for_read();
 
-	void write_fifo(int iEvent , const char *str = nullptr);
-	
-    void send_disp_str_type(sp<struct _disp_type_> &dis_type);
-	
-    void send_wifi_config(const char *ssid, const char *pwd,int open = 1);
+    sp<ARMessage>       obtainMessage(uint32_t what);
 
-    void send_err_type_code(int type, int code);
-
-    void send_power_off();
+	void                write_fifo(int iEvent , const char *str = nullptr);
 	
-    void send_sys_info(sp<struct _sys_info_> &mSysInfo);
-    void send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
+    void                send_disp_str_type(sp<struct _disp_type_> &dis_type);
+	
+    void                send_wifi_config(const char *ssid, const char *pwd,int open = 1);
 
-    void handleStitchProgress(sp<struct _disp_type_>& mDispType, cJSON *subNode);
-    void handleSetting(sp<struct _disp_type_>& mDispType, cJSON *subNode);
-    void handleReqFormHttp(sp<struct _disp_type_>& mDispType, cJSON *root, cJSON *subNode);
-    void handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode);
+    void                send_err_type_code(int type, int code);
+
+
+    void                handleSavePathChanged(const sp<ARMessage> & msg);
+    void                handleUpdateDevList(const sp<ARMessage> & msg);
+    void                handleQueryTfState(const sp<ARMessage>& msg);
+
+
+    void                handleReqFormHttp(sp<DISP_TYPE>& mDispType, Json::Value& reqNode);
+
+    void                parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData);
+    void                handleSetting(sp<struct _disp_type_>& mDispType, Json::Value& reqNode);
+
+    void                handle_oled_notify(const sp<ARMessage> &msg);
+    void                send_power_off();
+	
+    void                send_sys_info(sp<struct _sys_info_> &mSysInfo);
+    void                send_sync_info(sp<struct _sync_init_info_> &mSyncInfo);
+
+    void                handleStitchProgress(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void                handleSetting(sp<struct _disp_type_>& mDispType, cJSON *subNode);
+    void                handleReqFormHttp(sp<struct _disp_type_>& mDispType, cJSON *root, cJSON *subNode);
+    void                handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode);
     
-    void handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
-    void handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param);
-    void handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
+    void                handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
+    void                handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param);
+    void                handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
 
 
-    void handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg);
+    void                handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg);
 
-    sp<MenuUI> mOLEDHandle;
+    sp<MenuUI>          mOLEDHandle;
 	
-    bool bWFifoStop = false;
 
-    //msg thread
-    bool bExit = false;
-    bool bReadThread = false;
 };
 
 #endif //INC_360PRO_SERVICE_FIFO_H

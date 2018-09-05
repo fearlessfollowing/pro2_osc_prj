@@ -46,8 +46,8 @@ com_env.Program('out/vold_test', vold_obj)
 
 
 ############################ update_app ####################################
-update_check_obj = SConscript('./update_check/SConscript')
-com_env.Program('out/update_check', update_check_obj)
+#update_check_obj = SConscript('./update_check/SConscript')
+#com_env.Program('out/update_check', update_check_obj)
 
 	
 
@@ -72,21 +72,26 @@ com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
 ############################ update_app ##################################
-udisk_app_obj = SConscript('./update_app/SConscript')
-com_env.Program('./out/update_app', udisk_app_obj)
+#udisk_app_obj = SConscript('./update_app/SConscript')
+#com_env.Program('./out/update_app', udisk_app_obj)
 
 ############################ udisk_test ##################################
-udisk_test_obj = SConscript('./pro2_service/udisk/SConscript')
-com_env.Program('./out/udisk_test', udisk_test_obj)
+#udisk_test_obj = SConscript('./pro2_service/udisk/SConscript')
+#com_env.Program('./out/udisk_test', udisk_test_obj)
 
 ############################ mongoose ##################################
-mongoose_obj = SConscript('./mongoose_new/SConscript')
-com_env.Program('./out/mongoose', mongoose_obj)
+#mongoose_obj = SConscript('./mongoose_new/SConscript')
+#com_env.Program('./out/mongoose', mongoose_obj)
 
 
 
 ############################ time_tz ##################################
 time_tz_obj = SConscript('./time_tz/SConscript')
 com_env.Program('./out/time_tz', time_tz_obj)
+
+
+############################ kern_log ##################################
+kern_log_obj = SConscript('./kern_log/SConscript')
+com_env.Program('./out/kern_log', kern_log_obj)
 
 

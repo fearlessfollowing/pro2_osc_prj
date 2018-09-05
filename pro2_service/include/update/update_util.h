@@ -36,7 +36,10 @@
 #define DEF_CID (100)
 #define DEF_MID (101)
 
-int exec_sh(const char *str);
+// int exec_sh(const char *str);
+extern int exec_sh(const char *str);
+extern bool check_path_exist(const char *path);
+
 //bool check_path_access(const char *path,int mode);
 bool check_path_exist(const char *path);
 bool check_path_rx(const char *path);

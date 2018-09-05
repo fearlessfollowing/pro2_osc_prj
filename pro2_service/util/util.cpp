@@ -11,6 +11,7 @@
 
 #include <errno.h>
 
+#if 1
 int exec_sh(const char *str)
 {
     int status = system(str);
@@ -33,6 +34,7 @@ int exec_sh(const char *str)
     }
     return iRet;
 }
+#endif
 
 //bigedian or litteledian
 bool sh_isbig(void)

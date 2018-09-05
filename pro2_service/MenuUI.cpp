@@ -1431,7 +1431,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
 
                     pSetItems[i]->stPos = tmPos;
                     Json::Reader reader;
-                    Json::Value* pRoot = new Json::Value();
+                    sp<Json::Value> pRoot = (sp<Json::Value>)(new Json::Value());
                     bool bParseFileFlag = false;
 
                     /* TODO: 在此处为各个项设置对应的ACTION_INFO
@@ -1447,7 +1447,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                     if (access(path, F_OK) == 0) {
                         std::ifstream is;  
                         is.open (path, std::ios::binary); 
-                        if (reader.parse(is, *pRoot, false)) {
+                        if (reader.parse(is, *(pRoot.get()), false)) {
                             Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, path);
                             pSetItems[i]->jsonCmd = pRoot;
                             bParseFileFlag = true;
@@ -1472,7 +1472,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                             pCommJsonCmd = pCmdTakePic_Customer;
                         } 
                         
-                        if (reader.parse(pCommJsonCmd, *pRoot, false)) {
+                        if (reader.parse(pCommJsonCmd, *(pRoot.get()), false)) {
                             Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, pCommJsonCmd);
                             pSetItems[i]->jsonCmd = pRoot;
                         } else {
@@ -2379,19 +2379,25 @@ bool MenuUI::checkVidLiveStorageSpeed()
 {
     VolumeManager* vm = VolumeManager::Instance();
 
-    if (vm->checkAllmSdSpeedOK()) {
-        if (vm->checkLocalVolSpeedOK()) {
-            Log.d(TAG, "[%s: %d] All Card Speed is OK, very good !!", __FILE__, __LINE__);
-        } else {
-            /* 提示警告 */
-            Log.w(TAG, "[%s: %d] mSD speed is OK, but Local Storage speed is bad", __FILE__, __LINE__);
-        }
+    if (property_get("sys.skip_speed_test")) {
         return true;
     } else {
-        /* 直接进入 */
-        Log.d(TAG, "[%s: %d] mSD Need Speed Test ....", __FILE__, __LINE__);
-        setCurMenu(MENU_SPEED_TEST);
+        if (vm->checkAllmSdSpeedOK()) {
+            if (vm->checkLocalVolSpeedOK()) {
+                Log.d(TAG, "[%s: %d] All Card Speed is OK, very good !!", __FILE__, __LINE__);
+            } else {
+                /* 提示警告 */
+                Log.w(TAG, "[%s: %d] mSD speed is OK, but Local Storage speed is bad", __FILE__, __LINE__);
+            }
+            return true;
+        } else {
+            /* 直接进入 */
+            Log.d(TAG, "[%s: %d] mSD Need Speed Test ....", __FILE__, __LINE__);
+            setCurMenu(MENU_SPEED_TEST);
+            return false;
+        }
     }
+
 }
 
 
@@ -2554,7 +2560,7 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
             if (pTmpPicVidCfg) {
                 
                 Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
-                pTakePicJson = pTmpPicVidCfg->jsonCmd;
+                pTakePicJson = (pTmpPicVidCfg->jsonCmd).get();
 
             #ifdef ENABLE_MENU_AEB
 
@@ -2656,6 +2662,7 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                 oled_disp_type(STOP_RECING);
             } else if (check_state_preview()) {
                 if (checkStorageSatisfy(option)) {
+
                     if (checkVidLiveStorageSpeed() == false) {
                         bAllow = false;
                     } else {
@@ -3002,7 +3009,9 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
 
         case ACTION_UPDATE_REC_LEFT_SEC: {
             msg->set<u64>("rec_left_sec", vm->getRecLeftSec());   
-            msg->set<u64>("live_rec_left_sec", vm->getLiveRecLeftSec());   
+            msg->set<u64>("live_rec_left_sec", vm->getLiveRecLeftSec());  
+            msg->set<u64>("rec_sec", vm->getRecSec());   
+            msg->set<u64>("live_rec_sec", vm->getLiveRecSec());                           
             break;
         }
 
@@ -3027,6 +3036,7 @@ void MenuUI::postUiMessage(sp<ARMessage>& msg)
     msg->post();
 }
 
+#if 0
 
 /*
  * send_save_path_change - 设备的存储路径发生改变
@@ -3040,7 +3050,7 @@ void MenuUI::send_save_path_change()
         case MENU_VIDEO_INFO:
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF: {
-            if (!check_cam_busy())  {	//not statfs while busy ,add 20170804
+            if (!check_cam_busy())  {	           // not statfs while busy ,add 20170804
                 updateBottomSpace(true, false);    /* 新的存储设备插入时，不使用缓存 */
             }
             break;
@@ -3064,6 +3074,7 @@ void MenuUI::send_save_path_change()
     msg->set<sp<SAVE_PATH>>("save_path", mSavePath);
     msg->post();
 }
+#endif
 
 
 
@@ -3091,7 +3102,7 @@ void MenuUI::send_clear_msg_box(int delay)
     msg->postWithDelayMs(delay);
 }
 
-
+#if 0
 void MenuUI::send_update_dev_list(std::vector<Volume*>& mList)
 {
     sp<ARMessage> msg = mNotify->dup();
@@ -3100,6 +3111,7 @@ void MenuUI::send_update_dev_list(std::vector<Volume*>& mList)
     msg->set<std::vector<Volume*>>("dev_list", mList);
     msg->post();
 }
+#endif
 
 
 
@@ -3981,6 +3993,126 @@ void MenuUI::updateSysSetting(sp<struct _sys_setting_> & mSysSetting)
 }
 
 
+#define TAKE_PIC_TEMPLET_PATH "/home/nvidia/insta360/etc/tak_pic_customer.json"
+
+void MenuUI::writeJson2File(const char* filePath, Json::Value& jsonRoot)
+{
+    FILE* fp;
+	Json::FastWriter writer;
+    Json::Reader reader;
+    sp<Json::Value> pRoot = (sp<Json::Value>) (new Json::Value());
+
+	string jsonstr = writer.write(jsonRoot);
+
+    if (access(filePath, F_OK) == 0) {
+        unlink(filePath);
+    }
+
+	if ((fp = fopen(filePath, "w")) == NULL) {
+        Log.e(TAG, "[%s: %d] Write Json 2 File ,Open File Error", __FILE__, __LINE__);
+		return;
+	}
+	
+	fprintf(fp, "%s", jsonstr.c_str());
+	fclose(fp);
+
+    if (reader.parse(jsonstr.c_str(), *(pRoot.get()), false)) {
+        Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, jsonstr.c_str());
+        u32 iLen = mPicAllItemsList.size();
+        PicVideoCfg* pTmpCfg = mPicAllItemsList.at(iLen - 1);
+        if (pTmpCfg) {
+            Log.d(TAG, "[%s: %d] Update Take picture Cutomer now...", __FILE__, __LINE__);
+            pTmpCfg->jsonCmd = pRoot;
+        }        
+    } else {
+
+    }
+
+
+    Log.d(TAG, "[%s: %d] Save Json Templet arguments OK", __FILE__, __LINE__);
+}
+
+
+void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
+{
+    CHECK_NE(type, -1);
+    Json::FastWriter writer;
+    string actionStr = writer.write(actionJson);
+
+    Log.d(TAG, "[%s: %d] Action Json: %s", __FILE__, __LINE__, actionStr.c_str());
+
+    // sp<ACTION_INFO> mRes = sp<ACTION_INFO>(new ACTION_INFO());
+    // memcpy(mRes.get(), mAdd.get(), sizeof(ACTION_INFO));
+
+    Log.d(TAG, "add_qr_res type (%d %d)", type, control_act);
+
+    switch (control_act) {
+        case ACTION_PIC:    /* 客户端发起的拍照,录像，直播 */
+        case ACTION_VIDEO:
+        case ACTION_LIVE: {
+            // mControlAct = mRes;     /* 得到自定义参数: ACTION_INFO */
+            
+            // if (mControlAct->size_per_act == 0) {
+            //     Log.d(TAG, "force control size_per_act is %d", mControlAct->size_per_act);
+            //     mControlAct->size_per_act = 10;
+            // }
+            break;
+        }
+
+        case CONTROL_SET_CUSTOM: {    /* 设置Customer模式的值 */
+            switch (type) {
+                case ACTION_PIC: {       /* 设置拍照模式的Customer */
+                    #if 0
+                    key = KEY_ALL_PIC_DEF;
+                    if (mRes->size_per_act == 0) {
+                        Log.d(TAG, "[%s:%d] CONTROL_SET_CUSTOM pic size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
+                        mRes->size_per_act = 10;
+                    }
+                    Log.d(TAG, "[%s: %d] Customer mode One Group Pic size[%d]M", __FILE__, __LINE__, mRes->size_per_act);
+                    #else 
+                    /* 将拍照的Customer的模板参数保存为json文件 */
+                    Log.d(TAG, "[%s: %d] Save Take Picture Templet", __FILE__, __LINE__);
+                    Log.d(TAG, "Templet args: %s", actionStr.c_str());
+
+                    Json::Value picRoot;
+
+                    picRoot["name"] = "camera._takePicture";
+                    picRoot["parameters"] = actionJson;
+
+                    writeJson2File(TAKE_PIC_TEMPLET_PATH, picRoot);
+
+                    #endif
+
+                    break;
+                }
+
+                case ACTION_VIDEO: {     /* 设置录像模式下的Customer */
+                    // key = KEY_ALL_VIDEO_DEF;
+                    // if (mRes->size_per_act == 0) {
+                    //     Log.d(TAG, "[%s: %d] CONTROL_SET_CUSTOM video size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
+                    //     mRes->size_per_act = 10;
+                    // }
+                    break;
+                }
+
+                case ACTION_LIVE: {      /* 直播模式下的Customer */
+                    // key = KEY_ALL_LIVE_DEF;
+                    // fix_live_save_per_act(mRes.get());
+                    break;
+                }
+
+                SWITCH_DEF_ERROR(type);
+            }
+            // mProCfg->set_def_info(key, -1, mRes);   /* 将Customer模式的参数设置保存到文件中 */
+            break;
+        }
+
+        default:
+            break;
+    }
+
+}
+
 
 void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
 {
@@ -4001,7 +4133,6 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
         case ACTION_LIVE:
             mControlAct = mRes;     /* 得到自定义参数: ACTION_INFO */
             
-            // force 0 to 10
             if (mControlAct->size_per_act == 0) {
                 Log.d(TAG, "force control size_per_act is %d", mControlAct->size_per_act);
                 mControlAct->size_per_act = 10;
@@ -4011,32 +4142,44 @@ void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
         /* 设置Customer模式的值 */
         case CONTROL_SET_CUSTOM:
             switch (type) {
-                case ACTION_PIC:        /* 设置拍照模式的Customer */
+                case ACTION_PIC: {       /* 设置拍照模式的Customer */
+                    #if 1
                     key = KEY_ALL_PIC_DEF;
                     if (mRes->size_per_act == 0) {
                         Log.d(TAG, "[%s:%d] CONTROL_SET_CUSTOM pic size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     Log.d(TAG, "[%s: %d] Customer mode One Group Pic size[%d]M", __FILE__, __LINE__, mRes->size_per_act);
-                    break;
+                    #else 
+                    /* 将拍照的Customer的模板参数保存为json文件 */
+                    Log.d(TAG, "[%s: %d] Save Take Picture Templet", __FILE__, __LINE__);
+                    Log.d(TAG, "Templet args: %s", );
 
-                case ACTION_VIDEO:      /* 设置录像模式下的Customer */
+                    #endif
+
+                    break;
+                }
+
+                case ACTION_VIDEO: {     /* 设置录像模式下的Customer */
                     key = KEY_ALL_VIDEO_DEF;
                     if (mRes->size_per_act == 0) {
                         Log.d(TAG, "[%s: %d] CONTROL_SET_CUSTOM video size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
                         mRes->size_per_act = 10;
                     }
                     break;
+                }
 
-                case ACTION_LIVE:       /* 直播模式下的Customer */
+                case ACTION_LIVE: {      /* 直播模式下的Customer */
                     key = KEY_ALL_LIVE_DEF;
                     fix_live_save_per_act(mRes.get());
                     break;
+                }
 
                 SWITCH_DEF_ERROR(type);
             }
             mProCfg->set_def_info(key, -1, mRes);   /* 将Customer模式的参数设置保存到文件中 */
             break;
+
 
         /* 传递的是啥 ?????? */
         default: {
@@ -4322,6 +4465,7 @@ void MenuUI::getShowStorageInfo()
      */
     volumeItemInit(&mMenuInfos[MENU_SHOW_SPACE], showList);
 }
+
 
 
 
@@ -7873,8 +8017,6 @@ void MenuUI::set_led_power(unsigned int on)
 }
 
 
-#define STR(cmd)	#cmd
-
 
 /*
  * asyncQueryTfCardState - 以异步的方式查询TF卡的信息
@@ -8265,7 +8407,6 @@ int MenuUI::oled_disp_type(int type)
             break;
 
 /************************************ 直播相关 END **********************************************/
-
 			
         case PIC_ORG_FINISH:
             if (!check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
@@ -8303,7 +8444,6 @@ int MenuUI::oled_disp_type(int type)
                 procBackKeyEvent();
             }
             break;
-
 
 
 /*********************************  预览相关状态 START ********************************************/
@@ -8418,8 +8558,7 @@ int MenuUI::oled_disp_type(int type)
             add_state(STATE_CALIBRATING);
             break;
         }
-
-			
+	
         case CALIBRATION_SUC: {
             setGyroCalcDelay(0);
             if (check_state_in(STATE_CALIBRATING)) {
@@ -9056,32 +9195,32 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 			break;
         }
 
-		#if 1
 		case MENU_LOW_BAT:
 		if (!(disp_type->type == START_LOW_BAT_SUC || START_LOW_BAT_FAIL == disp_type->type || disp_type->type == RESET_ALL || disp_type->type == START_FORCE_IDLE)) {
 		  Log.d(TAG, "MENU_LOW_BAT not allow (0x%x %d)", cam_state, disp_type->type);
 		  return;
 		}
-		#endif
 		
 		default: {
 			// get http req before getting low bat protect in flask 170922
 			if (check_state_in(STATE_LOW_BAT)) {				
 				Log.d(TAG, "STATE_LOW_BAT not allow (0x%x %d)", cam_state, disp_type->type);
-			} else if(disp_type->type != RESET_ALL) {
+			} else if (disp_type->type != RESET_ALL) {
 				exit_sys_err();
 			}
 			break;
         }
 	}
 
+    Log.d(TAG, "[%s: %d] >>>>>>>> handleDispStrTypeMsg", __FILE__, __LINE__);
+
 	// add param from controller or qr scan
 	if (disp_type->qr_type != -1) {
-		CHECK_NE(disp_type->mAct, nullptr);
-		add_qr_res(disp_type->qr_type, disp_type->mAct, disp_type->control_act);
+		// add_qr_res(disp_type->qr_type, disp_type->mAct, disp_type->control_act);
+		add_qr_res(disp_type->qr_type, disp_type->jsonArg, disp_type->control_act);
+
 	} else if (disp_type->tl_count != -1) {
 		set_tl_count(disp_type->tl_count);
-
 	} else if (disp_type->mSysSetting != nullptr) { /* 系统设置不为空 */
 
         Log.d(TAG, "[%s: %d] update System setting!!!!", __FILE__, __LINE__);
@@ -9091,6 +9230,7 @@ void MenuUI::handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type)
 	} else if (disp_type->mStichProgress != nullptr) {
 		disp_stitch_progress(disp_type->mStichProgress);
 #endif
+
 	} else {
 		Log.d(TAG, "nothing");
 	}
@@ -9359,6 +9499,7 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
     }
 }
 
+
 void MenuUI::handleUpdateDevInfo(int iAction, int iType, vector<Volume*>& mList)
 {
     VolumeManager* vm = VolumeManager::Instance();
@@ -9378,11 +9519,23 @@ void MenuUI::handleUpdateDevInfo(int iAction, int iType, vector<Volume*>& mList)
 
     /* 设置存储设备的路径 */
     if (vm->checkSavepathChanged()) {
-        send_save_path_change();
-    }
 
-    // make send dev_list after sent save for update_bottom while current is pic ,vid menu
-    send_update_dev_list(mList);	/* 给Http发送更新设备列表消息 */
+        switch (cur_menu) {
+            case MENU_PIC_INFO:
+            case MENU_VIDEO_INFO:
+            case MENU_PIC_SET_DEF:
+            case MENU_VIDEO_SET_DEF: {
+                if (!check_cam_busy())  {	           // not statfs while busy ,add 20170804
+                    updateBottomSpace(true, false);    /* 新的存储设备插入时，不使用缓存 */
+                }
+                break;
+            }
+                
+            default:
+                break;
+        }
+        
+    }
 }
 
 

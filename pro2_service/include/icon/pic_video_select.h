@@ -535,7 +535,7 @@ typedef struct stPicVideoCfg {
 	int						iRawStorageRatio;	/* 使能RAW时的存储比例 */					
 	struct stIconPos		stPos;
     struct _action_info_*   pStAction;
-	Json::Value*			jsonCmd;
+	sp<Json::Value>			jsonCmd;
 	const u8 * 				stLightIcon[PIC_VIDEO_LIVE_ITEM_MAX];	/* 选中时的图标列表 */
 	const u8 * 				stNorIcon[PIC_VIDEO_LIVE_ITEM_MAX];		/* 未选中时的图标列表 */
 } PicVideoCfg;

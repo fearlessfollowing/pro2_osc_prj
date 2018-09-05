@@ -425,6 +425,10 @@ public:
      */
     int         handleRemoteVolHotplug(std::vector<sp<Volume>>& volChangeList);
 
+    void        sendCurrentSaveListNotify();
+    void        sendSavepathChangeNotify(const char* pSavePath);
+
+
     void        sendDevChangeMsg2UI(int iAction, int iType, std::vector<Volume*>& devList);
 
     void        setNotifyRecv(sp<ARMessage> notify);
