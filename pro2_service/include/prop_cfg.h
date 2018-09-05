@@ -157,6 +157,8 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 #define TIME_TZ_LOG_PATH        "/home/nvidia/insta360/log/tz_log"
 
+#define TAKE_PIC_TEMPLET_PATH   "/home/nvidia/insta360/etc/pic_customer.json"
+
 /*
  * 拍照模式名称
  */

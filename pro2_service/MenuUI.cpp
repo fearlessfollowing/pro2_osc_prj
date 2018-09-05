@@ -2532,8 +2532,12 @@ void MenuUI::setGyroCalcDelay(int iDelay)
 }
 
 
-//cmd -- for power off or set option
-bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstProp)
+
+/*
+ * 抽象的进程调用
+ * 注意: 调用者需要保存pNodeArg参数的有效性
+ */
+bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 {
 
     bool bAllow = true;
@@ -2560,6 +2564,10 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
             if (pTmpPicVidCfg) {
                 
                 Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+                
+                /* 所有的拍照挡位参数都是以PicVideoCfg.jsonCmd为准
+                 * 对于Customer挡位,保存模板参数时会更新Customer对应的jsonCmd
+                 */
                 pTakePicJson = (pTmpPicVidCfg->jsonCmd).get();
 
             #ifdef ENABLE_MENU_AEB
@@ -2593,6 +2601,468 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                     (*pTakePicJson)["parameters"]["origin"]["mime"] = "jpeg";
                 }
 
+                if (false == (*pTakePicJson)["properties"].isNull()) {
+                    sendRpc(ACTION_CUSTOM_PARAM, 0, pTakePicJson);
+                }
+
+                if (pTakePicJson) {
+                    msg->set<Json::Value*>("take_pic", pTakePicJson);
+                } else {
+                    Log.e(TAG, "[%s: %d] Take picture Json not exist, What's wront !!!", __FILE__, __LINE__);
+                    abort();
+                }
+            } else {
+                Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
+                abort();
+            }
+            break;
+        }
+			
+
+        case ACTION_VIDEO: {
+
+            /* 处于录像或正在停止录像状态 */
+            if (check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
+                oled_disp_type(STOP_RECING);
+            } else if (check_state_preview()) {
+                if (checkStorageSatisfy(option)) {
+
+                    if (checkVidLiveStorageSpeed() == false) {
+                        bAllow = false;
+                    } else {
+                        oled_disp_type(START_RECING); 
+                        iIndex = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
+                        pTmpPicVidCfg = mVidAllItemsList.at(iIndex);
+                        if (pTmpPicVidCfg) {
+                
+                            Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+                            
+                            /* Customer模式 */
+                            if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
+                                Log.d(TAG, "[%s: %d] Customer mode Take Pic", __FILE__, __LINE__);
+                
+                                send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->stProp);
+                                memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_VIDEO_DEF), sizeof(ACTION_INFO));
+                            
+                                /* 设置原片的存储位置为小卡 */
+                                mActionInfo->stOrgInfo.locMode = 1; /* 原片存储在小卡 */
+                            } else {    /* 非Customer模式 */
+                                Log.d(TAG, "[%s:%d] stitch mode [%d]", __FILE__, __LINE__, pTmpPicVidCfg->pStAction->mode);
+                                memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
+                            }
+                            msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                        } else {
+                            Log.e(TAG, "[%s:%d] +_+ Error Invalid index[%d]", __FILE__, __LINE__);
+                            abort();
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "[%s: %d] SD Card or TF Card Lost, Can't take video now ...", __FILE__, __LINE__);
+                    bAllow = false;
+                }
+            } else {
+                Log.w(TAG, " ACTION_VIDEO bad state 0x%x", cam_state);
+                bAllow = false;
+            }          
+            break;
+        }
+			
+        case ACTION_LIVE: {
+            if ((check_live()) && (!check_state_in(STATE_STOP_LIVING))) {
+                oled_disp_type(STOP_LIVING);
+            } else if (check_state_preview()) {
+
+                #if 0
+                item = getMenuSelectIndex(MENU_LIVE_SET_DEF);
+//				Log.d(TAG, "live item is %d", item);
+                switch (item) {
+                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON:
+                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON:
+                    case VID_4K_20M_24FPS_3D_30M_24FPS_RTS_ON_HDMI:
+                    case VID_4K_20M_24FPS_PANO_30M_30FPS_RTS_ON_HDMI:
+                        oled_disp_type(STRAT_LIVING);
+                        memcpy(mActionInfo.get(), &mLiveAction[item], sizeof(ACTION_INFO));
+                        break;
+
+
+                    case LIVE_CUSTOM:
+
+                        if (!check_live_save(mProCfg->get_def_info(KEY_ALL_LIVE_DEF))) {
+                            oled_disp_type(STRAT_LIVING);
+                            memcpy(mActionInfo.get(),
+                                   mProCfg->get_def_info(KEY_ALL_LIVE_DEF),
+                                   sizeof(ACTION_INFO));
+//                            Log.d(TAG, "(url and format %s %s)",
+//                                  mActionInfo->stStiInfo.stStiAct.mStiL.url,
+//                                  mActionInfo->stStiInfo.stStiAct.mStiL.format);
+                        } else {
+                            bAllow = start_live_rec((const ACTION_INFO *)mProCfg->get_def_info(KEY_ALL_LIVE_DEF),mActionInfo.get());
+                        }
+
+                        if (bAllow) {
+                            send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_LIVE_DEF)->stProp);
+                        }
+
+                        break;
+#ifdef LIVE_ORG
+                    case LIVE_ORIGIN:
+                        option = ACTION_LIVE_ORIGIN;
+                        break;
+#endif
+                    SWITCH_DEF_ERROR(item);
+                }
+
+                #else                
+
+                Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_LIVE");
+
+                /* customer和非customer */
+                iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
+                pTmpPicVidCfg = mLiveAllItemsList.at(iIndex);
+                if (pTmpPicVidCfg) {
+                    oled_disp_type(STRAT_LIVING);
+
+                    Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+
+                    /* Customer模式 */
+                    if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
+                        Log.d(TAG, "[%s: %d] Customer mode Live", __FILE__, __LINE__);
+                        memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_LIVE_DEF), sizeof(ACTION_INFO));
+            
+
+                        if (!check_live_save(mProCfg->get_def_info(KEY_ALL_LIVE_DEF))) {
+                            oled_disp_type(STRAT_LIVING);
+                            memcpy(mActionInfo.get(), mProCfg->get_def_info(KEY_ALL_LIVE_DEF), sizeof(ACTION_INFO));
+                        } else {
+                            bAllow = start_live_rec((const ACTION_INFO *)mProCfg->get_def_info(KEY_ALL_LIVE_DEF),mActionInfo.get());
+                        }
+                    } else {    /* 非Customer模式 */
+
+                        oled_disp_type(STRAT_LIVING);
+
+                        Log.d(TAG, "[%s:%d] stitch mode [%d]", 
+                                __FILE__, __LINE__, pTmpPicVidCfg->pStAction->mode);
+                    
+                        memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
+                    }
+
+                    msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                } else {
+                    Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
+                    abort();
+                }
+                #endif
+            } else {
+                Log.w(TAG," act live bad state 0x%x", cam_state);
+                bAllow = false;
+            }
+        }
+
+
+#if 0
+#ifdef LIVE_ORG
+                if (option != ACTION_LIVE_ORIGIN) {
+                    msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                }
+#else
+                msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+#endif
+            } else {
+                Log.w(TAG," act live bad state 0x%x",cam_state);
+                bAllow = false;
+            }
+#endif
+            break;
+			
+
+
+        case ACTION_PREVIEW: {
+            if (check_state_preview() || check_state_equal(STATE_IDLE)) {
+                bAllow = true;
+            } else {
+                ERR_MENU_STATE(cur_menu, cam_state);
+                bAllow = false;
+            }
+            break;
+        }
+
+
+        case ACTION_CALIBRATION: {	/* 拼接校正 */
+            if ((cam_state & STATE_CALIBRATING) != STATE_CALIBRATING) {
+                setGyroCalcDelay(5);
+                oled_disp_type(START_CALIBRATIONING);
+            } else {
+                Log.e(TAG, "[ %s: %d] calibration happen cam_state 0x%x", cam_state);
+                bAllow = false;
+            }			
+            break;
+        }
+			
+
+        case ACTION_QR: {
+            if ((check_state_equal(STATE_IDLE) || check_state_preview())) {
+                oled_disp_type(START_QRING);
+            } else if (check_state_in(STATE_START_QR) && !check_state_in(STATE_STOP_QRING)) {
+                oled_disp_type(STOP_QRING);
+            } else {
+                bAllow = false;
+            }
+            break;
+        }
+			
+        case ACTION_REQ_SYNC: {     /* 请求同步ACTION */
+            sp<REQ_SYNC> mReqSync = sp<REQ_SYNC>(new REQ_SYNC());
+            snprintf(mReqSync->sn, sizeof(mReqSync->sn), "%s", mReadSys->sn);
+            snprintf(mReqSync->r_v, sizeof(mReqSync->r_v), "%s", mVerInfo->r_ver);
+            snprintf(mReqSync->p_v, sizeof(mReqSync->p_v), "%s", mVerInfo->p_ver);
+            snprintf(mReqSync->k_v, sizeof(mReqSync->k_v), "%s", mVerInfo->k_ver);
+            msg->set<sp<REQ_SYNC>>("req_sync", mReqSync);
+			break;
+        }
+            
+        case ACTION_LOW_BAT: {
+            Log.d(TAG, "[%s: %d] Battery is Low, Send Command[%d] to Camerad", __FILE__, __LINE__, cmd);
+            msg->set<int>("cmd", cmd);
+            break;
+        }
+		
+//        case ACTION_LOW_PROTECT:
+//            break;
+
+
+        case ACTION_SPEED_TEST: {
+            if (vm->checkLocalVolumeExist()) {
+                Log.d(TAG, "[%s: %d] Local Speed test path [%s]", __FILE__, __LINE__, vm->getLocalVolMountPath());
+                msg->set<const char *>("path", vm->getLocalVolMountPath());
+            } else {
+                Log.e(TAG, "[%s:%d] No Local Storage, Waht's wrong!!!", __FILE__, __LINE__);
+                bAllow = false;
+            }
+            break;
+        }
+
+        case ACTION_GYRO: {
+            if (check_state_in(STATE_IDLE)) {
+                oled_disp_type(START_GYRO);
+            } else  {
+                ERR_MENU_STATE(cur_menu, cam_state);
+                bAllow = false;
+            }
+            break;
+        }
+
+        case ACTION_NOISE: {
+            if (check_state_in(STATE_IDLE)) {
+                oled_disp_type(START_NOISE);
+            } else {
+                ERR_MENU_STATE(cur_menu,cam_state);
+                bAllow = false;
+            }
+            break;
+        }
+
+        case ACTION_AGEING: {
+            if (check_state_in(STATE_IDLE)) {
+                oled_disp_type(START_RECING);
+                setCurMenu(MENU_AGEING);
+            } else {
+                ERR_MENU_STATE(cur_menu,cam_state);
+                bAllow = false;
+            }
+            break;
+        }
+
+        case ACTION_SET_OPTION: {
+            msg->set<int>("type", cmd);
+            switch (cmd) {
+                case OPTION_FLICKER:
+                    msg->set<int>("flicker", mProCfg->get_val(KEY_PAL_NTSC));
+                    break;
+
+                case OPTION_LOG_MODE:
+                    msg->set<int>("mode", 1);
+                    msg->set<int>("effect", 0);
+                    break;
+
+                case OPTION_SET_FAN:
+                    msg->set<int>("fan", mProCfg->get_val(KEY_FAN));
+                    break;
+
+                case OPTION_SET_AUD: {
+                    if (mProCfg->get_val(KEY_AUD_ON) == 1) {
+                        if (mProCfg->get_val(KEY_AUD_SPATIAL) == 1) {
+                            msg->set<int>("aud", 2);
+                        } else {
+                            msg->set<int>("aud", 1);
+                        }
+                    } else {
+                        msg->set<int>("aud", 0);
+                    }
+                    break;
+                }
+
+                case OPTION_GYRO_ON:
+                    msg->set<int>("gyro_on", mProCfg->get_val(KEY_GYRO_ON));
+                    break;
+
+                case OPTION_SET_LOGO:
+                    msg->set<int>("logo_on", mProCfg->get_val(KEY_SET_LOGO));
+                    break;
+
+                case OPTION_SET_VID_SEG:
+                    msg->set<int>("video_fragment", mProCfg->get_val(KEY_VID_SEG));
+                    break;
+
+            #ifdef ENABLE_SET_AUDIO_GAIN    
+             case OPTION_SET_AUD_GAIN: {
+                   sp<CAM_PROP> mProp = sp<CAM_PROP>(new CAM_PROP());
+                   memcpy(mProp.get(),pstProp,sizeof(CAM_PROP));
+                   msg->set<sp<CAM_PROP>>("cam_prop", mProp);
+                     break;
+            }
+            #endif
+                SWITCH_DEF_ERROR(cmd);
+            }
+            break;
+        }
+
+        case ACTION_POWER_OFF: {
+            if (!check_state_in(STATE_POWER_OFF)) {
+                add_state(STATE_POWER_OFF);
+                clear_area();
+                setLightDirect(LIGHT_OFF);
+                msg->set<int>("cmd", cmd);
+            } else {
+                ERR_MENU_STATE(cur_menu, cam_state);
+                bAllow = false;
+            }
+            break;
+        }
+
+        case ACTION_CUSTOM_PARAM: {
+            if (pNodeArg) {
+                msg->set<Json::Value*>("set_customer_param", pNodeArg);
+            } else {
+                Log.d(TAG, "[%s: %d] properties node pointer is null", __FILE__, __LINE__);
+                bAllow = false;
+            }
+			break;
+        }
+            
+        case ACTION_SET_STICH:
+            break;
+			
+		case ACTION_AWB: {		
+			setLightDirect(FRONT_GREEN);
+			break;		
+        }	
+
+		case ACTION_QUERY_STORAGE:
+			break;
+
+        case ACTION_FORMAT_TFCARD: {
+
+            msg->set<int>("index", cmd);    /* 格式化卡的索引值 */
+            Log.d(TAG, "[%s: %d] TF card index[%d]", __FILE__, __LINE__, cmd);
+            add_state(STATE_FORMATING);     /* 添加正在格式化状态 */
+            break;
+        }
+
+        case ACTION_QUIT_UDISK_MODE: {
+            break;
+        }
+
+        case ACTION_UPDATE_REC_LEFT_SEC: {
+            msg->set<u64>("rec_left_sec", vm->getRecLeftSec());   
+            msg->set<u64>("live_rec_left_sec", vm->getLiveRecLeftSec());  
+            msg->set<u64>("rec_sec", vm->getRecSec());   
+            msg->set<u64>("live_rec_sec", vm->getLiveRecSec());                           
+            break;
+        }
+
+        SWITCH_DEF_ERROR(option)
+    }
+
+
+	if (bAllow) {
+        msg->set<int>("what", OLED_KEY);
+        msg->set<int>("action", option);
+        msg->post();
+    }
+	
+    return bAllow;
+}
+
+
+
+//cmd -- for power off or set option
+bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstProp)
+{
+
+    bool bAllow = true;
+    sp<ARMessage> msg = mNotify->dup();
+    sp<ACTION_INFO> mActionInfo = sp<ACTION_INFO>(new ACTION_INFO());
+    int iIndex = 0;
+
+    struct stPicVideoCfg* pTmpPicVidCfg = NULL;
+    struct stPicVideoCfg* pAebPicVidCfg = NULL;
+    struct stSetItem* pAebSetItem = NULL;
+    VolumeManager* vm = VolumeManager::Instance();
+
+    switch (option) {
+
+        case ACTION_PIC: {	/* 拍照动作： 因为有倒计时,倒计时完成需要检查存储设备还是否存在 */
+
+            Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_PIC");
+            Json::Value* pTakePicJson = NULL;
+
+            /* customer和非customer */
+            iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
+            pTmpPicVidCfg = mPicAllItemsList.at(iIndex);
+
+            if (pTmpPicVidCfg) {
+                
+                Log.d(TAG, "[%s: %d] Take pic mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+                
+                /* 所有的拍照挡位参数都是以PicVideoCfg.jsonCmd为准
+                 * 对于Customer挡位,保存模板参数时会更新Customer对应的jsonCmd
+                 */
+                pTakePicJson = (pTmpPicVidCfg->jsonCmd).get();
+
+            #ifdef ENABLE_MENU_AEB
+
+                PIC_ORG* pTmpAeb = NULL;
+
+                /* 根据AEB当前的选项来更新PIC_ORG参数,不管当前选中的是否AEB项 */
+                pAebSetItem = getSetItemByName(mSetItemsList, SET_ITEM_NAME_AEB);
+                pAebPicVidCfg = getPicVidCfgByName(mPicAllItemsList, TAKE_PIC_MODE_AEB);
+                if (pAebSetItem && pAebPicVidCfg) {
+                    pTmpAeb = pAebSetItem->stOrigArg[pAebSetItem->iCurVal];
+                    memcpy(&(pAebPicVidCfg->pStAction->stOrgInfo.stOrgAct.mOrgP), pTmpAeb, sizeof(PIC_ORG));
+                    Log.d(TAG, "[%s: %d] Current AEB info: hdr_count: %d, min_ev: %d, max_ev: %d", 
+                                __FILE__, __LINE__, pTmpAeb->hdr_count, pTmpAeb->min_ev, pTmpAeb->max_ev);
+
+                } else {
+                    Log.w(TAG, "[%s:%d] Warnning Aeb Item lossed, please check!!!", __FILE__, __LINE__);
+                }
+
+                if ( !((*pTakePicJson)["parameters"]["hdr"].isNull()) ) {
+                    (*pTakePicJson)["parameters"]["hdr"]["count"] = pTmpAeb->hdr_count;
+                    (*pTakePicJson)["parameters"]["hdr"]["min_ev"] = pTmpAeb->min_ev;
+                    (*pTakePicJson)["parameters"]["hdr"]["max_ev"] = pTmpAeb->max_ev;
+                }
+
+            #endif
+
+                if (mProCfg->get_val(KEY_RAW)) {
+                    (*pTakePicJson)["parameters"]["origin"]["mime"] = "raw+jpeg";
+                } else {
+                    (*pTakePicJson)["parameters"]["origin"]["mime"] = "jpeg";
+                }
+
+                if (false == (*pTakePicJson)["properties"].isNull()) {
+
+                }
 
                 if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {    
 
@@ -2606,40 +3076,7 @@ bool MenuUI::send_option_to_fifo(int option, int cmd, struct _cam_prop_ * pstPro
                         send_option_to_fifo(ACTION_CUSTOM_PARAM, 0, &mProCfg->get_def_info(KEY_ALL_PIC_DEF)->stProp);
                     }
 
-                    #if 0
-
-                    /* 打印Customer的参数 
-                     * 对于拍摄timelapse比较特殊，发送的时录像的命令
-                     */
-                    Log.d(TAG, "[%s: %d] ACTION_PIC Customer mode: %s", __FILE__, __LINE__, (mActionInfo->mode == MODE_3D)? "MODE_3D": "MODE_PANO");
-                    Log.d(TAG, "[%s: %d] ACTION_PIC Customer size_by_per: %d", __FILE__, __LINE__, mActionInfo->size_per_act);
-                    Log.d(TAG, "[%s: %d] ACTION_PIC Customer delay: %d", __FILE__, __LINE__, mActionInfo->delay);
-                    #endif
-
-                } else {    /* 非Customer模式 */
-
-                    #if 0
-                    /* 根据是否开启RAW来设置 */
-                    int iRaw = mProCfg->get_val(KEY_RAW);
-                    int iAebVal = mProCfg->get_val(KEY_AEB);
-
-                    if (iRaw) {
-                        pTmpPicVidCfg->pStAction->stOrgInfo.mime = EN_JPEG_RAW;
-                    } else {
-                        pTmpPicVidCfg->pStAction->stOrgInfo.mime = EN_JPEG;
-                    }
-
-                    if (strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_AEB) == 0) {
-                        pTmpPicVidCfg->pStAction->stOrgInfo.stOrgAct.mOrgP.hdr_count = convIndex2AebNum(iAebVal);
-                    }
-
-                    Log.d(TAG, "[%s:%d] Raw [%d] stitch mode [%d], aeb[%d]", 
-                            __FILE__, __LINE__, iRaw, pTmpPicVidCfg->pStAction->mode,
-                            iAebVal);
-                    
-                    memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
-                    #endif
-                }
+                } 
 
                 if (pTakePicJson) {
                     msg->set<Json::Value*>("take_pic", pTakePicJson);
@@ -3993,7 +4430,6 @@ void MenuUI::updateSysSetting(sp<struct _sys_setting_> & mSysSetting)
 }
 
 
-#define TAKE_PIC_TEMPLET_PATH "/home/nvidia/insta360/etc/tak_pic_customer.json"
 
 void MenuUI::writeJson2File(const char* filePath, Json::Value& jsonRoot)
 {
@@ -4021,7 +4457,7 @@ void MenuUI::writeJson2File(const char* filePath, Json::Value& jsonRoot)
         u32 iLen = mPicAllItemsList.size();
         PicVideoCfg* pTmpCfg = mPicAllItemsList.at(iLen - 1);
         if (pTmpCfg) {
-            Log.d(TAG, "[%s: %d] Update Take picture Cutomer now...", __FILE__, __LINE__);
+            Log.d(TAG, "[%s: %d] Update Take picture Cutomer Json Command", __FILE__, __LINE__);
             pTmpCfg->jsonCmd = pRoot;
         }        
     } else {

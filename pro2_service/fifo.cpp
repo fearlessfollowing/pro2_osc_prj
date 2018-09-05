@@ -324,6 +324,8 @@ void fifo::sendExit()
     }
 }
 
+
+#if 0
 void fifo::send_err_type_code(int type, int code)
 {
     sp<ERR_TYPE_INFO> mInfo = sp<ERR_TYPE_INFO>(new ERR_TYPE_INFO());
@@ -374,6 +376,7 @@ void fifo::send_disp_str_type(sp<DISP_TYPE> &dis_type)
     msg->set<sp<DISP_TYPE>>("disp_type", dis_type);
     msg->post();
 }
+#endif
 
 
 /*
@@ -500,7 +503,7 @@ const char *getActionName(int iAction)
     * }
     */	
 
-#if 1
+#if 0
 void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
 {
     Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
@@ -585,7 +588,7 @@ void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *par
     cJSON_AddItemToObject(root, "parameters", param);
 
 }
-#endif
+
 
 
 void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
@@ -779,60 +782,85 @@ void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *pa
     cJSON_AddItemToObject(root, "parameters", param); 
 
 }
+#endif
 
 
-
-void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg)
+void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 {
-    cJSON *param = nullptr;
     int iIndex = -1;
     Json::FastWriter writer;
+    string sendDataStr;
+
+    Json::Value rootNode;
+    Json::Value paramNode;
 
     switch (action) {
         
         case ACTION_PIC: {
             Json::Value* pTakePicJson;
-            Json::Value root;
             CHECK_EQ(msg->find<Json::Value*>("take_pic", &pTakePicJson), true);
 
-            root["action"] = ACTION_PIC;
-            root["parameters"] = *pTakePicJson;
-            string jsonstr = writer.write(root);
-		    Log.d(TAG, "Action Pic: %s", jsonstr.c_str());
-            write_fifo(EVENT_OLED_KEY, jsonstr.c_str());
+            rootNode["action"] = ACTION_PIC;
+            rootNode["parameters"] = *pTakePicJson;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Pic: %s", sendDataStr.c_str());
+
             break;
         }
 
-        case ACTION_CUSTOM_PARAM: {
-            sp<CAM_PROP> mCamProp;
-            CHECK_EQ(msg->find<sp<CAM_PROP>>("cam_prop", &mCamProp), true);
-            param = cJSON_CreateObject();
 
-            Log.d(TAG,"set aud gain %d", mCamProp->audio_gain);
-            if (mCamProp->audio_gain != -1) {
-                cJSON_AddNumberToObject(param, "audio_gain", mCamProp->audio_gain);
-            }
-            
-            Log.d(TAG,"len_param len %d", strlen(mCamProp->len_param));
-            if (strlen(mCamProp->len_param) > 0) {
-                cJSON_AddItemToObject(param, "len_param", cJSON_Parse(mCamProp->len_param));
-            }
-            
-            Log.d(TAG,"mGammaData len %d", strlen(mCamProp->mGammaData));
-            if (strlen(mCamProp->mGammaData) > 0) {
-                cJSON_AddStringToObject(param, "gamma_param", mCamProp->mGammaData);
-            }
+        case ACTION_VIDEO: {
+            Json::Value* pTakeVideoJson;
+            CHECK_EQ(msg->find<Json::Value*>("take_video", &pTakeVideoJson), true);
+
+            rootNode["action"] = ACTION_VIDEO;
+            rootNode["parameters"] = *pTakeVideoJson;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Video: %s", sendDataStr.c_str());
+
+            break;
+        }
+
+        case ACTION_LIVE: {
+            Json::Value* pTakeLiveJson;
+            CHECK_EQ(msg->find<Json::Value*>("take_video", &pTakeLiveJson), true);
+
+            rootNode["action"] = ACTION_LIVE;
+            rootNode["parameters"] = *pTakeLiveJson;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Live: %s", sendDataStr.c_str());
+            break;
+        }
+
+
+        /* 设置模板参数:
+         * {"action": 18, "parameters":{"audio_gain":XX, "len_param": {}, "gamma_param": "XXXX"}}
+         */
+
+        case ACTION_CUSTOM_PARAM: {
+            Json::Value* pSetCustomerArg;
+            Json::Value root;
+            CHECK_EQ(msg->find<Json::Value*>("set_customer_param", &pSetCustomerArg), true);
+
+            rootNode["action"] = ACTION_PIC;
+            rootNode["parameters"] = (*pSetCustomerArg)["properties"];
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Set customer param: %s", sendDataStr.c_str());
             break;
         }
         
-        case ACTION_LIVE_ORIGIN:
+        case ACTION_LIVE_ORIGIN: {
+            rootNode["action"] = ACTION_LIVE_ORIGIN;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Live origin: %s", sendDataStr.c_str());
             break;
+        }
 						
         case ACTION_CALIBRATION: {
-            // int calibration_mode;
-            // CHECK_EQ(msg->find<int>("cal_mode", &calibration_mode), true);
-            // param = cJSON_CreateObject();
-            // cJSON_AddStringToObject(param, "mode", cal_mode[calibration_mode]);
+            rootNode["action"] = ACTION_CALIBRATION;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Calibration: %s", sendDataStr.c_str());
             break;
         }
 
@@ -841,23 +869,36 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
         case ACTION_REQ_SYNC: {
             sp<REQ_SYNC> mReqSync;
             CHECK_EQ(msg->find<sp<REQ_SYNC>>("req_sync", &mReqSync), true);
-            param = cJSON_CreateObject();
-            cJSON_AddStringToObject(param, "sn", mReqSync->sn);
-            cJSON_AddStringToObject(param, "r_v", mReqSync->r_v);
-            cJSON_AddStringToObject(param, "p_v", mReqSync->p_v);
-            cJSON_AddStringToObject(param, "k_v", mReqSync->k_v);
+
+            paramNode["sn"] = mReqSync->sn;
+            paramNode["r_v"] = mReqSync->r_v;  
+            paramNode["p_v"] = mReqSync->p_v;
+            paramNode["k_v"] = mReqSync->k_v;
+            rootNode["action"] = ACTION_REQ_SYNC;
+            rootNode["parameters"] = *pTakePicJson;
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Req Sync: %s", sendDataStr.c_str());
+
             break;
         }
 
+        
         /* {"action": ACTION_LOW_BAT} */
         case ACTION_LOW_BAT: {
             CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
-            Log.d(TAG,"low bat reboot cmd is %d",reboot_cmd);
+            Log.d(TAG, "low bat reboot cmd is %d", reboot_cmd);
+
+            rootNode["action"] = ACTION_LOW_BAT;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Low Battery: %s", sendDataStr.c_str());
+
             break;
         }
 
-        /* {"action": ACTION_LOW_PROTECT} */
         #if 0
+        /* {"action": ACTION_LOW_PROTECT} */
+
         case ACTION_LOW_PROTECT:
             break;
         #endif
@@ -866,46 +907,37 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
         case ACTION_SPEED_TEST: {
             const char *path;
             CHECK_EQ(msg->find<const char *>("path", &path), true);
-            param = cJSON_CreateObject();
-            Log.d(TAG, "speed path %s", path);
-            cJSON_AddStringToObject(param, "path", path);
+
+            paramNode["path"] = path;
+            rootNode["action"] = ACTION_SPEED_TEST;
+            rootNode["parameters"] = paramNode
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Speed test: %s", sendDataStr.c_str());
             break;
         }
 
         /* {"action": ACTION_NOISE} */
-        case ACTION_NOISE:
-            break;
-
-        /* {"action": ACTION_GYRO} */
+        case ACTION_NOISE: 
         case ACTION_GYRO:
-            break;
-
-        /* {"action": ACTION_AGEING} */
         case ACTION_AGEING:
+        case ACTION_QUIT_UDISK_MODE:
+        case ACTION_QUERY_STORAGE: 
+        case ACTION_SET_STICH: 
+        case case ACTION_POWER_OFF: {
+            rootNode["action"] = action;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action %s: %s", getActionName(action), sendDataStr.c_str());           
             break;
-
+        }
 
         case ACTION_AWB: {       
-            param = cJSON_CreateObject();
-            cJSON_AddStringToObject(param, "name", "camera._calibrationAwb");
-            break;
-        }
+            paramNode["name"] = "camera._calibrationAwb";
+            rootNode["action"] = ACTION_AWB;
+            rootNode["parameters"] = paramNode
 
-
-        /* {"action": ACTION_POWER_OFF} */
-        case ACTION_POWER_OFF: {
-            CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
-            Log.d(TAG, "power off reboot cmd is %d", reboot_cmd);
-            break;
-        }
-
-        case ACTION_QUERY_STORAGE: {
-            Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUERY_STORAGE");
-            break;
-        }
-
-        case ACTION_QUIT_UDISK_MODE: {
-            Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>  ACTION_QUIT_UDISK_MODE");            
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action AWB: %s", sendDataStr.c_str());
             break;
         }
 
@@ -920,8 +952,7 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             CHECK_EQ(msg->find<u64>("rec_sec", &recSecs), true);
             CHECK_EQ(msg->find<u64>("live_rec_sec", &liveSecs), true);
 
-            Json::Value rootNode;
-            Json::Value paramNode;
+
             paramNode["rec_left_sec"]       = (u32)recLefSecs;
             paramNode["live_rec_left_sec"]  = (u32)liveRecLeftSecs;
             paramNode["rec_sec"]            = (u32)recSecs;
@@ -930,32 +961,42 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             rootNode["action"] = ACTION_UPDATE_REC_LEFT_SEC;
             rootNode["parameters"] = paramNode;
 
-            string jsonstr = writer.write(rootNode);
-		    Log.d(TAG, "Action ACTION_UPDATE_REC_LEFT_SEC: %s", jsonstr.c_str());
-            write_fifo(EVENT_OLED_KEY, jsonstr.c_str());
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action ACTION_UPDATE_REC_LEFT_SEC: %s", sendDataStr.c_str());
+
 
             break;
         }
 
 
+        /* 
+            {
+                "action":ACTION_FORMAT_TFCARD, 
+                "parameters": {
+                    "name": "camera._formatCameraMoudle",
+                    "parameters":{
+                        "index": 1
+                    }
+                }
+            }
+        */
         case ACTION_FORMAT_TFCARD: {    /* 格式化请求 */
             CHECK_EQ(msg->find<int>("index", &iIndex), true);
 
-            cJSON *pJsonIndex = cJSON_CreateObject();
-            
-            cJSON_AddNumberToObject(pJsonIndex, "index", iIndex);
+            Json::Value indexNode;
 
-            param = cJSON_CreateObject();
+            indexNode["index"] = iIndex;
+            paramNode["name"] = "camera._formatCameraMoudle";
+            paramNode["parameters"] = indexNode;
 
-            cJSON_AddStringToObject(param, "name", "camera._formatCameraMoudle");
-            cJSON_AddItemToObject(param, "parameters", pJsonIndex);
+            rootNode["action"] = ACTION_FORMAT_TFCARD;
+            rootNode["parameters"] = paramNode;
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action ACTION_FORMAT_TFCARD: %s", sendDataStr.c_str());
             break;
         }
 
-        case ACTION_SET_STICH: {
-            Log.d(TAG,"stitch action");
-            break;
-        }
 
         case ACTION_SET_OPTION: {
             int type;
@@ -967,9 +1008,15 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_FLICKER: { 
                     int flicker;
                     CHECK_EQ(msg->find<int>("flicker", &flicker), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "flicker");
-                    cJSON_AddNumberToObject(param, "value", flicker);
+
+                    paramNode["property"] = "flicker";
+                    paramNode["value"] = flicker;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());
+
                     break;
                 }
 
@@ -977,15 +1024,23 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_LOG_MODE: {	 /* {"action": ACTION_SET_OPTION, "type": OPTION_FLICKER } */
                     int mode;
                     int effect;
-                    cJSON *valObj = cJSON_CreateObject();
+
                     CHECK_EQ(msg->find<int>("mode", &mode), true);
                     CHECK_EQ(msg->find<int>("effect", &effect), true);
                     
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "logMode");
-                    cJSON_AddNumberToObject(valObj, "mode", mode);
-                    cJSON_AddNumberToObject(valObj, "effect", effect);
-                    cJSON_AddItemToObject(param, "value", valObj);
+
+                    Json::Value valNode;
+
+                    valNode["mode"] = mode;
+                    valNode["effect"] = effect;
+
+                    paramNode["property"] = "logMode";
+                    paramNode["value"] = valNode;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());
                     break;
                 }
                 
@@ -993,13 +1048,14 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_SET_FAN: {
                     int fan;
                     CHECK_EQ(msg->find<int>("fan", &fan), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "fanless");
-                    if (fan == 1) {
-                        cJSON_AddNumberToObject(param, "value", 0);
-                    } else {
-                        cJSON_AddNumberToObject(param, "value", 1);
-                    }
+
+                    paramNode["property"] = "fanless";
+                    paramNode["value"] = (fan == 1) ? 0 : 1;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());                    
                     break;
                 }
 
@@ -1007,9 +1063,15 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_SET_AUD: {
                     int aud;
                     CHECK_EQ(msg->find<int>("aud", &aud), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "panoAudio");
-                    cJSON_AddNumberToObject(param, "value", aud);
+
+                    paramNode["property"] = "panoAudio";
+                    paramNode["value"] = aud;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());                    
+                     
                     break;
                 }
 
@@ -1017,9 +1079,14 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_GYRO_ON: {
                     int gyro_on;
                     CHECK_EQ(msg->find<int>("gyro_on", &gyro_on), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "stabilization_cfg");
-                    cJSON_AddNumberToObject(param, "value", gyro_on);
+
+                    paramNode["property"] = "stabilization_cfg";
+                    paramNode["value"] = gyro_on;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());                    
                     break;
                 }
 
@@ -1027,18 +1094,39 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
                 case OPTION_SET_LOGO: {
                     int logo_on;
                     CHECK_EQ(msg->find<int>("logo_on", &logo_on), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "logo");
-                    cJSON_AddNumberToObject(param, "value", logo_on);
+
+                    paramNode["property"] = "logo";
+                    paramNode["value"] = logo_on;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());                    
+            
                     break;
                 }
 
+                /*
+                 {
+                     "action":OPTION_SET_VID_SEG,
+                     "parameters":{
+                         "property": "video_fragment",
+                         "value": 0/1
+                     }
+                 }
+                 */
                 case OPTION_SET_VID_SEG: {
                     int video_fragment;
                     CHECK_EQ(msg->find<int>("video_fragment", &video_fragment), true);
-                    param = cJSON_CreateObject();
-                    cJSON_AddStringToObject(param, "property", "video_fragment");
-                    cJSON_AddNumberToObject(param, "value", video_fragment);
+                   
+                    paramNode["property"] = "video_fragment";
+                    paramNode["value"] = video_fragment;
+                    rootNode["action"] = ACTION_SET_OPTION;
+                    rootNode["parameters"] = paramNode; 
+
+                    sendDataStr = writer.write(rootNode);
+		            Log.d(TAG, "Action ACTION_SET_OPTION: %s", sendDataStr.c_str());                    
+
                     break;
                 }
 
@@ -1064,16 +1152,13 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
             break;
     }
 
-    if (param != nullptr) {
-        cJSON_AddItemToObject(root, "parameters", param);
-    }
-
+    write_fifo(EVENT_OLED_KEY, sendDataStr.c_str());
 }
 
 
 
 /*************************************************************************
-** 方法名称: handle_oled_notify
+** 方法名称: handleUiNotify
 ** 方法功能: 处理来自UI线程的消息
 ** 入口参数: 
 **		msg - 消息指针
@@ -1081,12 +1166,8 @@ void fifo::handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>&
 ** 调     用: 
 ** {"name": "camera._calibrationAwb"}
 *************************************************************************/
-void fifo::handle_oled_notify(const sp<ARMessage> &msg)
+void fifo::handleUiNotify(const sp<ARMessage> &msg)
 {
-    char *pSrt = nullptr;
-    cJSON *root = cJSON_CreateObject();
-    CHECK_NE(root, nullptr);
-
     int what;
     CHECK_EQ(msg->find<int>("what", &what), true);
 
@@ -1100,51 +1181,14 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 	 	 
         case MenuUI::OLED_KEY: {
             int action;
-            sp<ACTION_INFO> mActInfo;
             CHECK_EQ(msg->find<int>("action", &action), true);
 
 			/* {"action": [0/9]} */
 			Log.d(TAG, "FIFO RECV OLED ACTION [%s]", getActionName(action));
-			
-            cJSON_AddNumberToObject(root, "action", action);
-
-			/* 查看msg的"action_info" */
-            if (msg->find<sp<ACTION_INFO>>("action_info", &mActInfo)) {
-
-                cJSON *param = cJSON_CreateObject();
-
-                switch (action) {
-                    case ACTION_PIC:
-                        handleUiTakePicReq(mActInfo, root, param);
-                        break;
-
-                    case ACTION_VIDEO:
-                        handleUiTakeVidReq(mActInfo, root, param);
-                        break;
-
-                    case ACTION_LIVE:
-                        handleUiTakeLiveReq(mActInfo, root, param);
-                        break;
-                    
-                    default:
-                        Log.e(TAG, "[%s: %d] Unkown action[%d] recv form UI", __FILE__, __LINE__, action);
-                        break;
-                }
-
-            } else {
-                handleUiReqWithNoAction(root, action, msg);
-            }
-
-            if ( (action != ACTION_PIC) && (action != ACTION_UPDATE_REC_LEFT_SEC) ) {
-                pSrt = cJSON_Print(root);
-                
-                Log.d(TAG, "<<============ [Send Message] %s", pSrt);
-
-                write_fifo(EVENT_OLED_KEY, pSrt);
-
-            }
+            handleUiKeyReq(action, msg);
+            break;
         }
-			break;
+			
 		
 		/* 
 		 * msg.what = UPDATE_BAT
@@ -1153,38 +1197,26 @@ void fifo::handle_oled_notify(const sp<ARMessage> &msg)
 		 */
         case MenuUI::UPDATE_BAT: {		/* 电池状态更新 */
             sp<BAT_INFO> mBatInfo;
+            Json::FastWriter writer;
+            string sendDataStr;
+
             CHECK_EQ(msg->find<sp<BAT_INFO>>("bat_info", &mBatInfo), true);
 
-			cJSON_AddNumberToObject(root, "battery_level", mBatInfo->battery_level);
-            cJSON_AddNumberToObject(root, "battery_charge", mBatInfo->bCharge);
-            cJSON_AddNumberToObject(root, "int_tmp", mBatInfo->int_tmp);
-            cJSON_AddNumberToObject(root, "tmp", mBatInfo->tmp);
+            Json::Value rootNode;
+            rootNode["battery_level"]   = mBatInfo->battery_level;
+            rootNode["battery_charge"]  = (mBatInfo->bCharge == true) ? 1: 0;            
+            rootNode["int_tmp"]         =  mBatInfo->int_tmp;
+            rootNode["tmp"]             =  mBatInfo->tmp;            
 
-            pSrt = cJSON_Print(root);
+            sendDataStr = writer.write(rootNode);
+
+            Log.d(TAG, "-------- FIFO RECV UPDATE_BAT");
             write_fifo(EVENT_BATTERY, pSrt);
-			
-            Log.d(TAG, "rec UPDATE_BATTERY battery_level %d bCharge %d", mBatInfo->battery_level, mBatInfo->bCharge);
 			break;
         }
 
-
-
-		/* 查询各个存储卡的信息 */
-		case MenuUI::UPDATE_STORAGE: {
-			Log.d(TAG, ">>>>>>>>>>>>>> fifo recv UPDATE_STORAGE");
-			break;
-		}
-	
         default:
             break;
-    }
-
-	if (nullptr != pSrt) {
-        free(pSrt);
-    }
-	
-    if (nullptr != root) {
-        cJSON_Delete(root);
     }
 }
 
@@ -1213,14 +1245,6 @@ void fifo::handleUpdateDevList(const sp<ARMessage>& msg)
 
     Log.d(TAG, "[%s: %d] <<--------------------------- [UpdateDevList Message] %s", __FILE__, __LINE__, mSavePath->path);
     write_fifo(EVENT_DEV_NOTIFY, mSavePath->path);   
-}
-
-/*
- * 查询TF卡的状态
- */
-void fifo::handleQueryTfState(const sp<ARMessage>& msg)
-{
-
 }
 
 
@@ -1270,7 +1294,7 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 
 			/* UI -> FIFO -> OSC */
 			case MSG_UI_KEY: {	/* 来自UI线程的Key */
-				handle_oled_notify(msg);
+				handleUiNotify(msg);
 				break;
 			}
 
@@ -1285,77 +1309,6 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
 
-  
-        #if 0
-			/* OSC -> FIFO -> UI 
-			 * 通知UI进入某个显示界面
-			 */
-			case MSG_DISP_STR_TYPE: {
-				sp<DISP_TYPE> disp_type;
-				CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
-				mOLEDHandle->send_disp_str(disp_type);
-				break;
-			}
-			
-
-			/* OSC -> FIFO -> UI 
-			 * 通知UI显示指定的错误
-			 */
-			case MSG_DISP_ERR_TYPE: {
-				sp<ERR_TYPE_INFO> mInfo;
-				CHECK_EQ(msg->find<sp<ERR_TYPE_INFO>>("err_type_info", &mInfo), true);
-				mOLEDHandle->send_disp_err(mInfo);
-				break;
-			}
-
-			#if 0
-			case MSG_DISP_EXT: {
-				sp<DISP_EXT> disp_ext;
-				CHECK_EQ(msg->find<sp<DISP_EXT>>("disp_ext", &disp_ext), true);
-				mOLEDHandle->send_disp_ext(disp_ext);
-				break;
-			}
-			#endif
-
-		
-			/* OSC -> FIFO -> UI 
-			 * 设置WiFi配置
-			 */
-	        case MSG_SET_WIFI_CONFIG: {
-	            Log.d(TAG,"MSG_SET_WIFI_CONFIG");
-				#if 0
-	            sp<WIFI_CONFIG> mConfig;
-	            CHECK_EQ(msg->find<sp<WIFI_CONFIG>>("wifi_config", &mConfig), true);
-	            mOLEDHandle->send_wifi_config(mConfig);
-				#endif
-	            break;
-	        }
-
-			/* OSC -> FIFO -> UI 
-			 * 通知UI设置系统信息
-			 */
-	        case MSG_SET_SYS_INFO: {
-	            sp<SYS_INFO> mSysInfo;
-	            CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
-	            mOLEDHandle->send_sys_info(mSysInfo);
-	            break;
-	        }
-
-			case MSG_START_POWER_OFF:
-				// start_sys_reboot();
-				break;
-
-			/* OSC -> FIFO -> UI 
-			 * 通知UI设置同步信息
-			 */
-	        case MSG_SET_SYNC_INFO: {
-	            sp<SYNC_INIT_INFO> mSyncInfo;
-	            CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
-	            mOLEDHandle->send_sync_init_info(mSyncInfo);
-                break;
-	        }
-            #endif
-	                    
 			SWITCH_DEF_ERROR(what)
 		    }
         }

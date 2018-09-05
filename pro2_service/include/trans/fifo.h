@@ -181,7 +181,7 @@ private:
     void                parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData);
     void                handleSetting(sp<struct _disp_type_>& mDispType, Json::Value& reqNode);
 
-    void                handle_oled_notify(const sp<ARMessage> &msg);
+    void                handleUiNotify(const sp<ARMessage> &msg);
     void                send_power_off();
 	
     void                send_sys_info(sp<struct _sys_info_> &mSysInfo);
@@ -197,7 +197,7 @@ private:
     void                handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
 
 
-    void                handleUiReqWithNoAction(cJSON *root, int action, const sp<ARMessage>& msg);
+    void                handleUiKeyReq(int action, const sp<ARMessage>& msg);
 
     sp<MenuUI>          mOLEDHandle;
 	
