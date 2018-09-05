@@ -1083,15 +1083,19 @@ void MenuUI::setSysMenuInit(MENU_INFO* pParentMenu, SettingItem** pSetItem)
         } else if (!strcmp(pItemName, SET_ITEM_NAME_BOOTMLOGO)) {  /* Bottom Logo -> 需要通知对方  */      
             pSetItem[i]->iCurVal = mProCfg->get_val(KEY_SET_LOGO);
             send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_LOGO);
+
         #ifdef DEBUG_SETTING_PAGE
             Log.d(TAG, "BottomLogo Init Val --> [%d]", pSetItem[i]->iCurVal);
-        #endif              
+        #endif  
+
         } else if (!strcmp(pItemName, SET_ITEM_NAME_VIDSEG)) {      /* Video Segment -> 需要通知对方  */        
             pSetItem[i]->iCurVal = mProCfg->get_val(KEY_VID_SEG);
             send_option_to_fifo(ACTION_SET_OPTION, OPTION_SET_VID_SEG);
+
         #ifdef DEBUG_SETTING_PAGE
             Log.d(TAG, "VideoSeg Init Val --> [%d]", pSetItem[i]->iCurVal);
         #endif  
+
         }
         mSetItemsList.push_back(pSetItem[i]);
     }
@@ -1416,10 +1420,15 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
         string cfgItemJsonFilePath;
 
         PicVideoCfg** pSetItems = static_cast<PicVideoCfg**>(pParentMenu->priv);
-        
+
+        Json::Reader reader;
+        sp<Json::Value> pRoot = (sp<Json::Value>)(new Json::Value());
+        bool bParseFileFlag = false;
+
+
         switch (pParentMenu->iMenuId) {
             case MENU_PIC_SET_DEF: {      /* PIC */
-                iIndex = mProCfg->get_val(KEY_ALL_PIC_DEF); /* 当前所中的项 */
+                iIndex = mProCfg->get_val(KEY_ALL_PIC_DEF);                 /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
 
                 /* 根据配置值来更新每个ACTION_INFO的值
@@ -1430,13 +1439,8 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                 for (int i = 0; i < size; i++) {
 
                     pSetItems[i]->stPos = tmPos;
-                    Json::Reader reader;
-                    sp<Json::Value> pRoot = (sp<Json::Value>)(new Json::Value());
-                    bool bParseFileFlag = false;
 
-                    /* TODO: 在此处为各个项设置对应的ACTION_INFO
-                     * 通过解析配置文件得到的ACTION_INFO列表(通过名称进行匹配)
-                     */
+
                     /* 根据当前项的名称，找到对应的 */
                     cfgItemJsonFilePath = JSON_CFG_FILE_PATH;
                     cfgItemJsonFilePath +=  pSetItems[i]->pItemName;
@@ -1487,12 +1491,60 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                 break;
             }
 
-            case MENU_VIDEO_SET_DEF:
+            case MENU_VIDEO_SET_DEF: {
                 iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF); /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
                 for (int i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
                     pSetItems[i]->iCurVal = 0;
+
+
+                    cfgItemJsonFilePath = JSON_CFG_FILE_PATH;
+                    cfgItemJsonFilePath +=  pSetItems[i]->pItemName;
+                    cfgItemJsonFilePath += ".json";
+                    const char* path = cfgItemJsonFilePath.c_str();
+                    Log.d(TAG, "[%s: %d] Takepic [%s] Configure json file path: %s", __FILE__, __LINE__, pSetItems[i]->pItemName, path);
+
+                    if (access(path, F_OK) == 0) {
+                        std::ifstream is;  
+                        is.open (path, std::ios::binary); 
+                        if (reader.parse(is, *(pRoot.get()), false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, path);
+                            pSetItems[i]->jsonCmd = pRoot;
+                            bParseFileFlag = true;
+                        } 
+                    }
+
+                    if (bParseFileFlag == false) {
+                        Log.d(TAG, "[%s: %d] Json cfg file not exist or Parse Failed, Used Default Configuration", __FILE__, __LINE__);
+                        
+                        const char* pCommJsonCmd = NULL;
+                        if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MODE_8K_30F_3D)) {
+                            pCommJsonCmd = pCmdTakeVid_8K30F3D;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MODE_8K_60F)) {
+                            pCommJsonCmd = pCmdTakeVid_8K60F;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MODE_8K_5F)) {
+                            pCommJsonCmd = pCmdTakeVid_8K5F;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MODE_6K_60F_3D)) {
+                            pCommJsonCmd = pCmdTakeVid_6K60F3D;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MODE_4K_120F_3D)) {
+                            pCommJsonCmd = pCmdTakeVid_4K120F3D;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_4K_30F_RTS)) {
+                            pCommJsonCmd = pCmdTakeVid_4K30FRTS;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_4K_30F_3D_RTS)) {
+                            pCommJsonCmd = pCmdTakeVid_4K30F3DRTS;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {
+                            pCommJsonCmd = pCmdTakeVid_Customer;
+                        } 
+                        
+                        if (reader.parse(pCommJsonCmd, *(pRoot.get()), false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, pCommJsonCmd);
+                            pSetItems[i]->jsonCmd = pRoot;
+                        } else {
+                            Log.e(TAG, "[%s: %d] Parse Json String Failed!", __FILE__, __LINE__);
+                            pSetItems[i]->jsonCmd = NULL;
+                        }
+                    }
 
                     /* ADD: */
                     if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {   /* Customer DO nothing */
@@ -1506,13 +1558,55 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                     pItemLists.push_back(pSetItems[i]);
                 }                
                 break;
+            }
 
-            case MENU_LIVE_SET_DEF:
+            case MENU_LIVE_SET_DEF: {
                 iIndex = mProCfg->get_val(KEY_ALL_LIVE_DEF); /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
                 for (int i = 0; i < size; i++) {
                     pSetItems[i]->stPos = tmPos;
                     pSetItems[i]->iCurVal = 0;
+
+                    cfgItemJsonFilePath = JSON_CFG_FILE_PATH;
+                    cfgItemJsonFilePath +=  pSetItems[i]->pItemName;
+                    cfgItemJsonFilePath += ".json";
+                    const char* path = cfgItemJsonFilePath.c_str();
+                    Log.d(TAG, "[%s: %d] TakeLive [%s] Configure json file path: %s", __FILE__, __LINE__, pSetItems[i]->pItemName, path);
+
+                    if (access(path, F_OK) == 0) {
+                        std::ifstream is;  
+                        is.open (path, std::ios::binary); 
+                        if (reader.parse(is, *(pRoot.get()), false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, path);
+                            pSetItems[i]->jsonCmd = pRoot;
+                            bParseFileFlag = true;
+                        } 
+                    }
+
+                    if (bParseFileFlag == false) {
+                        Log.d(TAG, "[%s: %d] Json cfg file not exist or Parse Failed, Used Default Configuration", __FILE__, __LINE__);
+                        
+                        const char* pCommJsonCmd = NULL;
+                        if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_4K_30F)) {
+                            pCommJsonCmd = pCmdLive_4K30F;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_4K_30F_HDMI)) {
+                            pCommJsonCmd = pCmdLive_4K30FHDMI;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_4K_30F_3D)) {
+                            pCommJsonCmd = pCmdLive_4K30F3D;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_4K_30F_3D_HDMI)) {
+                            pCommJsonCmd = pCmdLive_4K30F3DHDMI;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
+                            pCommJsonCmd = pCmdLive_Customer;
+                        }
+                        
+                        if (reader.parse(pCommJsonCmd, *(pRoot.get()), false)) {
+                            Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, pCommJsonCmd);
+                            pSetItems[i]->jsonCmd = pRoot;
+                        } else {
+                            Log.e(TAG, "[%s: %d] Parse Json String Failed!", __FILE__, __LINE__);
+                            pSetItems[i]->jsonCmd = NULL;
+                        }
+                    }
 
                     /* ADD: */
                     if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {   /* Customer DO nothing */
@@ -1526,6 +1620,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                     pItemLists.push_back(pSetItems[i]);
                 }                
                 break;
+            }
 
             default:
                 Log.w(TAG, "[%s:%d] Unkown mode Please check", __FILE__, __LINE__);
@@ -2460,64 +2555,75 @@ bool MenuUI::check_live_save(ACTION_INFO* mAct)
 }
 
 
+bool MenuUI::check_live_save(Json::Value* liveJson)
+{
+    bool ret = false;
+
+    if ((*liveJson)["parameters"]["origin"]["saveOrigin"] == true || (*liveJson)["parameters"]["stiching"]["fileSave"] == true) {
+        ret = true;
+    }
+
+    return ret;
+}
+
+
 
 bool MenuUI::start_live_rec(const struct _action_info_ * mAct, ACTION_INFO *dest)
 {
     bool bAllow = false;
 
-#if 0	
-    if (!checkHaveLocalSavePath()) {
+    if (checkStorageSatisfy(ACTION_LIVE)) {
 		
-		/* 去掉直播录像,必须录制在U盘的限制 */
-		if (/* check_save_path_usb() */ 1) {
-            if (!start_speed_test()) {
-                if (cur_menu == MENU_LIVE_REC_TIME) {
-                    cam_state |= STATE_START_LIVING;
-                    setCurMenu(MENU_LIVE_INFO);
-                    bAllow = true;
-                    memcpy(dest, mAct, sizeof(ACTION_INFO));
-                } else {
-                    disp_icon(ICON_LIVE_REC_TIME_128_64128_64);
+        /* 去掉直播录像,必须录制在U盘的限制 */
+        if (checkVidLiveStorageSpeed() == false) { 
+            bAllow = false;
+        } else {
+            if (cur_menu == MENU_LIVE_REC_TIME) {
+                cam_state |= STATE_START_LIVING;
+                setCurMenu(MENU_LIVE_INFO);
+                bAllow = true;
+                memcpy(dest, mAct, sizeof(ACTION_INFO));
+            } else {
 
-                    char disp[32];
-                    
-                    if (mAct->size_per_act > 0) {
-                        if (localStorageAvail()) {
-                            int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->uAvail >> 20);
-                            if (size_M > AVAIL_SUBSTRACT) {
-                                size_M -= AVAIL_SUBSTRACT;
+                disp_icon(ICON_LIVE_REC_TIME_128_64128_64);
 
-                                int rest_sec = size_M / mAct->size_per_act;
-                                int min, hour, sec;
+                char disp[32];
+                
+                if (mAct->size_per_act > 0) {
+                    if (localStorageAvail()) {
+                        int size_M = (int)(mLocalStorageList.at(mSavePathIndex)->uAvail >> 20);
+                        if (size_M > AVAIL_SUBSTRACT) {
+                            size_M -= AVAIL_SUBSTRACT;
+
+                            int rest_sec = size_M / mAct->size_per_act;
+                            int min, hour, sec;
 
 
-                                sec = rest_sec % 60;
-                                min = rest_sec / 60;
-                                hour = min / 60;
+                            sec = rest_sec % 60;
+                            min = rest_sec / 60;
+                            hour = min / 60;
 
-                                min = min % 60;
-                                snprintf(disp, sizeof(disp), "%02d:%02d:%02d",
-                                         hour, min, sec);
-                            }  else {
-                                snprintf(disp,sizeof(disp),"%s","00:00:00");
-                            }
-                        } else {
-                            snprintf(disp,sizeof(disp),"%s","no access");
-                            Log.e(TAG,"start_live_rec usb no access");
+                            min = min % 60;
+                            snprintf(disp, sizeof(disp), "%02d:%02d:%02d",
+                                        hour, min, sec);
+                        }  else {
+                            snprintf(disp,sizeof(disp), "%s", "00:00:00");
                         }
                     } else {
-                        snprintf(disp,sizeof(disp),"%s","99:99:99");
+                        snprintf(disp, sizeof(disp), "%s", "no access");
+                        Log.e(TAG, "start_live_rec usb no access");
                     }
-
-                    Log.d(TAG, "start_live_rec pstTmp->size_per_act %d %s", mAct->size_per_act,disp);
-
-                    disp_str((const u8 *)disp, 37, 32);
-                    setCurMenu(MENU_LIVE_REC_TIME);
+                } else {
+                    snprintf(disp,sizeof(disp), "%s", "99:99:99");
                 }
-            }
+
+                Log.d(TAG, "start_live_rec pstTmp->size_per_act %d %s", mAct->size_per_act,disp);
+
+                disp_str((const u8 *)disp, 37, 32);
+                setCurMenu(MENU_LIVE_REC_TIME);
+            }            
         }
     }
-#endif    
     return bAllow;
 }
 
@@ -2621,6 +2727,8 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 
         case ACTION_VIDEO: {
 
+            Json::Value* pTakeVidJson = NULL;
+
             /* 处于录像或正在停止录像状态 */
             if (check_state_in(STATE_RECORD) && (!check_state_in(STATE_STOP_RECORDING))) {
                 oled_disp_type(STOP_RECING);
@@ -2637,6 +2745,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 
                             Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
                             
+                            #if 0
                             /* Customer模式 */
                             if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
                                 Log.d(TAG, "[%s: %d] Customer mode Take Pic", __FILE__, __LINE__);
@@ -2651,6 +2760,18 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                                 memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
                             }
                             msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                            #else 
+                            pTakeVidJson = (pTmpPicVidCfg->jsonCmd).get();
+                            if (pTakeVidJson) {
+                                if (false == (*pTakeVidJson)["properties"].isNull()) {
+                                    sendRpc(ACTION_CUSTOM_PARAM, 0, pTakeVidJson);
+                                }
+                                msg->set<Json::Value*>("take_video", pTakeVidJson);
+                            } else {
+                                Log.e(TAG, "[%s: %d] Take Video Json not exist, What's wront !!!", __FILE__, __LINE__);
+                                abort();
+                            }
+                            #endif
                         } else {
                             Log.e(TAG, "[%s:%d] +_+ Error Invalid index[%d]", __FILE__, __LINE__);
                             abort();
@@ -2668,6 +2789,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
         }
 			
         case ACTION_LIVE: {
+
             if ((check_live()) && (!check_state_in(STATE_STOP_LIVING))) {
                 oled_disp_type(STOP_LIVING);
             } else if (check_state_preview()) {
@@ -2715,6 +2837,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 #else                
 
                 Log.d(TAG, ">>>>>>>>>>>>>>>>> send_option_to_fifo +++ ACTION_LIVE");
+                Json::Value* pTakeLiveJson = NULL;
 
                 /* customer和非customer */
                 iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
@@ -2724,6 +2847,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 
                     Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
 
+                    #if 0
                     /* Customer模式 */
                     if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
                         Log.d(TAG, "[%s: %d] Customer mode Live", __FILE__, __LINE__);
@@ -2745,8 +2869,25 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                     
                         memcpy(mActionInfo.get(), pTmpPicVidCfg->pStAction, sizeof(ACTION_INFO));
                     }
-
                     msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
+                    #else
+                    pTakeLiveJson = (pTmpPicVidCfg->jsonCmd).get();
+                    if (pTakeLiveJson) {
+                        if (false == (*pTakeLiveJson)["properties"].isNull()) {
+                            sendRpc(ACTION_CUSTOM_PARAM, 0, pTakeLiveJson);
+                        }
+
+                        if (true == check_live_save(pTakeLiveJson)) {
+                            bAllow = start_live_rec((const ACTION_INFO *)mProCfg->get_def_info(KEY_ALL_LIVE_DEF), mActionInfo.get());
+                        }
+
+                        msg->set<Json::Value*>("take_video", pTakeVidJson);
+                    } else {
+                        Log.e(TAG, "[%s: %d] Take Video Json not exist, What's wront !!!", __FILE__, __LINE__);
+                        abort();
+                    }
+                    #endif
+
                 } else {
                     Log.e(TAG, "[%s:%d] Invalid index[%d]", __FILE__, __LINE__);
                     abort();
@@ -2759,22 +2900,8 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
         }
 
 
-#if 0
-#ifdef LIVE_ORG
-                if (option != ACTION_LIVE_ORIGIN) {
-                    msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-                }
-#else
-                msg->set<sp<ACTION_INFO>>("action_info", mActionInfo);
-#endif
-            } else {
-                Log.w(TAG," act live bad state 0x%x",cam_state);
-                bAllow = false;
-            }
-#endif
             break;
 			
-
 
         case ACTION_PREVIEW: {
             if (check_state_preview() || check_state_equal(STATE_IDLE)) {
@@ -4457,7 +4584,7 @@ void MenuUI::writeJson2File(const char* filePath, Json::Value& jsonRoot)
         u32 iLen = mPicAllItemsList.size();
         PicVideoCfg* pTmpCfg = mPicAllItemsList.at(iLen - 1);
         if (pTmpCfg) {
-            Log.d(TAG, "[%s: %d] Update Take picture Cutomer Json Command", __FILE__, __LINE__);
+            Log.d(TAG, "[%s: %d] Update  Cutomer Json Command", __FILE__, __LINE__);
             pTmpCfg->jsonCmd = pRoot;
         }        
     } else {
@@ -4528,12 +4655,28 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
                     //     Log.d(TAG, "[%s: %d] CONTROL_SET_CUSTOM video size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
                     //     mRes->size_per_act = 10;
                     // }
+                    Log.d(TAG, "[%s: %d] Save Take Video Templet", __FILE__, __LINE__);
+                    Log.d(TAG, "Templet args: %s", actionStr.c_str());
+
+                    Json::Value vidRoot;
+                    picRoot["name"] = "camera._startRecording";
+                    picRoot["parameters"] = actionJson;
+
+                    writeJson2File(TAKE_VID_TEMPLET_PATH, vidRoot);
                     break;
                 }
 
                 case ACTION_LIVE: {      /* 直播模式下的Customer */
                     // key = KEY_ALL_LIVE_DEF;
                     // fix_live_save_per_act(mRes.get());
+                    Log.d(TAG, "[%s: %d] Save Take Live Templet", __FILE__, __LINE__);
+                    Log.d(TAG, "Templet args: %s", actionStr.c_str());
+
+                    Json::Value liveRoot;
+                    picRoot["name"] = "camera._startLive";
+                    picRoot["parameters"] = actionJson;
+
+                    writeJson2File(TAKE_LIVE_TEMPLET_PATH, liveRoot);
                     break;
                 }
 
@@ -4949,6 +5092,15 @@ void MenuUI::calcRemainSpace(bool bUseCached)
 
 }
 
+int MenuUI::getOneGroupPicSize(Json::Value& picRoot)
+{
+    /* 
+     * 1.只存原片
+     * 2.原片加拼接(Raw, jpeg, raw+jpeg),一共有6种情况
+     */
+
+
+}
 
 /*
  * convSize2LeftNumTime - 转换剩余空间为可拍张数，可录时长
@@ -4986,6 +5138,7 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
                 } else {
 					/*
                      * 使能RAW和没有使能RAW
+                     * 实测下大概每中模式下一组照片的大小
                      */
                     item = getMenuSelectIndex(MENU_PIC_SET_DEF);
                     int iRawVal = mProCfg->get_val(KEY_RAW);
@@ -5116,24 +5269,6 @@ void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
     } else {
         snprintf(pStore, iLen, "%.1fG", info_G);
     }
-}
-
-
-
-bool MenuUI::check_save_path_usb()
-{
-    bool bRet = false;
-	
-    #if 0
-    Log.d(TAG, "mSavePathIndex is %d", mSavePathIndex);
-	
-    if (mSavePathIndex != -1 && (get_dev_type_index(mLocalStorageList.at(mSavePathIndex)->dev_type) == SET_STORAGE_USB)) {
-        bRet = true;
-    } else {
-        disp_msg_box(DISP_LIVE_REC_USB);
-    }
-    #endif
-    return bRet;
 }
 
 
@@ -6905,11 +7040,7 @@ bool MenuUI::checkStorageSatisfy(int action)
 
                 Log.d(TAG, "[%s: %d] Take Video Remain Info [%d]s", __FILE__, __LINE__, vm->getRecLeftSec());
 
-                #if 0
-                if (mRemainInfo->remain_hour > 0  || mRemainInfo->remain_min > 0 || mRemainInfo->remain_sec > 0) {
-                #else 
                 if (vm->getRecLeftSec() > 0) {
-                #endif
                     bRet = true;
                 } else {
                     Log.e(TAG, "[%s: %d] Disk is Full!!!", __FILE__, __LINE__);
@@ -6921,7 +7052,22 @@ bool MenuUI::checkStorageSatisfy(int action)
             break;
         }
 
-        case ACTION_LIVE: 
+        case ACTION_LIVE: {
+            if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {
+
+                Log.d(TAG, "[%s: %d] Take Live Recod Remain Info [%d]s", __FILE__, __LINE__, vm->getLiveRecLeftSec());
+
+                if (vm->getLiveRecLeftSec() > 0) {
+                    bRet = true;
+                } else {
+                    Log.e(TAG, "[%s: %d] Disk is Full!!!", __FILE__, __LINE__);
+                    disp_msg_box(DISP_DISK_FULL);
+                }                
+            } else {
+                bRet = false;   /* 卡不全时，不进入检查测速流程 */
+            }
+            break;            
+        }
         default: {
             bRet = true;
             break;
@@ -8706,7 +8852,7 @@ int MenuUI::oled_disp_type(int type)
 
 
 /************************************ 拍照相关 START **********************************************/	
-        case CAPTURE:
+        case CAPTURE: {
 
             if (check_allow_pic()) {
                 /* mControlAct不为NULL,有两种情况 
@@ -8744,6 +8890,7 @@ int MenuUI::oled_disp_type(int type)
                 send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ);
             }
             break;
+        }
 
 			
         case CAPTURE_SUC: {
@@ -8777,12 +8924,13 @@ int MenuUI::oled_disp_type(int type)
             break;
         }
 			
-        case CAPTURE_FAIL:  /*  */
+        case CAPTURE_FAIL: { /*  */
             if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
                 rm_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
                 disp_sys_err(type);
             }
             break;
+        }
 
 /************************************ 拍照相关 END **********************************************/
 
@@ -8790,29 +8938,31 @@ int MenuUI::oled_disp_type(int type)
 
 
 /************************************ 直播相关 START ACTION_INFO**********************************************/	
-        case STRAT_LIVING:
+        case STRAT_LIVING: {
             add_state(STATE_START_LIVING);
             break;
+        }
 		
-        case START_LIVE_SUC:
-            //avoid conflict with http req
+        case START_LIVE_SUC: {
             if (!check_state_in(STATE_LIVE)) {
-                tl_count = -1;
+                vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
                 set_update_mid();
                 add_state(STATE_LIVE);
                 setCurMenu(MENU_LIVE_INFO);
             } else {
-                Log.e(TAG,"start live suc error state 0x%x",cam_state);
+                Log.e(TAG, "start live suc error state 0x%x", cam_state);
             }
             break;
+        }
 			
-        case START_LIVE_CONNECTING:
+        case START_LIVE_CONNECTING: {
             if (!check_state_in(STATE_LIVE_CONNECTING)) {
                 add_state(STATE_LIVE_CONNECTING);
                 setCurMenu(MENU_LIVE_INFO);
             }
-            Log.d(TAG,"live connect 0x%x",cam_state);
+            Log.d(TAG, "live connect 0x%x", cam_state);
             break;
+        }
 			
         case START_LIVE_FAIL:
             rm_state(STATE_START_LIVING);
@@ -8823,7 +8973,7 @@ int MenuUI::oled_disp_type(int type)
             add_state(STATE_STOP_LIVING);
             break;
 		
-        case STOP_LIVE_SUC:
+        case STOP_LIVE_SUC: {
             if (check_live()) {
                 minus_cam_state(STATE_LIVE|STATE_STOP_LIVING|STATE_LIVE_CONNECTING);
                 if (mControlAct != nullptr) {
@@ -8836,15 +8986,18 @@ int MenuUI::oled_disp_type(int type)
                 }
             }
             break;
+        }
 			
-        case STOP_LIVE_FAIL:
+        case STOP_LIVE_FAIL: {
             rm_state(STATE_STOP_LIVING | STATE_LIVE | STATE_LIVE_CONNECTING);
             disp_sys_err(type);
             break;
+        }
+
 
 /************************************ 直播相关 END **********************************************/
 			
-        case PIC_ORG_FINISH:
+        case PIC_ORG_FINISH: {
             if (!check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS)) {
                 Log.e(TAG, "pic org finish error state 0x%x", cam_state);
             } else {
@@ -8855,6 +9008,7 @@ int MenuUI::oled_disp_type(int type)
                 }
             }
             break;
+        }
 			
         case START_FORCE_IDLE:
             oled_reset_disp(START_FORCE_IDLE);
@@ -8884,9 +9038,10 @@ int MenuUI::oled_disp_type(int type)
 
 /*********************************  预览相关状态 START ********************************************/
 
-        case START_PREVIEWING:
+        case START_PREVIEWING: {
             add_state(STATE_START_PREVIEWING);
             break;
+        }
 
         /*
          * - 客户端发送的预览成功，都应该进入MENU_PIC_INFO菜单
@@ -9053,7 +9208,7 @@ int MenuUI::oled_disp_type(int type)
             break;
         }
 			
-        case SYNC_LIVE_AND_PREVIEW:
+        case SYNC_LIVE_AND_PREVIEW: {
 
             Log.d(TAG, "SYNC_LIVE_AND_PREVIEW for state 0x%x", cam_state);
 
@@ -9067,35 +9222,41 @@ int MenuUI::oled_disp_type(int type)
                 Log.d(TAG," set_update_mid b");
             }
             break;
+        }
 			
-        case SYNC_LIVE_CONNECT_AND_PREVIEW:
+        case SYNC_LIVE_CONNECT_AND_PREVIEW: {
             if (!check_state_in(STATE_LIVE_CONNECTING)) {
                 cam_state = STATE_PREVIEW;
                 add_state(STATE_LIVE_CONNECTING);
                 setCurMenu(MENU_LIVE_INFO);
             }
             break;
+        }
 			
-        case START_QRING:
+        case START_QRING: {
             add_state(STATE_START_QRING);
             break;
+        }
 		
-        case START_QR_SUC:
+        case START_QR_SUC: {
             if (!check_state_in(STATE_START_QR)) {
                 add_state(STATE_START_QR);
             }
             break;
+        }
 			
-        case START_QR_FAIL:
+        case START_QR_FAIL: {
             rm_state(STATE_START_QRING);
             Log.d(TAG, "cur menu %d back menu %d",
                   cur_menu, get_back_menu(cur_menu));
             disp_sys_err(type, get_back_menu(cur_menu));
             break;
+        }
 			
-        case STOP_QRING:
+        case STOP_QRING: {
             add_state(STATE_STOP_QRING);
             break;
+        }
 		
         case STOP_QR_SUC:
             rm_state(STATE_STOP_QRING);
@@ -10160,6 +10321,8 @@ void MenuUI::handleUpdateMid()
                         dispBottomLeftSpace();      /* 显示剩余时长 */
                         send_option_to_fifo(ACTION_UPDATE_REC_LEFT_SEC);
                     }
+                } else {
+                    /* TODO: 发送停止录像的消息 */
                 }
             }
         }
@@ -10169,8 +10332,11 @@ void MenuUI::handleUpdateMid()
         send_update_mid_msg(INTERVAL_1HZ);
         if (!check_state_in(STATE_STOP_LIVING)) {   /* 非停止直播状态 */
             increase_rec_time();
+            vm->incOrClearLiveRecSec();     /* 增加直播录像的时间(直播时间) */
             if (cur_menu == MENU_LIVE_INFO) {
-                disp_mid();
+                // disp_mid();
+                dispBottomLeftSpace();      /* 显示剩余时长 */
+                send_option_to_fifo(ACTION_UPDATE_REC_LEFT_SEC);
             }
         }
         flick_light();
