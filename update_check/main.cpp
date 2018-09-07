@@ -609,7 +609,7 @@ int main(int argc, char **argv)
 				Log.e(TAG, "[%s: %d] stat file prop failed", __FILE__, __LINE__);
 				goto err_stat;
 			} else {
-				if (S_ISREG(fileStat.st_mode)) {
+				if (S_ISREG(fileStat.st_mode) && (fileStat.st_size > 0)) {
 					Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
 
 					string dstUpdateFilePath;

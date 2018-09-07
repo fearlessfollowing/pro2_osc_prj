@@ -42,6 +42,9 @@ take_pic_burst.json
 take_pic_customer.json
 {"name": "camera._takePicture", "parameters": {"delay": 0, "origin": {"mime": "jpeg", "saveOrigin": true, "width": 4000, "height": 3000, "storage_loc": 0}, "stiching": {"mode": "3d_top_left", "height": 7680, "width": 7680, "mime": "jpeg", "algorithm": "opticalFlow"}}} 
 
+8k_30f_3d
+{"name":"camera._startRecording","parameters":{"origin":{"mime":"h264","framerate":30,"bitrate":120000,"saveOrigin":true,"width":3840,"height":2880,"storage_loc":1}}}
+
 #endif
 
 /************************************

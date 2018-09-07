@@ -804,17 +804,18 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             rootNode["parameters"] = *pTakePicJson;
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Pic: %s", sendDataStr.c_str());
-
             break;
         }
 
 
         case ACTION_VIDEO: {
-            Json::Value* pTakeVideoJson;
+            Json::Value* pTakeVideoJson = NULL;
             CHECK_EQ(msg->find<Json::Value*>("take_video", &pTakeVideoJson), true);
 
             rootNode["action"] = ACTION_VIDEO;
-            rootNode["parameters"] = *pTakeVideoJson;
+            if (pTakeVideoJson) {
+                rootNode["parameters"] = *pTakeVideoJson;
+            }
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Video: %s", sendDataStr.c_str());
 
@@ -822,11 +823,13 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         }
 
         case ACTION_LIVE: {
-            Json::Value* pTakeLiveJson;
-            CHECK_EQ(msg->find<Json::Value*>("take_video", &pTakeLiveJson), true);
+            Json::Value* pTakeLiveJson = NULL;
+            CHECK_EQ(msg->find<Json::Value*>("take_live", &pTakeLiveJson), true);
 
             rootNode["action"] = ACTION_LIVE;
-            rootNode["parameters"] = *pTakeLiveJson;
+            if (pTakeLiveJson) {
+                rootNode["parameters"] = *pTakeLiveJson;
+            }
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Live: %s", sendDataStr.c_str());
             break;
@@ -842,8 +845,8 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             Json::Value root;
             CHECK_EQ(msg->find<Json::Value*>("set_customer_param", &pSetCustomerArg), true);
 
-            rootNode["action"] = ACTION_PIC;
-            rootNode["parameters"] = (*pSetCustomerArg)["properties"];
+            rootNode["action"] = ACTION_CUSTOM_PARAM;
+            rootNode["parameters"] = (*pSetCustomerArg)["parameters"]["properties"];
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Set customer param: %s", sendDataStr.c_str());
@@ -875,7 +878,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             paramNode["p_v"] = mReqSync->p_v;
             paramNode["k_v"] = mReqSync->k_v;
             rootNode["action"] = ACTION_REQ_SYNC;
-            rootNode["parameters"] = *pTakePicJson;
+            rootNode["parameters"] = paramNode;
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Req Sync: %s", sendDataStr.c_str());
@@ -910,7 +913,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 
             paramNode["path"] = path;
             rootNode["action"] = ACTION_SPEED_TEST;
-            rootNode["parameters"] = paramNode
+            rootNode["parameters"] = paramNode;
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Speed test: %s", sendDataStr.c_str());
@@ -918,13 +921,14 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         }
 
         /* {"action": ACTION_NOISE} */
+        case ACTION_PREVIEW:
         case ACTION_NOISE: 
         case ACTION_GYRO:
         case ACTION_AGEING:
         case ACTION_QUIT_UDISK_MODE:
         case ACTION_QUERY_STORAGE: 
         case ACTION_SET_STICH: 
-        case case ACTION_POWER_OFF: {
+        case ACTION_POWER_OFF: {
             rootNode["action"] = action;
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action %s: %s", getActionName(action), sendDataStr.c_str());           
@@ -934,7 +938,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         case ACTION_AWB: {       
             paramNode["name"] = "camera._calibrationAwb";
             rootNode["action"] = ACTION_AWB;
-            rootNode["parameters"] = paramNode
+            rootNode["parameters"] = paramNode;
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action AWB: %s", sendDataStr.c_str());
@@ -1211,7 +1215,7 @@ void fifo::handleUiNotify(const sp<ARMessage> &msg)
             sendDataStr = writer.write(rootNode);
 
             Log.d(TAG, "-------- FIFO RECV UPDATE_BAT");
-            write_fifo(EVENT_BATTERY, pSrt);
+            write_fifo(EVENT_BATTERY, sendDataStr.c_str());
 			break;
         }
 
@@ -2291,7 +2295,7 @@ void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
     Json::FastWriter writer;
     string data = writer.write(jsonData);
 
-    Log.d(TAG, "[%s: %d] ---->>>> Recv Message type[%s], data[%s]", __FILE__, __LINE__,
+    Log.d(TAG, "[%s: %d] =============>> Recv Message type[%s], data[%s]", __FILE__, __LINE__,
                 getRecvMsgName(iMsgType), data.c_str());
 
     switch (iMsgType) {
@@ -2643,9 +2647,6 @@ void fifo::read_fifo_thread()
 		                Log.e(TAG, "[%s: %d] bad json format!", __FILE__, __LINE__);
 		                continue;
 	                }
-
-                    string jsonstr = writer.write(rootJson);
-                    Log.d(TAG, "=============>> [Recv Message]: %s", jsonstr.c_str());
 
 #if 1
                     parseAndDispatchRecMsg(msg_what, rootJson);

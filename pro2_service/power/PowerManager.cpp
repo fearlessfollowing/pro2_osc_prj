@@ -75,7 +75,8 @@ static void powerModule(int iOnOff)
 	const char* pFirstPwrOn = NULL;
 
 	switch (iOnOff) {
-	case CMD_POWER_ON:
+
+	case CMD_POWER_ON: {
 
 		/* 1.设置时钟 */
 		system("nvpmodel -m 0");
@@ -155,60 +156,67 @@ static void powerModule(int iOnOff)
 		mI2CLight->i2c_write_byte(0x3, module2_val);
 
 		break;
+	}
 
-	case CMD_POWER_OFF:
-	
-		system("nvpmodel -m 1");
-		system("jetson_clocks.sh");
-	
-		if (mI2CLight->i2c_read(0x2, &module1_val) == 0) {
+	case CMD_POWER_OFF: {
+		const char* pPowerOnFlag = NULL;
+
+		pPowerOnFlag = property_get(PROP_SYS_MODULE_ON);
+
+		if ((NULL == pPowerOnFlag) || !strcmp(pPowerOnFlag, "false")) {
+			system("nvpmodel -m 1");
+			system("jetson_clocks.sh");
 		
-			module1_val &= ~(1 << 6);
-			mI2CLight->i2c_write_byte(0x2, module1_val);
-						
-			module1_val &= ~(1 << 7);
-			mI2CLight->i2c_write_byte(0x2, module1_val);
-		
-		} else {
-			fprintf(stderr, "powerModule: i2c_read 0x2 error....\n");
-		}
-
-		if (mI2CLight->i2c_read(0x3, &module2_val) == 0) {
-		
-			module2_val &= ~(1 << 0);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
-
-
-			module2_val &= ~(1 << 1);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
+			if (mI2CLight->i2c_read(0x2, &module1_val) == 0) {
 			
-			module2_val &= ~(1 << 2);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
+				module1_val &= ~(1 << 6);
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+							
+				module1_val &= ~(1 << 7);
+				mI2CLight->i2c_write_byte(0x2, module1_val);
 			
-			module2_val &= ~(1 << 3);
-			mI2CLight->i2c_write_byte(0x3, module2_val);
+			} else {
+				fprintf(stderr, "powerModule: i2c_read 0x2 error....\n");
+			}
 
-			msg_util::sleep_ms(iCamResetInterval * 2);
+			if (mI2CLight->i2c_read(0x3, &module2_val) == 0) {
+			
+				module2_val &= ~(1 << 0);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
 
-		} else {
-			fprintf(stderr, "powerModule: i2c_read 0x3 error....\n");
+
+				module2_val &= ~(1 << 1);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				
+				module2_val &= ~(1 << 2);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				
+				module2_val &= ~(1 << 3);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+
+				msg_util::sleep_ms(iCamResetInterval * 2);
+
+			} else {
+				fprintf(stderr, "powerModule: i2c_read 0x3 error....\n");
+			}
+
+			system("echo 1 > /sys/class/gpio/gpio457/value");
+			system("echo in > /sys/class/gpio/gpio457/direction");
+			msg_util::sleep_ms(iHubResetInterval);
+			system("echo out > /sys/class/gpio/gpio457/direction");
+			system("echo 0 > /sys/class/gpio/gpio457/value");
+
+			msg_util::sleep_ms(iHubResetInterval);
+
+			system("echo 1 > /sys/class/gpio/gpio461/value");
+			system("echo in > /sys/class/gpio/gpio461/direction");
+			msg_util::sleep_ms(iHubResetInterval);
+			system("echo out > /sys/class/gpio/gpio461/direction");
+			system("echo 0 > /sys/class/gpio/gpio461/value");
+
 		}
-
-		system("echo 1 > /sys/class/gpio/gpio457/value");
-		system("echo in > /sys/class/gpio/gpio457/direction");
-		msg_util::sleep_ms(iHubResetInterval);
-		system("echo out > /sys/class/gpio/gpio457/direction");
-		system("echo 0 > /sys/class/gpio/gpio457/value");
-
-		msg_util::sleep_ms(iHubResetInterval);
-
-		system("echo 1 > /sys/class/gpio/gpio461/value");
-		system("echo in > /sys/class/gpio/gpio461/direction");
-		msg_util::sleep_ms(iHubResetInterval);
-		system("echo out > /sys/class/gpio/gpio461/direction");
-		system("echo 0 > /sys/class/gpio/gpio461/value");
-
 		break;
+	}
 
 	default:
 		break;
@@ -222,7 +230,6 @@ static void powerModule(int iOnOff)
  */
 int main(int argc, char* argv[])
 {
-
 	int iRet = -1;
 
 	if (argc < 2) {

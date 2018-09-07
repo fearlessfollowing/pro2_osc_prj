@@ -173,7 +173,7 @@ VolumeManager::VolumeManager()
     /*
      * 重新初始化挂载点
      */
-    property_set(PROP_RO_MOUNT_TF, "true");     /* 只读的方式挂载TF卡 */    
+    // property_set(PROP_RO_MOUNT_TF, "true");     /* 只读的方式挂载TF卡 */    
 
     umount2("/mnt/mSD1", MNT_FORCE);
     umount2("/mnt/mSD2", MNT_FORCE);
@@ -347,6 +347,7 @@ void VolumeManager::enterUdiskMode()
     
     checkAllUdiskIdle();
 
+    system("echo 0 > /sys/class/gpio/gpio478/value");   /* gpio456 = 1 */
     system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio456 = 1 */
     system("power_manager power_on");
 
@@ -431,14 +432,16 @@ void VolumeManager::setLiveRecLeftSec(u64 leftSecs)
 /*
  * decRecLefSec - 剩余可录像时长减1
  */
-void VolumeManager::decLiveRecLeftSec()
+bool VolumeManager::decLiveRecLeftSec()
 {
     AutoMutex _l(gLiveRecLeftMutex);
     if (mLiveRecLeftSec > 0) {
-        mLiveRecLeftSec--;    
+        mLiveRecLeftSec--;   
+        return true; 
     } else {
         Log.d(TAG, "[%s: %d] Warnning Live Record Left sec is 0", __FILE__, __LINE__);
     }
+    return false;
 }
 
 
@@ -547,6 +550,7 @@ void VolumeManager::exitUdiskMode()
     
     mHandledRemoveUdiskVolCnt = 0;
 
+#if 1
     /* 处理TF卡的移除 */
     {
         unique_lock<mutex> lock(mRemoteDevLock);
@@ -571,12 +575,15 @@ void VolumeManager::exitUdiskMode()
             }
         }
     }
-
-    msg_util::sleep_ms(1000);
-
-    system("power_manager power_off");    
+#endif
+  
     system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
-    
+    system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
+
+    msg_util::sleep_ms(1000 * 3);
+
+    system("power_manager power_off");  
+
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_NORMAL);
 }
 
@@ -608,8 +615,10 @@ void VolumeManager::runFileMonitorListener()
 
     Log.d(TAG, "[%s: %d] Add Listener object /mnt", __FILE__, __LINE__);
 
+    int iTimes = 0;
     while (true) {
 
+        #ifndef USB_UDISK_AUTO_RAUN
         fd_set read_fds;
         int rc = 0;
         int max = -1;
@@ -676,6 +685,17 @@ void VolumeManager::runFileMonitorListener()
                 readCount -= sizeof(inotifyEvent);
             }
         }
+        #else 
+            Log.d(TAG, "[%s: %d] Enter Udisk, times = %d", __FILE__, __LINE__, ++iTimes);
+            enterUdiskMode();
+            msg_util::sleep_ms(20* 1000);
+            
+            Log.d(TAG, "[%s: %d] Exit Udisk, times = %d", __FILE__, __LINE__, iTimes);
+            exitUdiskMode();
+            msg_util::sleep_ms(5* 1000);
+
+        #endif
+
     }
 }
 
@@ -1708,7 +1728,7 @@ int VolumeManager::mountVolume(Volume* pVol)
     #else
 
     int status;
-    if (!strcmp("true", property_get(PROP_RO_MOUNT_TF)) && volumeIsTfCard(pVol)) {
+    if (property_get(PROP_RO_MOUNT_TF) && volumeIsTfCard(pVol)) {
         const char *args[5];
         args[0] = "/bin/mount";
         args[1] = "-o";

@@ -188,7 +188,7 @@ enum {
     STATE_STOP_LIVING               = 0x200,				/* 正在停止直播状态 */
 
 	STATE_QUERY_STORAGE             = 0x400,				/* 查询容量状态 */
-	STATE_UDISK                     = 0x800,
+	STATE_UDISK                     = 0x800,                /* U盘状态 */
 
     STATE_CALIBRATING               = 0x1000,				/* 正在校验状态 */
     STATE_START_PREVIEWING          = 0x2000,				/* 正在启动预览状态 */
@@ -207,14 +207,9 @@ enum {
     STATE_FORMAT_OVER               = 0x4000000,
 
     STATE_BLC_CALIBRATE             = 0x10000000,
-//    STATE_CAP_FINISHING           = 0x1000000,
-//    STATE_LIVE_FINISHING          = 0x2000000,
-//    STATE_REC_FINISHING           = 0x4000000,
-//    STATE_CAL_FINISHING           = 0x8000000,
-//    STATE_SYS_ERR                 = 0x8000002
 	STATE_PLAY_SOUND                = 0x20000000,
 
-
+    STATE_DELETE_FILE               = 0x100000000,
 };
 
 
@@ -379,6 +374,16 @@ enum {
 };
 
 
+enum {
+    LIVE_SAVE_NONE,
+    LIVE_SAVE_ORIGIN,
+    LIVE_SAVE_STICH,
+    LIVE_SAVE_ORIGIN_STICH,
+    LIVE_SAVE_MAX
+};
+
+
+
 struct _icon_info_;
 struct _lr_menu_;
 struct _r_menu_;
@@ -478,18 +483,20 @@ private:
 
     bool menuHasStatusbar(int menu);
 
-    void disp_waiting();
-    void disp_connecting();
-    void disp_saving();
-    void disp_ready_icon(bool bDispReady = true);
-    void disp_live_ready();
-    void clear_ready();
-    void disp_shooting();
-    void disp_processing();
-    bool check_state_preview();
-    bool check_state_equal(int state);
-    bool check_state_in(int state);
-    bool check_live();
+    void    dispFormatSd();
+
+    void    disp_waiting();
+    void    disp_connecting();
+    void    disp_saving();
+    void    disp_ready_icon(bool bDispReady = true);
+    void    disp_live_ready();
+    void    clear_ready();
+    void    disp_shooting();
+    void    disp_processing();
+    bool    check_state_preview();
+    bool    check_state_equal(int state);
+    bool    check_state_in(int state);
+    bool    check_live();
 
     void    update_menu_page();
 
@@ -585,18 +592,19 @@ private:
     void    stop_update_bottom_thread();
     void    stop_bat_thread();
 
-    void    add_state(int state);
+    void    add_state(u64 state);
     void    update_by_controller(int action);
-    void    minus_cam_state(int state);
+    void    minus_cam_state(u64 state);
     void    disp_tl_count(int count);
     void    set_tl_count(int count);
-    void    rm_state(int state);
+    void    rm_state(u64 state);
 
     void    update_sys_info();
     void    restore_all();
 
     void    set_cur_menu_from_exit();
-    
+
+    void    disp_org_rts(Json::Value& jsonCmd, int hdmi);
 	
     void    exit_sys_err();
 
@@ -651,7 +659,10 @@ private:
 
 
     void    writeJson2File(const char* filePath, Json::Value& jsonRoot);
+    int     check_live_save(Json::Value* liveJson);
+    bool    sendRpc(int option, int cmd = -1, Json::Value* pNodeArg = NULL);
 
+    void    printJsonCfg(Json::Value& json);
 
 /******************************************************************************************************
  * 模式类
@@ -886,7 +897,7 @@ private:
     bool                        bSendUpdateMid = false;
     sp<ARMessage>               mNotify;
 	
-    int                         cam_state = 0;
+    u64                         mCamState = 0;
 
     int                         cur_menu = -1;
     int                         iLastEnterMenu;
@@ -896,6 +907,17 @@ private:
 	
 //option which power key react ,changed by both oled key and ws
     int                         cur_option = 0;
+
+    Json::Value                 mControlPicJsonCmd;         /* 客户端请求的拍照JsonCmd */
+    bool                        mClientTakePicUpdate;
+
+    Json::Value                 mControlVideoJsonCmd;         /* 客户端请求的拍照JsonCmd */
+    bool                        mClientTakeVideoUpdate;
+
+
+    Json::Value                 mControlLiveJsonCmd;         /* 客户端请求的拍照JsonCmd */
+    bool                        mClientTakeLiveUpdate;
+
 
 	//normally changed by up/down/power key in panel
     int                         org_option = 0;
@@ -1003,6 +1025,11 @@ private:
     int                         mWhoReqSpeedTest = UI_REQ_TESTSPEED;
     int                         mWhoReqEnterPrew = APP_REQ_PREVIEW;             /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
     int                         mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
+
+    sp<Json::Value>             mCurTakePicJson;
+    sp<Json::Value>             mCurTakeVidJson;
+    sp<Json::Value>             mCurTakeLiveJson;
+
 
 	/*
 	 * 菜单管理相关 MENU_INFO stPicVideoCfg

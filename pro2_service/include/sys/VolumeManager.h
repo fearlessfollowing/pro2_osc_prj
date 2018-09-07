@@ -473,7 +473,7 @@ public:
     void        incOrClearLiveRecSec(bool bClrFlg = false);
 
     void        setLiveRecLeftSec(u64 leftSecs);
-    void        decLiveRecLeftSec();
+    bool        decLiveRecLeftSec();
     u64         getLiveRecLeftSec();
 
     /*

@@ -87,6 +87,7 @@
 #define PROP_SYS_DEV_DISK8			"sys.disk8"
 #define PROP_SYS_DEV_DISK9			"sys.disk9"
 
+#define PROP_SYS_MODULE_ON          "sys.module_on"
 
 #define PROP_SYS_FILE_LIST_ROOT     "sys.list_root"
 
@@ -176,7 +177,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
  */
 
 #define TAKE_LIVE_MODE_4K_30F            "live_4k_30f"
-#define TAKE_LIVE_MODE_4K_30F_HDMI       "live_4k_30f"
+#define TAKE_LIVE_MODE_4K_30F_HDMI       "live_4k_30f_hdmi"
 #define TAKE_LIVE_MODE_4K_30F_3D         "live_4k_3d"
 #define TAKE_LIVE_MODE_4K_30F_3D_HDMI    "live_4k_3d_hdmi"
 #define TAKE_LIVE_MODE_CUSTOMER          "live_customer"
