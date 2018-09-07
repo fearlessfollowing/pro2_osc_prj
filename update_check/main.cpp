@@ -14,6 +14,8 @@
 ** V2.4			skymixos	2018年5月26日			增多通过属性系统配置等待延时
 ** V2.5			skymixos	2018年6月9日			将涉及的属性名统一移动到/include/prop_cfg.h中，便于管理
 ** V2.6			skymixos	2018年7月27日			提取update_app.zip到/tmp目录下
+** V3.0			skymixos	2018年9月8日			将提取pro2_update.zip及解压pro2_update.zip的任务
+***													交由update_check处理
 ***************************************************************************************************/
 
 
@@ -78,13 +80,43 @@ using namespace std;
 #define UPDATE_APP_ZIP 			"update_app.zip"
 #define UPDATE_APP_DEST_PATH	"/usr/local/bin"
 
+#define UPDATE_DEST_BASE_DIR	"/mnt/update/"
+
+/*
+ * 1.拷贝升级文件到/mnt/update/Insta360_Pro2_Update.bin
+ * 2.提取update_app.zip到/mnt/update/update_app.zip
+ * 3.解压/mnt/update/update_app.zip到/usr/local/bin/update_app
+ * 4.提取并解压pro2_update.zip到/mnt/update/
+ * 	 pro2_update.zip  pro2_update
+ * 5.退出，把执行权交给其他进程
+ */
 #define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
 #define UPDATE_IMG_DEST_PATH	"/tmp"
 
-#define UPDAE_CHECK_VER		"V3.0"
+#define UPDAE_CHECK_VER			"V3.0"
 
 
 extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
+
+
+enum {
+	ERROR_SUCCESS = 0,
+	ERROR_MD5_CHECK = -1,
+	ERROR_OPEN_UPDATE_FILE = -2,
+	ERROR_READ_LEN = -3,
+	ERROR_KEY_MISMATCH = -4,
+	ERROR_LOW_VERSION = -5,
+	ERROR_GET_UPDATE_APP_ZIP = -6,
+	ERROR_UNZIP_UPDATE_APP = -7,
+	ERROR_GET_PRO2_UPDAET_ZIP = -8,
+	ERROR_UNZIP_PRO2_UPDATE = -9,
+	
+};
+
+static u32 iPro2UpdateOffset = 0;
+#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
+#define PRO_UPDATE_ZIP	"pro2_update.zip"
+
 
 static const char *get_key()
 {
@@ -295,24 +327,6 @@ static int copyUpdateFile2Memory(const char* dstFile, const char* srcFile)
 }
 
 
-enum {
-	ERROR_SUCCESS = 0,
-	ERROR_MD5_CHECK = -1,
-	ERROR_OPEN_UPDATE_FILE = -2,
-	ERROR_READ_LEN = -3,
-	ERROR_KEY_MISMATCH = -4,
-	ERROR_LOW_VERSION = -5,
-	ERROR_GET_UPDATE_APP_ZIP = -6,
-	ERROR_UNZIP_UPDATE_APP = -7,
-	ERROR_GET_PRO2_UPDAET_ZIP = -8,
-	ERROR_UNZIP_PRO2_UPDATE = -9,
-	
-};
-
-static u32 iPro2UpdateOffset = 0;
-#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
-#define PRO_UPDATE_ZIP	"pro2_update.zip"
-
 #if 0
 /*************************************************************************
 ** 方法名称: check_header_match
@@ -338,6 +352,7 @@ static bool check_header_match(UPDATE_HEADER * pstTmp)
     return bRet;
 }
 #endif
+
 
 static int getPro2UpdatePackage(FILE* fp, u32 offset)
 {
@@ -381,13 +396,13 @@ static int getPro2UpdatePackage(FILE* fp, u32 offset)
 
 
 	int iPro2updateZipLen = bytes_to_int(gstHeader.len);
-	string pro2UpdatePath = TMP_UNZIP_PATH;
+	string pro2UpdatePath = UPDATE_DEST_BASE_DIR;
 	pro2UpdatePath += PRO_UPDATE_ZIP;
 	const char* pPro2UpdatePackagePath = pro2UpdatePath.c_str();
 
 	/* 提取升级压缩包:    pro2_update.zip */
 	if (gen_file(pPro2UpdatePackagePath, iPro2updateZipLen, fp)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
-		if (tar_zip(pPro2UpdatePackagePath, TMP_UNZIP_PATH) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
+		if (tar_zip(pPro2UpdatePackagePath, UPDATE_DEST_BASE_DIR) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
 			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, TMP_UNZIP_PATH);
 			return ERROR_SUCCESS;
 		} else {
@@ -398,7 +413,6 @@ static int getPro2UpdatePackage(FILE* fp, u32 offset)
 		Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
 		return ERROR_GET_PRO2_UPDAET_ZIP;
 	}	
-
 }
 
 
@@ -485,8 +499,9 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
     }
 	iPro2UpdateOffset += uReadLen;	/* UPDATE_APP_CONTENT_LEN */
 
+	/* /mnt/update/update_app.zip */
 	int iUpdateAppLen = bytes_to_int(buf);
-	string updateAppPathName = "/tmp";
+	string updateAppPathName = UPDATE_DEST_BASE_DIR;
 	updateAppPathName += UPDATE_APP_ZIP;
 	const char* pUpdateAppPathName = updateAppPathName.c_str();
 
@@ -494,9 +509,10 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 
 	Log.d(TAG, "[%s: %d] update_app.zip full path: %s", pUpdateAppPathName);
 	
+	/* 提取/mnt/update/update_app.zip */
     if (gen_file(pUpdateAppPathName, iUpdateAppLen, fp)) {
 		
-		/* 将update_app直接解压到/usr/local/bin/目录下 */
+		/* 将/mnt/update/update_app.zip直接解压到/usr/local/bin/目录下 */
         if (tar_zip(pUpdateAppPathName, UPDATE_APP_DEST_PATH) == 0) {	/* 直接将其解压到/usr/local/bin目录下 */
 			Log.d(TAG, "[%s: %d] unzip update_app to [%s] Success", __FILE__, __LINE__, UPDATE_APP_DEST_PATH);
 			
@@ -578,6 +594,7 @@ int main(int argc, char **argv)
         vm->start();
     }
 
+
 	/** 读取系统的固件版本并写入到属性系统中 */
 	setLastFirmVer2Prop(VER_FULL_PATH);
 
@@ -609,6 +626,8 @@ int main(int argc, char **argv)
 				Log.e(TAG, "[%s: %d] stat file prop failed", __FILE__, __LINE__);
 				goto err_stat;
 			} else {
+
+				/* 对于值为0的常规文件会直接删除 */
 				if (S_ISREG(fileStat.st_mode) && (fileStat.st_size > 0)) {
 					Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
 
@@ -617,19 +636,19 @@ int main(int argc, char **argv)
 					if (pImgDstPath) {
 						dstUpdateFilePath = pImgDstPath;
 					} else {
-						dstUpdateFilePath = "/mnt/tmp";
+						dstUpdateFilePath = UPDATE_DEST_BASE_DIR;
 					}
+
 					if (access(dstUpdateFilePath.c_str(), F_OK) != 0) {
 						mkdir(dstUpdateFilePath.c_str(), 0766);
 					}
 
-					dstUpdateFilePath += "/";
 					dstUpdateFilePath += UPDATE_IMAGE_FILE;
 					const char* pDstUpdateFilePath = dstUpdateFilePath.c_str();
 					
 					int i, iError = 0;
 					for (i = 0; i < 3; i++) {
-						/* 拷贝升级文件到/tmp */
+						/* 拷贝升级文件到/mnt/update */
 						copyUpdateFile2Memory(pDstUpdateFilePath, pUpdateFilePathName);		
 
 						iError = getUpdateAppAndPro2update(pDstUpdateFilePath);
@@ -646,12 +665,14 @@ int main(int argc, char **argv)
 							Log.d(TAG, "[%s: %d] Enter the real update program", __FILE__, __LINE__);
 							arlog_close();	
 							return 0;
+
 						} else {	/* 直接启动APP */
 							Log.d(TAG, "[%s: %d] Skip this version, start app now...", __FILE__, __LINE__);
 							goto err_low_ver;
 						}
 					} else {
 						Log.e(TAG, "[%s: %d] Parse update file Failed", __FILE__, __LINE__);
+
 						int iType;
 						arlog_close();	
 
