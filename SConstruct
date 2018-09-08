@@ -29,37 +29,39 @@ com_env.Append(CXXCOMSTR ='CXX <=========================================== $SOU
 Export('com_env')
 
 ############################# Monitor ######################################
-monitor_obj = SConscript('./init/SConscript')
+#monitor_obj = SConscript('./init/SConscript')
 
-MONITOR_EXE = 'out/monitor'
-MONITOR_OBJS = monitor_obj
-com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
+#MONITOR_EXE = 'out/monitor'
+#MONITOR_OBJS = monitor_obj
+#com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
 
 
 ############################## VOLD #########################################
-vold_obj = SConscript('./vold/SConscript')
-com_env.Program('out/vold_test', vold_obj)
+#vold_obj = SConscript('./vold/SConscript')
+#com_env.Program('out/vold_test', vold_obj)
 
 
 
 ############################ update_check ##################################
+update_check_obj = SConscript('./update_check/SConscript')
+com_env.Program('out/update_check', update_check_obj)
 
 
 ############################ update_app ####################################
-#update_check_obj = SConscript('./update_check/SConscript')
-#com_env.Program('out/update_check', update_check_obj)
+update_app_obj = SConscript('./update_app/SConscript')
+com_env.Program('out/update_app', update_app_obj)
 
 	
 
 ############################ bootanimation ##################################
-bootan_obj = SConscript('./bootlogo/SConscript')
-com_env.Program('out/bootanimation', bootan_obj)
+#bootan_obj = SConscript('./bootlogo/SConscript')
+#com_env.Program('out/bootanimation', bootan_obj)
 
 
 ############################ power_manager ##################################
 
-power_obj = SConscript('./pro2_service/power/SConscript')
-com_env.Program('./out/power_manager', power_obj)
+#power_obj = SConscript('./pro2_service/power/SConscript')
+#com_env.Program('./out/power_manager', power_obj)
 
 
 ############################ pro2_service ##################################
@@ -67,8 +69,8 @@ com_env.Program('./out/power_manager', power_obj)
 #pro2_service_env = com_env.Clone()
 
 #Export('pro2_service_env')
-pro2_service_obj = SConscript('./pro2_service/SConscript')
-com_env.Program('./out/pro2_service', pro2_service_obj)
+#pro2_service_obj = SConscript('./pro2_service/SConscript')
+#com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
 ############################ update_app ##################################
@@ -86,12 +88,12 @@ com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
 ############################ time_tz ##################################
-time_tz_obj = SConscript('./time_tz/SConscript')
-com_env.Program('./out/time_tz', time_tz_obj)
+#time_tz_obj = SConscript('./time_tz/SConscript')
+#com_env.Program('./out/time_tz', time_tz_obj)
 
 
 ############################ kern_log ##################################
-kern_log_obj = SConscript('./kern_log/SConscript')
-com_env.Program('./out/kern_log', kern_log_obj)
+#kern_log_obj = SConscript('./kern_log/SConscript')
+#com_env.Program('./out/kern_log', kern_log_obj)
 
 

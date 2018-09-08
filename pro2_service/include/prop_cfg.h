@@ -51,6 +51,8 @@
 
 #define PROP_SYS_UPDATE_IMG_PATH	"update_image_path"
 
+#define PROP_SYS_UPDTATE_DIR        "sys.update_dir"
+
 /** update_check service version prop */
 #define PROP_SYS_UC_VER 			"sys.uc_ver"
 

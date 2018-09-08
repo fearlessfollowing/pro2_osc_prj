@@ -1,0 +1,1049 @@
+D/FileHttp( 1166): Service: update_check starting ^_^ !!
+D/FileHttp( 1166): Starting web server on port 8000 MG_ENABLE_HTTP 1 MG_ENABLE_TUN 1
+D/KernLog ( 1168): <6>[   10.922218] capability: warning: `adbd' uses 32-bit capabilities (legacy support in use)
+
+D/update_check( 1173): >>>>>>>>>>> Service: update_check starting (Version: V3.0) ^_^ <<<<<<<<<<
+D/update_check( 1173): [update_check/main.cpp: 530] Reset SD Slot First
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 198] Umont All device now .....
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 225] Module Volume size = 6
+D/update_check( 1173): [update_check/main.cpp: 580] +++++++++++++ Start Vold(2.4) Manager +++++++++++
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 740] Start VolumeManager now ....
+D/NetlinkEvent( 1173): New Version usb bus addr: 2-2
+D/NetlinkEvent( 1173): New Version dev node name: sda
+D/Vold    ( 1173): >>>>>>>>>>>>>>>>>> handleBlockEvent(action: 1) <<<<<<<<<<<<<<<
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 863] Volume Addr: usb2-2,usb2-2.2, Current dev Addr: 2-2
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 995] dev node path: /dev/sda
+D/Vold    ( 1173): dev node path exist /dev/sda
+D/KernLog ( 1168): <4>[   11.974505] usb 2-2: Disable of device-initiated U1 failed.
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 728] Create File Monitor notify Thread....
+D/update_check( 1173): [update_check/main.cpp: 597] update_check service delay [8]s for update device mounted
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 706] Enter Listener mode now ...
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 608] Inotify init OK
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 616] Add Listener object /mnt
+D/KernLog ( 1168): <6>[   12.383573] usb 2-2: reset SuperSpeed USB device number 2 using xhci-tegra
+D/KernLog ( 1168): <6>[   13.314349] IPVS: Creating netns size=1424 id=1
+D/KernLog ( 1168): <6>[   14.005238] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/Vold    ( 1173): blkid identified as /dev/sda: PTUUID="52103403" PTTYPE="dos"
+D/Vold    ( 1173): ptType - pType = -2
+D/Vold    ( 1173): Parse File system type: dos
+D/NetlinkEvent( 1173): New Version usb bus addr: 2-2
+D/NetlinkEvent( 1173): New Version dev node name: sda1
+D/Vold    ( 1173): >>>>>>>>>>>>>>>>>> handleBlockEvent(action: 1) <<<<<<<<<<<<<<<
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 863] Volume Addr: usb2-2,usb2-2.2, Current dev Addr: 2-2
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 995] dev node path: /dev/sda1
+D/Vold    ( 1173): dev node path exist /dev/sda1
+D/Vold    ( 1173): blkid identified as /dev/sda1: UUID="D8B8-DD32" TYPE="exfat" PARTUUID="52103403-01"
+D/Vold    ( 1173): Parse File system type: exfat
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1054] dev[/dev/sda1] mount point[/mnt/sdcard]
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1891] >>> checkFs: Type[exfat], Mount Point[/mnt/sdcard]
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1899] Check Fs cmd: /sbin/exfatfsck -V /dev/sda1
+D/forkUtil( 1173): [pro2_service/forkUtil.cpp: 60] Parent Read data: exfatfsck 1.2.3
+D/forkUtil( 1173): [pro2_service/forkUtil.cpp: 60] Parent Read data: Copyright (C) 2011-2015  Andrew Nayenko
+D/Vold    ( 1173): Filesystem check completed OK
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 961] >>>>> checkMountPath [/mnt/sdcard]
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 970] Mount point[/mnt/sdcard] not Mounted, clear mount point first!
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1720] >>>>> Filesystem type: exfat
+D/forkUtil( 1173): [pro2_service/forkUtil.cpp: 60] Parent Read data: FUSE exfat 1.2.3
+D/KernLog ( 1168): <6>[   14.377224] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/Vold    ( 1173): >>>> Mount Volume OK
+D/Vold    ( 1173): mount device[/dev/sda1] on path [/mnt/sdcard] success
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1250] Fist Local Volume Insert, Current Save path [/mnt/sdcard]
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1279] >>> After Add action, Current Local save path: /mnt/sdcard
+D/KernLog ( 1168): <6>[   14.410929] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/KernLog ( 1168): <6>[   14.604341] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/KernLog ( 1168): <6>[   14.618900] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/KernLog ( 1168): <6>[   14.675965] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/KernLog ( 1168): <6>[   14.675965] pll_a_out0 = 45158400 Hz, aud_mclk = 11289600 Hz, codec rate = 44100 Hz
+D/update_check( 1173): [update_check/main.cpp: 610] Update image file path name -> /mnt/sdcard/Insta360_Pro2_Update.bin
+D/update_check( 1173): [update_check/main.cpp: 620] Image is regular file
+D/update_check( 1173): [update_check/main.cpp: 276] Copy Cmd [/bin/cp -f /mnt/sdcard/Insta360_Pro2_Update.bin /mnt/update/Insta360_Pro2_Update.bin]
+D/update_check( 1173): >>>> copyUpdateFile2Memory OK
+D/update_check( 1173): [update_check/main.cpp: 431] Update File[/mnt/update/Insta360_Pro2_Update.bin] MD5 Check Success
+D/update_check( 1173): image version: [0.2.20]
+D/update_check( 1173): version_check: version str[0.0.0]
+D/update_check( 1173): board major: 0
+D/update_check( 1173): board minor: 0
+D/update_check( 1173): board release: 0
+D/update_check( 1173): board version [0.0.0]
+D/update_check( 1173): image version [0.2.20]
+D/update_check( 1173): major is equal, but minor is new, update!
+D/update_check( 1173): [/mnt/update/update_app.zip: 4767328] update_app.zip full path: /mnt/update/update_app.zip
+D/update_check( 1173): [update_check/main.cpp: 503] unzip update_app to [/usr/local/bin] Success
+D/update_check( 1173): [update_check/main.cpp: 393] unzip pro2_update.zip to [/mnt/update/pro2_update.zip] success...
+D/update_check( 1173): [update_check/main.cpp: 507] Congratulations, get Pro2_update Success
+D/Vold    ( 1173): >>>>>>>>>>>>>>>>>> handleBlockEvent(action: 2) <<<<<<<<<<<<<<<
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 863] Volume Addr: usb2-2,usb2-2.2, Current dev Addr: usb2-2,usb2-2.2
+D/Vold    ( 1173): Unmounting {/mnt/sdcard}, force = 1
+I/Vold    ( 1173): /mnt/sdcard sucessfully unmounted
+I/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1867] /mnt/sdcard unmounted successfully
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 1309] System Have one Volume,but removed, now is null
+D/Vold    ( 1173): [pro2_service/VolumeManager.cpp: 680] [/mnt/sdcard] Remove
+D/update_check( 1173): [update_check/main.cpp: 652] Enter the real update program
+D/update_app( 1790): >>> Service: update_app starting(Version: V3.0) ^_^ !! <<
+D/update_app( 1790): [/mnt/update/: 0] Use New update image pat [(null)]
+D/update_app( 1790): start_update_app: init_oled_module ...
+D/ins_i2c ( 1790): 2i2c open /dev/i2c-2 suc addr 0x3c i2c_fd 6
+D/oled_module( 1790): 2charge pump val 0x10
+D/ins_i2c ( 1790): 2i2c open /dev/i2c-2 suc addr 0x55 i2c_fd 7
+D/update_app( 1790): bill.list abs path: /mnt/update//pro2_update/bill.list
+D/update_app( 1790): section name [firmware], dest name: [/usr/local/lib/firmware]
+D/update_app( 1790): section [firmware] add item[sys_dsp_rom.devfw]
+D/update_app( 1790): section [firmware] add item[version.txt]
+D/update_app( 1790): section name [cfg], dest name: [/home/nvidia/insta360/etc]
+D/update_app( 1790): section [cfg] add item[user_cfg]
+D/update_app( 1790): section [cfg] add item[cam_config.xml]
+D/update_app( 1790): section [cfg] add item[default.prop]
+D/update_app( 1790): section [cfg] add item[crtmpserver.lua]
+D/update_app( 1790): section [cfg] add item[server.key]
+D/update_app( 1790): section [cfg] add item[def_cfg]
+D/update_app( 1790): section [cfg] add item[server.crt]
+D/update_app( 1790): section [cfg] add item[init.rc]
+D/update_app( 1790): section name [data], dest name: [/home/nvidia/insta360]
+D/update_app( 1790): section [data] add item[wav]
+D/update_app( 1790): section name [bin], dest name: [/usr/local/bin]
+D/update_app( 1790): section [bin] add item[kern_log]
+D/update_app( 1790): section [bin] add item[upgrade_extra.sh]
+D/update_app( 1790): section [bin] add item[default_power_on.sh]
+D/update_app( 1790): section [bin] add item[bootanimation]
+D/update_app( 1790): section [bin] add item[GPSInfo]
+D/update_app( 1790): section [bin] add item[pro_service]
+D/update_app( 1790): section [bin] add item[camerad]
+D/update_app( 1790): section [bin] add item[adbd]
+D/update_app( 1790): section [bin] add item[batteryInfo]
+D/update_app( 1790): section [bin] add item[ws_src_0806.zip]
+D/update_app( 1790): section [bin] add item[jetson_clocks.sh]
+D/update_app( 1790): section [bin] add item[power_off.sh]
+D/update_app( 1790): section [bin] add item[samba-ok.zip]
+D/update_app( 1790): section [bin] add item[setprop]
+D/update_app( 1790): section [bin] add item[httpRequest.py]
+D/update_app( 1790): section [bin] add item[msgclient]
+D/update_app( 1790): section [bin] add item[ws_src]
+D/update_app( 1790): section [bin] add item[logd]
+D/update_app( 1790): section [bin] add item[logcat]
+D/update_app( 1790): section [bin] add item[mongoose]
+D/update_app( 1790): section [bin] add item[power_on.sh]
+D/update_app( 1790): section [bin] add item[factory_test]
+D/update_app( 1790): section [bin] add item[vold_test]
+D/update_app( 1790): section [bin] add item[external_mic.test.sh]
+D/update_app( 1790): section [bin] add item[getprop]
+D/update_app( 1790): section [bin] add item[external_mic_on.sh]
+D/update_app( 1790): section [bin] add item[smb.conf]
+D/update_app( 1790): section [bin] add item[ws_src.zip]
+D/update_app( 1790): section [bin] add item[power_on_dvt.sh]
+D/update_app( 1790): section [bin] add item[upgrade]
+D/update_app( 1790): section [bin] add item[README.txt]
+D/update_app( 1790): section [bin] add item[module_tool]
+D/update_app( 1790): section [bin] add item[power_manager]
+D/update_app( 1790): section [bin] add item[install_samba.sh]
+D/update_app( 1790): section [bin] add item[vm_clean]
+D/update_app( 1790): section [bin] add item[hardware_init.sh]
+D/update_app( 1790): section [bin] add item[udisk_test]
+D/update_app( 1790): section [bin] add item[default_power_init.sh]
+D/update_app( 1790): section [bin] add item[pro2_service]
+D/update_app( 1790): section [bin] add item[crtmpserver]
+D/update_app( 1790): section [bin] add item[time_tz]
+D/update_app( 1790): section [bin] add item[update_check]
+D/update_app( 1790): section [bin] add item[monitor]
+D/update_app( 1790): section [bin] add item[external_mic_off.sh]
+D/update_app( 1790): section name [lib], dest name: [/usr/local/lib]
+D/update_app( 1790): section [lib] add item[libfdk-aac.so.1]
+D/update_app( 1790): section [lib] add item[libexiv2.so.26]
+D/update_app( 1790): section [lib] add item[libopencv_cudaobjdetect.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_plot.so]
+D/update_app( 1790): section [lib] add item[libopencv_bgsegm.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudaarithm.so.3.4]
+D/update_app( 1790): section [lib] add item[libublox.so]
+D/update_app( 1790): section [lib] add item[libopencv_datasets.so]
+D/update_app( 1790): section [lib] add item[libturbojpeg.so.0.1.0]
+D/update_app( 1790): section [lib] add item[libopencv_ccalib.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudaoptflow.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_video.so]
+D/update_app( 1790): section [lib] add item[libopencv_photo.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_phase_unwrapping.so.3.4]
+D/update_app( 1790): section [lib] add item[libzbar.la]
+D/update_app( 1790): section [lib] add item[libopencv_tracking.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_optflow.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_face.so]
+D/update_app( 1790): section [lib] add item[libturbojpeg.so.0]
+D/update_app( 1790): section [lib] add item[libopencv_img_hash.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_shape.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_text.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libswscale.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudaimgproc.so]
+D/update_app( 1790): section [lib] add item[libopencv_objdetect.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_stereo.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_highgui.so.3.4]
+D/update_app( 1790): section [lib] add item[libjpeg.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudafeatures2d.so]
+D/update_app( 1790): section [lib] add item[libopencv_xobjdetect.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_bgsegm.so]
+D/update_app( 1790): section [lib] add item[libopencv_stitching.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudafeatures2d.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudacodec.so]
+D/update_app( 1790): section [lib] add item[libopencv_ximgproc.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_shape.so]
+D/update_app( 1790): section [lib] add item[libopencv_saliency.so.3.4]
+D/update_app( 1790): section [lib] add item[libuuid.la]
+D/update_app( 1790): section [lib] add item[libopencv_phase_unwrapping.so]
+D/update_app( 1790): section [lib] add item[libavutil.so.54.31.100]
+D/update_app( 1790): section [lib] add item[libopencv_video.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_surface_matching.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_line_descriptor.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libavformat.so.56]
+D/update_app( 1790): section [lib] add item[libopencv_videoio.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudalegacy.so]
+D/update_app( 1790): section [lib] add item[libopencv_ximgproc.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_img_hash.so]
+D/update_app( 1790): section [lib] add item[libopencv_core.so]
+D/update_app( 1790): section [lib] add item[libopencv_xphoto.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_line_descriptor.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_xphoto.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libjson-c.so]
+D/update_app( 1790): section [lib] add item[libzbar.so.0]
+D/update_app( 1790): section [lib] add item[libavformat.so]
+D/update_app( 1790): section [lib] add item[libopencv_imgcodecs.so]
+D/update_app( 1790): section [lib] add item[libopencv_optflow.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_videoio.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_ccalib.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudabgsegm.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudaobjdetect.so]
+D/update_app( 1790): section [lib] add item[libopencv_aruco.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_features2d.so]
+D/update_app( 1790): section [lib] add item[libopencv_tracking.so]
+D/update_app( 1790): section [lib] add item[libopencv_surface_matching.so]
+D/update_app( 1790): section [lib] add item[libopencv_bioinspired.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_superres.so.3.4]
+D/update_app( 1790): section [lib] add item[libavcodec.so]
+D/update_app( 1790): section [lib] add item[libopencv_datasets.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_shape.so.3.4]
+D/update_app( 1790): section [lib] add item[libfdk-aac.so]
+D/update_app( 1790): section [lib] add item[libopencv_dnn.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libev.so.4.0.0]
+D/update_app( 1790): section [lib] add item[libopencv_stereo.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_reg.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudalegacy.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_rgbd.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudastereo.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_imgcodecs.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudabgsegm.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libx264.so]
+D/update_app( 1790): section [lib] add item[libopencv_optflow.so]
+D/update_app( 1790): section [lib] add item[libopencv_surface_matching.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libusb-1.0.so]
+D/update_app( 1790): section [lib] add item[libopencv_highgui.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libuuid.so.1]
+D/update_app( 1790): section [lib] add item[libopencv_fuzzy.so]
+D/update_app( 1790): section [lib] add item[libexiv2.so.26.0.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudaoptflow.so]
+D/update_app( 1790): section [lib] add item[libopencv_plot.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_photo.so.3.4]
+D/update_app( 1790): section [lib] add item[libtiffxx.so.5]
+D/update_app( 1790): section [lib] add item[libopencv_dpm.so.3.4]
+D/update_app( 1790): section [lib] add item[libjpeg.so.62]
+D/update_app( 1790): section [lib] add item[libTwirlingCapture.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudafilters.so]
+D/update_app( 1790): section [lib] add item[libopencv_tracking.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_rgbd.so]
+D/update_app( 1790): section [lib] add item[libswscale.so.3]
+D/update_app( 1790): section [lib] add item[libexiv2.so]
+D/update_app( 1790): section [lib] add item[libusb-1.0.so.0]
+D/update_app( 1790): section [lib] add item[libopencv_ccalib.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudaimgproc.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libturbojpeg.la]
+D/update_app( 1790): section [lib] add item[libopencv_dpm.so]
+D/update_app( 1790): section [lib] add item[libjson-c.la]
+D/update_app( 1790): section [lib] add item[libopencv_highgui.so]
+D/update_app( 1790): section [lib] add item[libopencv_dpm.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libev.la]
+D/update_app( 1790): section [lib] add item[libtiffxx.so.5.3.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudastereo.so]
+D/update_app( 1790): section [lib] add item[libopencv_stitching.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libavcodec.so.56]
+D/update_app( 1790): section [lib] add item[libfdk-aac.so.1.0.1]
+D/update_app( 1790): section [lib] add item[libopencv_structured_light.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudacodec.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_imgproc.so]
+D/update_app( 1790): section [lib] add item[libturbojpeg.so]
+D/update_app( 1790): section [lib] add item[libopencv_xfeatures2d.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libswscale.so.3.1.101]
+D/update_app( 1790): section [lib] add item[libopencv_cudaimgproc.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudawarping.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudawarping.so]
+D/update_app( 1790): section [lib] add item[libopencv_bioinspired.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudafeatures2d.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_imgproc.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libexpat.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudafilters.so.3.4]
+D/update_app( 1790): section [lib] add item[libjson-c.so.4]
+D/update_app( 1790): section [lib] add item[libavformat.so.56.40.101]
+D/update_app( 1790): section [lib] add item[libopencv_calib3d.so]
+D/update_app( 1790): section [lib] add item[libopencv_superres.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libtiff.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudacodec.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_superres.so]
+D/update_app( 1790): section [lib] add item[libopencv_face.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libjpeg.la]
+D/update_app( 1790): section [lib] add item[libopencv_cudalegacy.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_videoio.so]
+D/update_app( 1790): section [lib] add item[libopencv_photo.so]
+D/update_app( 1790): section [lib] add item[libusb-1.0.la]
+D/update_app( 1790): section [lib] add item[libavutil.so]
+D/update_app( 1790): section [lib] add item[libopencv_calib3d.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_flann.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libev.so]
+D/update_app( 1790): section [lib] add item[libopencv_ml.so]
+D/update_app( 1790): section [lib] add item[libopencv_dnn.so.3.4]
+D/update_app( 1790): section [lib] add item[libavcodec.so.56.60.100]
+D/update_app( 1790): section [lib] add item[libopencv_fuzzy.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_xfeatures2d.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudabgsegm.so]
+D/update_app( 1790): section [lib] add item[libuuid.so]
+D/update_app( 1790): section [lib] add item[libopencv_text.so]
+D/update_app( 1790): section [lib] add item[libzbar.so.0.2.0]
+D/update_app( 1790): section [lib] add item[libtiff.so.5]
+D/update_app( 1790): section [lib] add item[libopencv_xphoto.so]
+D/update_app( 1790): section [lib] add item[libev.so.4]
+D/update_app( 1790): section [lib] add item[libopencv_structured_light.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_plot.so.3.4]
+D/update_app( 1790): section [lib] add item[libzbar.so]
+D/update_app( 1790): section [lib] add item[libtiffxx.so]
+D/update_app( 1790): section [lib] add item[libavutil.so.54]
+D/update_app( 1790): section [lib] add item[libublox_gps.so]
+D/update_app( 1790): section [lib] add item[libopencv_calib3d.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_bioinspired.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_bgsegm.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_stereo.so]
+D/update_app( 1790): section [lib] add item[libopencv_datasets.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_reg.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudastereo.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_ml.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_video.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_imgproc.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_fuzzy.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudafilters.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_reg.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_aruco.so]
+D/update_app( 1790): section [lib] add item[libopencv_face.so.3.4]
+D/update_app( 1790): section [lib] add item[libjpeg.so.62.2.0]
+D/update_app( 1790): section [lib] add item[libopencv_features2d.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudev.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_imgcodecs.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_flann.so.3.4]
+D/update_app( 1790): section [lib] add item[libexpat.so.1]
+D/update_app( 1790): section [lib] add item[libopencv_structured_light.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libexpat.so.1.6.6]
+D/update_app( 1790): section [lib] add item[libopencv_core.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudaarithm.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_ml.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_aruco.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_videostab.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudaarithm.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudev.so]
+D/update_app( 1790): section [lib] add item[libopencv_videostab.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_saliency.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_dnn.so]
+D/update_app( 1790): section [lib] add item[libopencv_img_hash.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_flann.so]
+D/update_app( 1790): section [lib] add item[libopencv_features2d.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_objdetect.so]
+D/update_app( 1790): section [lib] add item[libopencv_rgbd.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_xfeatures2d.so.3.4]
+D/update_app( 1790): section [lib] add item[libuuid.so.1.0.0]
+D/update_app( 1790): section [lib] add item[libopencv_stitching.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_cudaoptflow.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_objdetect.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libusb-1.0.so.0.1.0]
+D/update_app( 1790): section [lib] add item[libopencv_xobjdetect.so.3.4]
+D/update_app( 1790): section [lib] add item[libjson-c.so.4.0.0]
+D/update_app( 1790): section [lib] add item[libopencv_text.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_line_descriptor.so]
+D/update_app( 1790): section [lib] add item[libopencv_ximgproc.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudaobjdetect.so.3.4]
+D/update_app( 1790): section [lib] add item[libopencv_core.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_saliency.so]
+D/update_app( 1790): section [lib] add item[libtiff.so.5.3.0]
+D/update_app( 1790): section [lib] add item[libopencv_cudawarping.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_phase_unwrapping.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_videostab.so.3.4.0]
+D/update_app( 1790): section [lib] add item[libopencv_xobjdetect.so]
+D/update_app( 1790): section [lib] add item[libopencv_cudev.so.3.4.0]
+D/update_app( 1790): sections size: 5
+D/update_app( 1790): check bill.list success...
+D/update_app( 1790): update_step = 1
+D/update_app( 1790): update_firmware: section item[0] -> [sys_dsp_rom.devfw]
+D/update_app( 1790): update_firmware: item [/mnt/update//pro2_update/firmware/sys_dsp_rom.devfw]
+D/update_app( 1790): item[/mnt/update//pro2_update/firmware/sys_dsp_rom.devfw] exist
+D/update_app( 1790): update_firmware: section item[1] -> [version.txt]
+D/update_app( 1790): update_firmware: item [/mnt/update//pro2_update/firmware/sys_dsp_rom.devfw]
+D/update_app( 1790): update_firmware: item [/mnt/update//pro2_update/firmware/version.txt]
+D/update_app( 1790): item[/mnt/update//pro2_update/firmware/version.txt] exist
+D/update_app( 1790): cp [/mnt/update//pro2_update/firmware/sys_dsp_rom.devfw] -> [/usr/local/lib/firmware]
+D/update_app( 1790): cp [/mnt/update//pro2_update/firmware/version.txt] -> [/usr/local/lib/firmware]
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:07:160387 INFO  upgrade version:1.0.1 ../../tool/upgrade/upgrade.cpp:174
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:07:180417 INFO  version file:/usr/local/lib/firmware/version.txt ../../tool/upgrade/upgrade.cpp:16
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:07:180715 INFO  fw path:/usr/local/lib/firmware fw version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:153
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   45.224347] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   45.236941] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   45.246898] usb 1-2: USB disconnect, device number 2
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:08:308942 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   45.470828] CPU2: Booted secondary processor [4e0f0030]
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.hub_reset_first not exist
+D/KernLog ( 1168): <6>[   45.470828] CPU2: Booted secondary processor [4e0f0030]
+D/KernLog ( 1168): <6>[   45.869552] usb 1-2: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   45.889390] hub 1-2:1.0: USB hub found
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: property_set: key[sys.hub_reset_first], value [true]
+D/KernLog ( 1168): <6>[   46.708264] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   46.708264] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   46.724487] hub 1-2:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:09:947851 INFO  power on ../../tool/upgrade/cam_manager.cpp:18
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:09:950559 INFO  libusb init success ../../module/usb_device.cpp:143
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:09:950636 INFO  cam_manager vid:4255 pid:1 2 3 4 5 6 ../../tool/upgrade/cam_manager.cpp:52
+D/KernLog ( 1168): <6>[   46.724487] hub 1-2:1.0: 4 ports detected
+D/KernLog ( 1168): <3>[   47.285284] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   47.465272] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   47.645105] usb 1-2.2: new full-speed USB device number 8 using xhci-tegra
+D/KernLog ( 1168): <3>[   47.725273] usb 1-2.2: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   47.725273] usb 1-2.2: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   48.085111] usb 1-2.2: new full-speed USB device number 10 using xhci-tegra
+D/KernLog ( 1168): <3>[   48.165277] usb 1-2.2: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   48.165277] usb 1-2.2: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   48.614266] usb 1-2.3: New USB device found, idVendor=4255, idProduct=0001
+D/KernLog ( 1168): <6>[   48.633220] usb 1-2.3: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   48.637239] usb 1-2.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   48.841106] usb 1-2.4: new high-speed USB device number 14 using xhci-tegra
+D/KernLog ( 1168): <6>[   48.934299] usb 1-2.4: New USB device found, idVendor=4255, idProduct=0006
+D/KernLog ( 1168): <6>[   48.953266] usb 1-2.4: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   48.957291] usb 1-2.4: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   49.161106] usb 1-2.2: new high-speed USB device number 15 using xhci-tegra
+D/KernLog ( 1168): <6>[   49.254311] usb 1-2.2: New USB device found, idVendor=4255, idProduct=0002
+D/KernLog ( 1168): <6>[   49.261201] usb 1-2.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   49.268518] usb 1-2.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   49.273242] usb 1-2.2: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   49.277258] usb 1-2.2: SerialNumber: 0001
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:12:339111 INFO  usb device arrive pid:0x1 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:12:439378 INFO  usb device arrive pid:0x6 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:12:539569 INFO  usb device arrive pid:0x2 ../../module/usb_device.cpp:76
+D/KernLog ( 1168): <6>[   51.708131] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   51.720608] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   51.720608] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   52.094307] usb 1-3.1: New USB device found, idVendor=4255, idProduct=0005
+D/KernLog ( 1168): <6>[   52.108653] usb 1-3.1: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   52.113380] usb 1-3.1: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   52.113380] usb 1-3.1: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   52.113380] usb 1-3.1: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   52.286306] usb 1-3.2: New USB device found, idVendor=4255, idProduct=0004
+D/KernLog ( 1168): <6>[   52.293189] usb 1-3.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   52.300499] usb 1-3.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   52.300499] usb 1-3.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   52.385109] usb 1-3.3: new high-speed USB device number 19 using xhci-tegra
+D/KernLog ( 1168): <6>[   52.478300] usb 1-3.3: New USB device found, idVendor=4255, idProduct=0003
+D/KernLog ( 1168): <6>[   52.497227] usb 1-3.3: Manufacturer: Amba
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:15:561019 INFO  usb device arrive pid:0x5 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:15:661256 INFO  usb device arrive pid:0x4 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:15:761452 INFO  usb device arrive pid:0x3 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:15:762302 INFO  all camera open ../../tool/upgrade/cam_manager.cpp:129
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:762461 INFO  pid:6 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:762760 INFO  pid:5 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763176 INFO  pid:4 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763243 INFO  pid:6 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763377 INFO  pid:3 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763446 INFO  pid:5 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763601 INFO  pid:2 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763689 INFO  pid:4 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763799 INFO  pid:1 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763917 INFO  pid:3 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:763991 INFO  index:5 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:16:764040 INFO  index:4 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764080 INFO  index:3 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764117 INFO  index:2 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764310 INFO  pid:1 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764359 INFO  pid:2 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764446 INFO  index:1 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:764534 INFO  index:0 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:16:764590 INFO  module version now same with req version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:112
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   53.827969] psci: CPU1 killed.
+D/KernLog ( 1168): <6>[   53.845053] psci: CPU2 killed.
+D/KernLog ( 1168): <6>[   53.845053] psci: CPU2 killed.
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:944778 INFO  usb device left pid:0x2 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:16:944956 INFO  usb device left pid:0x5 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   53.991825] usb 1-3.1: USB disconnect, device number 17
+D/KernLog ( 1168): <6>[   54.113250] usb 1-3: USB disconnect, device number 16
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:074855 INFO  usb device left pid:0x4 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:074964 INFO  usb device left pid:0x3 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   54.129183] usb 1-3.2: USB disconnect, device number 18
+D/KernLog ( 1168): <6>[   54.140904] usb 1-3.3: USB disconnect, device number 19
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:093134 INFO  usb device left pid:0x1 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:226032 INFO  usb device left pid:0x6 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   54.621123] usb 1-3: new high-speed USB device number 20 using xhci-tegra
+D/KernLog ( 1168): <6>[   54.760341] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   54.760341] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   54.773214] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   54.777079] hub 1-3:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:819881 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:829009 INFO  libusb exit ../../module/usb_device.cpp:166
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:829097 INFO  upgrade result:1 ../../tool/upgrade/upgrade.cpp:204
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 88] child terminated by exit(1)
+E/update_app( 1790): >>> upgrade module failed (unknown exit code 1)
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:834258 INFO  upgrade version:1.0.1 ../../tool/upgrade/upgrade.cpp:174
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:834457 INFO  version file:/usr/local/lib/firmware/version.txt ../../tool/upgrade/upgrade.cpp:16
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:17:834625 INFO  fw path:/usr/local/lib/firmware fw version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:153
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   54.777079] hub 1-3:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   55.292330] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   55.306114] hub 1-2:1.0: USB hub found
+D/KernLog ( 1168): <6>[   55.315661] usb 1-3: USB disconnect, device number 20
+D/KernLog ( 1168): <6>[   55.315661] usb 1-3: USB disconnect, device number 20
+D/KernLog ( 1168): <6>[   55.789637] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   55.808907] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   55.812778] hub 1-3:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:18:848626 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   55.979508] CPU1: Booted secondary processor [4e0f0030]
+D/KernLog ( 1168): <6>[   56.007695] CPU2: Booted secondary processor [4e0f0030]
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.hub_reset_first exist
+D/KernLog ( 1168): <6>[   56.007695] CPU2: Booted secondary processor [4e0f0030]
+D/KernLog ( 1168): <6>[   56.007695] CPU2: Booted secondary processor [4e0f0030]
+D/KernLog ( 1168): <6>[   56.328534] hub 1-2:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:19:739356 INFO  power on ../../tool/upgrade/cam_manager.cpp:18
+D/KernLog ( 1168): <6>[   56.941116] usb 1-3.3: new full-speed USB device number 24 using xhci-tegra
+D/KernLog ( 1168): <3>[   57.021273] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   57.201273] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   57.381108] usb 1-2.3: new full-speed USB device number 25 using xhci-tegra
+D/KernLog ( 1168): <3>[   57.461273] usb 1-2.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   57.641271] usb 1-2.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   57.702233] usb 1-3: USB disconnect, device number 22
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:20:698013 INFO  libusb init success ../../module/usb_device.cpp:143
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:20:698101 INFO  cam_manager vid:4255 pid:1 2 3 4 5 6 ../../tool/upgrade/cam_manager.cpp:52
+D/KernLog ( 1168): <6>[   57.965112] usb 1-2.2: new full-speed USB device number 30 using xhci-tegra
+D/KernLog ( 1168): <6>[   58.142112] usb 1-2: USB disconnect, device number 23
+D/KernLog ( 1168): <6>[   61.281107] usb 1-3: new high-speed USB device number 31 using xhci-tegra
+D/KernLog ( 1168): <6>[   61.413423] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   61.413423] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   61.436415] hub 1-3:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   61.745108] usb 1-2: new high-speed USB device number 32 using xhci-tegra
+D/KernLog ( 1168): <6>[   61.884159] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   61.884159] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   61.900531] hub 1-2:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   61.900531] hub 1-2:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   62.042286] usb 1-3.1: New USB device found, idVendor=4255, idProduct=0005
+D/KernLog ( 1168): <6>[   62.042286] usb 1-3.1: New USB device found, idVendor=4255, idProduct=0005
+D/KernLog ( 1168): <6>[   62.141112] usb 1-3.2: new high-speed USB device number 34 using xhci-tegra
+D/KernLog ( 1168): <6>[   62.234318] usb 1-3.2: New USB device found, idVendor=4255, idProduct=0004
+D/KernLog ( 1168): <6>[   62.241201] usb 1-3.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   62.248517] usb 1-3.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   62.248517] usb 1-3.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   62.257314] usb 1-3.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   62.417197] usb 1-2.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   62.417197] usb 1-2.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   62.433331] usb 1-2.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   62.433331] usb 1-2.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   62.433331] usb 1-2.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   62.609296] usb 1-3.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   62.669107] usb 1-2.3: new high-speed USB device number 37 using xhci-tegra
+D/KernLog ( 1168): <6>[   62.762286] usb 1-2.3: New USB device found, idVendor=4255, idProduct=0001
+D/KernLog ( 1168): <6>[   62.762286] usb 1-2.3: New USB device found, idVendor=4255, idProduct=0001
+D/KernLog ( 1168): <6>[   62.861107] usb 1-2.4: new high-speed USB device number 38 using xhci-tegra
+D/KernLog ( 1168): <6>[   62.954288] usb 1-2.4: New USB device found, idVendor=4255, idProduct=0006
+D/KernLog ( 1168): <6>[   62.954288] usb 1-2.4: New USB device found, idVendor=4255, idProduct=0006
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:039194 INFO  usb device arrive pid:0x5 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:139455 INFO  usb device arrive pid:0x3 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:239667 INFO  usb device arrive pid:0x4 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:339845 INFO  usb device arrive pid:0x6 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:440014 INFO  usb device arrive pid:0x2 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:540177 INFO  usb device arrive pid:0x1 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:26:557149 INFO  all camera open ../../tool/upgrade/cam_manager.cpp:129
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:557347 INFO  pid:6 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:557658 INFO  pid:5 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:557904 INFO  pid:4 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558132 INFO  pid:3 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558280 INFO  pid:5 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558338 INFO  pid:6 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558514 INFO  pid:2 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558563 INFO  pid:4 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558721 INFO  pid:1 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:558776 INFO  pid:3 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559066 INFO  index:5 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:27:559143 INFO  index:4 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:27:559190 INFO  index:3 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:27:559231 INFO  index:2 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559354 INFO  pid:2 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559405 INFO  pid:1 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559536 INFO  index:1 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559620 INFO  index:0 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:559676 INFO  module version now same with req version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:112
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <5>[   64.621557] CPU1: shutdown
+D/KernLog ( 1168): <5>[   64.646373] CPU2: shutdown
+D/KernLog ( 1168): <6>[   64.649319] psci: CPU2 killed.
+D/KernLog ( 1168): <6>[   64.698826] gk20a 17000000.gp10b: railgate is disabled.
+D/KernLog ( 1168): <6>[   64.743857] usb 1-2.2: USB disconnect, device number 35
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:702645 INFO  usb device left pid:0x5 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:702817 INFO  usb device left pid:0x2 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   64.881333] usb 1-2.3: USB disconnect, device number 37
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:840174 INFO  usb device left pid:0x4 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:840314 INFO  usb device left pid:0x1 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   64.914642] usb 1-3: USB disconnect, device number 31
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:870507 INFO  usb device left pid:0x3 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   64.914642] usb 1-3: USB disconnect, device number 31
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:27:976410 INFO  usb device left pid:0x6 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   65.025328] usb 1-2.4: USB disconnect, device number 38
+D/KernLog ( 1168): <6>[   65.560342] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   65.567528] usb 1-3: SerialNumber: F200084134FF
+D/KernLog ( 1168): <6>[   65.567528] usb 1-3: SerialNumber: F200084134FF
+D/KernLog ( 1168): <6>[   65.576865] hub 1-3:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:621038 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:630184 INFO  libusb exit ../../module/usb_device.cpp:166
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:630268 INFO  upgrade result:1 ../../tool/upgrade/upgrade.cpp:204
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 88] child terminated by exit(1)
+E/update_app( 1790): >>> upgrade module failed (unknown exit code 1)
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:635530 INFO  upgrade version:1.0.1 ../../tool/upgrade/upgrade.cpp:174
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:635758 INFO  version file:/usr/local/lib/firmware/version.txt ../../tool/upgrade/upgrade.cpp:16
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:28:635938 INFO  fw path:/usr/local/lib/firmware fw version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:153
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   65.953119] usb 1-2: new high-speed USB device number 40 using xhci-tegra
+D/KernLog ( 1168): <6>[   66.085628] usb 1-2: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   66.085628] usb 1-2: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   66.108883] hub 1-2:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   66.453116] usb 1-3: new high-speed USB device number 41 using xhci-tegra
+D/KernLog ( 1168): <6>[   66.585631] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   66.585631] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   66.608906] hub 1-3:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:29:648854 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   66.608906] hub 1-3:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   66.810979] CPU2: Booted secondary processor [4e0f0030]
+D/KernLog ( 1168): <6>[   66.969152] usb 1-2: new high-speed USB device number 42 using xhci-tegra
+D/KernLog ( 1168): <6>[   67.108850] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   67.116202] usb 1-2: SerialNumber: D200086134FF
+D/KernLog ( 1168): <6>[   67.122361] hub 1-2:1.0: USB hub found
+D/KernLog ( 1168): <6>[   67.205273] gk20a 17000000.gp10b: railgate is disabled.
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.hub_reset_first exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:30:871681 INFO  power on ../../tool/upgrade/cam_manager.cpp:18
+D/KernLog ( 1168): <6>[   67.205273] gk20a 17000000.gp10b: railgate is disabled.
+D/KernLog ( 1168): <3>[   68.153287] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   68.333281] usb 1-3.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <6>[   68.513115] usb 1-2.3: new full-speed USB device number 44 using xhci-tegra
+D/KernLog ( 1168): <3>[   68.593282] usb 1-2.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   68.593282] usb 1-2.3: device descriptor read/64, error -32
+D/KernLog ( 1168): <3>[   68.593282] usb 1-2.3: device descriptor read/64, error -32
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:31:829162 INFO  libusb init success ../../module/usb_device.cpp:143
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:31:829251 INFO  cam_manager vid:4255 pid:1 2 3 4 5 6 ../../tool/upgrade/cam_manager.cpp:52
+D/KernLog ( 1168): <6>[   69.274253] usb 1-2: USB disconnect, device number 42
+D/KernLog ( 1168): <6>[   72.413110] usb 1-3: new high-speed USB device number 49 using xhci-tegra
+D/KernLog ( 1168): <6>[   72.545433] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   72.552160] usb 1-3: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   72.559318] usb 1-3: SerialNumber: F200084134FF
+D/KernLog ( 1168): <6>[   72.559318] usb 1-3: SerialNumber: F200084134FF
+D/KernLog ( 1168): <6>[   72.877105] usb 1-2: new high-speed USB device number 50 using xhci-tegra
+D/KernLog ( 1168): <6>[   73.009460] usb 1-2: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   73.009460] usb 1-2: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   73.032642] hub 1-2:1.0: 4 ports detected
+D/KernLog ( 1168): <6>[   73.081113] usb 1-3.1: new high-speed USB device number 51 using xhci-tegra
+D/KernLog ( 1168): <6>[   73.174308] usb 1-3.1: New USB device found, idVendor=4255, idProduct=0005
+D/KernLog ( 1168): <6>[   73.174308] usb 1-3.1: New USB device found, idVendor=4255, idProduct=0005
+D/KernLog ( 1168): <6>[   73.273107] usb 1-3.2: new high-speed USB device number 52 using xhci-tegra
+D/KernLog ( 1168): <6>[   73.366301] usb 1-3.2: New USB device found, idVendor=4255, idProduct=0004
+D/KernLog ( 1168): <6>[   73.385270] usb 1-3.2: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   73.389340] usb 1-3.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.449111] usb 1-2.2: new high-speed USB device number 53 using xhci-tegra
+D/KernLog ( 1168): <6>[   73.542301] usb 1-2.2: New USB device found, idVendor=4255, idProduct=0002
+D/KernLog ( 1168): <6>[   73.549181] usb 1-2.2: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+D/KernLog ( 1168): <6>[   73.556497] usb 1-2.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   73.556497] usb 1-2.2: Product: Amba SIMPLE Class
+D/KernLog ( 1168): <6>[   73.565314] usb 1-2.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.565314] usb 1-2.2: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.718293] usb 1-3.3: New USB device found, idVendor=4255, idProduct=0003
+D/KernLog ( 1168): <6>[   73.718293] usb 1-3.3: New USB device found, idVendor=4255, idProduct=0003
+D/KernLog ( 1168): <6>[   73.741285] usb 1-3.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.801107] usb 1-2.3: new high-speed USB device number 55 using xhci-tegra
+D/KernLog ( 1168): <6>[   73.894302] usb 1-2.3: New USB device found, idVendor=4255, idProduct=0001
+D/KernLog ( 1168): <6>[   73.913226] usb 1-2.3: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   73.917248] usb 1-2.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.917248] usb 1-2.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   73.917248] usb 1-2.3: SerialNumber: 0001
+D/KernLog ( 1168): <6>[   74.105216] usb 1-2.4: Manufacturer: Amba
+D/KernLog ( 1168): <6>[   74.109232] usb 1-2.4: SerialNumber: 0001
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:172698 INFO  usb device arrive pid:0x5 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:272954 INFO  usb device arrive pid:0x4 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:373150 INFO  usb device arrive pid:0x3 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:473275 INFO  usb device arrive pid:0x2 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:573446 INFO  usb device arrive pid:0x6 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:673634 INFO  usb device arrive pid:0x1 ../../module/usb_device.cpp:76
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:37:690504 INFO  all camera open ../../tool/upgrade/cam_manager.cpp:129
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:690683 INFO  pid:6 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:690988 INFO  pid:5 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691314 INFO  pid:4 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691499 INFO  pid:3 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691555 INFO  pid:6 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691703 INFO  pid:5 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691872 INFO  pid:4 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:691982 INFO  pid:2 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692118 INFO  pid:3 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692270 INFO  pid:1 send cmd:55000070 {"cmd":1426063472} ../../tool/upgrade/usb_camera.cpp:142
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692497 INFO  index:5 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692557 INFO  index:4 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:38:692604 INFO  index:3 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692650 INFO  index:2 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692699 INFO  pid:2 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692806 INFO  pid:1 recv cmd:55000070 respone:{ "version": "3.3.180907.180907E1" } success ../../tool/upgrade/usb_camera.cpp:113
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:692942 INFO  index:1 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:693023 INFO  index:0 firmware version:3.3.180907.180907E1 ../../tool/upgrade/cam_manager.cpp:194
+D/forkUtil( 1790): 2018-03-28 09:01:38:693075 INFO  module version now same with req version:3.180907.180907E1 ../../tool/upgrade/upgrade.cpp:112
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop_area.magic = 0x504f5250, prop_area.version = 0x45434f76
+D/forkUtil( 1790): prop: sys.hub_reset not exist
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: prop: sys.cam_pinterval not exist
+D/forkUtil( 1790): Hub reset interval [250]Ms, camera reset interval [100]Ms
+D/KernLog ( 1168): <6>[   75.756326] psci: CPU1 killed.
+D/KernLog ( 1168): <5>[   75.778372] CPU2: shutdown
+D/KernLog ( 1168): <5>[   75.778372] CPU2: shutdown
+D/KernLog ( 1168): <6>[   76.007894] usb 1-2.2: USB disconnect, device number 53
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:966474 INFO  usb device left pid:0x5 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:967381 INFO  usb device left pid:0x2 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:997600 INFO  usb device left pid:0x4 ../../module/usb_device.cpp:43
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:38:997735 INFO  usb device left pid:0x3 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   76.054973] usb 1-3.2: USB disconnect, device number 52
+D/KernLog ( 1168): <6>[   76.061354] usb 1-3.3: USB disconnect, device number 54
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:39:098174 INFO  usb device left pid:0x1 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   76.145332] usb 1-2.3: USB disconnect, device number 55
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:39:230178 INFO  usb device left pid:0x6 ../../module/usb_device.cpp:43
+D/KernLog ( 1168): <6>[   76.277337] usb 1-2.4: USB disconnect, device number 56
+D/KernLog ( 1168): <6>[   76.557140] usb 1-3: new high-speed USB device number 57 using xhci-tegra
+D/KernLog ( 1168): <6>[   76.689631] usb 1-3: New USB device found, idVendor=0451, idProduct=8142
+D/KernLog ( 1168): <6>[   76.708956] hub 1-3:1.0: USB hub found
+D/KernLog ( 1168): <6>[   76.713203] hub 1-3:1.0: 4 ports detected
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:39:756309 INFO  power off ../../tool/upgrade/cam_manager.cpp:30
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:39:766038 INFO  libusb exit ../../module/usb_device.cpp:166
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 60] Parent Read data: 2018-03-28 09:01:39:766122 INFO  upgrade result:1 ../../tool/upgrade/upgrade.cpp:204
+D/forkUtil( 1790): [pro2_service/forkUtil.cpp: 88] child terminated by exit(1)
+E/update_app( 1790): >>> upgrade module failed (unknown exit code 1)
+D/update_app( 1790): update section [firmware] success ...
+D/update_app( 1790): index = 0
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/user_cfg] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/cam_config.xml] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/default.prop] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/crtmpserver.lua] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/server.key] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/def_cfg] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/server.crt] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): cp [/mnt/update//pro2_update/cfg/init.rc] -> [/home/nvidia/insta360/etc]
+D/update_app( 1790): update section [cfg] success ...
+D/update_app( 1790): index = 1
+D/KernLog ( 1168): <6>[   77.089148] usb 1-2: new high-speed USB device number 58 using xhci-tegra
+D/update_app( 1790): cp [/mnt/update//pro2_update/data/wav] -> [/home/nvidia/insta360]
+D/update_app( 1790): update section [data] success ...
+D/update_app( 1790): index = 2
+D/KernLog ( 1168): <6>[   77.228448] usb 1-2: New USB device strings: Mfr=0, Product=0, SerialNumber=1
+D/KernLog ( 1168): <6>[   77.246441] hub 1-2:1.0: 4 ports detected
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/kern_log] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/upgrade_extra.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/default_power_on.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/bootanimation] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/GPSInfo] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/pro_service] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/camerad] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/adbd] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/batteryInfo] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/ws_src_0806.zip] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/jetson_clocks.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/power_off.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/samba-ok.zip] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/setprop] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/httpRequest.py] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/msgclient] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/ws_src] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/logd] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/logcat] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/mongoose] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/power_on.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/factory_test] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/vold_test] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/external_mic.test.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/getprop] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/external_mic_on.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/smb.conf] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/ws_src.zip] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/power_on_dvt.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/upgrade] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/README.txt] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/module_tool] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/power_manager] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/install_samba.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/vm_clean] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/hardware_init.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/udisk_test] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/default_power_init.sh] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/pro2_service] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/crtmpserver] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/time_tz] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/update_check] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/monitor] -> [/usr/local/bin]
+D/update_app( 1790): cp [/mnt/update//pro2_update/bin/external_mic_off.sh] -> [/usr/local/bin]
+D/update_app( 1790): update section [bin] success ...
+D/update_app( 1790): index = 3
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libfdk-aac.so.1] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexiv2.so.26] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaobjdetect.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_plot.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bgsegm.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaarithm.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libublox.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_datasets.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libturbojpeg.so.0.1.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ccalib.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaoptflow.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_video.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_photo.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_phase_unwrapping.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libzbar.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_tracking.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_optflow.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_face.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libturbojpeg.so.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_img_hash.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_shape.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_text.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libswscale.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaimgproc.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_objdetect.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stereo.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_highgui.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjpeg.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafeatures2d.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xobjdetect.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bgsegm.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stitching.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafeatures2d.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudacodec.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ximgproc.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_shape.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_saliency.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libuuid.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_phase_unwrapping.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavutil.so.54.31.100] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_video.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_surface_matching.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_line_descriptor.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavformat.so.56] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videoio.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudalegacy.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ximgproc.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_img_hash.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_core.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xphoto.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_line_descriptor.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xphoto.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjson-c.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libzbar.so.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavformat.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgcodecs.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_optflow.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videoio.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ccalib.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudabgsegm.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaobjdetect.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_aruco.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_features2d.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_tracking.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_surface_matching.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bioinspired.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_superres.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavcodec.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_datasets.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_shape.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libfdk-aac.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dnn.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libev.so.4.0.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stereo.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_reg.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudalegacy.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_rgbd.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudastereo.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgcodecs.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudabgsegm.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libx264.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_optflow.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_surface_matching.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libusb-1.0.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_highgui.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libuuid.so.1] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_fuzzy.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexiv2.so.26.0.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaoptflow.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_plot.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_photo.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiffxx.so.5] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dpm.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjpeg.so.62] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libTwirlingCapture.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafilters.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_tracking.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_rgbd.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libswscale.so.3] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexiv2.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libusb-1.0.so.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ccalib.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaimgproc.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libturbojpeg.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dpm.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjson-c.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_highgui.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dpm.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libev.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiffxx.so.5.3.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudastereo.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stitching.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavcodec.so.56] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libfdk-aac.so.1.0.1] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_structured_light.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudacodec.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgproc.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libturbojpeg.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xfeatures2d.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libswscale.so.3.1.101] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaimgproc.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudawarping.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudawarping.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bioinspired.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafeatures2d.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgproc.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexpat.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafilters.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjson-c.so.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavformat.so.56.40.101] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_calib3d.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_superres.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiff.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudacodec.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_superres.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_face.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjpeg.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudalegacy.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videoio.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_photo.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libusb-1.0.la] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavutil.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_calib3d.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_flann.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libev.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ml.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dnn.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavcodec.so.56.60.100] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_fuzzy.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xfeatures2d.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudabgsegm.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libuuid.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_text.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libzbar.so.0.2.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiff.so.5] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xphoto.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libev.so.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_structured_light.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_plot.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libzbar.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiffxx.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libavutil.so.54] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libublox_gps.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_calib3d.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bioinspired.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_bgsegm.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stereo.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_datasets.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_reg.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudastereo.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ml.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_video.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgproc.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_fuzzy.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudafilters.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_reg.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_aruco.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_face.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjpeg.so.62.2.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_features2d.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudev.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_imgcodecs.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_flann.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexpat.so.1] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_structured_light.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libexpat.so.1.6.6] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_core.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaarithm.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ml.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_aruco.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videostab.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaarithm.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudev.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videostab.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_saliency.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_dnn.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_img_hash.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_flann.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_features2d.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_objdetect.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_rgbd.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xfeatures2d.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libuuid.so.1.0.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_stitching.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaoptflow.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_objdetect.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libusb-1.0.so.0.1.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xobjdetect.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libjson-c.so.4.0.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_text.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_line_descriptor.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_ximgproc.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudaobjdetect.so.3.4] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_core.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_saliency.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libtiff.so.5.3.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudawarping.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_phase_unwrapping.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_videostab.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_xobjdetect.so] -> [/usr/local/lib]
+D/update_app( 1790): cp [/mnt/update//pro2_update/lib/libopencv_cudev.so.3.4.0] -> [/usr/local/lib]
+D/update_app( 1790): update section [lib] success ...
+D/update_app( 1790): index = 4
+D/update_app( 1790): [update_app/update_app.cpp: 873] Execute install samba service now ...........
+D/update_app( 1790): deal_update_result, ret = 0
+D/update_app( 1790): new image ver: [0.2.20]
+D/update_app( 1790): update_ver2file: rename result = 0
+D/update_app( 1790): unlink image file [/mnt/update//Insta360_Pro2_Update.bin]
+D/update_app( 1790): rm pro_update* ...
+^C
+root@tegra-ubuntu:/home/nvidia#
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Session stopped
+    - Press <return> to exit tab
+    - Press R to restart session
+    - Press S to save terminal output to file
+
+Server unexpectedly closed network connection
+

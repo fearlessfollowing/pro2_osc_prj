@@ -10,6 +10,7 @@
 ** V2.0			skymixos	2018年4月18日		 添加注释,并做修改(版本号)
 ** V2.1 		skymixos	2018年5月7日		 修改升级流程
 ** V2.2			skymixos	2018年7月26日		 解压升级包到系统的/tmp/update/目录下
+** V3.0			skymixos	2018年9月8日		 支持新旧版本的update_check
 *************************************************************************/
 
 /*
@@ -52,17 +53,41 @@
 #include <string.h>
 #include <thread>
 #include <vector>
+#include <string>
 #include <prop_cfg.h>
 
 
-#define TAG "update_app"
+using namespace std;
 
-#define UAPP_VER "V2.2"
+#undef  TAG
+#define TAG 	"update_app"
 
-static bool update_del_flag = true;
+#define UAPP_VER 				"V3.0"
+#define PRO_UPDATE_ZIP			"pro2_update.zip"
+#define UPDATE_DEST_BASE_DIR 	"/mnt/update/"
+#define ARRAY_SIZE(x)   		(sizeof(x) / sizeof(*(x)))
 
-#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
+/* 
+ * 清单文件的相对路径
+ */
+#define BILL_REL_PATH 			"pro2_update/bill.list"
+#define PRO2_UPDATE_DIR			"pro2_update"
 
+
+#define FIRMWARE 				"firmware"
+#define EXCUTEABLE				"bin"
+#define LIBRARY					"lib"
+#define CFG						"cfg"
+#define DATA					"data"
+
+#define MODUEL_UPDATE_PROG 		"upgrade"
+#define ERR_UPDATE_SUCCESS 		0
+#define SENSOR_FIRM_CNT 		2
+
+enum {
+	CP_FLAG_ADD_X = 0x1,
+	CP_FLAG_MAX
+};
 
 enum {
     COPY_UPDAE,
@@ -70,50 +95,26 @@ enum {
     ERROR_UPDATE,
 };
 
-
-
-typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION> & section);
-#define PRO_UPDATE_ZIP	"pro2_update.zip"
-
-/* 
- * 清单文件的相对路径
- */
-#define BILL_REL_PATH 	"pro2_update/bill.list"
-#define PRO2_UPDATE_DIR	"pro2_update"
-
-
-#define FIRMWARE 			"firmware"
-#define EXCUTEABLE			"bin"
-#define LIBRARY				"lib"
-#define CFG					"cfg"
-#define DATA				"data"
-
-#define MODUEL_UPDATE_PROG 	"upgrade"
-#define ERR_UPDATE_SUCCESS 	0
-
-enum {
-	CP_FLAG_ADD_X = 0x1,
-	CP_FLAG_MAX
-};
-
-
-
 struct sensor_firm_item {
-	const char* pname;	/* 元素的名称 */
-	int is_exist;		/* 是否存在 */
+	const char* 	pname;			/* 元素的名称 */
+	int 			is_exist;		/* 是否存在 */
 };
 
-#define SENSOR_FIRM_CNT 2
+
+extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
+extern int exec_sh(const char *str);
+
+typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION>& section);
+static bool update_del_flag = true;
+static UPDATE_HEADER gstHeader;
+
+
 struct sensor_firm_item firm_items[SENSOR_FIRM_CNT] = {
 	{"sys_dsp_rom.devfw", 0},
 	{"version.txt", 0}
 };
 
 
-static UPDATE_HEADER gstHeader;
-
-
-extern int exec_sh(const char *str);
 
 /*
  * sections - 段链表
@@ -293,7 +294,7 @@ static int section_cp(const char* update_root_path, sp<UPDATE_SECTION> & section
 		/* 将该文件拷贝到section->dst_path下 */
 		snprintf(cmd, sizeof(cmd), "cp -pfR %s %s", src_path, dst_path);
 		if (exec_sh(cmd) != 0) {
-			Log.e(TAG, "section_cp cmd %s error\n", cmd);
+			Log.e(TAG, "section_cp cmd %s error", cmd);
 			iRet = -1;
 		} else {	/* 拷贝成功,确保文件具备执行权限 */
 			if (flag & CP_FLAG_ADD_X) {
@@ -304,53 +305,6 @@ static int section_cp(const char* update_root_path, sp<UPDATE_SECTION> & section
 
 	return iRet;
 }
-
-
-#if 0
-
-git config --global user.name "skymixos"
-git config --global user.email "luopinjing@insta360.com"
-创建 git 仓库:
-mkdir insta360_pro2_image
-cd insta360_pro2_image
-git init
-touch README.md
-git add README.md
-git commit -m "first commit"
-git remote add origin https://gitee.com/skymixos/insta360_pro2_image.git
-git push -u origin master
-
-已有项目?
-cd existing_git_repo
-git remote add origin https://gitee.com/skymixos/insta360_pro2_image.git
-git push -u origin master
-
-
-#endif
-
-
-static int exec_sh_firm(const char* cmd)
-{
-    int status = system(cmd);
-    int iRet = -1;
-
-    if (-1 == status) {
-        Log.e(TAG, "system %s error\n", cmd);
-    } else {
-       Log.d(TAG, "exit status value = [%d]\n", status);
-        if (WIFEXITED(status)) {	/* 获取退出码 */
-			Log.d(TAG, "exec_sh_firm -> exit code: %d", WEXITSTATUS(status));
-			if (0 == WEXITSTATUS(status) || 1 == WEXITSTATUS(status)) {
-				iRet = 0;
-			}
-        } else {
-            Log.e(TAG, "exit status %s error  = [%d]\n", cmd, WEXITSTATUS(status));
-        }
-    }
-
-    return iRet;
-}
-
 
 
 /*************************************************************************
@@ -408,6 +362,7 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 			iRet = ERR_UPAPP_MODUE;
 		} else {
 
+		#if 0
 			/* 3.执行升级操作 */
 			sprintf(update_prog, "%s", "/usr/local/bin/upgrade");
 			Log.d(TAG, "update_firmware: prog full path: %s", update_prog);
@@ -427,6 +382,41 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 				Log.d(TAG, "update_firmware: update module failed...");
 				iRet = ERR_UPAPP_MODUE;
 			}
+		#else
+		
+    		int status;
+			const char *args[3];
+        	args[0] = "/usr/local/bin/upgrade";
+        	args[1] = "-p";
+        	args[2] = section->dst_path;
+			int icnt = 0;
+
+			for (int i = 0; i < 3; i++) {
+        		iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+
+				if (iRet != 0) {
+        			Log.e(TAG, "upgrade failed due to logwrap error");
+        			continue;
+    			}
+
+				if (!WIFEXITED(status)) {
+					Log.e(TAG, "upgrade sub process did not exit properly");
+					return -1;
+				}
+
+				status = WEXITSTATUS(status);
+				if (status == 0) {
+					Log.d(TAG, ">>>> upgrade module OK");
+					break;
+				} else {
+					Log.e(TAG, ">>> upgrade module failed (unknown exit code %d)", status);
+					continue;
+				}
+			}
+
+		#endif
+
+
 		}
 	}
 	return iRet;
@@ -646,117 +636,173 @@ static bool check_require_exist(const char* mount_point, std::vector<sp<UPDATE_S
     return true;
 }
 
-
-/*************************************************************************
-** 方法名称: getPro2UpdatePackage
-** 方法功能: 从镜像文件中获取升级包
-** 入口参数: 
-**		pUpdatePackagePath - 升级包的路径
-** 返 回 值: 成功返回0;失败返回-1
-** 调     用: start_update_app
-**
-*************************************************************************/
-static bool getPro2UpdatePackage(const char* pUpdatePackagePath)
+static int getPro2UpdatePackage(FILE* fp, u32 offset)
 {
-    bool bRet = false;
-	char image_full_path[512] = {0};
-	char image_cp_dst_path[512] = {0};
-	char pro_update_path[1024];
-	char com_cmd[1024] = {0};
+	u8 buf[1024 * 1024] = {0};
+	u32 uReadLen = 0;
+	u32 uHeadLen = 0;
+	UPDATE_HEADER gstHeader;
+	
+	fseek(fp, offset, SEEK_SET);
 
-
-	/* 1.将固件拷贝到TMP_UNZIP_PATH目录下
-	 * 将/mnt/udiskX/Insta360_Pro2_Update.bin拷贝到/tmp/update/目录下
-	 */
-	if (access(pUpdatePackagePath, F_OK)) {	
-		return false;
+	uReadLen = fread(buf, 1, HEADER_CONENT_LEN, fp);
+	if (uReadLen != HEADER_CONENT_LEN) {
+		Log.e(TAG, "[%s: %d] getPro2UpdatePackage: header len mismatch(%d %d)", __FILE__, __LINE__, uReadLen, HEADER_CONENT_LEN);
+		return -1;
 	}
 
-	{	/* Success */
 
-		/* 打开拷贝后的文件 */
-		sprintf(image_cp_dst_path, "%s/%s", TMP_UNZIP_PATH, UPDATE_IMAGE_FILE);
-		FILE *fp_bin = fopen(image_cp_dst_path, "rb");	/* 打开/XXXX/Insta360_Pro2_Update.bin */
-		if (fp_bin) {
-        	u8 buf[1024 * 1024];
-        	u32 read_len;
-        	u32 update_app_len;
-        	u32 header_len;
-        	u32 content_len;
+	uHeadLen = bytes_to_int(buf);
+	if (uHeadLen != sizeof(UPDATE_HEADER)) {
+		Log.e(TAG, "[%s: %d] get_unzip_update_app: header content len mismatch1(%u %zd)", __FILE__, __LINE__, uHeadLen, sizeof(UPDATE_HEADER));
+		return -1;
+	}
 
-			u32 content_offset = strlen(FP_KEY) + VERSION_LEN;
-        	fseek(fp_bin, content_offset, SEEK_SET);
-        	memset(buf, 0, sizeof(buf));
-		
-			/* 获取压缩文件的长度: 4字节表示压缩文件的长度 */
-        	read_len = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp_bin);
-        	if (read_len != UPDATE_APP_CONTENT_LEN)  {
-            	Log.e(TAG, "get_unzip_update_app: pro_update read update_app content len mismatch(%d %d)", read_len, UPDATE_APP_CONTENT_LEN);
-            	goto EXIT;
-        	}
+	/* 从镜像中读取UPDATE_HEADER */
+	memset(buf, 0, sizeof(buf));
+	uHeadLen = fread(buf, 1, uHeadLen, fp);
+	if (uHeadLen != uHeadLen) {
+		Log.e(TAG, "[%s: %d]get_unzip_update_app: header content len mismatch2(%d %d)", __FILE__, __LINE__, uHeadLen, uHeadLen);
+		return -1;
+	}	
 
-        	content_offset += read_len;
-        	update_app_len = bytes_to_int(buf);
-        	content_offset += update_app_len;
-        	fseek(fp_bin, content_offset, SEEK_SET);
+	memcpy(&gstHeader, buf, uHeadLen);
 
+	if (access(UPDATE_DEST_BASE_DIR, F_OK)) {
+		mkdir(UPDATE_DEST_BASE_DIR, 0766);
+	}
 
-        	read_len = fread(buf, 1, HEADER_CONENT_LEN, fp_bin);
-        	if (read_len != HEADER_CONENT_LEN) {
-            	Log.e(TAG, "get_unzip_update_app: header len mismatch(%d %d)", read_len, HEADER_CONENT_LEN);
-            	goto EXIT;
-        	}
+	int iPro2updateZipLen = bytes_to_int(gstHeader.len);
+	string pro2UpdatePath = UPDATE_DEST_BASE_DIR;
+	pro2UpdatePath += PRO_UPDATE_ZIP;
+	const char* pPro2UpdatePackagePath = pro2UpdatePath.c_str();
 
-		
-        	header_len = bytes_to_int(buf);
+	Log.d(TAG, "[%s: %d] get pro2_update.zip dest path: %s", __FILE__, __LINE__, pPro2UpdatePackagePath);
 
-        	if (header_len != sizeof(UPDATE_HEADER)) {
-            	Log.e(TAG, "get_unzip_update_app: header content len mismatch1(%u %zd)", read_len, sizeof(UPDATE_HEADER));
-            	goto EXIT;
-        	}
-
-			/* 从镜像中读取UPDATE_HEADER */
-        	memset(buf, 0, sizeof(buf));
-       		read_len = fread(buf, 1, header_len, fp_bin);
-        	if (read_len != header_len) {
-            	Log.e(TAG, "get_unzip_update_app: header content len mismatch2(%d %d)", read_len, header_len);
-            	goto EXIT;
-        	}
-
-        	memcpy(&gstHeader, buf, header_len);
-
-			/* 检查头部 */
-        	if (!check_header_match(&gstHeader)) {
-				Log.e(TAG, "get_unzip_update_app: check header match failed...");
-            	goto EXIT;
-        	}
-
-			/* 得到升级压缩包的长度 */
-			content_len = bytes_to_int(gstHeader.len);
-			memset(pro_update_path, 0, sizeof(pro_update_path));
-			sprintf(pro_update_path, "%s/%s", TMP_UNZIP_PATH, PRO_UPDATE_ZIP);
-
-			/* 提取升级压缩包:    pro2_update.zip */
-        	if (gen_file(pro_update_path, content_len, fp_bin)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
-            	if (tar_zip(pro_update_path, TMP_UNZIP_PATH) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
-                	bRet = true;
-					Log.d(TAG, "unzip pro2_update.zip to [%s] success...", TMP_UNZIP_PATH);
-           	 	} else {
-					Log.e(TAG, "unzip pro_update.zip to [%s] failed...", TMP_UNZIP_PATH);
-            	}
-			} else {
-            	Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
-        	}
-EXIT:
-    		if (fp_bin) {
-        		fclose(fp_bin);
-   	 		}
-    		return bRet;
+	/* 提取升级压缩包:    pro2_update.zip */
+	if (gen_file(pPro2UpdatePackagePath, iPro2updateZipLen, fp)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
+		if (tar_zip(pPro2UpdatePackagePath, UPDATE_DEST_BASE_DIR) == 0) {	
+			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, UPDATE_DEST_BASE_DIR);
+			return 0;
 		} else {
-        	Log.e(TAG, "update_app open %s fail", image_full_path);
-			return false;
-    	}
+			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, pPro2UpdatePackagePath);
+			return -1;
+		}
+	} else {
+		Log.e(TAG, "get update_app.zip %s fail", pPro2UpdatePackagePath);
+		return -1;
+	}	
+
+}
+
+
+static int pro2Updatecheck(const char* pUpdateFileDir)
+{
+    FILE *fp = nullptr;
+	int iRet = 0;
+
+    u8 buf[1024 * 1024];
+
+	u32 uReadLen = 0;
+	char ver_str[128] = {0};
+	SYS_VERSION* pVer = NULL;
+	int iPro2UpdateOffset = 0;
+
+	const char* pUpdateFilePathName = NULL;
+	string updateImgFilePath = pUpdateFileDir;
+	updateImgFilePath += "/";
+	updateImgFilePath += UPDATE_IMAGE_FILE;
+
+	pUpdateFilePathName = updateImgFilePath.c_str();
+    	
+    fp = fopen(pUpdateFilePathName, "rb");	
+    if (!fp) {	/* 文件打开失败返回-1 */
+        Log.e(TAG, "[%s: %d] Open Update File[%s] fail", __FILE__, __LINE__, pUpdateFilePathName);
+        return -1;
+    }	
+
+    memset(buf, 0, sizeof(buf));
+    fseek(fp, 0L, SEEK_SET);
+
+	/* 读取文件的PF_KEY */
+    uReadLen = fread(buf, 1, strlen(FP_KEY), fp);
+    if (uReadLen != strlen(FP_KEY)) {
+        Log.e(TAG, "[%s: %d] Read key len mismatch(%u %zd)", __FILE__, __LINE__, uReadLen, strlen(FP_KEY));
+		fclose(fp);
+		return -1;
+    }
+
+	iPro2UpdateOffset += uReadLen;
+
+	/* 提取比较版本 */
+    uReadLen = fread(buf, 1, sizeof(SYS_VERSION), fp);
+    if (uReadLen != sizeof(SYS_VERSION)) {
+        Log.e(TAG, "[%s: %d] read version len mismatch(%u 1)", uReadLen);
+        fclose(fp);
+		return -1;
+    }
+
+	iPro2UpdateOffset += uReadLen;
+
+	/* 提取update_app.zip文件的长度 */
+    memset(buf, 0, sizeof(buf));
+    uReadLen = fread(buf, 1, UPDATE_APP_CONTENT_LEN, fp);
+    if (uReadLen != UPDATE_APP_CONTENT_LEN) {
+        Log.e(TAG, "[%s: %d] update app len mismatch(%d %d)", __FILE__, __LINE__, uReadLen, UPDATE_APP_CONTENT_LEN);
+		return -1;
+    }
+
+	iPro2UpdateOffset += uReadLen;	/* UPDATE_APP_CONTENT_LEN */
+	int iUpdateAppLen = bytes_to_int(buf);
+
+	iPro2UpdateOffset += iUpdateAppLen;	/* 得到pro2_update HEAD_LEN在文件中的偏移 */
+	
+	iRet = getPro2UpdatePackage(fp, iPro2UpdateOffset);	
+	
+	fclose(fp);
+	return iRet;
+}
+
+
+#define INSTALL_SAMBA_CMD	"/usr/local/bin/install_samba.sh"
+
+
+
+static int installSamba(const char* cmdPath)
+{
+	int status;
+	const char *args[1];
+	args[0] = cmdPath;
+	int i;
+
+	for (i = 0; i < 3; i++) {
+		int iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+		if (iRet != 0) {
+			Log.e(TAG, "install samba failed due to logwrap error");
+			continue;
+		}
+
+		if (!WIFEXITED(status)) {
+			Log.e(TAG, "install samba sub process did not exit properly");
+			return -1;
+		}
+
+		status = WEXITSTATUS(status);
+		if (status == 0) {
+			Log.d(TAG, ">>>> install samba OK");
+			break;
+		} else {
+			Log.e(TAG, ">>> install samba failed (unknown exit code %d)", status);
+			continue;
+		}
+	}	
+
+	if (i >= 3) {
+		return -1;
+	} else {
+		return 0;
 	}
+
 }
 
 
@@ -770,59 +816,61 @@ EXIT:
 ** 调     用: OS
 **
 *************************************************************************/
-static int start_update_app(const char* pUpdatePackagePath)
+static int start_update_app(const char* pUpdatePackagePath, bool bMode)
 {
     int iRet = -1;
-	sp<UPDATE_SECTION> pbin_sec;
 	std::vector<sp<UPDATE_SECTION>> mSections;
-	char update_root_path[512] = {0};
-	
+	string updateRootPath = UPDATE_DEST_BASE_DIR;
+
 	Log.d(TAG, "start_update_app: init_oled_module ...\n");
 
     init_oled_module();		/* 初始化OLED模块 */
 	
     disp_update_icon(ICON_UPGRADE_SCHEDULE00128_64);	/* 显示正在更新 */
 
-	/* 检查电池电量是否充足 
-	 * - 如果有充电器没电池呢?
-	 */
     if (is_bat_enough()) {	/* 电量充足 */
 		
-        if (getPro2UpdatePackage(pUpdatePackagePath))	{	/* 提取解压升级包成功 */
+		if (bMode) {	/* 兼容0.2.18及以前的update_check */
 
-			/* 判断pro_update/bill.list文件是否存在
-			 * 系统将根据该文件进行程序升级
-			 */
-            if (!check_require_exist(TMP_UNZIP_PATH, mSections)) {	/* 检查必备的升级程序是否存在: bill.list */
-				iRet = ERR_UPAPP_BILL;
-            } else {
-				/** 根据mSections的各个section进行更新 */
-				sprintf(update_root_path, "%s/%s", TMP_UNZIP_PATH, PRO2_UPDATE_DIR);
-				iRet = update_sections(update_root_path, mSections);
-
-				/*
-				 * 检查是否安装了samba,如果没有安装，执行以下脚本安装samba服务
-				 */
-				Log.d(TAG, "[%s: %d] Execute install samba service now ...........", __FILE__, __LINE__);
-				system("chome +x /usr/local/bin/install_samba.sh");
-				system("/usr/local/bin/install_samba.sh");
-				system("/usr/local/bin/install_samba.sh");
-
+			if (pro2Updatecheck(pUpdatePackagePath)) {		/* 提取解压升级包成功 */
+				Log.e(TAG, "start_update_app: get pro2_update form Insta360_Pro_Update.bin failed...");
+				iRet = ERR_UPAPP_GET_APP_TAR;
+				goto err_get_pro2_update;
 			}
-        } else {	/* 提取升级包失败 */
-			Log.e(TAG, "start_update_app: get update_app form Insta360_Pro_Update.bin failed...");
-			iRet = ERR_UPAPP_GET_APP_TAR;
 		}
+
+		if (!check_require_exist(UPDATE_DEST_BASE_DIR, mSections)) {	/* 检查必备的升级程序是否存在: bill.list */
+			iRet = ERR_UPAPP_BILL;
+		} else {
+
+			updateRootPath += PRO2_UPDATE_DIR;
+			iRet = update_sections(updateRootPath.c_str(), mSections);
+
+
+			/*
+			 * 检查是否安装了samba,如果没有安装，执行以下脚本安装samba服务
+			 */
+			if (access(INSTALL_SAMBA_CMD, F_OK) == 0) {
+				Log.d(TAG, "[%s: %d] Execute install samba service now ...........", __FILE__, __LINE__);
+				chmod(INSTALL_SAMBA_CMD, 0766);
+				installSamba(INSTALL_SAMBA_CMD);
+			}
+		}
+
     } else  {	/* 电池电量低 */
         Log.e(TAG, "battery low, can't update...");
         iRet = ERR_UPAPP_BATTERY_LOW;
     }
+
+err_get_pro2_update:
     return iRet;
 }
 
 
+
+
 /*************************************************************************
-** 方法名称: clean_tmp_image_file
+** 方法名称: cleanTmpFiles
 ** 方法功能: 清除临时文件及镜像文件
 ** 入口参数: 
 **		mount_point - 升级设备的挂载点
@@ -830,7 +878,7 @@ static int start_update_app(const char* pUpdatePackagePath)
 ** 调     用: 
 **
 *************************************************************************/
-static void clean_tmp_image_file(const char* mount_point)
+static void cleanTmpFiles(const char* mount_point)
 {
 	char image_path[512] = {0};
 	char pro_update_path[512] = {0};
@@ -844,8 +892,9 @@ static void clean_tmp_image_file(const char* mount_point)
 
 	/* 删除: rm -rf pro_update.bin   pro_update */
 	sprintf(pro_update_path, "rm -rf %s/%s*", mount_point, PRO2_UPDATE_DIR);
-	exec_sh(pro_update_path);
-	Log.d(TAG, "rm pro_update* ...");
+	system(pro_update_path);
+
+	Log.d(TAG, "[%s: %d] Remove tmp files and dir OK", __FILE__, __LINE__);
 	
     arlog_close();
 }
@@ -900,15 +949,14 @@ EXIT:
 
 
 /*************************************************************************
-** 方法名称: proc_update_success
+** 方法名称: handleUpdateSuc
 ** 方法功能: 升级成功
 ** 入口参数: 
-**		mount_point - 升级设备的挂载点
 ** 返 回 值: 无
-** 调     用: deal_update_result
+** 调 用: handleUpdateResult
 **
 *************************************************************************/
-static void proc_update_success(const char* mount_point)
+static void handleUpdateSuc()
 {
 	int iRet = -1;
 	
@@ -916,14 +964,10 @@ static void proc_update_success(const char* mount_point)
 	disp_update_icon(ICON_UPDATE_SUC128_64);
 
 	/* 2.更新系统的版本(/home/nvidia/insta360/etc/.pro_version) */
-	Log.d(TAG, "new image ver: [%s]", property_get(PROP_SYS_IMAGE_VER));
+	Log.d(TAG, ">>> new image ver: [%s]", property_get(PROP_SYS_IMAGE_VER));
 
-	iRet = update_ver2file(property_get(PROP_SYS_IMAGE_VER));
-	if (!iRet) {	
-		/* 2.1 写入版本成功,清理删除临时文件及升级文件 */
-		clean_tmp_image_file(mount_point);
-	}
-	
+	update_ver2file(property_get(PROP_SYS_IMAGE_VER));
+
 	/* 2.2写入版本失败,不删除升级文件及临时文件,重启后尝试重新升级 */
 	  
 	/* 3.根据配置是重启or直接启动应用 */
@@ -940,168 +984,96 @@ static void proc_update_success(const char* mount_point)
 
 
 /*************************************************************************
-** 方法名称: proc_bat_low
+** 方法名称: handleBatterLow
 ** 方法功能: 处理由于电量低而导致的升级失败
 ** 入口参数: 
 **		mount_point - 升级设备的挂载点
 ** 返 回 值: 无
-** 调     用: deal_update_result
+** 调     用: handleUpdateResult
 ** 在解压之前会检测电池电量,如果电量过低将直接导致升级失败,因此只需要提示
 ** 电池电量,重启即可
 *************************************************************************/
-static void proc_bat_low(const char* mount_point)
+static void handleBatterLow(void)
 {
-    msg_util::sleep_ms(1000);
-	
     disp_update_err_str("battery low");
-
     disp_start_reboot(5);
 	start_reboot();		/* 重启 */
 }
 
-#if 0
-
-/*************************************************************************
-** 方法名称: proc_get_unzip_failed
-** 方法功能: 处理提取pro_update.zip及解压失败
-** 入口参数: 
-**		mount_point - 升级设备的挂载点
-**		errno - 错误码
-** 返 回 值: 无
-** 调     用: deal_update_result
-** 在解压之前会检测电池电量,如果电量过低将直接导致升级失败,因此只需要提示
-** 电池电量,重启即可
-*************************************************************************/
-static void proc_get_unzip_failed(int errno, const char* mount_point)
-{
-	Log.d(TAG, "proc_get_unzip_failed ...");
-	disp_update_error(errno);
-	
-	/* 2.删除临时文件及升级镜像 */
-	clean_tmp_image_file(mount_point);
-	
-	/* 3.重启 */
-    disp_start_reboot(5);
-	start_reboot();		/* 重启 */	
 
 
-}
-
-
-/*************************************************************************
-** 方法名称: proc_bill_error
-** 方法功能: 处理由于解析升级清单文件失败而导致的升级失败
-** 入口参数: 
-**		mount_point - 升级设备的挂载点
-** 返 回 值: 无
-** 调     用: deal_update_result
-** 清单文件不存在或解析失败,说明不是一个合适的升级镜像文件
-** 处理方式: 提示错误848, 删除临时文件及镜像文件,重启
-** 为了防止该种错误应该在生成镜像的时候检测清单文件是否正确
-*************************************************************************/
-static void proc_bill_error(const char* mount_point, int errno)
+static void handleComUpdateError(int err_type)
 {
 
-	Log.d(TAG, "proc_bill_error ...");
-
-	/* 1.显示升级失败 */
-	disp_update_error(errno);
-
-	Log.d(TAG, "remove tmp file and image file...");
-
-	/* 2.删除临时文件及升级镜像 */
-	clean_tmp_image_file(mount_point);
-	
-	/* 3.重启 */
-    disp_start_reboot(5);
-	start_reboot();		/* 重启 */	
-}
-#endif
-
-
-
-static void proc_com_update_error(int err_type, const char* mount_point)
-{
-
-	Log.d(TAG, "proc_com_update_error ...");
+	Log.d(TAG, "handleComUpdateError ...");
 
 	/* 1.显示升级失败 */
 	disp_update_error(err_type);
 
-	Log.d(TAG, "remove tmp file and image file...");
-
-	/* 2.删除临时文件及升级镜像 */
-	clean_tmp_image_file(mount_point);
-	
 	/* 3.重启 */
     disp_start_reboot(5);
 	start_reboot();		/* 重启 */	
 }
 
 
-static void proc_update_module_error(int err_type, const char* mount_point)
+static void handleUpdateModuleFail(int err_type)
 {
 
-	Log.d(TAG, "proc_com_update_error ...");
+	Log.d(TAG, "handleUpdateModuleFail ...");
 
 	/* 1.显示升级失败 */
 	disp_update_error(err_type);
-
-#if 0
-	Log.d(TAG, "remove tmp file and image file...");
-
-	/* 2.删除临时文件及升级镜像 */
-	clean_tmp_image_file(mount_point);
 	
 	/* 3.重启 */
     disp_start_reboot(5);
 	start_reboot();		/* 重启 */	
-#endif
 }
 
 
 
 /*************************************************************************
-** 方法名称: deal_update_result
+** 方法名称: handleUpdateResult
 ** 方法功能: 处理升级操作的结果
 ** 入口参数: 
 **		ret - 升级的结果(成功返回ERR_UPDATE_SUCCESS;失败返回错误码)
-**		mount_point - 升级设备的挂载点
-** 返 回 值: 无
-** 调     用: main
+** 返回值: 无
+** 调 用: main
 **
 *************************************************************************/
-static void deal_update_result(int ret, const char* mount_point)
+static void handleUpdateResult(int ret)
 {
 
-	Log.d(TAG, "deal_update_result, ret = %d", ret);
+	Log.d(TAG, "handleUpdateResult, ret = %d", ret);
 	
+	system("rm -rf /mnt/update");
+
 	switch (ret) {
-	case ERR_UPDATE_SUCCESS:	/* 升级成功:  提示升级成功, 清理工作然后重启 */
-		proc_update_success(mount_point);
-		break;
+
+		case ERR_UPDATE_SUCCESS: {	/* 升级成功:  提示升级成功, 清理工作然后重启 */
+			handleUpdateSuc();
+			break;
+		}
 	
-	case ERR_UPAPP_BATTERY_LOW:	/* 电池电量低: 提示电池电量低,然后重启(不需要删除Insta360_Pro_Update.bin) */
-		proc_bat_low(mount_point);	
-		break;
+		case ERR_UPAPP_BATTERY_LOW:	{	/* 电池电量低: 提示电池电量低,然后重启(不需要删除Insta360_Pro_Update.bin) */
+			handleBatterLow();	
+			break;
+		}
 
-	case ERR_UPAPP_MODUE:		/* 模组升级失败 */
-		proc_update_module_error(ret, mount_point);
-		break;
-
-
-	case ERR_UPAPP_GET_APP_TAR:	/* 从Insta360_Pro_Update.bin中提取pro_update失败:  提示错误,删除临时文件,重启 */
-	case ERR_UPAPP_BILL:		/* 清单文件不存在 */
-	//case ERR_UPAPP_MODUE:		/* 模组升级失败 */
-	case ERR_UPAPP_BIN:			/* 更新可执行程序失败: 提示错误,删除临时文件,重启 */
-	case ERR_UPAPP_LIB:
-	case ERR_UPAPP_CFG:
-	case ERR_UPAPP_DATA:
-	case ERR_UPAPP_DEFAULT:
-		proc_com_update_error(ret, mount_point);
-		break;
+		case ERR_UPAPP_MODUE: 
+		case ERR_UPAPP_GET_APP_TAR:	/* 从Insta360_Pro_Update.bin中提取pro_update失败:  提示错误,删除临时文件,重启 */
+		case ERR_UPAPP_BILL:		/* 清单文件不存在 */
+		case ERR_UPAPP_BIN:			/* 更新可执行程序失败: 提示错误,删除临时文件,重启 */
+		case ERR_UPAPP_LIB:
+		case ERR_UPAPP_CFG:
+		case ERR_UPAPP_DATA:
+		case ERR_UPAPP_DEFAULT: {
+			handleComUpdateError(ret);
+			break;
+		}
 	}
 }
+
+
 
 /*************************************************************************
 ** 方法名称: main
@@ -1116,8 +1088,9 @@ static void deal_update_result(int ret, const char* mount_point)
 int main(int argc, char **argv)
 {
     int iRet = -1;
+	const char* pOldUpdatePackagePath = NULL;
+	const char* pNewUpdatePackagePath = NULL;
 	const char* pUpdatePackagePath = NULL;
-
 
 	/* 注册信号处理 */
 	registerSig(default_signal_handler);
@@ -1129,17 +1102,32 @@ int main(int argc, char **argv)
 
 	iRet = __system_properties_init();		/* 属性区域初始化 */
 	if (iRet) {
-		Log.e(TAG, "update_app service exit: __system_properties_init() faile, ret = %d\n", iRet);
+		Log.e(TAG, "update_app service exit: __system_properties_init() faile, ret = %d", iRet);
 		return -1;
 	}
-	
-	Log.d(TAG, ">>> Service: update_app starting ^_^ !! <<");
-	property_set(PROP_SYS_UA_VER, UAPP_VER);
-	
-	/* 1.获取升级包的路径：/mnt/udisk1/XXX */
-	pUpdatePackagePath = property_get(PROP_SYS_UPDATE_IMG_PATH);
 
-	Log.d(TAG, "get update image path [%s]", pUpdatePackagePath);
+	property_set(PROP_SYS_UA_VER, UAPP_VER);
+
+	Log.d(TAG, ">>> Service: update_app starting(Version: %s) ^_^ !! <<", property_get(PROP_SYS_UA_VER));
+
+	const char* pUcVer = property_get(PROP_SYS_UC_VER);
+	if (pUcVer == NULL || !strstr(pUcVer, "V3")) {	/* V3版本以下的update_check */
+		/* 1.获取升级包的路径：/mnt/udisk1/XXX */
+		pOldUpdatePackagePath = property_get(PROP_SYS_UPDATE_IMG_PATH);
+	} else {
+		pNewUpdatePackagePath = property_get(PROP_SYS_UPDTATE_DIR);
+	}
+
+	/* 为了兼容就的update_check */
+	if (pOldUpdatePackagePath) {
+		Log.d(TAG, "[%s: %d] Used Old update image path [%s]", __FILE__, __LINE__, pOldUpdatePackagePath);
+		pUpdatePackagePath = pOldUpdatePackagePath;
+	}
+
+	if (pNewUpdatePackagePath) {
+		Log.d(TAG, "[%s: %d] Use New update image pat [%s]", __FILE__, __LINE__, pNewUpdatePackagePath);
+		pUpdatePackagePath = pNewUpdatePackagePath;
+	}
 
 #if 0
 	char delete_file_path[512] = {0};
@@ -1155,10 +1143,14 @@ int main(int argc, char **argv)
 	}
 #endif	
 
-    iRet = start_update_app(pUpdatePackagePath);		/* 传递的是固件所在的存储路径 */
+	if (pOldUpdatePackagePath) {
+	    iRet = start_update_app(pOldUpdatePackagePath, true);		/* 传递的是固件所在的存储路径 */
+	} else if (pNewUpdatePackagePath) {
+		iRet = start_update_app(pNewUpdatePackagePath, false);		/* 传递的是固件所在的存储路径 */
+	}
 
 	/** 根据返回值统一处理 */
-	deal_update_result(iRet, pUpdatePackagePath);
+	handleUpdateResult(iRet);
     return iRet;
 }
 

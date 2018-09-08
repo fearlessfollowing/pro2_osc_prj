@@ -81,7 +81,9 @@ using namespace std;
 #define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
 #define UPDATE_IMG_DEST_PATH	"/tmp"
 
-#define UPDAE_CHECK_VER		"V3.0"
+#define UPDATE_DEST_BASE_DIR	"/mnt/update/"
+
+#define UPDAE_CHECK_VER			"V3.0"
 
 
 extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
@@ -381,21 +383,21 @@ static int getPro2UpdatePackage(FILE* fp, u32 offset)
 
 
 	int iPro2updateZipLen = bytes_to_int(gstHeader.len);
-	string pro2UpdatePath = TMP_UNZIP_PATH;
+	string pro2UpdatePath = UPDATE_DEST_BASE_DIR;
 	pro2UpdatePath += PRO_UPDATE_ZIP;
 	const char* pPro2UpdatePackagePath = pro2UpdatePath.c_str();
 
 	/* 提取升级压缩包:    pro2_update.zip */
 	if (gen_file(pPro2UpdatePackagePath, iPro2updateZipLen, fp)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
-		if (tar_zip(pPro2UpdatePackagePath, TMP_UNZIP_PATH) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
-			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+		if (tar_zip(pPro2UpdatePackagePath, UPDATE_DEST_BASE_DIR) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
+			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, pPro2UpdatePackagePath);
 			return ERROR_SUCCESS;
 		} else {
-			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, pPro2UpdatePackagePath);
 			return ERROR_UNZIP_PRO2_UPDATE;
 		}
 	} else {
-		Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
+		Log.e(TAG, "get update_app.zip %s fail", pPro2UpdatePackagePath);
 		return ERROR_GET_PRO2_UPDAET_ZIP;
 	}	
 
@@ -486,7 +488,7 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 	iPro2UpdateOffset += uReadLen;	/* UPDATE_APP_CONTENT_LEN */
 
 	int iUpdateAppLen = bytes_to_int(buf);
-	string updateAppPathName = "/tmp";
+	string updateAppPathName = UPDATE_DEST_BASE_DIR;
 	updateAppPathName += UPDATE_APP_ZIP;
 	const char* pUpdateAppPathName = updateAppPathName.c_str();
 
@@ -502,7 +504,7 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 			
 			int iErr = getPro2UpdatePackage(fp, iPro2UpdateOffset);
 			if (iErr == ERROR_SUCCESS) {
-				Log.d(TAG, "[%s: %d] get Pro2_update Success", __FILE__, __LINE__);
+				Log.d(TAG, "[%s: %d] Congratulations, get Pro2_update Success", __FILE__, __LINE__);
 			} else {
 				Log.d(TAG, "[%s: %d] get Pro2_update Failed", __FILE__, __LINE__);
 			}
@@ -525,12 +527,11 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 
 static void resetSdSlot()
 {
-	system("echo 253 > /sys/class/gpio/export");
-	system("echo 0 > /sys/class/gpio/gpio253/value");
-	msg_util::sleep_ms(1000);
-	system("echo 1 > /sys/class/gpio/gpio253/value");
+	Log.d(TAG, "[%s: %d] Reset SD Slot First", __FILE__, __LINE__);
+	
+	system("i2cset -f -y 0 0x77 0x3 0x40");
 	msg_util::sleep_ms(500);
-
+	system("i2cset -f -y 0 0x77 0x3 0x70");
 }
 
 
@@ -562,9 +563,12 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	Log.d(TAG, "Service: update_check starting ^_^ !!");
-
 	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);
+
+
+	Log.d(TAG, ">>>>>>>>>>> Service: update_check starting (Version: %s) ^_^ <<<<<<<<<<", property_get(PROP_SYS_UC_VER));
+
+	msg_util::sleep_ms(500);
 
 	/*
 	 * 复位一下SD卡模块，使得在又SD卡的情况下可以识别到
@@ -591,9 +595,14 @@ int main(int argc, char **argv)
 		if (iDelay < 0 || iDelay > 20)
 			iDelay = 0;
 
-		Log.d(TAG, "service update_check service delay [%d]s", iDelay);
+		Log.d(TAG, "[%s: %d] update_check service delay [%d]s for update device mounted", __FILE__, __LINE__, iDelay);
+		
 		sleep(iDelay);
 	}
+	
+	/* 禁止vm_clean服务，避免文件拷贝失败 */
+	property_set("ctl.stop", "vm_clean");
+
 
 	if (vm->checkLocalVolumeExist()) {	/* 卷存在，并且已经挂载 */
 		string updateFilePathName = vm->getLocalVolMountPath();
@@ -601,7 +610,8 @@ int main(int argc, char **argv)
 		updateFilePathName += UPDATE_IMAGE_FILE;
 
 		const char* pUpdateFilePathName = updateFilePathName.c_str();
-		Log.d(TAG, "[%s: %d] Update file path name -> %s", __FILE__, __LINE__, pUpdateFilePathName);
+		
+		Log.d(TAG, "[%s: %d] Update image file path name -> %s", __FILE__, __LINE__, pUpdateFilePathName);
 
 		if (access(pUpdateFilePathName, F_OK) == 0) {
 			struct stat fileStat;
@@ -610,25 +620,28 @@ int main(int argc, char **argv)
 				goto err_stat;
 			} else {
 				if (S_ISREG(fileStat.st_mode) && (fileStat.st_size > 0)) {
-					Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
+					
+					Log.d(TAG, "[%s: %d] Image is regular file", __FILE__, __LINE__);
 
 					string dstUpdateFilePath;
 					const char* pImgDstPath = property_get(PROP_UPDATE_IMAG_DST_PATH);
 					if (pImgDstPath) {
 						dstUpdateFilePath = pImgDstPath;
 					} else {
-						dstUpdateFilePath = "/mnt/tmp";
+						dstUpdateFilePath = UPDATE_DEST_BASE_DIR;
 					}
 					if (access(dstUpdateFilePath.c_str(), F_OK) != 0) {
 						mkdir(dstUpdateFilePath.c_str(), 0766);
 					}
 
-					dstUpdateFilePath += "/";
 					dstUpdateFilePath += UPDATE_IMAGE_FILE;
 					const char* pDstUpdateFilePath = dstUpdateFilePath.c_str();
 					
 					int i, iError = 0;
 					for (i = 0; i < 3; i++) {
+
+						property_set("ctl.stop", "vm_clean");
+						
 						/* 拷贝升级文件到/tmp */
 						copyUpdateFile2Memory(pDstUpdateFilePath, pUpdateFilePathName);		
 
@@ -641,7 +654,8 @@ int main(int argc, char **argv)
 					if (i < 3) {	/* 成功提取或者版本低 */
 						if (iError == ERROR_SUCCESS) {
 							vm->unmountCurLocalVol();
-							property_set(PROP_SYS_UPDATE_IMG_PATH, pUpdateFilePathName);
+							property_set(PROP_SYS_UPDTATE_DIR, UPDATE_DEST_BASE_DIR);
+							property_set(PROP_SYS_UPDATE_IMG_PATH, UPDATE_DEST_BASE_DIR);
 							property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
 							Log.d(TAG, "[%s: %d] Enter the real update program", __FILE__, __LINE__);
 							arlog_close();	

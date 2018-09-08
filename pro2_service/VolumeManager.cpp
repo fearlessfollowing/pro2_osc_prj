@@ -1077,8 +1077,10 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             }
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
+                        #ifdef USE_TRAN_SEND_MSG
                             sendCurrentSaveListNotify();
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
+                        #endif
                         }
                     }
                 }
@@ -1104,10 +1106,13 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     if (volumeIsTfCard(tmpVol) == false) {
                         setVolCurPrio(tmpVol, evt); /* 重新修改该卷的优先级 */
                         setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
+
+                    #ifdef USE_TRAN_SEND_MSG                        
                         sendCurrentSaveListNotify();
                         
                         /* 发送存储设备移除,及当前存储设备路径的消息 */
                         sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
+                    #endif
                     }
                 } else {
                     Log.d(TAG, "[%s: %d] Unmount Failed!!", __FILE__, __LINE__);
@@ -1321,15 +1326,18 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
     }
 
     if (mBsavePathChanged == true) {
-        if (mCurrentUsedLocalVol) {
+    #ifdef USE_TRAN_SEND_MSG
+        if (mCurrentUsedLocalVol) {            
             sendSavepathChangeNotify(mCurrentUsedLocalVol->pMountPath);
         } else {
             sendSavepathChangeNotify("none");
         }
+    #endif
     }
 }
 
 
+#ifdef USE_TRAN_SEND_MSG
 void VolumeManager::sendSavepathChangeNotify(const char* pSavePath)
 {
     string savePathStr;
@@ -1396,6 +1404,7 @@ void VolumeManager::sendCurrentSaveListNotify()
     fifo::getSysTranObj()->postTranMessage(msg);
 }
 
+#endif
 
 /*************************************************************************
 ** 方法名称: listVolumes
@@ -1435,6 +1444,7 @@ void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
 }
 
 
+#ifdef USE_TRAN_SEND_MSG
 
 /*************************************************************************
 ** 方法名称: sendDevChangeMsg2UI
@@ -1459,6 +1469,7 @@ void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>&
 
 }
 
+#endif
 
 
 /*************************************************************************

@@ -76,7 +76,7 @@ int read_line(int fd, void *vptr, int maxlen)
     return(n);
 }
 
-static bool check_path_access(const char *path,int mode)
+bool check_path_access(const char *path,int mode)
 {
     bool bRet = false;
     if (access(path,mode) == -1) {
