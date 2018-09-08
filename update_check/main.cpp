@@ -11,16 +11,16 @@
 ** 日     期: 2018年05月04日
 ** 修改记录:
 ** 修改记录:
-** V1.0			ws			2017-03-24			创建文件
-** V2.0			skymixos	2018年4月18日			添加注释,并做修改(版本号)
-** V2.1			skymixos	2018年4月26日			支持USB/SD卡升级
-** V2.2			skymixos	2018年5月2日			精简update_check功能
-** V2.3			skymixos	2018年5月17日			等待挂载超时,精简代码
-** V2.4			skymixos	2018年5月26日			增多通过属性系统配置等待延时
-** V2.5			skymixos	2018年6月9日			将涉及的属性名统一移动到/include/prop_cfg.h中，便于管理
-** V2.6			skymixos	2018年7月27日			提取update_app.zip到/tmp目录下
-** V3.0			skymixos	2018年9月8日			将提取pro2_update.zip及解压pro2_update.zip的任务
-***													交由update_check处理
+** V1.0			ws			2017年03月24日			创建文件
+** V2.0			skymixos	2018年04月18日			添加注释,并做修改(版本号)
+** V2.1			skymixos	2018年04月26日			支持USB/SD卡升级
+** V2.2			skymixos	2018年05月02日			精简update_check功能
+** V2.3			skymixos	2018年05月17日			等待挂载超时,精简代码
+** V2.4			skymixos	2018年05月26日			增多通过属性系统配置等待延时
+** V2.5			skymixos	2018年06月09日			将涉及的属性名统一移动到/include/prop_cfg.h中，便于管理
+** V2.6			skymixos	2018年07月27日			提取update_app.zip到/tmp目录下
+** V3.0			skymixos	2018年09月08日			将提取pro2_update.zip及解压pro2_update.zip的任务
+***													交由update_check处理，并将升级包存放于/mnt/update/下
 ******************************************************************************************************/
 
 
@@ -694,7 +694,7 @@ int main(int argc, char **argv)
 								iType = ERR_GET_APP_ZIP;
 								break;
 						}
-						
+
 						disp_update_error(iType);
 						disp_start_reboot(5);
 						start_reboot();
