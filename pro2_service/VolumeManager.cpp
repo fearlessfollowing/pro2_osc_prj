@@ -2,13 +2,16 @@
 **					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
 ** --------------------------------------------------------------------------------------------------
 ** 文件名称: VolumeManager.cpp
-** 功能描述: 存储管理器（管理设备的外部内部设备）
+** 功能描述: 存储管理器（管理设备的外部内部设备）,卷管理器设计为单例模式，进程内唯一，外部可以用过调用
+**          VolumeManager::Instance()来获取卷管理器: 
+**          VolumeManager* vm = VolumeManager::Instance();
+**          vm->xxxx()
 **
 **
 **
 ** 作     者: Skymixos
 ** 版     本: V1.0
-** 日     期: 2018年05月04日
+** 日     期: 2018年08月04日
 ** 修改记录:
 ** V1.0			Skymixos		2018-08-04		创建文件，添加注释
 ** V2.0         skymixos        2018-09-05      存储事件直接通过传输层发送，去掉从UI层发送
@@ -30,9 +33,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <sys/vfs.h>    /* or <sys/statfs.h> */
-
-
+#include <sys/vfs.h>   
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -54,19 +55,25 @@
 #include <sys/inotify.h>
 
 #include <sys/mount.h>
-
 #include <json/value.h>
 #include <json/json.h>
-
 
 #include <trans/fifo.h>
 
 
 using namespace std;
 
-#undef  TAG
-#define TAG "Vold"
 
+/*********************************************************************************************
+ *  输出日志的TAG(用于刷选日志)
+ *********************************************************************************************/
+#undef  TAG
+#define TAG     "Vold"
+
+
+/*********************************************************************************************
+ *  宏定义
+ *********************************************************************************************/
 #define MAX_FILES 			1000
 #define EPOLL_COUNT 		20
 #define MAXCOUNT 			500
@@ -76,19 +83,47 @@ using namespace std;
 #define CtrlPipe_Wakeup     1
 
 
-#define MKFS_EXFAT "/sbin/mkexfatfs"
+#define MKFS_EXFAT          "/sbin/mkexfatfs"
 #define USE_TRAN_SEND_MSG
 
+
+
+/*********************************************************************************************
+ *  外部函数
+ *********************************************************************************************/
+extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
+
+
+/*********************************************************************************************
+ *  全局变量
+ *********************************************************************************************/
 VolumeManager *VolumeManager::sInstance = NULL;
 u32 VolumeManager::lefSpaceThreshold = 1024U;
 
+static Mutex gVolumeManagerMutex;
 static Mutex gRecLeftMutex;
 static Mutex gLiveRecLeftMutex;
 static Mutex gRecMutex;
 static Mutex gLiveRecMutex;
 
-extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
 
+
+/*********************************************************************************************
+ *  内部函数定义
+ *********************************************************************************************/
+
+
+
+
+/*************************************************************************
+** 方法名称: do_coldboot
+** 方法功能: 往指定目录的uevent下写入add来达到模拟设备"冷启动"的效果
+** 入口参数: 
+**      d   - 目录
+**      lvl - 级层
+** 返回值:   无
+** 调 用:   coldboot
+*************************************************************************/
 static void do_coldboot(DIR *d, int lvl)
 {
     struct dirent *de;
@@ -126,18 +161,115 @@ static void do_coldboot(DIR *d, int lvl)
 }
 
 
+/*************************************************************************
+** 方法名称: coldboot
+** 方法功能: 对指定的路径进行冷启动操作（针对/sys/下的已经存在设备文件部分，让内核
+**          重新发送新增设备事件），方便卷管理器进行挂载
+** 入口参数: 
+**      mountPath - 需要执行冷启动的路径
+** 返回值:   无
+** 调 用: 
+** 卷管理器是通过接收内核通知（设备插入，拔出消息来进行卷的挂载和卸载操作），但是
+** 卷管理器启动时，已经有一些设备已经生成，对于已经产生的设备在/sys/xxx下会有
+** 对应的目录结构，通过往其中uevent文件中写入add来模拟一次设备的插入来完成设备
+** 的挂载
+*************************************************************************/
 static void coldboot(const char *path)
 {
     DIR *d = opendir(path);
-    if(d) {
+    if (d) {
         do_coldboot(d, 0);
         closedir(d);
     }
 }
 
 
+bool isMountpointMounted(const char *mp)
+{
+    char device[256];
+    char mount_path[256];
+    char rest[256];
+    FILE *fp;
+    char line[1024];
+
+    if (!(fp = fopen("/proc/mounts", "r"))) {
+        Log.e(TAG, "Error opening /proc/mounts (%s)", strerror(errno));
+        return false;
+    }
+
+    while (fgets(line, sizeof(line), fp)) {
+        line[strlen(line)-1] = '\0';
+        sscanf(line, "%255s %255s %255s\n", device, mount_path, rest);
+        if (!strcmp(mount_path, mp)) {
+            fclose(fp);
+            return true;
+        }
+    }
+
+    fclose(fp);
+    return false;
+}
+
+
+/*************************************************************************
+** 方法名称: clearAllunmountPoint
+** 方法功能: 清除指定目录下的非挂载点目录和普通文件
+** 入口参数: 
+** 返 回 值:   无
+** 调    用: 
+*************************************************************************/
+static void clearAllunmountPoint()
+{
+    char cPath[256] = {0};
+    sprintf(cPath, "%s", "/mnt");
+
+    DIR *dir = opendir(cPath);
+    if (!dir)
+        return;
+    
+    int iParentLen = strlen(cPath); 
+    cPath[iParentLen++] = '/';
+    
+    struct dirent* de;
+    
+    while ((de = readdir(dir))) {
+        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + parent_length + 1 >= PATH_MAX)
+            continue;
+
+        path[iParentLen] = 0;
+        strcat(cPath, de->d_name);
+
+        Log.d(TAG, "[%s: %d] Current Path name: %s", __FILE__, __LINE__, cPath);
+
+        if (false == isMountpointMounted(cPath)) {
+            Log.d(TAG, "[%s: %d] Remove it [%s]", __FILE__, __LINE__, cPath);
+            string rmCmd = "rm -rf ";
+            rmCmd += cPath;
+            system(rmCmd.c_str());
+        }
+    }
+    closedir(dir);
+}
+
+
+
+
+/*********************************************************************************************
+ *  类方法
+ *********************************************************************************************/
+
+
+
+/*************************************************************************
+** 方法名称: Instance
+** 方法功能: 获取卷管理器对象指针
+** 入口参数: 
+** 返 回 值:   进程内唯一的卷管理器对象
+** 调    用: 
+*************************************************************************/
 VolumeManager* VolumeManager::Instance() 
 {
+    AutoMutex _l(gVolumeManagerMutex);
     if (!sInstance)
         sInstance = new VolumeManager();
     return sInstance;
@@ -145,35 +277,45 @@ VolumeManager* VolumeManager::Instance()
 
 
 
-/*
- * 卷管理器 - 僵死挂载点的清除(设备文件已经删除,但是挂载点还处于挂载状态,由于没有接收到内核的消息)
- * 设备名 -> 卷
- * ADD/REMORE - 目前只管REMOVE
- */
-
-
-VolumeManager::VolumeManager() 
+/*************************************************************************
+** 方法名称: VolumeManager
+** 方法功能: 卷管理器构造函数
+** 入口参数: 
+** 返 回 值:   
+** 调    用: 
+** 私有方法，通过Instance()调用
+*************************************************************************/
+VolumeManager::VolumeManager() : 
+                                mListenerMode(VOLUME_MANAGER_LISTENER_MODE_NETLINK),
+                                mCurrentUsedLocalVol(NULL),
+                                mSavedLocalVol(NULL),
+                                mBsavePathChanged(false),
+                                mModuleVolNum(0),
+                                mReoteRecLiveLeftSize(0),
+                                mHandledAddUdiskVolCnt(0),
+                                mHandledRemoveUdiskVolCnt(0),
+                                mRecLeftSec(0),
+                                mRecSec(0),
+                                mLiveRecLeftSec(0),
+                                mLiveRecSec(0),
+                                mDebug(true),
+                                mNotify(NULL)                          
 {
-    mDebug = true;
 
 	Volume* tmpVol = NULL;
-
-#ifdef ENABLE_VOLUME_MANAGER_USE_NETLINK
-    mListenerMode = VOLUME_MANAGER_LISTENER_MODE_NETLINK;
-#else
-    mListenerMode = VOLUME_MANAGER_LISTENER_MODE_INOTIFY;
-#endif
 
     mVolumes.clear();
     mLocalVols.clear();
     mModuleVols.clear();
-    mNotify = nullptr;
+    mCurSaveVolList.clear();
+    mSysStorageVolList.clear();
 
     /* 挂载点初始化 */
-    /*
-     * 重新初始化挂载点
-     */
-    // property_set(PROP_RO_MOUNT_TF, "true");     /* 只读的方式挂载TF卡 */    
+    #ifdef ENABLE_MOUNT_TFCARD_RO
+    property_set(PROP_RO_MOUNT_TF, "true");     /* 只读的方式挂载TF卡 */    
+    #endif
+
+    Log.d(TAG, "[%s: %d] Umont All device now .....", __FILE__, __LINE__);
 
     umount2("/mnt/mSD1", MNT_FORCE);
     umount2("/mnt/mSD2", MNT_FORCE);
@@ -185,17 +327,8 @@ VolumeManager::VolumeManager()
     umount2("/mnt/udisk1", MNT_FORCE);
     umount2("/mnt/udisk2", MNT_FORCE);
 
-    // rmdir("/mnt/mSD1");
-    // rmdir("/mnt/mSD2");
-    // rmdir("/mnt/mSD3");
-    // rmdir("/mnt/mSD4");
-    // rmdir("/mnt/mSD5");
-    // rmdir("/mnt/mSD6");
-    // rmdir("/mnt/sdcard");
-    // rmdir("/mnt/udisk1");
-    // rmdir("/mnt/udisk2");
-
-    Log.d(TAG, "[%s: %d] Umont All device now .....", __FILE__, __LINE__);
+    /* 删除/mnt/下未挂载的目录，已经挂载了的不处理（实时上update_check已经将升级设备挂载了） */
+    clearAllunmountPoint();
 
     /*
      * 初始化与模组交互的两个GPIO
@@ -205,12 +338,10 @@ VolumeManager::VolumeManager()
     system("echo out > /sys/class/gpio/gpio456/direction");
     system("echo out > /sys/class/gpio/gpio478/direction");
 
-    mCurrentUsedLocalVol = NULL;
-    mSavedLocalVol = NULL;
-    mBsavePathChanged = false;
 
     /* 根据类型将各个卷加入到系统多个Vector中 */
     for (int i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
+
         tmpVol = &gSysVols[i];  
         mVolumes.push_back(tmpVol);
 
@@ -222,7 +353,7 @@ VolumeManager::VolumeManager()
         }
     }
 
-    Log.d(TAG, "[%s: %d] Module Volume size = %d", __FILE__, __LINE__, mModuleVolNum);
+    Log.d(TAG, "[%s: %d] Construtor VolumeManager Done...", __FILE__, __LINE__);
 }
 
 
@@ -278,6 +409,7 @@ void VolumeManager::checkAllUdiskIdle()
         }
     }
 }
+
 
 /*
  * 确保所有的U-Disk都挂载上了

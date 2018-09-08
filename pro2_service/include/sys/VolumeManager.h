@@ -1,3 +1,21 @@
+
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: VolumeManager.h
+** 功能描述: 存储管理器（管理设备的外部内部设备）,卷管理器设计为单例模式，进程内唯一，外部可以用过调用
+**          VolumeManager::Instance()来获取卷管理器: 
+**          VolumeManager* vm = VolumeManager::Instance();
+**          vm->xxxx()
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V1.0
+** 日     期: 2018年08月04日
+******************************************************************************************************/
+
+
 #ifndef _VOLUMEMANAGER_H
 #define _VOLUMEMANAGER_H
 
@@ -343,10 +361,8 @@ class NetlinkEvent;
 class VolumeManager {
 
 public:
-    virtual ~VolumeManager();
-
-
-    static u32 lefSpaceThreshold;
+    virtual     ~VolumeManager();
+    static u32  lefSpaceThreshold;
 
     /*
      * 启动/停止卷管理器
@@ -358,22 +374,15 @@ public:
      * 处理块设备事件的到来
      */
     int         handleBlockEvent(NetlinkEvent *evt);
-
-
     void        unmountCurLocalVol();
 
     void        listVolumes();
-
-
     int         unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force);
-
-
     int         formatVolume(Volume* pVol, bool wipe = false);
     
     void        disableVolumeManager(void) { mVolManagerDisabled = 1; }
 
     void        setDebug(bool enable);
-
 
     void        updateVolumeSpace(Volume* pVol);
 
@@ -492,12 +501,9 @@ private:
     static VolumeManager*   sInstance;
 
     std::vector<Volume*>    mVolumes;       /* 管理系统中所有的卷 */
-
     std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
     std::vector<Volume*>    mModuleVols;    /* 模组卷 */
-
     std::vector<Volume*>    mCurSaveVolList;
-
     std::vector<Volume*>    mSysStorageVolList;
 
     bool                    mDebug;
@@ -509,7 +515,7 @@ private:
     std::mutex				mLocaLDevLock;
     std::mutex              mRemoteDevLock;
 
-    u64                     mReoteRecLiveLeftSize = 0;                  /* 远端设备(小卡)的录像,直播剩余时间 */
+    u64                     mReoteRecLiveLeftSize;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
     int                     mVolumeManagerWorkMode;                     /* 卷管理器的工作模式: U盘模式;普通模式 */
 
@@ -552,15 +558,10 @@ private:
     bool        formatVolume2Exfat(Volume* pVol);
     bool        formatVolume2Ext4(Volume* pVol);
 
-
-
 public:
     void        runFileMonitorListener();
 
 
 };
-
-
-
 
 #endif
