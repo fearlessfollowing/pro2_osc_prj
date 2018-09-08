@@ -8,6 +8,7 @@
 #define TAG "update_util"
 
 
+
 //#define ENABLE_DUMP
 static bool check_path_access(const char *path,int mode)
 {
@@ -20,10 +21,12 @@ static bool check_path_access(const char *path,int mode)
     return bRet;
 }
 
+#if 0
 bool check_path_exist(const char *path)
 {
     return check_path_access(path, F_OK);
 }
+#endif
 
 int create_dir(const char *path)
 {
@@ -56,6 +59,7 @@ bool check_path_rwx(const char *path)
     return check_path_access(path, R_OK|X_OK|W_OK);
 }
 
+#if 0
 int exec_sh(const char *str)
 {
     int status = system(str);
@@ -92,7 +96,7 @@ int exec_sh(const char *str)
 
     return iRet;
 }
-
+#endif
 
 
 void str_trim(char* pStr) 

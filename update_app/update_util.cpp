@@ -7,7 +7,7 @@
 
 
 #define ENABLE_BAT_CHECK
-#if 0
+
 //#define ENABLE_DUMP
 static bool check_path_access(const char *path,int mode)
 {
@@ -21,6 +21,7 @@ static bool check_path_access(const char *path,int mode)
 }
 
 
+#if 0
 bool check_path_exist(const char *path)
 {
     return check_path_access(path, F_OK);

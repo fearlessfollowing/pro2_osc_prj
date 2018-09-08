@@ -9868,11 +9868,10 @@ void MenuUI::handleUpdateMid()
         send_update_mid_msg(INTERVAL_1HZ);
         if (!check_state_in(STATE_STOP_LIVING)) {   /* 非停止直播状态 */
             vm->incOrClearLiveRecSec();             /* 增加直播录像的时间(直播时间) */
-            if (vm->decLiveRecLeftSec()) {
-                if (cur_menu == MENU_LIVE_INFO) {
-                    dispBottomLeftSpace();              /* 显示剩余时长 */
-                    sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
-                }
+            vm->decLiveRecLeftSec();
+            if (cur_menu == MENU_LIVE_INFO) {
+                dispBottomLeftSpace();              /* 显示剩余时长 */
+                sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
             }
         }
         flick_light();

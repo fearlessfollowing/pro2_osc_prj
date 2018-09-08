@@ -18,7 +18,7 @@ src += [config.PRO2_SERVICE + '/util/stlog.cpp']
 src += [config.PRO2_SERVICE + '/util/md5.cpp']
 src += [config.PRO2_SERVICE + '/util/update_oled.cpp']
 src += [config.PRO2_SERVICE + '/util/util.cpp']
-#src += [config.PRO2_SERVICE + '/util/update_util.cpp']
+src += [config.PRO2_SERVICE + '/forkUtil.cpp']
 
 src += [config.LIBLOG + '/logd_write.c']
 src += [config.LIBLOG + '/log_event_write.c']

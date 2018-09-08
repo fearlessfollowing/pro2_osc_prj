@@ -1,10 +1,15 @@
-/**************************************************************************************************
-** 项	 目: PRO2
-** 文件名称: update_tool.cpp
-** 功能描述: 用于生成升级镜像文件(如Insta360_Pro_Update.bin)
-** 创建日期: 2017-03-24
-** 文件版本: V1.1
-** 作     者: skymixos, ws
+/*****************************************************************************************************
+**					Copyrigith(C) 2018	Insta360 Pro2 Camera Project
+** --------------------------------------------------------------------------------------------------
+** 文件名称: main.cpp
+** 功能描述: 升级检测程序，开机时启动时运行一次
+**
+**
+**
+** 作     者: Skymixos
+** 版     本: V1.0
+** 日     期: 2018年05月04日
+** 修改记录:
 ** 修改记录:
 ** V1.0			ws			2017-03-24			创建文件
 ** V2.0			skymixos	2018年4月18日			添加注释,并做修改(版本号)
@@ -16,7 +21,8 @@
 ** V2.6			skymixos	2018年7月27日			提取update_app.zip到/tmp目录下
 ** V3.0			skymixos	2018年9月8日			将提取pro2_update.zip及解压pro2_update.zip的任务
 ***													交由update_check处理
-***************************************************************************************************/
+******************************************************************************************************/
+
 
 
 /* 检查镜像是否存在
@@ -79,25 +85,10 @@ using namespace std;
 #define UPDATE_LOG_PATH 		"/home/nvidia/insta360/log/uc_log" 
 #define UPDATE_APP_ZIP 			"update_app.zip"
 #define UPDATE_APP_DEST_PATH	"/usr/local/bin"
-
 #define UPDATE_DEST_BASE_DIR	"/mnt/update/"
-
-/*
- * 1.拷贝升级文件到/mnt/update/Insta360_Pro2_Update.bin
- * 2.提取update_app.zip到/mnt/update/update_app.zip
- * 3.解压/mnt/update/update_app.zip到/usr/local/bin/update_app
- * 4.提取并解压pro2_update.zip到/mnt/update/
- * 	 pro2_update.zip  pro2_update
- * 5.退出，把执行权交给其他进程
- */
-#define UPDATE_APP_TMP_PATH		"/tmp"		/* 提取update_app.zip存放的目的位置 */
-#define UPDATE_IMG_DEST_PATH	"/tmp"
-
 #define UPDAE_CHECK_VER			"V3.0"
-
-
-extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
-
+#define TMP_UNZIP_PATH			"/tmp/update"	/* 解压升级包的目标路径 */
+#define PRO_UPDATE_ZIP			"pro2_update.zip"
 
 enum {
 	ERROR_SUCCESS = 0,
@@ -113,9 +104,9 @@ enum {
 	
 };
 
+extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit);
+
 static u32 iPro2UpdateOffset = 0;
-#define TMP_UNZIP_PATH	"/tmp/update"	/* 解压升级包的目标路径 */
-#define PRO_UPDATE_ZIP	"pro2_update.zip"
 
 
 static const char *get_key()
@@ -219,7 +210,6 @@ static bool isNeedUpdate(SYS_VERSION* old_ver, SYS_VERSION* cur_ver)
 		Log.d(TAG, "cur major is older than board, just pass!");
 		isUpdate = false;
 	}
-	
 	return isUpdate;
 }
 
@@ -254,7 +244,6 @@ static bool upateVerCheck(SYS_VERSION* pVer)
 	} else {
 		Log.d(TAG, "version file not exist, maybe first update!");
 	}
-
     return bRet;
 }
 
@@ -403,14 +392,14 @@ static int getPro2UpdatePackage(FILE* fp, u32 offset)
 	/* 提取升级压缩包:    pro2_update.zip */
 	if (gen_file(pPro2UpdatePackagePath, iPro2updateZipLen, fp)) {	/* 从Insta360_Pro2_Update.bin中提取pro2_update.zip */
 		if (tar_zip(pPro2UpdatePackagePath, UPDATE_DEST_BASE_DIR) == 0) {	/* 解压压缩包到TMP_UNZIP_PATH目录中 */
-			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+			Log.d(TAG, "[%s: %d] unzip pro2_update.zip to [%s] success...", __FILE__, __LINE__, pPro2UpdatePackagePath);
 			return ERROR_SUCCESS;
 		} else {
-			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, TMP_UNZIP_PATH);
+			Log.e(TAG, "[%s: %d] unzip pro_update.zip to [%s] failed...", __FILE__, __LINE__, pPro2UpdatePackagePath);
 			return ERROR_UNZIP_PRO2_UPDATE;
 		}
 	} else {
-		Log.e(TAG, "get update_app.zip %s fail", UPDATE_APP_CONTENT_NAME_FULL_ZIP);
+		Log.e(TAG, "get update_app.zip %s fail", pPro2UpdatePackagePath);
 		return ERROR_GET_PRO2_UPDAET_ZIP;
 	}	
 }
@@ -518,7 +507,7 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 			
 			int iErr = getPro2UpdatePackage(fp, iPro2UpdateOffset);
 			if (iErr == ERROR_SUCCESS) {
-				Log.d(TAG, "[%s: %d] get Pro2_update Success", __FILE__, __LINE__);
+				Log.d(TAG, "[%s: %d] Congratulations, get Pro2_update Success", __FILE__, __LINE__);
 			} else {
 				Log.d(TAG, "[%s: %d] get Pro2_update Failed", __FILE__, __LINE__);
 			}
@@ -541,13 +530,14 @@ static int getUpdateAppAndPro2update(const char* pUpdateFilePathName)
 
 static void resetSdSlot()
 {
-	system("echo 253 > /sys/class/gpio/export");
-	system("echo 0 > /sys/class/gpio/gpio253/value");
-	msg_util::sleep_ms(1000);
-	system("echo 1 > /sys/class/gpio/gpio253/value");
+	Log.d(TAG, "[%s: %d] Reset SD Slot First", __FILE__, __LINE__);
+	
+	/* 直接设置I2C电源控制部分 */
+	system("i2cset -f -y 0 0x77 0x3 0x40");
 	msg_util::sleep_ms(500);
-
+	system("i2cset -f -y 0 0x77 0x3 0x70");
 }
+
 
 
 /*************************************************************************
@@ -557,7 +547,7 @@ static void resetSdSlot()
 **		argc - 命令行参数的个数
 **		argv - 参数列表
 ** 返 回 值: 成功返回0;失败返回-1
-** 调     用: OS
+** 调 用: OS
 **
 *************************************************************************/
 int main(int argc, char **argv)
@@ -566,25 +556,23 @@ int main(int argc, char **argv)
 	const char* pUcDelayStr = NULL;	
 	long iDelay = 0;
 
-	/* 注册信号处理函数 */
-    registerSig(default_signal_handler);
+    registerSig(default_signal_handler);	/* 注册信号处理函数 */
     signal(SIGPIPE, pipe_signal_handler);
 
 	arlog_configure(true, true, UPDATE_LOG_PATH, false);	/* 配置日志 */
 
-	iRet = __system_properties_init();		/* 属性区域初始化 */
+	iRet = __system_properties_init();		/* 属性区域初始化，方便程序使用属性系统 */
 	if (iRet) {
 		Log.e(TAG, "update_check service exit: __system_properties_init() faile, ret = %d", iRet);
 		return -1;
 	}
 
-	Log.d(TAG, "Service: update_check starting ^_^ !!");
+	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);		/* 将程序的版本更新到属性系统中 */
 
-	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);
 
-	/*
-	 * 复位一下SD卡模块，使得在又SD卡的情况下可以识别到
-	 */
+	Log.d(TAG, ">>>>>>>>>>> Service: update_check starting (Version: %s) ^_^ <<<<<<<<<<", property_get(PROP_SYS_UC_VER));
+
+	/** 复位一下SD卡模块，使得在有SD卡的情况下可以识别到 */
 	resetSdSlot();
 
 	/** 启动卷管理器,用于挂载升级设备 */
@@ -594,9 +582,7 @@ int main(int argc, char **argv)
         vm->start();
     }
 
-
-	/** 读取系统的固件版本并写入到属性系统中 */
-	setLastFirmVer2Prop(VER_FULL_PATH);
+	setLastFirmVer2Prop(VER_FULL_PATH);		/** 读取系统的固件版本并写入到属性系统中 */
 
 	/*
  	 * 系统启动后USB的挂载需要一些时间,因此可通过属性系统来配置update_check服务的等待时间
@@ -608,19 +594,22 @@ int main(int argc, char **argv)
 		if (iDelay < 0 || iDelay > 20)
 			iDelay = 0;
 
-		Log.d(TAG, "service update_check service delay [%d]s", iDelay);
+		Log.d(TAG, "[%s: %d] update_check service delay [%d]s for update device mounted", __FILE__, __LINE__, iDelay);
 		sleep(iDelay);
 	}
+	
 
-	if (vm->checkLocalVolumeExist()) {	/* 卷存在，并且已经挂载 */
+	if (vm->checkLocalVolumeExist()) {		/* 升级设备存在，并且已经挂载 */
 		string updateFilePathName = vm->getLocalVolMountPath();
 		updateFilePathName += "/";
 		updateFilePathName += UPDATE_IMAGE_FILE;
 
 		const char* pUpdateFilePathName = updateFilePathName.c_str();
-		Log.d(TAG, "[%s: %d] Update file path name -> %s", __FILE__, __LINE__, pUpdateFilePathName);
+		
+		Log.d(TAG, "[%s: %d] Update image file path name -> %s", __FILE__, __LINE__, pUpdateFilePathName);
 
-		if (access(pUpdateFilePathName, F_OK) == 0) {
+		if (access(pUpdateFilePathName, F_OK) == 0) {	/* 升级镜像存在 */
+			
 			struct stat fileStat;
 			if (stat(pUpdateFilePathName, &fileStat)) {
 				Log.e(TAG, "[%s: %d] stat file prop failed", __FILE__, __LINE__);
@@ -629,7 +618,8 @@ int main(int argc, char **argv)
 
 				/* 对于值为0的常规文件会直接删除 */
 				if (S_ISREG(fileStat.st_mode) && (fileStat.st_size > 0)) {
-					Log.d(TAG, "[%s: %d] regular file", __FILE__, __LINE__);
+					
+					Log.d(TAG, "[%s: %d] Image is regular file", __FILE__, __LINE__);
 
 					string dstUpdateFilePath;
 					const char* pImgDstPath = property_get(PROP_UPDATE_IMAG_DST_PATH);
@@ -648,7 +638,10 @@ int main(int argc, char **argv)
 					
 					int i, iError = 0;
 					for (i = 0; i < 3; i++) {
-						/* 拷贝升级文件到/mnt/update */
+
+						property_set("ctl.stop", "vm_clean");	/* 停止vm_clean服务 */
+						
+						/* 拷贝升级文件到/tmp */
 						copyUpdateFile2Memory(pDstUpdateFilePath, pUpdateFilePathName);		
 
 						iError = getUpdateAppAndPro2update(pDstUpdateFilePath);
@@ -660,9 +653,12 @@ int main(int argc, char **argv)
 					if (i < 3) {	/* 成功提取或者版本低 */
 						if (iError == ERROR_SUCCESS) {
 							vm->unmountCurLocalVol();
-							property_set(PROP_SYS_UPDATE_IMG_PATH, pUpdateFilePathName);
+							property_set(PROP_SYS_UPDTATE_DIR, UPDATE_DEST_BASE_DIR);
+							property_set(PROP_SYS_UPDATE_IMG_PATH, UPDATE_DEST_BASE_DIR);
 							property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
+							
 							Log.d(TAG, "[%s: %d] Enter the real update program", __FILE__, __LINE__);
+							
 							arlog_close();	
 							return 0;
 
@@ -678,6 +674,7 @@ int main(int argc, char **argv)
 
 						/* 提示失败的原因，并倒计时重启 */
 						vm->unmountCurLocalVol();
+
 						init_oled_module();
 
 						switch (iError) {
@@ -697,6 +694,7 @@ int main(int argc, char **argv)
 								iType = ERR_GET_APP_ZIP;
 								break;
 						}
+						
 						disp_update_error(iType);
 						disp_start_reboot(5);
 						start_reboot();
