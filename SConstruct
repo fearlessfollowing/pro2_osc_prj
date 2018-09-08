@@ -43,13 +43,13 @@ Export('com_env')
 
 
 ############################ update_check ##################################
-update_check_obj = SConscript('./update_check/SConscript')
-com_env.Program('out/update_check', update_check_obj)
+#update_check_obj = SConscript('./update_check/SConscript')
+#com_env.Program('out/update_check', update_check_obj)
 
 
 ############################ update_app ####################################
-update_app_obj = SConscript('./update_app/SConscript')
-com_env.Program('out/update_app', update_app_obj)
+#update_app_obj = SConscript('./update_app/SConscript')
+#com_env.Program('out/update_app', update_app_obj)
 
 	
 
@@ -69,13 +69,10 @@ com_env.Program('out/update_app', update_app_obj)
 #pro2_service_env = com_env.Clone()
 
 #Export('pro2_service_env')
-#pro2_service_obj = SConscript('./pro2_service/SConscript')
-#com_env.Program('./out/pro2_service', pro2_service_obj)
+pro2_service_obj = SConscript('./pro2_service/SConscript')
+com_env.Program('./out/pro2_service', pro2_service_obj)
 
 
-############################ update_app ##################################
-#udisk_app_obj = SConscript('./update_app/SConscript')
-#com_env.Program('./out/update_app', udisk_app_obj)
 
 ############################ udisk_test ##################################
 #udisk_test_obj = SConscript('./pro2_service/udisk/SConscript')

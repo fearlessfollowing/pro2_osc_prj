@@ -77,7 +77,7 @@ using namespace std;
 
 
 #define MKFS_EXFAT "/sbin/mkexfatfs"
-
+#define USE_TRAN_SEND_MSG
 
 VolumeManager *VolumeManager::sInstance = NULL;
 u32 VolumeManager::lefSpaceThreshold = 1024U;
