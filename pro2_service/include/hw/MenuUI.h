@@ -383,6 +383,68 @@ enum {
 };
 
 
+/*
+ * 声音索引
+ */
+enum {
+    SND_SHUTTER,
+    SND_COMPLE,
+    SND_FIVE_T,
+    SND_QR,
+    SND_START,
+    SND_STOP,
+    SND_THREE_T,
+    SND_ONE_T,
+    SND_MAX_NUM,
+};
+
+
+/*
+ * 声音文件
+ */
+static const char *sound_str[] = {
+    "/home/nvidia/insta360/wav/camera_shutter.wav",
+    "/home/nvidia/insta360/wav/completed.wav",
+    "/home/nvidia/insta360/wav/five_s_timer.wav",
+    "/home/nvidia/insta360/wav/qr_code.wav",
+    "/home/nvidia/insta360/wav/start_rec.wav",
+    "/home/nvidia/insta360/wav/stop_rec.wav",
+    "/home/nvidia/insta360/wav/three_s_timer.wav",
+    "/home/nvidia/insta360/wav/one_s_timer.wav"
+};
+
+
+/* Slave Addr: 0x77 Reg Addr: 0x02
+ * bit[7] - USB_POWER_EN2
+ * bit[6] - USB_POWER_EN1
+ * bit[5] - LED_BACK_B
+ * bit[4] - LED_BACK_G
+ * bit[3] - LED_BACK_R
+ * bit[2] - LED_FRONT_B
+ * bit[1] - LED_FRONT_G
+ * bit[0] - LED_FRONT_R
+ */
+enum {
+    LIGHT_OFF 		= 0xc0,		/* 关闭所有的灯 bit[7:6] = Camera module */
+    FRONT_RED 		= 0xc1,		/* 前灯亮红色,后灯全灭 */
+    FRONT_GREEN 	= 0xc2,		/* 前灯亮绿色,后灯全灭 */
+    FRONT_YELLOW 	= 0xc3,		/* 前灯亮黄色(G+R), 后灯全灭 */
+    FRONT_DARK_BLUE = 0xc4,		/* 前灯亮蓝色, 后灯全灭 */
+    FRONT_PURPLE 	= 0xc5,
+    FRONT_BLUE 		= 0xc6,
+    FRONT_WHITE 	= 0xc7,		/* 前灯亮白色(R+G+B),后灯全灭 */
+
+    BACK_RED 		= 0xc8,		/* 后灯亮红色 */
+    BACK_GREEN 		= 0xd0,		/* 后灯亮绿色 */
+    BACK_YELLOW 	= 0xd8,		/* 后灯亮黄色 */
+    BACK_DARK_BLUE 	= 0xe0,
+    BACK_PURPLE 	= 0xe8,
+    BACK_BLUE 		= 0xf0,
+    BACK_WHITE		= 0xf8,		/* 后灯亮白色 */
+
+    LIGHT_ALL 		= 0xff		/* 所有的灯亮白色 */
+};
+
 
 struct _icon_info_;
 struct _lr_menu_;
@@ -416,20 +478,19 @@ public:
 
     void    postUiMessage(sp<ARMessage>& msg);
 
-            MenuUI();
 
             MenuUI(const sp<ARMessage> &notify);
             ~MenuUI();
+
     void    handleMessage(const sp<ARMessage> &msg);
-	
+    sp<ARMessage> obtainMessage(uint32_t what);	
+
+
+/******************************************************************************************************
+ * 外部给UI线程发送消息的接口
+ ******************************************************************************************************/
     void    send_disp_str(sp<struct _disp_type_> &sp_disp);
     void    send_disp_err(sp<struct _err_type_info_> &sp_disp);
-
-
-    void    start();            
-    void    stop();
-
-    //net type 0 -- default to wlan
     void    send_disp_ip(int ip, int net_type = 0);
     void    send_disp_battery(int battery, bool charge);
 
@@ -439,10 +500,6 @@ public:
     void    send_init_disp();
     void    send_update_dev_list(std::vector<Volume*> &mList);
     void    send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
-
-    sp<ARMessage> obtainMessage(uint32_t what);
-
-    //void postUiMessage(sp<ARMessage>& msg, int interval = 0);
 
     void    updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
     void    sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
@@ -464,35 +521,28 @@ private:
      */
     struct _select_info_ * getCurMenuSelectInfo();
 
-	bool check_cur_menu_support_key(int iKey);
+	bool    check_cur_menu_support_key(int iKey);
 
-	void set_mainmenu_item(int item,int icon);
-    void disp_calibration_res(int type,int t = -1);
-    void disp_sec(int sec,int x,int y);
-    bool isDevExist();
-    
+	void    set_mainmenu_item(int item,int icon);
+    void    disp_calibration_res(int type,int t = -1);
+    void    disp_sec(int sec,int x,int y);
+
     /*
      * enterMenu - 进入菜单（会根据菜单的当前状态进行绘制）
      * dispBottom - 是否更新底部区域
      */
-    void enterMenu(bool dispBottom = true);         //add dispBottom for menu_pic_info 170804
+    void    enterMenu(bool dispBottom = true);         //add dispBottom for menu_pic_info 170804
 
-    void disp_low_protect(bool bStart = false);
-    void disp_low_bat();
-    void func_low_protect();
+    void    disp_low_protect(bool bStart = false);
+    void    disp_low_bat();
+    void    func_low_protect();
 
-    bool menuHasStatusbar(int menu);
+    bool    menuHasStatusbar(int menu);
 
     void    dispFormatSd();
 
-    void    disp_waiting();
-    void    disp_connecting();
-    void    disp_saving();
-    void    disp_ready_icon(bool bDispReady = true);
-    void    disp_live_ready();
-    void    clear_ready();
-    void    disp_shooting();
-    void    disp_processing();
+
+
     bool    check_state_preview();
     bool    check_state_equal(int state);
     bool    check_state_in(int state);
@@ -538,10 +588,7 @@ private:
     int     exec_sh_new(const char *buf);
 
 
-    void    disp_str(const u8 *str,const u8 x,const u8 y, bool high = 0,int width = 0);
-    void    disp_str_fill(const u8 *str,const u8 x,const u8 y, bool high = false);
-    void    clear_icon(u32 type);
-    void    disp_icon(u32 type);
+
     void    disp_ageing();
 
     int     oled_disp_err(sp<struct _err_type_info_> &mErr);
@@ -555,8 +602,7 @@ private:
     void    disp_top_info();
 
     int     oled_disp_battery();
-    void    clear_area(u8 x,u8 y, u8 w,u8 h);
-    void    clear_area(u8 x = 0,u8 y = 0);
+
     bool    check_allow_update_top();
     void    handleWifiAction();
     void    disp_wifi(bool bState, int disp_main = -1);
@@ -580,7 +626,7 @@ private:
     void    init_menu_select();
     void    deinit();
 
-    void    init_handler_thread();
+
     
     void    init_sound_thread();
     
@@ -628,8 +674,7 @@ private:
 
     void    send_update_mid_msg(int interval = 1000);
     void    set_update_mid();
-    void    increase_rec_time();
-    bool    decrease_rest_time();
+
     void    disp_mid();
     void    flick_light();
     void    flick_low_bat_lig();
@@ -662,6 +707,15 @@ private:
 
     void    printJsonCfg(Json::Value& json);
 
+
+/******************************************************************************************************
+ * 初始化类
+ ******************************************************************************************************/
+    void    initUiMsgHandler(); 
+
+
+
+
 /******************************************************************************************************
  * 模式类
  ******************************************************************************************************/
@@ -671,10 +725,35 @@ private:
     bool    takeVideoIsAgeingMode();
 
 
+
 /******************************************************************************************************
  * 显示类
  ******************************************************************************************************/
-	void    dispIconByLoc(const ICON_INFO* pInfo);
+    
+    /** 显示指定的图标 */
+    void    dispIconByLoc(const ICON_INFO* pInfo);
+
+    /** 填充显示字符串 */
+    void    dispStrFill(const u8 *str, const u8 x, const u8 y, bool high = false);
+
+    /** 显示字符串 */
+    void    dispStr(const u8 *str, const u8 x, const u8 y, bool high = 0,int width = 0);
+    
+    /*
+     * 显示指定索引值对应的图标(需要被丢弃，在以后的版本)
+     */
+    void    clearIconByType(u32 type);
+    void    dispIconByType(u32 type);
+    void    dispWaiting();
+    void    dispConnecting();
+    void    dispSaving();
+    void    dispReady(bool bDispReady = true);
+    void    dispLiveReady();
+    void    clearReady();
+    void    dispShooting();
+    void    dispProcessing();
+    void    clearArea(u8 x, u8 y, u8 w, u8 h);
+    void    clearArea(u8 x = 0, u8 y = 0);
 
 
     /*
