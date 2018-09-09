@@ -304,7 +304,7 @@ bool NetDev::setNetDevIp2Phy(const char* ip)
             if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == -1)
                    Log.d(TAG, "setNetDevIp2Phy FAILED");
                else
-                   Log.d(TAG, "setNetDevIp2Phy OK");
+                //    Log.d(TAG, "setNetDevIp2Phy OK");
 
             ret = true;
 

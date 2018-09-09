@@ -513,7 +513,7 @@ private:
     void    disp_org_rts(int org,int rts,int hdmi = -1);
     void    disp_org_rts(sp<struct _action_info_> &mAct,int hdmi = -1);
     void    send_save_path_change();
-    void    oled_init_disp();
+
 
     void    init_cfg_select();
 
@@ -566,8 +566,7 @@ private:
     void    start_wifi(int disp_main = -1);
 
     void    wifi_config(sp<struct _wifi_config_> &config);
-    void    set_sync_info(sp<SYNC_INIT_INFO> &mSyncInfo);
-    void    write_sys_info(sp<SYS_INFO> &mSysInfo);
+
 
     void    read_sn();
     void    read_uuid();
@@ -647,7 +646,6 @@ private:
     bool    is_bat_low();
     bool    is_bat_charge();
 
-    bool    check_battery_change(bool bUpload = false);
 
     void    func_low_bat();
 
@@ -832,14 +830,20 @@ private:
 	/*
 	 * 消息处理
 	 */
+    void    handleDispInit();
     void    handleTfQueryResult();
 	void    handleKeyMsg(int iKey);				/* 按键消息处理 */
-	void    handleDispStrTypeMsg(sp<DISP_TYPE>& disp_type);
+	void    handleDispTypeMsg(sp<DISP_TYPE>& disp_type);
 	void    handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
 	void    handleLongKeyMsg(int key, int64 ts);
 	void    handleDispLightMsg(int menu, int state, int interval);
 	void    handleUpdateMid();
     void    handleUpdateDevInfo(int iAction, int iType, std::vector<Volume*>& mList);
+	void    handleUpdateIp(const char* ipAddr);
+    void    handleUpdateSysInfo(sp<SYS_INFO> &mSysInfo);
+    void    handleSetSyncInfo(sp<SYNC_INIT_INFO> &mSyncInfo);
+    bool    handleCheckBatteryState(bool bUpload = false);
+
 
     /********************************************* 拍照部分 ****************************************************/
     void    setTakePicDelay(int iDelay);
@@ -864,7 +868,7 @@ private:
 	 * 显示
 	 */
 	void    uiShowStatusbarIp();			/* 显示IP地址 */
-	void    procUpdateIp(const char* ipAddr);
+
     void    dispTfCardIsFormatting(int iType);
 
 	/*
