@@ -299,6 +299,8 @@ VolumeManager::VolumeManager() :
                                 mLiveRecLeftSec(0),
                                 mLiveRecSec(0),
                                 mDebug(true),
+                                mTakePicLeftNum(0),
+                                mTimeLapseLeftNum(0),
                                 mNotify(NULL)                          
 {
 
@@ -409,6 +411,11 @@ void VolumeManager::checkAllUdiskIdle()
         }
     }
 }
+
+
+
+
+
 
 
 /*

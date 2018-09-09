@@ -1770,7 +1770,7 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
             }
 
             case MENU_VIDEO_SET_DEF: {
-                iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF); /* 当前所中的项 */
+                iIndex = mProCfg->get_val(KEY_ALL_VIDEO_DEF);               /* 当前所中的项 */
                 updateMenuCurPageAndSelect(pParentMenu->iMenuId, iIndex);   /* 根据配置来选中当前菜单默认选中的项 */
                 
                 for (int i = 0; i < size; i++) {
@@ -3942,7 +3942,7 @@ void MenuUI::getShowStorageInfo()
 
 /*
  * calcRemainSpace - 计算剩余空间
- * - 按当前挡位，可拍照的数目，保存在 mCanTakePicNum中
+ * - 按当前挡位，可拍照的数目，保存在 mCanTakePicNum 中
  * - 按当前挡位，可录像的时长，保存在 mReoteRecLiveLeftSize
  * - 按当前挡位，可拍timelapse的剩余张数，保存在 mCanTakeTimelapseNum 中
  */

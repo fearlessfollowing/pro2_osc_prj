@@ -522,12 +522,20 @@ private:
     int                     mHandledAddUdiskVolCnt;
     int                     mHandledRemoveUdiskVolCnt;
 
+    /*
+     * 录像，直播录像的剩余秒数
+     */
     u64                     mRecLeftSec;                                /* 当前挡位可录像的剩余时长 */
     u64                     mRecSec;    
-
-    
     u64                     mLiveRecLeftSec;                            /* 当前挡位直播存片的剩余时长 */
     u64                     mLiveRecSec;
+
+    /*
+     * 可拍照，Timelapse可拍的张数
+     */
+    u32                     mTakePicLeftNum;                            /* 普通拍照的剩余张数 */
+    u32                     mTimeLapseLeftNum;                          /* Timelapse可拍剩余张数 */
+
 
     pthread_t               mThread;			
 
@@ -560,8 +568,6 @@ private:
 
 public:
     void        runFileMonitorListener();
-
-
 };
 
 #endif
