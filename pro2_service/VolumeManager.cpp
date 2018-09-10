@@ -233,10 +233,10 @@ static void clearAllunmountPoint()
     struct dirent* de;
     
     while ((de = readdir(dir))) {
-        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + parent_length + 1 >= PATH_MAX)
+        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + iParentLen + 1 >= PATH_MAX)
             continue;
 
-        path[iParentLen] = 0;
+        cPath[iParentLen] = 0;
         strcat(cPath, de->d_name);
 
         Log.d(TAG, "[%s: %d] Current Path name: %s", __FILE__, __LINE__, cPath);
@@ -298,7 +298,6 @@ VolumeManager::VolumeManager() :
                                 mRecSec(0),
                                 mLiveRecLeftSec(0),
                                 mLiveRecSec(0),
-                                mDebug(true),
                                 mTakePicLeftNum(0),
                                 mTimeLapseLeftNum(0),
                                 mNotify(NULL)                          
@@ -342,7 +341,7 @@ VolumeManager::VolumeManager() :
 
 
     /* 根据类型将各个卷加入到系统多个Vector中 */
-    for (int i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
+    for (u32 i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
 
         tmpVol = &gSysVols[i];  
         mVolumes.push_back(tmpVol);
@@ -608,7 +607,7 @@ void VolumeManager::incOrClearRecSec(bool bClrFlg)
 
 void VolumeManager::convSec2TimeStr(u64 secs, char* strBuf, int iLen)
 {
-    u64 sec, min, hour;
+    int sec, min, hour;
     min = secs / 60;
     sec = secs % 60;
     hour = min / 60;
@@ -733,7 +732,6 @@ void VolumeManager::runFileMonitorListener()
     int iRes;
 	u32 readCount = 0;
     char inotifyBuf[MAXCOUNT];
-    char epollBuf[MAXCOUNT];
 
 	struct inotify_event inotifyEvent;
 	struct inotify_event* curInotifyEvent;
@@ -754,7 +752,6 @@ void VolumeManager::runFileMonitorListener()
 
     Log.d(TAG, "[%s: %d] Add Listener object /mnt", __FILE__, __LINE__);
 
-    int iTimes = 0;
     while (true) {
 
         #ifndef USB_UDISK_AUTO_RAUN
@@ -922,6 +919,8 @@ bool VolumeManager::deInitFileMonitor()
     close(mFileMonitorPipe[1]);
     mFileMonitorPipe[0] = -1;
     mFileMonitorPipe[1] = -1;
+    
+    return true;
 }
 
 bool VolumeManager::stop()
@@ -1025,7 +1024,6 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
     }
 
     char line[1024];
-    char value[128];
      
     if (fgets(line, sizeof(line), fp) != NULL) {
 		//blkid identified as /dev/block/vold/179:14: LABEL="ROCKCHIP" UUID="0FE6-0808" TYPE="vfat"
@@ -1059,7 +1057,7 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
             }
 
             pType += strlen("TYPE=") + 1;
-            for (u32 i = 0; i < iLen; i++) {
+            for (int i = 0; i < iLen; i++) {
                 if (pType[i] != '"') {
                      volFsType[i] = pType[i];                   
                 } else {
@@ -1119,7 +1117,6 @@ bool VolumeManager::checkMountPath(const char* mountPath)
 bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 {
     char cDevNodePath[128] = {0};
-    char cVolFsType[64] = {0};
     bool bResult = false;
 
     memset(pVol->cDevNode, 0, sizeof(pVol->cDevNode));
@@ -1187,7 +1184,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
                         unmountVolume(tmpVol, evt, true);
-                        tmpVol->iVolState == VOLUME_STATE_INIT;
+                        tmpVol->iVolState = VOLUME_STATE_INIT;
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
@@ -1939,10 +1936,6 @@ int VolumeManager::doUnmount(const char *path, bool force)
 {
     int retries = 10;
 
-    if (mDebug) {
-        Log.d(TAG, "Unmounting {%s}, force = %d", path, force);
-    }
-
     while (retries--) {
         
         if (!umount(path) || errno == EINVAL || errno == ENOENT) {
@@ -1977,8 +1970,6 @@ int VolumeManager::doUnmount(const char *path, bool force)
  */
 int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
-    int iRet = 0;
-
     if (pEvt->getEventSrc() == NETLINK_EVENT_SRC_KERNEL) {
         string devnode = "/dev/";
         devnode += pEvt->getDevNodeName();
@@ -2022,8 +2013,6 @@ out_mounted:
 
 int VolumeManager::checkFs(Volume* pVol) 
 {
-    bool rw = true;
-    int pass = 1;
     int rc = 0;
     int status;
     
@@ -2088,7 +2077,6 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
 {
     struct statfs diskInfo;
     u64 totalsize = 0;
-    u64 used_size = 0;
 
     /* 卡槽使能并且卷已经被挂载 */
     if ((pVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (pVol->iVolState == VOLUME_STATE_MOUNTED)) {
@@ -2248,16 +2236,12 @@ int VolumeManager::formatVolume(Volume* pVol, bool wipe)
         return FORMAT_ERR_UNKOWN;
     }
 
-    pVol->iVolState == VOLUME_STATE_FORMATTING;
+    pVol->iVolState = VOLUME_STATE_FORMATTING;
 
     /* 更改本地卷的存储路径 */
     setSavepathChanged(VOLUME_ACTION_REMOVE, pVol);
     // sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, pVol->iVolSubsys, getCurSavepathList());
     
-    if (mDebug) {
-        Log.i(TAG, "Formatting volume %s (%s)", pVol->cDevNode, pVol->pMountPath);
-    }
-
     /*
      * 1.卸载
      * 2.格式化为exfat格式
@@ -2362,11 +2346,6 @@ vector<Volume*>& VolumeManager::getLocalVols()
 {
     vector<Volume*>& localVols = mLocalVols;
     return localVols;
-}
-
-void VolumeManager::setDebug(bool enable)
-{
-    mDebug = enable;
 }
 
 

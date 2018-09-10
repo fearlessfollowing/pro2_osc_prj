@@ -506,8 +506,6 @@ private:
     std::vector<Volume*>    mCurSaveVolList;
     std::vector<Volume*>    mSysStorageVolList;
 
-    bool                    mDebug;
-
     int                     mVolManagerDisabled;
 
     int                     mModuleVolNum;
