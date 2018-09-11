@@ -485,6 +485,8 @@ public:
     bool        decLiveRecLeftSec();
     u64         getLiveRecLeftSec();
 
+    void        unmountAll();
+
     /*
      * 转换秒数为'00:00:00'格式字符串
      */
@@ -534,10 +536,12 @@ private:
     u32                     mTakePicLeftNum;                            /* 普通拍照的剩余张数 */
     u32                     mTimeLapseLeftNum;                          /* Timelapse可拍剩余张数 */
 
+    struct timeval          mEnterUdiskTime;
 
     pthread_t               mThread;			
 
 	sp<ARMessage>	        mNotify;
+
     VolumeManager();
 
     pthread_t               mFileMonitorThread;

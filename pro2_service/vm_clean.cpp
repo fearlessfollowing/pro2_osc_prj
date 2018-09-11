@@ -8,10 +8,9 @@
 int main(int argc, char* argv[])
 {
     while (true) {
-        
-        system("sysnc");
+        system("sync");
         system("echo 3 > /proc/sys/vm/drop_caches");
-        sleep(5);
+        sleep(120);
     }
     return 0;
 }

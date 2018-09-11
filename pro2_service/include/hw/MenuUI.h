@@ -271,6 +271,8 @@ enum {
     /* 录像/直播录像的剩余秒数 */
     ACTION_UPDATE_REC_LEFT_SEC = 203,
     ACTION_UPDATE_LIVE_REC_LEFT_SEC = 204,
+    ACTION_ENTER_UDISK_MODE = 205,
+
 };
 
 
@@ -705,6 +707,8 @@ private:
     int     check_live_save(Json::Value* liveJson);
     bool    sendRpc(int option, int cmd = -1, Json::Value* pNodeArg = NULL);
 
+    bool    checkisLiveRecord();
+
     void    printJsonCfg(Json::Value& json);
 
 
@@ -787,6 +791,7 @@ private:
     const char* getPicVidCfgNameByIndex(std::vector<struct stPicVideoCfg*> & mList, int iIndex);
     struct stPicVideoCfg* getPicVidCfgByName(std::vector<struct stPicVideoCfg*>& mList, const char* name);
 
+    void    tipUnmountBeforeShutdown();
 
 
 	void    setGyroCalcDelay(int iDelay);
@@ -835,6 +840,8 @@ private:
     void    convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen);
     bool    checkStorageSatisfy(int action);
 
+
+    int     getTakepicCustomerDelay();
     /*
      * 拍照部分
      */
@@ -914,7 +921,7 @@ private:
 	void    handleKeyMsg(int iKey);				/* 按键消息处理 */
 	void    handleDispTypeMsg(sp<DISP_TYPE>& disp_type);
 	void    handleDispErrMsg(sp<ERR_TYPE_INFO>& mErrInfo);
-	void    handleLongKeyMsg(int key, int64 ts);
+	void    handleLongKeyMsg(int key);
 	void    handleDispLightMsg(int menu, int state, int interval);
 	void    handleUpdateMid();
     void    handleUpdateDevInfo(int iAction, int iType, std::vector<Volume*>& mList);

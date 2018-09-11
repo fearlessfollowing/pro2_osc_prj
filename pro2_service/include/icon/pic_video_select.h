@@ -1961,32 +1961,46 @@ PicVideoCfg* gLiveAllModeCfgList[] = {
  * 默认的参数(当配置文件不存在或者解析配置文件出错时使用)
  */
 static const char* pCmdTakePic_8K3DOF 	= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"origin\":{\"mime\":\"jpeg\",\"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 7680, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
+
 static const char* pCmdTakePic_8KOF 	= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"origin\":{\"mime\":\"jpeg\",\"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"pano\", \"height\": 3840, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
+
 static const char* pCmdTakePic_8K 		= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"origin\":{\"mime\":\"jpeg\",\"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
+
 static const char* pCmdTakePic_AEB 		= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"hdr\":{\"enable\":true,\"count\": 9, \"min_ev\": -10, \"max_ev\": 10}, \"origin\": {\"mime\": \"raw+jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}} ";
+
 static const char* pCmdTakePic_Burst 	= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"burst\":{\"enable\":true,\"count\": 10}, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
+
 static const char* pCmdTakePic_Customer = "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"origin\":{\"mime\":\"jpeg\",\"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}, \"stiching\": {\"mode\": \"3d_top_left\", \"height\": 7680, \"width\": 7680, \"mime\": \"jpeg\", \"algorithm\": \"opticalFlow\"}}}";
 
 
 // static const char* pCmdTakeVid_8K30F3D =
-static const char* pCmdTakeVid_8K30F3D 	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1}}}";
-static const char* pCmdTakeVid_8K60F 	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":60,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":2160,\"storage_loc\":1}}}";
-static const char* pCmdTakeVid_8K5F		= "{\"name\":\"camera._startRecording\", \"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":5,\"bitrate\":10000,\"saveOrigin\":true,\"width\":3840,\"height\":2160,\"storage_loc\":1}}}";
-static const char* pCmdTakeVid_6K60F3D	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":60,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1}}}";
-static const char* pCmdTakeVid_4K120F3D	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":120,\"bitrate\":120000,\"saveOrigin\":true,\"width\":1920,\"height\":1440,\"storage_loc\":1}}}";
-static const char* pCmdTakeVid_4K30FRTS = "{\"name\":\"camera._startRecording\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 60000, \"saveOrigin\": true, \"width\": 3840, \"height\": 2160, \"storage_loc\": 1}, \"stiching\": {\"mode\": \"pano\", \"height\": 1920, \"width\": 3840, \"framerate\": 30, \"bitrate\": 40000, \"mime\": \"h264\"}}}";
+static const char* pCmdTakeVid_8K30F3D 	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
 
-static const char* pCmdTakeVid_4K30F3DRTS = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":60000,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":3840,\"width\":3840,\"framerate\":30,\"bitrate\":50000,\"mime\":\"h264\"}}}";
+static const char* pCmdTakeVid_8K60F 	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":60,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":1920,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
 
-static const char* pCmdTakeVid_Customer = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1}}}";
+static const char* pCmdTakeVid_8K5F		= "{\"name\":\"camera._startRecording\", \"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":5,\"bitrate\":10000,\"saveOrigin\":true,\"width\":3840,\"height\":2160,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
+
+static const char* pCmdTakeVid_6K60F3D	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":60,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
+
+static const char* pCmdTakeVid_4K120F3D	= "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":120,\"bitrate\":120000,\"saveOrigin\":true,\"width\":1920,\"height\":1440,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
+
+static const char* pCmdTakeVid_4K30FRTS = "{\"name\":\"camera._startRecording\", \"parameters\": {\"origin\": {\"mime\": \"h264\", \"framerate\": 30, \"bitrate\": 60000, \"saveOrigin\": true, \"width\": 3840, \"height\": 2160, \"storage_loc\": 1}, \"stiching\": {\"mode\": \"pano\", \"height\": 1920, \"width\": 3840, \"framerate\": 30, \"bitrate\": 40000, \"mime\": \"h264\"},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
+
+static const char* pCmdTakeVid_4K30F3DRTS = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":60000,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":3840,\"width\":3840,\"framerate\":30,\"bitrate\":50000,\"mime\":\"h264\"},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
+
+static const char* pCmdTakeVid_Customer = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":120000,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
 
 
 
 static const char* pCmdLive_4K30F 		= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20000,\"saveOrigin\":false,\"width\":2560,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"pano\",\"height\":1920,\"width\":3840,\"liveOnHdmi\":false,\"fileSave\":false,\"framerate\":30,\"bitrate\":20000,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
+
+
 static const char* pCmdLive_4K30FHDMI 	= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20000,\"saveOrigin\":false,\"width\":2560,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"pano\",\"height\":1920,\"width\":3840,\"liveOnHdmi\":true,\"fileSave\":false,\"framerate\":30,\"bitrate\":20000,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
+
 static const char* pCmdLive_Customer	= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20000,\"saveOrigin\":false,\"width\":2560,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"pano\",\"height\": 1920,\"width\":3840,\"liveOnHdmi\":false,\"fileSave\":false,\"framerate\":30,\"bitrate\":20000,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
 
 static const char* pCmdLive_4K30F3D		= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20000,\"saveOrigin\":false,\"width\":1920,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":3840,\"width\":3840,\"liveOnHdmi\":false,\"fileSave\":false,\"framerate\":30,\"bitrate\":30000,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
+
 static const char* pCmdLive_4K30F3DHDMI	= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20000,\"saveOrigin\":false,\"width\":1920,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":1920,\"width\":3840,\"liveOnHdmi\":true,\"fileSave\":false,\"framerate\":30,\"bitrate\":20000,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
 
 #endif /* _PIC_VIDEO_SELECT_H_ */

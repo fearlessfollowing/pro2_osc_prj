@@ -342,7 +342,7 @@ bool check_file_key_md5(const char *file_path)
     if(strcmp(md5_check, md5_str) == 0) {
         bRet = true;
     } else {
-		Log.e(TAG, "mismatch read md5 check(%s %s)\n", md5_check, md5_str);
+		Log.e(TAG, "mismatch read md5 check(%s %s)", md5_check, md5_str);
 	}
 
 EXIT:

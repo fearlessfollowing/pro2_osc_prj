@@ -767,6 +767,15 @@ static int pro2Updatecheck(const char* pUpdateFileDir)
 #define INSTALL_SAMBA_CMD	"/usr/local/bin/install_samba.sh"
 
 
+static int installVm()
+{
+	mkdir("/swap", 0766);
+	system("dd if=/dev/zero of=/swap/sfile bs=1024 count=4000000");
+	system("mkswap /swap/sfile");
+	system("swapon /swap/sfile");
+	system("cp /usr/local/bin/fstab /etc/fstab");
+}
+
 
 static int installSamba(const char* cmdPath)
 {
@@ -855,6 +864,9 @@ static int start_update_app(const char* pUpdatePackagePath, bool bMode)
 				chmod(INSTALL_SAMBA_CMD, 0766);
 				installSamba(INSTALL_SAMBA_CMD);
 			}
+
+			installVm();
+
 		}
 
     } else  {	/* 电池电量低 */

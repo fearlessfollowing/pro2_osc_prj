@@ -48,8 +48,8 @@ Export('com_env')
 
 
 ############################ update_app ####################################
-#update_app_obj = SConscript('./update_app/SConscript')
-#com_env.Program('out/update_app', update_app_obj)
+update_app_obj = SConscript('./update_app/SConscript')
+com_env.Program('out/update_app', update_app_obj)
 
 	
 

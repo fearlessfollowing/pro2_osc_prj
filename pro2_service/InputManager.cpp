@@ -235,14 +235,13 @@ void InputManager::reportEvent(int iKey)
 }
 
 
-void InputManager::reportLongPressEvent(int iKey, int64 iTs)
+void InputManager::reportLongPressEvent(int iKey)
 {
     sp<ARMessage> msg = mNotify->dup();
-    Log.d(TAG, "last_key_ts is %lld last_down_key %d", iTs, iKey);
-    
-    msg->set<int>("key", iKey);
-    msg->set<int64>("ts", iTs);
-    msg->postWithDelayMs(LONG_PRESS_MSEC);
+    Log.d(TAG, "last_key_ts last_down_key %d", iKey);
+    msg->setWhat(3);        // UI_MSG_LONG_KEY_EVENT
+    msg->set<int>("long_key", iKey);
+    msg->postWithDelayMs(0);
 }
 
 
@@ -324,34 +323,40 @@ int InputManager::inputEventLoop()
 
                             int iIntervalMs =  key_interval / 1000;
 
-                            #ifdef DEBUG_INPUT_MANAGER
+                            // #ifdef DEBUG_INPUT_MANAGER
 							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, iIntervalMs);
-                            #endif
+                            // #endif
 
                             switch (event.value) {
-								case UP:
-                                    if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < (LONG_PRESS_MSEC * 1000))) {
+								case UP: {
+                                    if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < 3000)) {
 										if (event.code == last_down_key) {
                                             Log.d(TAG, "---> OK report key code [%d]", event.code); 
                                             reportEvent(event.code);
                                         } else {
 											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);
 										}
-									}
+									} else if ((iIntervalMs > 3000) && (iIntervalMs < 6000)) {
+									    if (event.code == last_down_key) {
+                                            Log.d(TAG, "---> OK report long key code [%d]", event.code); 
+                                            reportLongPressEvent(event.code);
+                                        } else {
+											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);
+										}
+                                    }
 									last_key_ts = key_ts;
 									last_down_key = -1;
 									break;
+                                }
 								
-								case DOWN:
+								case DOWN: {
 									last_down_key = event.code;	//iKey;
 									last_key_ts = key_ts;
 
-									#ifdef ENABLE_POWER_OFF
-									reportLongPressEvent(last_down_key, last_key_ts);
-									#endif
-
 									break;
-									SWITCH_DEF_ERROR(event.value);
+                                }
+
+                                SWITCH_DEF_ERROR(event.value);
 							}	// switch (event.value)
 						}
 					}

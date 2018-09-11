@@ -482,3 +482,5 @@ Pro2的六个模组是通过2个USB2.0的HUB挂载在TX2的USB BUS-1上，在给
 [ 1156.986658] xhci-tegra 3530000.xhci: tegra_xhci_mbox_work ignore firmware MBOX_CMD_DEC_SSPI_CLOCK request
 
 
+1.新增8GB的交换内存（/swap/sfile）
+2.直播的已录

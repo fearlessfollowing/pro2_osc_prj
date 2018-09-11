@@ -920,12 +920,48 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
+        /*
+         * {"action":ACTION_ENTER_UDISK_MODE, "parameters":{"name":"camera._change_udisk_mode", "parameters":{"mode":1}}}
+         */
+        case ACTION_ENTER_UDISK_MODE: {
+            Json::Value innerParam;
+            paramNode["name"] = "camera._change_udisk_mode";
+            innerParam["mode"] = 1;
+
+            paramNode["name"] = "camera._change_udisk_mode";
+            paramNode["parameters"] = innerParam;
+            rootNode["action"] = ACTION_ENTER_UDISK_MODE;
+            rootNode["parameters"] = paramNode;
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Enter Udisk: %s", sendDataStr.c_str());
+            break;
+        }
+
+
+        case ACTION_QUIT_UDISK_MODE: {
+            Json::Value innerParam;
+            paramNode["name"] = "camera._change_udisk_mode";
+            innerParam["mode"] = 0;
+
+            paramNode["name"] = "camera._change_udisk_mode";
+            paramNode["parameters"] = innerParam;
+            rootNode["action"] = ACTION_QUIT_UDISK_MODE;
+            rootNode["parameters"] = paramNode;
+
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action Exit Udisk: %s", sendDataStr.c_str());
+            break;
+        }
+
+
         /* {"action": ACTION_NOISE} */
         case ACTION_PREVIEW:
         case ACTION_NOISE: 
         case ACTION_GYRO:
         case ACTION_AGEING:
-        case ACTION_QUIT_UDISK_MODE:
+        // case ACTION_QUIT_UDISK_MODE:
+        // case ACTION_ENTER_UDISK_MODE:
         case ACTION_QUERY_STORAGE: 
         case ACTION_SET_STICH: 
         case ACTION_POWER_OFF: {
@@ -2200,35 +2236,35 @@ void fifo::handleSetting(sp<struct _disp_type_>& mDispType, Json::Value& reqNode
     }
 
     if (reqNode["speaker"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["speaker"].asInt();
+        mDispType->mSysSetting->speaker = reqNode["speaker"].asInt();
     }
 
     if (reqNode["led_on"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["led_on"].asInt();
+        mDispType->mSysSetting->led_on = reqNode["led_on"].asInt();
     }
 
     if (reqNode["fan_on"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["fan_on"].asInt();
+        mDispType->mSysSetting->fan_on = reqNode["fan_on"].asInt();
     }
 
     if (reqNode["aud_on"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["aud_on"].asInt();
+        mDispType->mSysSetting->aud_on = reqNode["aud_on"].asInt();
     }
 
     if (reqNode["aud_spatial"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["aud_spatial"].asInt();
+        mDispType->mSysSetting->aud_spatial = reqNode["aud_spatial"].asInt();
     }
 
     if (reqNode["set_logo"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["set_logo"].asInt();
+        mDispType->mSysSetting->set_logo = reqNode["set_logo"].asInt();
     }
 
     if (reqNode["gyro_on"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["gyro_on"].asInt();
+        mDispType->mSysSetting->gyro_on = reqNode["gyro_on"].asInt();
     }
 
     if (reqNode["video_fragment"].isInt()) {
-        mDispType->mSysSetting->flicker = reqNode["video_fragment"].asInt();
+        mDispType->mSysSetting->video_fragment = reqNode["video_fragment"].asInt();
     }
 
     Log.d(TAG, "%d %d %d %d %d %d %d %d %d",

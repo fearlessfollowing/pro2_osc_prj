@@ -58,7 +58,7 @@ private:
 	bool scanDir();
 	int getKey(u16 code);
 	void reportEvent(int iKey);
-	void reportLongPressEvent(int iKey, int64 iTs);
+	void reportLongPressEvent(int iKey);
 	
 	sp<ARMessage>	mNotify;
 

@@ -84,6 +84,7 @@ using namespace std;
 
 
 #define MKFS_EXFAT          "/sbin/mkexfatfs"
+
 #define USE_TRAN_SEND_MSG
 
 
@@ -412,7 +413,24 @@ void VolumeManager::checkAllUdiskIdle()
 }
 
 
+#if 0
+/*
+ * calcTakepicLefNum - 给定指定的json命令计算出可拍照的剩余张数
+ */
+U32 VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd)
+{
 
+}
+
+
+64 VolumeManager::calcTakeVideoLefSec(Json::Value& jsonCmd)
+{
+
+}
+
+
+
+#endif
 
 
 
@@ -478,6 +496,8 @@ void VolumeManager::enterUdiskMode()
      * 3.等待所有的模组挂上
      * 4.检查是否所有的模组都挂载成功
      */
+    system("power_manager power_off");  /* 确保模组是处于下电状态进的U盘模式 */
+
     Log.d(TAG, "[%s: %d] Enter U-disk Mode now ...", __FILE__, __LINE__);
     
     mHandledAddUdiskVolCnt = 0;
@@ -490,7 +510,10 @@ void VolumeManager::enterUdiskMode()
     system("power_manager power_on");
 
     /* TODO: 等待所有的U盘都挂载上 */
+    gettimeofday(&mEnterUdiskTime, NULL);
 }
+
+
 
 /*
  * 怎么来确认所有的盘都挂载成功???
@@ -498,15 +521,14 @@ void VolumeManager::enterUdiskMode()
 
 bool VolumeManager::checkEnteredUdiskMode()
 {
-    #if 0
-    if (mHandledAddUdiskVolCnt == mModuleVolNum) {
+    struct timeval curTime;
+    gettimeofday(&curTime, NULL);
+
+    if ((curTime.tv_sec - mEnterUdiskTime.tv_sec) > 13) {
         return true;
     } else {
         return false;
     }
-    #else
-    return true;
-    #endif
 }
 
 
@@ -675,6 +697,75 @@ void VolumeManager::unmountCurLocalVol()
 }
 
 
+#if 0
+void VolumeManager::unmountLocalVol()
+{
+    if (mCurrentUsedLocalVol) {
+        NetlinkEvent *evt = new NetlinkEvent();        
+        evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+        evt->setAction(NETLINK_ACTION_REMOVE);
+        evt->setSubsys(VOLUME_SUBSYS_USB);
+        evt->setBusAddr(mCurrentUsedLocalVol->pBusAddr);
+        evt->setDevNodeName(mCurrentUsedLocalVol->cDevNode);            
+        handleBlockEvent(evt);
+        delete evt;
+    }
+}
+#else 
+
+void VolumeManager::unmountAll()
+{
+    Volume* tmpVol = NULL;
+    int iResult;
+    
+    if (mCurrentUsedLocalVol) {
+        NetlinkEvent *evt = new NetlinkEvent();        
+        evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+        evt->setAction(NETLINK_ACTION_REMOVE);
+        evt->setSubsys(VOLUME_SUBSYS_USB);
+        evt->setBusAddr(mCurrentUsedLocalVol->pBusAddr);
+        evt->setDevNodeName(mCurrentUsedLocalVol->cDevNode);            
+        handleBlockEvent(evt);
+        delete evt;
+    }    
+
+    /* 处理TF卡的移除 */
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (u32 i = 0; i < mModuleVols.size(); i++) {
+
+            tmpVol = mModuleVols.at(i);
+        
+            Log.d(TAG, "[%s: %d] Volue[%d] -> %s", __FILE__, __LINE__, i, tmpVol->cDevNode);
+            if (tmpVol) {
+
+                NetlinkEvent *evt = new NetlinkEvent();        
+                evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+                evt->setAction(NETLINK_ACTION_REMOVE);
+                evt->setSubsys(VOLUME_SUBSYS_USB);
+                evt->setBusAddr(tmpVol->pBusAddr);
+                evt->setDevNodeName(tmpVol->cDevNode);            
+                iResult = handleBlockEvent(evt);
+                if (iResult) {
+                    Log.d(TAG, "[%s: %d] Remove Device Failed ...", __FILE__, __LINE__);
+                }       
+                delete evt;
+            }
+        }
+    }
+  
+    system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
+    system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
+
+    msg_util::sleep_ms(3000);
+
+    system("power_manager power_off");  
+
+}
+
+#endif 
+
+
 void VolumeManager::exitUdiskMode()
 {
     /* 1.卸载掉所有的U盘
@@ -688,7 +779,6 @@ void VolumeManager::exitUdiskMode()
     
     mHandledRemoveUdiskVolCnt = 0;
 
-#if 1
     /* 处理TF卡的移除 */
     {
         unique_lock<mutex> lock(mRemoteDevLock);
@@ -713,12 +803,11 @@ void VolumeManager::exitUdiskMode()
             }
         }
     }
-#endif
   
     system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
     system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
 
-    msg_util::sleep_ms(1000 * 3);
+    msg_util::sleep_ms(3000);
 
     system("power_manager power_off");  
 
@@ -983,6 +1072,7 @@ vector<Volume*>& VolumeManager::getSysStorageDevList()
 }
 
 
+
 VolumeManager::~VolumeManager()
 {
     mVolumes.clear();
@@ -1176,11 +1266,13 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
             /* 1.检查，检查该插入的设备是否在系统的支持范围内 */
             tmpVol = isSupportedDev(evt->getBusAddr());
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {
+
                 /* 2.检查卷对应的槽是否已经被挂载，如果已经挂载说明上次卸载出了错误
                  * 需要先进行强制卸载操作否则会挂载不上
                  */
 
                 if (isValidFs(evt->getDevNodeName(), tmpVol)) {
+
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
                         unmountVolume(tmpVol, evt, true);
@@ -1188,7 +1280,8 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
-                    if ( (getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
+
+                    if ((getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
                         mHandledAddUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
                     }
 
@@ -1214,10 +1307,11 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
                         #ifdef USE_TRAN_SEND_MSG
-                            sendCurrentSaveListNotify();
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
                         #endif
                         }
+                        sendCurrentSaveListNotify();
+
                     }
                 }
             } else {
@@ -1244,12 +1338,12 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                         setSavepathChanged(VOLUME_ACTION_REMOVE, tmpVol);   /* 检查是否修改当前的存储路径 */
 
                     #ifdef USE_TRAN_SEND_MSG                        
-                        sendCurrentSaveListNotify();
                         
                         /* 发送存储设备移除,及当前存储设备路径的消息 */
                         sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, tmpVol->iVolSubsys, getCurSavepathList());
                     #endif
                     }
+                    sendCurrentSaveListNotify();                    
                 } else {
                     Log.d(TAG, "[%s: %d] Unmount Failed!!", __FILE__, __LINE__);
                     iResult = -1;
@@ -1528,9 +1622,6 @@ void VolumeManager::sendCurrentSaveListNotify()
 
     Log.d(TAG, "[%s: %d] Current Save List: %s", __FILE__, __LINE__, devListStr.c_str());
     
-    if (devListStr.c_str()) {
-
-    }
     sp<ARMessage> msg = mNotify->dup();
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 
@@ -1874,8 +1965,10 @@ int VolumeManager::mountVolume(Volume* pVol)
     }
     #else
 
+
     int status;
-    if (property_get(PROP_RO_MOUNT_TF) && volumeIsTfCard(pVol)) {
+    const char* pMountFlag = property_get(PROP_RO_MOUNT_TF);
+    if ( (pMountFlag && !strcmp(pMountFlag, "true")) /*&& volumeIsTfCard(pVol) */ ) {
         const char *args[5];
         args[0] = "/bin/mount";
         args[1] = "-o";
@@ -1883,6 +1976,7 @@ int VolumeManager::mountVolume(Volume* pVol)
         args[3] = pVol->cDevNode;
         args[4] = pVol->pMountPath;
 
+        Log.d(TAG, "[%s: %d] mount cmd [%s %s %s %s %s]", __FILE__, __LINE__, args[0], args[1], args[2], args[3], args[4]);
         iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
     } else {
         const char *args[3];
@@ -2328,6 +2422,9 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
                     localVolume->uTotal = tmpVolume->uTotal;
                     localVolume->uAvail = tmpVolume->uAvail;
                     localVolume->iSpeedTest = tmpVolume->iSpeedTest;
+                    Log.d(TAG, "[%s: %d] Update Module[%s] Info ,total [%d], avail[%d], speed[%d]",
+                        __FILE__, __LINE__, localVolume->cVolName, localVolume->uTotal, localVolume->uAvail, localVolume->iSpeedTest);
+                    break;
                 }
             }
         }
@@ -2359,7 +2456,7 @@ Volume* lookupVolume(const char *label)
 
 bool VolumeManager::formatVolume2Exfat(Volume* pVol)
 {
-    /* 1.检查设备文件是否存在 */
+    /* 1.检查设备文件是否存在 STATE_IDLE */
     /* 2.调用forkExecvpExt创建子进程进行格式化操作 */
     if (access(pVol->cDevNode, F_OK) != 0) {
         Log.e(TAG, "[%s: %d] formatVolume2Exfat -> No dev node[%s]", __FILE__, __LINE__, pVol->cDevNode);

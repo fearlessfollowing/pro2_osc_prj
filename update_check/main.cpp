@@ -569,8 +569,14 @@ int main(int argc, char **argv)
 
 	property_set(PROP_SYS_UC_VER, UPDAE_CHECK_VER);		/* 将程序的版本更新到属性系统中 */
 
+	/* 通知卷挂载器，以只读的方式挂载升级设备 */
+	property_set(PROP_RO_MOUNT_TF, "true");
+
 
 	Log.d(TAG, ">>>>>>>>>>> Service: update_check starting (Version: %s) ^_^ <<<<<<<<<<", property_get(PROP_SYS_UC_VER));
+
+	Log.d(TAG, "[%s: %d] get prop: [sys.tf_mount_ro] = %s", __FILE__, __LINE__, property_get(PROP_RO_MOUNT_TF));
+
 
 	/** 复位一下SD卡模块，使得在有SD卡的情况下可以识别到 */
 	resetSdSlot();
@@ -656,7 +662,9 @@ int main(int argc, char **argv)
 							property_set(PROP_SYS_UPDTATE_DIR, UPDATE_DEST_BASE_DIR);
 							property_set(PROP_SYS_UPDATE_IMG_PATH, UPDATE_DEST_BASE_DIR);
 							property_set(PROP_UC_START_UPDATE, "true");	/* 启动update_app服务 */
-							
+
+							property_set(PROP_RO_MOUNT_TF, "false");	/* 恢复以读写方式挂载 */	
+
 							Log.d(TAG, "[%s: %d] Enter the real update program", __FILE__, __LINE__);
 							
 							arlog_close();	
@@ -726,7 +734,8 @@ no_update_file:
 
 no_update_device:
 
-	arlog_close();	/* 关闭日志 */		
+	arlog_close();	/* 关闭日志 */	
+	property_set(PROP_RO_MOUNT_TF, "false");	/* 恢复以读写方式挂载 */		
 	property_set(PROP_UC_START_APP, "true");	/* 不需要重启,直接通知init进程启动其他服务 */	
 	property_set(PROP_BOOTAN_NAME, "false");	/* 关闭动画服务 */
 	return 0;
