@@ -3583,39 +3583,39 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
 
     Log.d(TAG, "add_qr_res type (%d %d)", type, control_act);
 
+    /* 客户端发起的拍照，录像，直播 
+     * 拍照过程：1.发送拍照的参数，保存在mControlPicJsonCmd
+     *          2.发送一个CAPTURE的type
+     */
     switch (control_act) {
         case ACTION_PIC: {   /* 客户端发起的拍照,录像，直播 CAPTURE */
             Log.d(TAG, "[%s: %d] Client Control Takepicture ..", __FILE__, __LINE__);
-            mClientTakePicUpdate = true;
-            mControlPicJsonCmd = actionJson;
+            mClientTakePicUpdate = true;    /* 检查是否需要进行组装 */
+            mControlPicJsonCmd["name"] = "camera._takePicture";
+            mControlPicJsonCmd["parameters"] = actionJson;
             break;
         }
 
         case ACTION_VIDEO: {
             Log.d(TAG, "[%s: %d] Client Control TakeVideo ..", __FILE__, __LINE__);
             mClientTakeVideoUpdate = true;
-            mControlVideoJsonCmd = actionJson;
+            mControlVideoJsonCmd["name"] = "camera._startRecording";
+            mControlVideoJsonCmd["parameters"] = actionJson;
             break;
         }
 
         case ACTION_LIVE: {
             Log.d(TAG, "[%s: %d] Client Control TakeLive ..", __FILE__, __LINE__);
             mClientTakeLiveUpdate = true;
-            mControlLiveJsonCmd = actionJson;
+            mControlLiveJsonCmd["name"] = "camera._startLive";
+            mControlLiveJsonCmd["parameters"] = actionJson;            
             break;
         }
 
         case CONTROL_SET_CUSTOM: {    /* 设置Customer模式的值 */
             switch (type) {
                 case ACTION_PIC: {       /* 设置拍照模式的Customer */
-                    #if 0
-                    key = KEY_ALL_PIC_DEF;
-                    if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "[%s:%d] CONTROL_SET_CUSTOM pic size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
-                        mRes->size_per_act = 10;
-                    }
-                    Log.d(TAG, "[%s: %d] Customer mode One Group Pic size[%d]M", __FILE__, __LINE__, mRes->size_per_act);
-                    #else 
+
                     /* 将拍照的Customer的模板参数保存为json文件 */
                     Log.d(TAG, "[%s: %d] Save Take Picture Templet", __FILE__, __LINE__);
                     Log.d(TAG, "Templet args: %s", actionStr.c_str());
@@ -3626,9 +3626,6 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
                     picRoot["parameters"] = actionJson;
 
                     writeJson2File(TAKE_PIC_TEMPLET_PATH, picRoot);
-
-                    #endif
-
                     break;
                 }
 
@@ -3668,116 +3665,6 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
     }
 
 }
-
-
-#if 0
-void MenuUI::add_qr_res(int type, sp<ACTION_INFO> &mAdd, int control_act)
-{
-    CHECK_NE(type,-1);
-    CHECK_NE(mAdd, nullptr);
-    int menu;
-    int max;
-    int key;
-
-    sp<ACTION_INFO> mRes = sp<ACTION_INFO>(new ACTION_INFO());
-    memcpy(mRes.get(), mAdd.get(), sizeof(ACTION_INFO));
-
-    Log.d(TAG, "add_qr_res type (%d %d)", type, control_act);
-
-    switch (control_act) {
-        case ACTION_PIC:
-        case ACTION_VIDEO:
-        case ACTION_LIVE:
-            mControlAct = mRes;     /* 得到自定义参数: ACTION_INFO */
-            
-            if (mControlAct->size_per_act == 0) {
-                Log.d(TAG, "force control size_per_act is %d", mControlAct->size_per_act);
-                mControlAct->size_per_act = 10;
-            }
-            break;
-
-        /* 设置Customer模式的值 */
-        case CONTROL_SET_CUSTOM:
-            switch (type) {
-                case ACTION_PIC: {       /* 设置拍照模式的Customer */
-                    #if 1
-                    key = KEY_ALL_PIC_DEF;
-                    if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "[%s:%d] CONTROL_SET_CUSTOM pic size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
-                        mRes->size_per_act = 10;
-                    }
-                    Log.d(TAG, "[%s: %d] Customer mode One Group Pic size[%d]M", __FILE__, __LINE__, mRes->size_per_act);
-                    #else 
-                    /* 将拍照的Customer的模板参数保存为json文件 */
-                    Log.d(TAG, "[%s: %d] Save Take Picture Templet", __FILE__, __LINE__);
-                    Log.d(TAG, "Templet args: %s", );
-
-                    #endif
-
-                    break;
-                }
-
-                case ACTION_VIDEO: {     /* 设置录像模式下的Customer */
-                    key = KEY_ALL_VIDEO_DEF;
-                    if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "[%s: %d] CONTROL_SET_CUSTOM video size_per_act is %d", __FILE__, __LINE__, mRes->size_per_act);
-                        mRes->size_per_act = 10;
-                    }
-                    break;
-                }
-
-                case ACTION_LIVE: {      /* 直播模式下的Customer */
-                    key = KEY_ALL_LIVE_DEF;
-                    fix_live_save_per_act(mRes.get());
-                    break;
-                }
-
-                SWITCH_DEF_ERROR(type);
-            }
-            mProCfg->set_def_info(key, -1, mRes);   /* 将Customer模式的参数设置保存到文件中 */
-            break;
-
-
-        /* 传递的是啥 ?????? */
-        default: {
-            /*  */
-            //only save one firstly
-            switch (type)  {
-                case ACTION_PIC:
-                    menu = MENU_PIC_SET_DEF;
-                    key = KEY_ALL_PIC_DEF;
-                    // max = PIC_CUSTOM;
-                    if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "force qr pic size_per_act is %d", mRes->size_per_act);
-                        mRes->size_per_act = 10;
-                    }
-                    break;
-
-                case ACTION_VIDEO:
-                    key = KEY_ALL_VIDEO_DEF;
-                    menu = MENU_VIDEO_SET_DEF;
-                    // max = VID_CUSTOM;
-                    if (mRes->size_per_act == 0) {
-                        Log.d(TAG, "force qr video size_per_act is %d", mRes->size_per_act);
-                        mRes->size_per_act = 10;
-                    }
-                    break;
-
-                case ACTION_LIVE:
-                    key = KEY_ALL_LIVE_DEF;
-                    menu = MENU_LIVE_SET_DEF;
-                    // max = LIVE_CUSTOM;
-                    fix_live_save_per_act(mRes.get());
-                    break;
-
-                SWITCH_DEF_ERROR(type);
-            }
-            mProCfg->set_def_info(key, -1, mRes);      // max -> -1
-            updateMenuCurPageAndSelect(menu, max);
-        }
-    }
-}
-#endif
 
 
 void MenuUI::updateMenu()
@@ -3974,7 +3861,7 @@ void MenuUI::calcRemainSpace(bool bUseCached)
         convSize2LeftNumTime(LefeRecSpace, CALC_MODE_TAKE_VIDEO);
     }
 
-    {
+    {   /* 录像部分 */
         u64 LefeRecSpace = 0;
         if (takeVideoIsAgeingMode()) {
             LefeRecSpace = vm->calcRemoteRemainSpace(true);
@@ -3982,6 +3869,10 @@ void MenuUI::calcRemainSpace(bool bUseCached)
             LefeRecSpace = vm->calcRemoteRemainSpace(false);
         }
         convSize2LeftNumTime(LefeRecSpace, CALC_MODE_TAKE_REC_LIVE);
+    }
+
+    {   /* 直播部分 */
+        checkisLiveRecord()
     }
 
 
@@ -4024,7 +3915,8 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
 		
         switch (iMode) {
             case CALC_MODE_TAKE_PIC: {
-                if (mControlAct != nullptr) {
+
+                if (mClientTakePicUpdate == true) { /* 计算客户端发起的拍照的剩余张数 */
                     if (mControlAct->size_per_act < 0) {
                         Log.e(TAG, "[%s: %d] What's wrong size_per_act smaller than 0 [%d]", __FILE__, __LINE__, mControlAct->size_per_act);
                         mControlAct->size_per_act = 10;
@@ -4114,6 +4006,9 @@ void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
             }
 
             case CALC_MODE_TAKE_REC_LIVE: {
+                /*
+                 *
+                 */
                 vm->setLiveRecLeftSec(10000);
                 break;
             }
@@ -4193,22 +4088,6 @@ void MenuUI::dispBottomLeftSpace()
     char disk_info[16] = {0};
     VolumeManager* vm = VolumeManager::Instance();
 
-    /*
-     * 拍照时，显示剩余空间分为两大类：正在启动预览和非正在启动预览状态
-     * - 正在启动预览时，统一不显示剩余空间
-     * - 非正在启动预览状态下
-     *      拍照模式和timelapse模式下：
-     *          如果大卡存志：显示剩余可拍的张数
-     *          如果大卡不存在：显示None
-     *      录像模式下：
-     *          如果卡不卡不全，显示None
-     *          如果卡齐全，显示剩余可录像的时长
-     *      直播模式下：
-     *          如果不需要存储，不显示剩余空间
-     *          如果需要存储：
-     *              如果卡不齐全，显示None
-     *              如果卡齐全，显示可存储的剩余时长
-     */
 
 #ifdef ENABLE_DEBUG_MODE
     INFO_MENU_STATE(cur_menu, mCamState)
@@ -4223,12 +4102,12 @@ void MenuUI::dispBottomLeftSpace()
             case MENU_PIC_INFO:
             case MENU_PIC_SET_DEF: {
             
-            /* 不满足存储条件: 没有插大卡或者没有插小卡 */
-            #ifdef ENABLE_MODE_NO_TF_TAKEPIC
+                /* 不满足存储条件: 没有插大卡或者没有插小卡 */
+                #ifdef ENABLE_MODE_NO_TF_TAKEPIC
                 if (!vm->checkLocalVolumeExist()) {     
-            #else
+                #else
                 if (!vm->checkLocalVolumeExist() || !(vm->checkAllTfCardExist())) {     /* 不满足存储条件: 没有插大卡或者没有插小卡 */
-            #endif
+                #endif
                     Log.d(TAG, "[%s: %d] Current menu[%s] have not local stroage device, show none", __FILE__, __LINE__, getMenuName(cur_menu));
                     dispIconByType(ICON_LIVE_INFO_NONE_7848_50X16);
                 } else {    /* 条件满足: 显示剩余张数 */
@@ -4286,12 +4165,9 @@ void MenuUI::dispBottomLeftSpace()
             case MENU_LIVE_INFO:
             case MENU_LIVE_SET_DEF: {
 
-                int index = getMenuSelectIndex(MENU_LIVE_SET_DEF);
-                struct stPicVideoCfg* pPicVidCfg = mLiveAllItemsList.at(index);                 
-
 
                 /* 如果不是直播存片，不需要显示任何东西 */
-                if (LIVE_SAVE_NONE != check_live_save((pPicVidCfg->jsonCmd).get())) {
+                if (checkisLiveRecord() == true) {
                     
                     /* 需要存片的情况下,检查卡是否存在
                      * 卡不足显示"None";卡足够显示剩余可录时长
@@ -4316,7 +4192,7 @@ void MenuUI::dispBottomLeftSpace()
                         Log.d(TAG, "[%s: %d] Take Video, but no storage", __FILE__, __LINE__);
                         dispIconByType(ICON_LIVE_INFO_NONE_7848_50X16);     
                     }
-                } else {
+                } else {    /* 只显示已经直播的时间 */
                     if (check_state_in(STATE_LIVE)) {   /* 直播状态: 更新已经直播的时间 */
                         char disp[32];
                         vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
@@ -4326,7 +4202,6 @@ void MenuUI::dispBottomLeftSpace()
                 }
                 break;
             }
-
         }
     }
 }
@@ -4341,7 +4216,7 @@ void MenuUI::dispBottomLeftSpace()
 **      bUseCached - 是否使用缓存的剩余量
 ** 返回值: 无
 ** 调 用: 
-** 
+** 什么时候会更新底部空间
 *************************************************************************/
 void MenuUI::updateBottomSpace(bool bNeedCalc, bool bUseCached)
 {
@@ -5026,13 +4901,19 @@ void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
     string jsonstr = writer.write(jsonCmd);
     Log.d(TAG, "[%s: %d] cmd: %s", __FILE__, __LINE__, jsonstr.c_str());
 
-    if (jsonCmd["origin"]["saveOrigin"].asBool() == true) {
-        org = 1;
+
+    if (jsonCmd["parameters"].isMember("origin")) {
+        if (jsonCmd["parameters"]["origin"].isMember("saveOrigin")) {
+            if (true == jsonCmd["parameters"]["origin"]["saveOrigin"].asBool()) {
+                org = 1;
+            }
+        }
     }
 
-    if (jsonCmd.isMember("stiching")) {
+    if (jsonCmd["parameters"].isMember("stiching")) {
         rts = 1;
     }
+
     disp_org_rts(org, rts, hdmi);
 }
 
@@ -5452,7 +5333,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             if (check_state_in(START_PREVIEWING)) {
                 dispBottomInfo(false, false);           /* 正常显示底部规格,不更新剩余空间 */
             } else {
-                dispBottomInfo(false, true);            /* 正常显示底部规格,不更新剩余空间 */                
+                dispBottomInfo(false, true);            /* 正常显示底部规格,更新剩余空间 */                
             }
 
 
@@ -7575,7 +7456,7 @@ int MenuUI::oled_disp_type(int type)
 
             if (check_allow_pic()) {
                 /* mControlAct不为NULL,有两种情况 
-                 * - 来自客户端的拍照请求
+                 * - 来自客户端的拍照请求(直接拍照)
                  * - 识别二维码的请求
                  */
                 if (mClientTakePicUpdate == true) {   
@@ -7603,7 +7484,7 @@ int MenuUI::oled_disp_type(int type)
                 }
 				
                 add_state(STATE_TAKE_CAPTURE_IN_PROCESS);
-				setCurMenu(MENU_PIC_INFO);  /* 再次进入MENU_PIC_INFO菜单 */
+				// setCurMenu(MENU_PIC_INFO);                  /* 再次进入MENU_PIC_INFO菜单 */
 				
 				/* 第一次发送更新消息, 根据cap_delay的值来决定播放哪个声音 */
                 send_update_light(MENU_PIC_INFO, STATE_TAKE_CAPTURE_IN_PROCESS, INTERVAL_1HZ);
@@ -7617,11 +7498,12 @@ int MenuUI::oled_disp_type(int type)
             VolumeManager* vm = VolumeManager::Instance();
 
             if (check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || check_state_in(STATE_PIC_STITCHING)) {
+                
                 minus_cam_state(STATE_TAKE_CAPTURE_IN_PROCESS | STATE_PIC_STITCHING);
 
                 if (cur_menu == MENU_PIC_INFO) {
                     if (mClientTakePicUpdate == true) {
-                        Log.d(TAG,"control cap suc");
+                        Log.d(TAG, "[%s: %d] Client control Take picture suc", __FILE__, __LINE__);
                         mClientTakePicUpdate = false;
                         dispBottomInfo();
                     } else {
@@ -7632,6 +7514,7 @@ int MenuUI::oled_disp_type(int type)
                             vm->syncTakePicLeftSapce(getCurOneGroupPicSize() * mCanTakePicNum); /* 单位为MB */
                         }
 
+                        /* 拍照成功后，按照原来的计算量进行显示 */
                         dispBottomLeftSpace();
                     }
                 } else {
