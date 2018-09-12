@@ -27,6 +27,8 @@
 #include <util/ARMessage.h>
 #include <sys/NetlinkEvent.h>
 
+#include <json/json.h>
+
 #include <sys/Mutex.h>
 
 enum {
@@ -469,6 +471,8 @@ public:
     int         getCurHandleRemoveUdiskVolCnt();
 
 
+    u32         calcTakeLiveRecLefSec(Json::Value& jsonCmd);
+
     /*
      * 录像/直播存片 时间接口
      */
@@ -487,6 +491,11 @@ public:
 
     void        unmountAll();
 
+    u32         calcTakeRecLefSec(Json::Value& jsonCmd);
+    int         calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached);
+
+
+    void        repairVolume(Volume* pVol);
     /*
      * 转换秒数为'00:00:00'格式字符串
      */

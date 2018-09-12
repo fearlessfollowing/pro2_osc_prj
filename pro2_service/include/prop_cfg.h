@@ -218,6 +218,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_INFO          "info"
 #define SET_ITEM_NAME_RESET         "reset"
 #define SET_ITEM_NAME_STITCH_BOX    "stitch_box"
+#define SET_ITEM_NAME_CALC_STITCH   "calc_stitch"
 
 
 #define SET_ITEM_NAME_TF_FOMART_THIS_CARD   "format_this_card"

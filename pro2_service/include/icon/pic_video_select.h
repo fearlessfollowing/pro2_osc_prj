@@ -1254,7 +1254,8 @@ PicVideoCfg picAEB = {
 	iRawStorageRatio:	10,							// 10倍
 	stPos:				{0},						// stPos
 	pStAction:			&picAebDefault,
-	jsonCmd:			nullptr,	
+	jsonCmd:			nullptr,
+		
 	stLightIcon:		{	/* 选中时的图标列表 */
 		picAEB3Light_78X16,
 		picAEB5Light_78X16,
@@ -1265,6 +1266,7 @@ PicVideoCfg picAEB = {
 		picAEB7_RAW_Light_78X16,
 		picAEB9_RAW_Light_78X16,
 	},
+
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		picAEB3Nor_78X16,
 		picAEB5Nor_78X16,

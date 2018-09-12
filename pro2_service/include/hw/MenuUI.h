@@ -702,8 +702,8 @@ private:
     void    set_light();
     bool    check_cam_busy();
 
+    void    writeJson2File(int iAction, const char* filePath, Json::Value& jsonRoot);
 
-    void    writeJson2File(const char* filePath, Json::Value& jsonRoot);
     int     check_live_save(Json::Value* liveJson);
     bool    sendRpc(int option, int cmd = -1, Json::Value* pNodeArg = NULL);
 
@@ -1098,6 +1098,7 @@ private:
 
     bool                        mRemoteStorageUpdate = false;
     
+    bool                        mTakeVideInTimelapseMode = false;
 
     u64                         mLocalRecLiveLeftTime;                          /* 本地存储设备,录像,直播的剩余时间 */
 

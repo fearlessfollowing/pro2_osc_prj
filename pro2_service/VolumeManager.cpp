@@ -233,10 +233,11 @@ static void clearAllunmountPoint()
     struct dirent* de;
     
     while ((de = readdir(dir))) {
-        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + parent_length + 1 >= PATH_MAX)
+    int iParentLen = strlen(cPath); 
+        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + iParentLen + 1 >= PATH_MAX)
             continue;
 
-        path[iParentLen] = 0;
+        cPath[iParentLen] = 0;
         strcat(cPath, de->d_name);
 
         Log.d(TAG, "[%s: %d] Current Path name: %s", __FILE__, __LINE__, cPath);
@@ -298,7 +299,6 @@ VolumeManager::VolumeManager() :
                                 mRecSec(0),
                                 mLiveRecLeftSec(0),
                                 mLiveRecSec(0),
-                                mDebug(true),
                                 mTakePicLeftNum(0),
                                 mTimeLapseLeftNum(0),
                                 mNotify(NULL)                          
@@ -676,6 +676,63 @@ void VolumeManager::unmountCurLocalVol()
 }
 
 
+void VolumeManager::unmountAll()
+{
+
+    u32 i;
+    int iResult = -1;
+    Volume* tmpVol = NULL;
+
+    if (mCurrentUsedLocalVol) {
+        NetlinkEvent *evt = new NetlinkEvent();        
+        evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+        evt->setAction(NETLINK_ACTION_REMOVE);
+        evt->setSubsys(VOLUME_SUBSYS_USB);
+        evt->setBusAddr(mCurrentUsedLocalVol->pBusAddr);
+        evt->setDevNodeName(mCurrentUsedLocalVol->cDevNode);            
+        handleBlockEvent(evt);
+        delete evt;
+    }    
+
+
+#if 1
+    /* 处理TF卡的移除 */
+    {
+        unique_lock<mutex> lock(mRemoteDevLock);
+        for (i = 0; i < mModuleVols.size(); i++) {
+
+            tmpVol = mModuleVols.at(i);
+        
+            Log.d(TAG, "[%s: %d] Volue[%d] -> %s", __FILE__, __LINE__, i, tmpVol->cDevNode);
+            if (tmpVol) {
+
+                NetlinkEvent *evt = new NetlinkEvent();        
+                evt->setEventSrc(NETLINK_EVENT_SRC_APP);
+                evt->setAction(NETLINK_ACTION_REMOVE);
+                evt->setSubsys(VOLUME_SUBSYS_USB);
+                evt->setBusAddr(tmpVol->pBusAddr);
+                evt->setDevNodeName(tmpVol->cDevNode);            
+                iResult = handleBlockEvent(evt);
+                if (iResult) {
+                    Log.d(TAG, "[%s: %d] Remove Device Failed ...", __FILE__, __LINE__);
+                }       
+                delete evt;
+            }
+        }
+    }
+#endif
+  
+    system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
+    system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
+
+    msg_util::sleep_ms(3000);
+
+    system("power_manager power_off"); 
+
+
+}
+
+
 void VolumeManager::exitUdiskMode()
 {
     /* 1.卸载掉所有的U盘
@@ -719,7 +776,7 @@ void VolumeManager::exitUdiskMode()
     system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
     system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
 
-    msg_util::sleep_ms(1000 * 3);
+    msg_util::sleep_ms(3000);
 
     system("power_manager power_off");  
 
@@ -1842,6 +1899,23 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
 }
 
 
+void VolumeManager::repairVolume(Volume* pVol)
+{
+    char cmd[512] = {0};
+    char repairCmd[512] = {0};
+
+    sprintf(cmd, "dd if=%s of=./repair.data bs=512 count=24", pVol->cDevNode);
+
+    Log.d(TAG, "[%s: %d] export repair data: %s", __FILE__, __LINE__, cmd);
+    system(cmd);
+    system("sync");
+
+    sprintf(repairCmd, "dd of=%s if=./repair.data bs=512 count=12 skip=12", pVol->cDevNode);
+    Log.d(TAG, "[%s: %d] repair cmd: %s", __FILE__, __LINE__, repairCmd);
+    system(repairCmd);
+    system("sync");
+}
+
 /*
  * 挂载卷
  * - 成功返回0; 失败返回-1
@@ -1851,7 +1925,13 @@ int VolumeManager::mountVolume(Volume* pVol)
     int iRet = 0;
 
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
-    checkFs(pVol);
+    iRet = checkFs(pVol);
+    if (iRet) {
+        
+        Log.d(TAG, "[%s: %d] Check over, Need repair Volume now", __FILE__, __LINE__);
+        /* 修复一下卡 */
+        repairVolume(pVol);
+    }
 
     /* 挂载点为非挂载状态，但是挂载点有其他文件，会先删除 */
     checkMountPath(pVol->pMountPath);
@@ -1875,6 +1955,7 @@ int VolumeManager::mountVolume(Volume* pVol)
         }
         msg_util::sleep_ms(200);
     }
+
     #else
 
     int status;
@@ -1914,55 +1995,343 @@ int VolumeManager::mountVolume(Volume* pVol)
         return -1;
     }
 
-    /* 更新挂载节点的最后访问时间(避免MAC上不能通过Samba访问文件的BUG) */
-    // string updateAccessTime = "touch ";
-    // updateAccessTime += pVol->pMountPath;
-    // updateAccessTime += "/.access";
-    // system(updateAccessTime.c_str());
-
     {
         char lost_path[256] = {0};
         sprintf(lost_path, "%s/LOST.DIR", pVol->pMountPath);
-        if (access(lost_path, F_OK)) {
-            if (mkdir(lost_path, 0755)) {
-                Log.e(TAG, "Unable to create LOST.DIR (%s)", strerror(errno));
-            }
+        if (mkdir(lost_path, 0755)) {
+            Log.e(TAG, "Unable to create LOST.DIR (%s)", strerror(errno));
         }
     }
 
     #endif
+
+    return 0;
+}
+
+/*
+ * 大概统计下每个挡位下大卡的码率
+ */
+#define SD_PER_SEC  1   /* 以1MB来算 */
+
+#if 0
+u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
+{
+    u32 uLocalRecSec = ~0L;
+    u32 uRemoteRecSec = ~0L;
+    int iBitRate = 0;
+
+    if (checkLocalVolumeExist()) {
+       uLocalRecSec = getLocalVolLeftSize(false) / SD_PER_SEC;
+    }
+
+    /* 根据origin的 */
+    if (jsonCmd["parameters"]["origin"].isMember("bitrate")) {
+        iBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iBitRate = iBitRate / (1024 * 8);
+        Log.d(TAG, "[%s: %d] Take video bitrate = %d MB", __FILE__, __LINE__, iBitRate);
+        uRemoteRecSec = calcRemoteRemainSpace(false) / iBitRate;
+
+    } else {
+        Log.e(TAG, "[%s: %d] >>>> no bitrate in parameters", __FILE__, __LINE__);
+    }
+
+    return (uLocalRecSec < uRemoteRecSec) ? uLocalRecSec: uRemoteRecSec;
+}
+#endif
+
+
+u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
+{
+    u32 uLocalRecSec = ~0L;
+    u32 uRemoteRecSec = ~0L;
+
+    int iOriginBitRate = 0;
+    int iStitchBitRate = 0;
+
+    /* 1.只存原片
+     * 2.存原片 + 拼接
+     */
+
+    bool bSaveOrigin = false;
+    bool bHaveStitch = false;
+
+    if (jsonCmd["parameters"]["origin"].isMember("saveOrigin") &&
+        jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) {
+        bSaveOrigin = true;
+    }
+
+    if ( jsonCmd["parameters"].isMember("stiching") &&
+        jsonCmd["parameters"]["stiching"].isMember("fileSave") &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+        bHaveStitch = true;
+    }
+
+    if (bSaveOrigin && !bHaveStitch) {  /*  */
+
+    }
+
+
+    /* 只存原片 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == false) ) {
+
+        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iOriginBitRate / (1024 * 8);
+
+        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+
+        Log.d(TAG, "[%s: %d] Remote Live Left sec %lu", __FILE__, __LINE__, uRemoteRecSec);
+        return uRemoteRecSec;
+    }
+
+    /* 只存拼接 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == false) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+
+        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iStitchBitRate / (1024 * 8);
+        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
+
+        Log.d(TAG, "[%s: %d] Local Live Left sec %lu", __FILE__, __LINE__, uLocalRecSec);
+        return uLocalRecSec;
+    }
+
+
+    /* 原片+拼接 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+        
+        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iOriginBitRate / (1024 * 8);
+        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+
+        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iStitchBitRate / (1024 * 8);
+        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
+
+        Log.d(TAG, "[%s: %d] Local Live Left sec %lu, Remote Live Left sec %lu", 
+                        __FILE__, __LINE__, uLocalRecSec, uRemoteRecSec);
+
+        return (uRemoteRecSec > uLocalRecSec) ? uLocalRecSec : uRemoteRecSec;
+    }
+
     return 0;
 }
 
 
-int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd)
+
+u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
+{
+    u32 uLocalRecSec = ~0L;
+    u32 uRemoteRecSec = ~0L;
+
+    int iOriginBitRate = 0;
+    int iStitchBitRate = 0;
+
+    /* 1.只存原片
+     * 2.只存拼接
+     * 3.存原片 + 拼接
+     */
+
+    /* 只存原片 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == false) ) {
+
+        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iOriginBitRate / (1024 * 8);
+
+        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+
+        Log.d(TAG, "[%s: %d] Remote Live Left sec %lu", __FILE__, __LINE__, uRemoteRecSec);
+        return uRemoteRecSec;
+    }
+
+    /* 只存拼接 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == false) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+
+        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iStitchBitRate / (1024 * 8);
+        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
+
+        Log.d(TAG, "[%s: %d] Local Live Left sec %lu", __FILE__, __LINE__, uLocalRecSec);
+        return uLocalRecSec;
+    }
+
+
+    /* 原片+拼接 */
+    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
+        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+        
+        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iOriginBitRate / (1024 * 8);
+        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+
+        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iStitchBitRate / (1024 * 8);
+        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
+
+        Log.d(TAG, "[%s: %d] Local Live Left sec %lu, Remote Live Left sec %lu", 
+                        __FILE__, __LINE__, uLocalRecSec, uRemoteRecSec);
+
+        return (uRemoteRecSec > uLocalRecSec) ? uLocalRecSec : uRemoteRecSec;
+    }
+
+    return 0;
+}
+
+
+
+
+int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
 {
     int iRet = 0;
-    
-    if (!strcmp(jsonCmd["name"].asCString(), "camera._takepic")) {
-        if (jsonCmd["parameters"].isMember("bracket")) {            /* 包围曝光：全部存储在本地 */
+    int iUnitSize = 25;     /* 默认为20MB */
+    int iTfCardUnitSize = -1;
+    u64 uLocalVolSize = 0;
+    u64 uRemoteVolSize = 0;
+    u32 uTfCanTakeNum = 0;
+    u32 uTakepicNum = 0;   
+    u32 uTakepicTmpNum = 0;    
 
+    if (checkLocalVolumeExist()) {
+        uLocalVolSize = getLocalVolLeftSize(bUseCached);
+        uRemoteVolSize = calcRemoteRemainSpace(false);
+    } else {
+        return -1;
+    }
+    
+    if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture") || 
+        !strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
+        if (jsonCmd["parameters"].isMember("bracket")) {            /* 包围曝光：全部存储在本地 - AEB3 */
+
+            if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                    iUnitSize = 30;     /* backet - jpeg */
+                } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                    iUnitSize = 300;    /* backet - raw + jpeg */     
+                } else {
+                    iUnitSize = 250;    /* 8K - raw */
+                }
+                uTakepicNum = uLocalVolSize / iUnitSize;
+            } else {
+                Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
+            }
         } else if (jsonCmd["parameters"].isMember("burst")) {       /* Burst：全部存储在本地 */
 
+            if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                    iUnitSize = 150;     /* backet - jpeg */
+                } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                    iUnitSize = 1500;    /* backet - raw + jpeg */     
+                } else {
+                    iUnitSize = 1200;    /* 8K - raw */
+                }
+
+                uTakepicNum = uLocalVolSize / iUnitSize;
+            } else {
+                Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
+            }
         } else if (jsonCmd["parameters"].isMember("timelapse")) {   /* 表示拍的是Timelapse */
 
-        } else {    /* 普通模式：全部存储在本地 */
+            if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                    iUnitSize = 30;     /* timelapse - jpeg 存在大卡 */
+                } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                    iUnitSize = 25;    /* backet - raw + jpeg */     
+                    iTfCardUnitSize = 30;
+                } else {
+                    iTfCardUnitSize = 30;    /* 8K - raw */
+                    iUnitSize = -1;
+                }
 
+                if ((iTfCardUnitSize > 0) && (iUnitSize > 0) )  {
+                    uTfCanTakeNum = uRemoteVolSize / iTfCardUnitSize;
+                    uTakepicTmpNum = uLocalVolSize / iUnitSize;
+                    uTakepicNum = (uTfCanTakeNum > uTakepicTmpNum) ? uTakepicTmpNum: uTfCanTakeNum;
+                } else if ((iTfCardUnitSize > 0) && (iUnitSize < 0)) {
+                    uTakepicNum = uRemoteVolSize / iTfCardUnitSize;
+                } else {
+                    uTakepicNum = uLocalVolSize / iUnitSize;
+                }
+
+            } else {
+                Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
+            }
+
+        } else {    /* 普通模式：全部存储在本地 */
+            /* 3D/PANO 8K
+             * Raw Mode: jpeg/ raw/ jpeg+raw
+             * stitch: on/off
+             * saveOrigin: on/off
+             */
+            iUnitSize = 20; 
+            if (jsonCmd["parameters"].isMember("stiching")) {   /* 有"stitch" */
+
+                Log.d(TAG, "[%s: %d] calcTakepicLefNum Normal and Stitch Mode", __FILE__, __LINE__);
+
+                if (jsonCmd["parameters"]["stiching"].isMember("mode")) {
+                    if (!strcmp(jsonCmd["parameters"]["stiching"]["mode"].asCString(), "pano")) {   /* pano */
+                        if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                            if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                                iUnitSize = 30;     /* 8K_PANO - jpeg */
+                            } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                                iUnitSize = 150;    /* 8K_PANO - raw + jpeg */     
+                            } else {
+                                iUnitSize = 130;    /* 8K - raw */
+                            }
+                            uTakepicNum = uLocalVolSize / iUnitSize;                            
+                        } else {
+                            Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
+                        }
+                    } else {    /* 3d */
+
+                        if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                            if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                                iUnitSize = 25;     /* 8K_3D - jpeg */
+                            } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                                iUnitSize = 125;    /* 8K_3D - raw + jpeg */     
+                            } else {
+                                iUnitSize = 100;    /* 8K_3D - raw */
+                            }
+                            uTakepicNum = uLocalVolSize / iUnitSize;                            
+                        } else {
+                            Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "[%s: %d] Have stich, but not stitch mode", __FILE__, __LINE__);
+                }
+            } else {    /* 无"stitch" */
+
+                Log.d(TAG, "[%s: %d] calcTakepicLefNum Normal In non-stitch Mode!!", __FILE__, __LINE__);
+            
+                /* 分为"raw", "raw+jpeg", "jpeg" */
+                if (jsonCmd["parameters"]["origin"].isMember("mime")) {
+                    if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
+                        iUnitSize = 25;     /* 8K - jpeg */
+                    } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
+                        iUnitSize = 125;    /* 8K - raw + jpeg */     
+                    } else {
+                        iUnitSize = 110;    /* 8K - raw */
+                    }
+                    uTakepicNum = uLocalVolSize / iUnitSize;                    
+                } else {
+                    Log.e(TAG, "[%s: %d] origin not mime!", __FILE__, __LINE__);
+                }
+            }
         }
-    } else {
+    } else {    
         Log.e(TAG, "[%s: %d] Invalid Takepic Json Cmd recved!", __FILE__, __LINE__);
     }
-    return iRet;
+
+    return uTakepicNum;
 }
 
 
 int VolumeManager::doUnmount(const char *path, bool force)
 {
     int retries = 10;
-
-    if (mDebug) {
-        Log.d(TAG, "Unmounting {%s}, force = %d", path, force);
-    }
 
     while (retries--) {
         
@@ -2043,8 +2412,6 @@ out_mounted:
 
 int VolumeManager::checkFs(Volume* pVol) 
 {
-    bool rw = true;
-    int pass = 1;
     int rc = 0;
     int status;
     
@@ -2117,7 +2484,9 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
             u64 blocksize = diskInfo.f_bsize;                                   //每个block里包含的字节数
             totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
             pVol->uTotal = (totalsize >> 20);
-            pVol->uAvail = ((diskInfo.f_bfree * blocksize) >> 20);
+            
+            /* 预留1GB的空间 */
+            pVol->uAvail = ((diskInfo.f_bfree * blocksize) >> 20) - lefSpaceThreshold;
             Log.d(TAG, "[%s: %d] Local Volume Tatol size = %ld MB", __FILE__, __LINE__, pVol->uTotal);
             Log.d(TAG, "[%s: %d] Local Volume Avail size = %ld MB", __FILE__, __LINE__, pVol->uAvail);
 
@@ -2275,9 +2644,6 @@ int VolumeManager::formatVolume(Volume* pVol, bool wipe)
     setSavepathChanged(VOLUME_ACTION_REMOVE, pVol);
     // sendDevChangeMsg2UI(VOLUME_ACTION_REMOVE, pVol->iVolSubsys, getCurSavepathList());
     
-    if (mDebug) {
-        Log.i(TAG, "Formatting volume %s (%s)", pVol->cDevNode, pVol->pMountPath);
-    }
 
     /*
      * 1.卸载
@@ -2383,11 +2749,6 @@ vector<Volume*>& VolumeManager::getLocalVols()
 {
     vector<Volume*>& localVols = mLocalVols;
     return localVols;
-}
-
-void VolumeManager::setDebug(bool enable)
-{
-    mDebug = enable;
 }
 
 
