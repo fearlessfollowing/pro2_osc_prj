@@ -2325,6 +2325,41 @@ void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, Json::Value& reqNode)
 }
 
 
+void fifo::handleQueryLeftInfo(Json::Value& queryJson)
+{
+    u32 uLeft = 0;
+
+    Json::FastWriter writer;
+    string sendDataStr;
+    VolumeManager* vm = VolumeManager::Instance();
+
+    Json::Value rootNode;
+
+    /* 
+     * 1.拍照
+     * 2.录像/直播存片
+     * 录像分为普通录像和timelapse
+     */
+    if (queryJson.isMember("name")) {
+        if (!strcmp(queryJson["name"].asCString(), "camera._takePicture") ) {
+            uLeft = vm->calcTakepicLefNum(queryJson, false);
+        } else if (!strcmp(queryJson["name"].asCString(), "camera._startRecording")) {
+            uLeft = vm->calcTakeRecLefSec(queryJson);
+        } else if (!strcmp(queryJson["name"].asCString(), "camera._startLive")) {
+            uLeft = vm->calcTakeLiveRecLefSec(queryJson);
+        }
+    } else {
+        uLeft = 0;
+    }
+
+    Log.d(TAG, "-------- handleQueryLeftInfo");
+
+    rootNode["left"] = uLeft;    
+    sendDataStr = writer.write(rootNode);
+
+    write_fifo(EVENT_QUERY_LEFT, sendDataStr.c_str());
+}
+
 
 void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
 {
@@ -2367,6 +2402,13 @@ void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
             mOLEDHandle->send_disp_str(mDispType);
             break;
         }
+
+        case CMD_WEB_UI_QUERY_LEFT_INFO: {  /* 查询剩余量信息 */
+            Log.d(TAG, "[%s: %d] Query Left Info now....", __FILE__, __LINE__);
+            handleQueryLeftInfo(jsonData);
+            break;
+        }
+
 
         case CMD_OLED_SET_SN: {
             sp<SYS_INFO> mSysInfo = sp<SYS_INFO>(new SYS_INFO());

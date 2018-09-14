@@ -64,6 +64,8 @@
 using namespace std;
 
 
+#define ENABLE_MOUNT_TFCARD_RO
+
 /*********************************************************************************************
  *  输出日志的TAG(用于刷选日志)
  *********************************************************************************************/
@@ -728,8 +730,6 @@ void VolumeManager::unmountAll()
     msg_util::sleep_ms(3000);
 
     system("power_manager power_off"); 
-
-
 }
 
 
@@ -1927,7 +1927,7 @@ int VolumeManager::mountVolume(Volume* pVol)
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
     iRet = checkFs(pVol);
     if (iRet) {
-        
+
         Log.d(TAG, "[%s: %d] Check over, Need repair Volume now", __FILE__, __LINE__);
         /* 修复一下卡 */
         repairVolume(pVol);
@@ -1959,7 +1959,10 @@ int VolumeManager::mountVolume(Volume* pVol)
     #else
 
     int status;
-    if (property_get(PROP_RO_MOUNT_TF) && volumeIsTfCard(pVol)) {
+    const char* pMountFlag = NULL;
+    pMountFlag = property_get(PROP_RO_MOUNT_TF);
+
+    if ((pMountFlag && !strcmp(pMountFlag, "true")) && volumeIsTfCard(pVol)) {
         const char *args[5];
         args[0] = "/bin/mount";
         args[1] = "-o";
@@ -1989,18 +1992,18 @@ int VolumeManager::mountVolume(Volume* pVol)
     status = WEXITSTATUS(status);
     if (status == 0) {
         Log.d(TAG, ">>>> Mount Volume OK");
-        return 0;
-    } else {
-        Log.e(TAG, ">>> Mount Volume failed (unknown exit code %d)", status);
-        return -1;
-    }
 
-    {
         char lost_path[256] = {0};
+        Log.d(TAG, "[%s: %d] Mkdir in mount point", __FILE__, __LINE__);
         sprintf(lost_path, "%s/LOST.DIR", pVol->pMountPath);
         if (mkdir(lost_path, 0755)) {
             Log.e(TAG, "Unable to create LOST.DIR (%s)", strerror(errno));
         }
+
+        return 0;
+    } else {
+        Log.e(TAG, ">>> Mount Volume failed (unknown exit code %d)", status);
+        return -1;
     }
 
     #endif
@@ -2008,39 +2011,9 @@ int VolumeManager::mountVolume(Volume* pVol)
     return 0;
 }
 
-/*
- * 大概统计下每个挡位下大卡的码率
- */
-#define SD_PER_SEC  1   /* 以1MB来算 */
-
-#if 0
-u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
-{
-    u32 uLocalRecSec = ~0L;
-    u32 uRemoteRecSec = ~0L;
-    int iBitRate = 0;
-
-    if (checkLocalVolumeExist()) {
-       uLocalRecSec = getLocalVolLeftSize(false) / SD_PER_SEC;
-    }
-
-    /* 根据origin的 */
-    if (jsonCmd["parameters"]["origin"].isMember("bitrate")) {
-        iBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-        iBitRate = iBitRate / (1024 * 8);
-        Log.d(TAG, "[%s: %d] Take video bitrate = %d MB", __FILE__, __LINE__, iBitRate);
-        uRemoteRecSec = calcRemoteRemainSpace(false) / iBitRate;
-
-    } else {
-        Log.e(TAG, "[%s: %d] >>>> no bitrate in parameters", __FILE__, __LINE__);
-    }
-
-    return (uLocalRecSec < uRemoteRecSec) ? uLocalRecSec: uRemoteRecSec;
-}
-#endif
 
 
-u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
+u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode)
 {
     u32 uLocalRecSec = ~0L;
     u32 uRemoteRecSec = ~0L;
@@ -2048,9 +2021,10 @@ u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
     int iOriginBitRate = 0;
     int iStitchBitRate = 0;
 
-    /* 1.只存原片
-     * 2.存原片 + 拼接
-     */
+    int iSubBitRate = (5 * 1024 * 6);          /* 字码流有6路 */
+    int iPrevieBitRate = 3 * 1024;             /* 预览流1路 */
+
+    int iNativeTotoalBitRate = 0;
 
     bool bSaveOrigin = false;
     bool bHaveStitch = false;
@@ -2066,56 +2040,35 @@ u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd)
         bHaveStitch = true;
     }
 
-    if (bSaveOrigin && !bHaveStitch) {  /*  */
+    if (bFactoryMode == true) {
+        return 10000;
+    } else {
 
-    }
+        /* 计算出小卡能录制的秒数 */
+        if (bSaveOrigin) {  /* 小卡 */
+            iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+            iOriginBitRate = iOriginBitRate / (1024 * 8);
 
+            uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
 
-    /* 只存原片 */
-    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
-        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == false) ) {
+            Log.d(TAG, "[%s: %d] ---------------- Origin bitrate(%d MB/s), Video Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
+        }
 
-        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-        iOriginBitRate = iOriginBitRate / (1024 * 8);
+        /* 计算出大卡能录制的秒数 */
+        if (bHaveStitch) {
+            iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+            iNativeTotoalBitRate += iStitchBitRate;
+        }
 
-        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+        iNativeTotoalBitRate += iSubBitRate;
+        iNativeTotoalBitRate += iPrevieBitRate;
+        iNativeTotoalBitRate = iNativeTotoalBitRate / (1024 * 8);
 
-        Log.d(TAG, "[%s: %d] Remote Live Left sec %lu", __FILE__, __LINE__, uRemoteRecSec);
-        return uRemoteRecSec;
-    }
+        uLocalRecSec = getLocalVolLeftSize(false) / iNativeTotoalBitRate;
 
-    /* 只存拼接 */
-    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == false) &&
-        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
-
-        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
-        iStitchBitRate = iStitchBitRate / (1024 * 8);
-        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
-
-        Log.d(TAG, "[%s: %d] Local Live Left sec %lu", __FILE__, __LINE__, uLocalRecSec);
-        return uLocalRecSec;
-    }
-
-
-    /* 原片+拼接 */
-    if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
-        (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
-        
-        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-        iOriginBitRate = iOriginBitRate / (1024 * 8);
-        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
-
-        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
-        iStitchBitRate = iStitchBitRate / (1024 * 8);
-        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
-
-        Log.d(TAG, "[%s: %d] Local Live Left sec %lu, Remote Live Left sec %lu", 
-                        __FILE__, __LINE__, uLocalRecSec, uRemoteRecSec);
-
+        Log.d(TAG, "[%s: %d] --------------- Logcal bitrate = %d MB/s, Left sec: %lu", __FILE__, __LINE__, iNativeTotoalBitRate, uLocalRecSec);
         return (uRemoteRecSec > uLocalRecSec) ? uLocalRecSec : uRemoteRecSec;
     }
-
-    return 0;
 }
 
 
@@ -2142,7 +2095,8 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
 
         uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
 
-        Log.d(TAG, "[%s: %d] Remote Live Left sec %lu", __FILE__, __LINE__, uRemoteRecSec);
+        Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>> Remote Origin bitrate[%d]MB/s Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
+        
         return uRemoteRecSec;
     }
 
@@ -2154,7 +2108,7 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
         iStitchBitRate = iStitchBitRate / (1024 * 8);
         uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
 
-        Log.d(TAG, "[%s: %d] Local Live Left sec %lu", __FILE__, __LINE__, uLocalRecSec);
+        Log.d(TAG, "[%s: %d] Local Stitch bitrate[%d]MB/s Left sec %lu", __FILE__, __LINE__, iStitchBitRate, uLocalRecSec);
         return uLocalRecSec;
     }
 
@@ -2171,7 +2125,12 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
         iStitchBitRate = iStitchBitRate / (1024 * 8);
         uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
 
-        Log.d(TAG, "[%s: %d] Local Live Left sec %lu, Remote Live Left sec %lu", 
+
+
+        Log.d(TAG, "[%s: %d] Local bitrate [%d]Mb/s, Remote bitrate[%d]Mb/s", 
+                        __FILE__, __LINE__, iStitchBitRate, iOriginBitRate);
+
+        Log.d(TAG, "[%s: %d] --------------- Local Live Left sec %lu, Remote Live Left sec %lu", 
                         __FILE__, __LINE__, uLocalRecSec, uRemoteRecSec);
 
         return (uRemoteRecSec > uLocalRecSec) ? uLocalRecSec : uRemoteRecSec;
@@ -2353,7 +2312,7 @@ int VolumeManager::doUnmount(const char *path, bool force)
 
         Process::killProcessesWithOpenFiles(path, action);
 
-        usleep(1000*30);
+        sleep(1);
     }
 
     errno = EBUSY;

@@ -491,7 +491,7 @@ public:
 
     void        unmountAll();
 
-    u32         calcTakeRecLefSec(Json::Value& jsonCmd);
+    u32         calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode = false);
     int         calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached);
 
 

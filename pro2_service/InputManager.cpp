@@ -329,14 +329,14 @@ int InputManager::inputEventLoop()
 
                             switch (event.value) {
 								case UP: {
-                                    if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < 3000)) {
+                                    if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < 1500)) {
 										if (event.code == last_down_key) {
                                             Log.d(TAG, "---> OK report key code [%d]", event.code); 
                                             reportEvent(event.code);
                                         } else {
 											Log.d(TAG, "up key mismatch(0x%x ,0x%x)\n", event.code, last_down_key);
 										}
-									} else if ((iIntervalMs > 3000) && (iIntervalMs < 6000)) {
+									} else if ((iIntervalMs > 2500) && (iIntervalMs < 6000)) {
 									    if (event.code == last_down_key) {
                                             Log.d(TAG, "---> OK report long key code [%d]", event.code); 
                                             reportLongPressEvent(event.code);
@@ -350,8 +350,9 @@ int InputManager::inputEventLoop()
                                 }
 								
 								case DOWN: {
-									last_down_key = event.code;	//iKey;
+									last_down_key = event.code;	    // iKey;
 									last_key_ts = key_ts;
+
 
 									break;
                                 }

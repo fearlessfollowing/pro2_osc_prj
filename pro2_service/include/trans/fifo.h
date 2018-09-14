@@ -74,6 +74,7 @@ enum {
     CMD_WEB_UI_TF_CHANGED = 31,
     CMD_WEB_UI_TF_FORMAT  = 32,
     CMD_WEB_UI_TEST_SPEED_RES = 33,
+    CMD_WEB_UI_QUERY_LEFT_INFO = 34, 
 };
 
 
@@ -86,6 +87,7 @@ enum {
     EVENT_SAVE_PATH     = 4,
     EVENT_AGEING_TEST   = 5,
     EVENT_QUERY_STORAGE = 6,
+    EVENT_QUERY_LEFT    = 7,
 };
 
 
@@ -196,6 +198,9 @@ private:
     void                handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param);
     void                handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
 
+
+
+    void                handleQueryLeftInfo(Json::Value& queryJson);
 
     void                handleUiKeyReq(int action, const sp<ARMessage>& msg);
 
