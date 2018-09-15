@@ -471,7 +471,7 @@ const char *getActionName(int iAction)
         ACTION_NAME(ACTION_QUIT_UDISK_MODE);
         ACTION_NAME(ACTION_UPDATE_REC_LEFT_SEC);
         ACTION_NAME(ACTION_UPDATE_LIVE_REC_LEFT_SEC);
-
+        ACTION_NAME(ACTION_UPDATE_TIMELAPSE);
 
     default: return "Unkown Action";
     }    
@@ -981,6 +981,19 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
+
+        case ACTION_UPDATE_TIMELAPSE: {
+            int iTlCnt = 0;
+            CHECK_EQ(msg->find<int>("tl_left", &iTlCnt), true);
+            Log.d(TAG, "[%s: %d] Current timelapse left val[%d]", __FILE__, __LINE__, iTlCnt);
+            rootNode["action"] = ACTION_UPDATE_TIMELAPSE;
+            paramNode["tl_left"] = iTlCnt;
+            rootNode["parameters"] = paramNode;
+            sendDataStr = writer.write(rootNode);
+            break;
+        }
+
+
         case ACTION_UPDATE_REC_LEFT_SEC: {
             u64 recLefSecs;
             u64 liveRecLeftSecs;
@@ -1003,7 +1016,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action ACTION_UPDATE_REC_LEFT_SEC: %s", sendDataStr.c_str());
-
 
             break;
         }
@@ -1393,7 +1405,9 @@ const char *getRecvMsgName(int iMessage)
         RECV_MSG(CMD_WEB_UI_TF_CHANGED);
         RECV_MSG(CMD_WEB_UI_TF_NOTIFY);
         RECV_MSG(CMD_WEB_UI_TF_FORMAT);
-
+        RECV_MSG(CMD_WEB_UI_QUERY_LEFT_INFO);
+        RECV_MSG(CMD_WEB_UI_GPS_STATE_CHANGE);
+        RECV_MSG(CMD_WEB_UI_SHUT_DOWN);
 
     default: return "Unkown Message Type";
     }    
@@ -2324,6 +2338,21 @@ void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, Json::Value& reqNode)
 	}	   
 }
 
+void fifo::handleGpsStateChange(Json::Value& queryJson)
+{
+    int iGpstate;
+    if (queryJson.isMember("state")) {
+        iGpstate = queryJson["state"].asInt();
+        mOLEDHandle->sendUpdateGpsState(iGpstate);
+    } 
+}
+
+void fifo::handleShutdownMachine(Json::Value& queryJson)
+{
+    Log.d(TAG, "[%s: %d] Recv Shut down machine message ...", __FILE__, __LINE__);
+    mOLEDHandle->sendShutdown();
+}
+
 
 void fifo::handleQueryLeftInfo(Json::Value& queryJson)
 {
@@ -2406,6 +2435,18 @@ void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
         case CMD_WEB_UI_QUERY_LEFT_INFO: {  /* 查询剩余量信息 */
             Log.d(TAG, "[%s: %d] Query Left Info now....", __FILE__, __LINE__);
             handleQueryLeftInfo(jsonData);
+            break;
+        }
+
+        case CMD_WEB_UI_GPS_STATE_CHANGE: {
+            Log.d(TAG, "[%s: %d] Gps State change now....", __FILE__, __LINE__);
+            handleGpsStateChange(jsonData);
+            break;
+        }
+
+        case CMD_WEB_UI_SHUT_DOWN: {
+            Log.d(TAG, "[%s: %d] shut down machine ....", __FILE__, __LINE__);
+            handleShutdownMachine(jsonData);
             break;
         }
 

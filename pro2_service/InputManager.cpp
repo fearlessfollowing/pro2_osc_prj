@@ -47,6 +47,9 @@ enum {
     DOWN = 1,
 };
 
+#define CtrlPipe_Shutdown   0
+#define CtrlPipe_Wakeup     1
+
 #define LONG_PRESS_MSEC     (2000)
 
 /*
@@ -54,9 +57,28 @@ enum {
  */
 #define SHORT_PRESS_THOR	(100)	// 100ms
 
+static Mutex gReportLock;
 static int gIKeyRespRate = 100;      /* 按键的灵敏度,默认为100ms */
 
-InputManager::InputManager(const sp<ARMessage> &notify): mNotify(notify)
+static Mutex gInputManagerMutex;
+
+InputManager* InputManager::sInstance = NULL;
+
+InputManager* InputManager::Instance() 
+{
+    AutoMutex _l(gInputManagerMutex);
+    if (!sInstance)
+        sInstance = new InputManager();
+    return sInstance;
+}
+
+void InputManager::setNotifyRecv(sp<ARMessage> notify)
+{
+    mNotify = notify;
+}
+
+
+InputManager::InputManager():mEnableReport(true)
 {
     const char* pRespRate = NULL;
 
@@ -228,21 +250,143 @@ int InputManager::getKey(u16 code)
 
 
 void InputManager::reportEvent(int iKey)
-{	
-    sp<ARMessage> msg = mNotify->dup();
-    msg->set<int>("oled_key", iKey);
-	msg->post();
+{
+    if (true == getReportState()) {
+        sp<ARMessage> msg = mNotify->dup();
+        msg->set<int>("oled_key", iKey);
+        msg->post();
+    }	
 }
 
 
 void InputManager::reportLongPressEvent(int iKey)
 {
-    sp<ARMessage> msg = mNotify->dup();
-    Log.d(TAG, "last_key_ts last_down_key %d", iKey);
-    msg->setWhat(3);        // UI_MSG_LONG_KEY_EVENT
-    msg->set<int>("long_key", iKey);
-    msg->postWithDelayMs(0);
+    if (true == getReportState()) {
+        sp<ARMessage> msg = mNotify->dup();
+        Log.d(TAG, "last_key_ts last_down_key %d", iKey);
+        msg->setWhat(3);        // UI_MSG_LONG_KEY_EVENT
+        msg->set<int>("long_key", iKey);
+        msg->post();
+    }
 }
+
+
+void InputManager::setEnableReport(bool bEnable)
+{
+    AutoMutex _l(gReportLock);
+    mEnableReport = bEnable;
+}
+
+
+bool InputManager::getReportState()
+{
+    AutoMutex _l(gReportLock);
+    return mEnableReport;
+}
+
+
+enum {
+    QUIT_REASON_PIPE_SHUTDOWN,
+    QUIT_REASON_TIMEOUT,
+};
+
+
+void InputManager::runLongPressMonitorListener()
+{
+    int iFd;
+    int iRes;
+    struct timeval timeout;
+
+    int iQuitReason = QUIT_REASON_PIPE_SHUTDOWN;
+
+    timeout.tv_sec = 3;
+    timeout.tv_usec = 0;
+
+    Log.d(TAG, "[%s: %d] Add Listener object", __FILE__, __LINE__);
+
+    while (true) {
+
+        fd_set read_fds;
+        int rc = 0;
+        int max = -1;
+
+        FD_ZERO(&read_fds);
+
+        FD_SET(mLongPressMonitorPipe[0], &read_fds);	
+        if (mLongPressMonitorPipe[0] > max)
+            max = mLongPressMonitorPipe[0];
+
+        FD_SET(iFd, &read_fds);	
+        if (iFd > max)
+            max = iFd;
+
+        if ((rc = select(max + 1, &read_fds, NULL, NULL, &timeout)) < 0) {	
+            if (errno == EINTR)
+                continue;
+        } else if (!rc) {
+            Log.d(TAG, "[%s: %d] Select timeout", __FILE__, __LINE__);
+            iQuitReason = QUIT_REASON_TIMEOUT;
+            break;
+        }
+
+        /* 如果时管道唤醒，说明有按键松开，上报事件不需要线程处理
+         * 如果是超时唤醒，主动上报长按消息
+         */
+        if (FD_ISSET(mLongPressMonitorPipe[0], &read_fds)) {	
+            char c = CtrlPipe_Shutdown;
+            TEMP_FAILURE_RETRY(read(mLongPressMonitorPipe[0], &c, 1));	
+            if (c == CtrlPipe_Shutdown) {
+                Log.d(TAG, "[%s: %d] VolumeManager notify our exit now ...", __FILE__, __LINE__);
+                iQuitReason = QUIT_REASON_PIPE_SHUTDOWN;
+                break;
+            }
+        }
+    }
+
+    if (iQuitReason == QUIT_REASON_PIPE_SHUTDOWN) {
+        Log.d(TAG, "[%s: %d] Normal abort", __FILE__, __LINE__);
+    } else if (QUIT_REASON_TIMEOUT == iQuitReason) {
+        Log.d(TAG, "[%s: %d] Timeout abort", __FILE__, __LINE__);
+        reportLongPressEvent(256);
+    }
+}
+
+
+/*
+ * 长按监听线程 - 当按键松开时会给监听线程发送一个退出消息
+ * 如果监听超时，会给主界面发送一个
+ */
+void* longPressMonitorThread(void *obj) 
+{
+    InputManager* me = reinterpret_cast<InputManager *>(obj);
+    Log.d(TAG, "[%s: %d] Enter Listener mode now ...", __FILE__, __LINE__);
+    me->runLongPressMonitorListener();		
+
+    pthread_exit(NULL);
+
+    return NULL;
+}
+
+
+/*
+ * 创建长按监听线程
+ */
+bool InputManager::initLongPressMonitor()
+{
+    bool bResult = false;
+    if (pipe(mLongPressMonitorPipe)) {
+        Log.e(TAG, "[%s: %d] initLongPressMonitor pipe failed", __FILE__, __LINE__);
+    } else {
+        if (pthread_create(&mLongPressThread, NULL, longPressMonitorThread, this)) {	
+            Log.e(TAG, "[%s: %d] pthread_create (%s)", __FILE__, __LINE__, strerror(errno));
+        } else {
+            Log.d(TAG, "[%s: %d] Create File Monitor notify Thread....", __FILE__, __LINE__);
+            bResult = true;
+        }  
+    }
+    return bResult;
+}
+
 
 
 int InputManager::inputEventLoop()
@@ -346,14 +490,34 @@ int InputManager::inputEventLoop()
                                     }
 									last_key_ts = key_ts;
 									last_down_key = -1;
-									break;
+
+
+                                #if 0
+                                    /* 杀死监听线程 */
+                                    char c = CtrlPipe_Shutdown;		
+                                    int  rc;	
+                                    void *ret;
+
+                                    rc = TEMP_FAILURE_RETRY(write(mLongPressMonitorPipe[1], &c, 1));
+                                    if (rc != 1) {
+                                        Log.e(TAG, "Error writing to control pipe (%s)", strerror(errno));
+                                    }
+                                    pthread_join(mLongPressThread, &ret);
+
+                                    close(mLongPressMonitorPipe[0]);	
+                                    close(mLongPressMonitorPipe[1]);
+                                    mLongPressMonitorPipe[0] = -1;
+                                    mLongPressMonitorPipe[1] = -1;
+
+                                #endif
+                                    break;
                                 }
 								
 								case DOWN: {
+
+                                    // initLongPressMonitor();         /* 按下，创建监听线程 */
 									last_down_key = event.code;	    // iKey;
 									last_key_ts = key_ts;
-
-
 									break;
                                 }
 

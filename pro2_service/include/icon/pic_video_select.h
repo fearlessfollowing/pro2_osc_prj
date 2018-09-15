@@ -2005,4 +2005,14 @@ static const char* pCmdLive_4K30F3D		= "{\"name\":\"camera._startLive\",\"parame
 
 static const char* pCmdLive_4K30F3DHDMI	= "{\"name\":\"camera._startLive\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":20480,\"saveOrigin\":false,\"width\":1920,\"height\":1440,\"storage_loc\":0},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":1920,\"width\":3840,\"liveOnHdmi\":true,\"fileSave\":false,\"framerate\":30,\"bitrate\":20480,\"mime\":\"h264\"},\"audio\":{\"mime\":\"aac\",\"sampleFormat\":\"s16\",\"samplerate\":48000,\"bitrate\":128,\"channelLayout\":\"stereo\"},\"autoConnect\":{\"enable\":true,\"interval\":1000,\"count\":-1}}}";
 
+
+
+/*
+ * 本地拍摄timelapse
+ */
+ICON_INFO nativeTimelapseIconInfo = {
+	0, 48, 78, 16, sizeof(picVidCustmNor_78x16), picVidCustmNor_78x16,
+};
+
+
 #endif /* _PIC_VIDEO_SELECT_H_ */

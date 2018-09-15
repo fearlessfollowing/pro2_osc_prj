@@ -75,6 +75,8 @@ enum {
     CMD_WEB_UI_TF_FORMAT  = 32,
     CMD_WEB_UI_TEST_SPEED_RES = 33,
     CMD_WEB_UI_QUERY_LEFT_INFO = 34, 
+    CMD_WEB_UI_GPS_STATE_CHANGE = 35,
+    CMD_WEB_UI_SHUT_DOWN = 36,
 };
 
 
@@ -198,6 +200,9 @@ private:
     void                handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param);
     void                handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param);
 
+    void                handleGpsStateChange(Json::Value& queryJson);
+
+    void                handleShutdownMachine(Json::Value& jsonData);
 
 
     void                handleQueryLeftInfo(Json::Value& queryJson);

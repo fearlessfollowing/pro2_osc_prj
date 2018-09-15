@@ -272,6 +272,7 @@ enum {
     ACTION_UPDATE_REC_LEFT_SEC = 203,
     ACTION_UPDATE_LIVE_REC_LEFT_SEC = 204,
     ACTION_ENTER_UDISK_MODE = 205,
+    ACTION_UPDATE_TIMELAPSE = 206,
 
 };
 
@@ -503,6 +504,9 @@ public:
     void    send_update_dev_list(std::vector<Volume*> &mList);
     void    send_sync_init_info(sp<SYNC_INIT_INFO> &mSyncInfo);
 
+    void    sendUpdateGpsState(int iState);
+    void    sendShutdown();
+
     void    updateTfStorageInfo(bool bResult, std::vector<sp<Volume>>& mList);
     void    sendTfStateChanged(std::vector<sp<Volume>>& mChangedList);
     void    notifyTfcardFormatResult(std::vector<sp<Volume>>& failList);
@@ -510,7 +514,7 @@ public:
 
 private:
 
-    bool    start_speed_test();
+
     bool    check_rec_tl();
     void    disp_dev_msg_box(int bAdd,int type,bool bChange = false);
     void    start_qr_func();
@@ -543,8 +547,6 @@ private:
 
     void    dispFormatSd();
 
-
-
     bool    check_state_preview();
     bool    check_state_equal(int state);
     bool    check_state_in(int state);
@@ -571,21 +573,11 @@ private:
 
     void    disp_msg_box(int type);
     const u8 *get_disp_str(int lan_index);
-    bool    send_option_to_fifo(int option,int cmd = -1,struct _cam_prop_ * pstProp = nullptr);
-    void    fix_live_save_per_act(struct _action_info_ *mAct);
-    bool    check_live_save(struct _action_info_ *mAct);
-    bool    start_live_rec(const struct _action_info_ *mAct,struct _action_info_  *dest);
     bool    check_allow_pic();
 
     //reset camera state and disp as begging
     int     oled_reset_disp(int type);
-    void    disp_video_setting();
 
-//    void disp_pic_setting();
-    void    disp_live_setting();
-
-
-    void    disp_format();
     void    format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int     exec_sh_new(const char *buf);
 
@@ -615,7 +607,6 @@ private:
 
     void    wifi_config(sp<struct _wifi_config_> &config);
 
-
     void    read_sn();
     void    read_uuid();
 
@@ -627,8 +618,6 @@ private:
 
     void    init_menu_select();
     void    deinit();
-
-
     
     void    init_sound_thread();
     
@@ -720,7 +709,10 @@ private:
     void    initUiMsgHandler(); 
 
 
-
+    void    handleGpsState(int iGpstate);
+    void    drawGpsState();
+    void    clearGpsState();
+    bool    checkCurMenuShowGps();
 
 /******************************************************************************************************
  * 模式类
@@ -788,7 +780,6 @@ private:
     /*
      * 检查直播时是否需要保存原片
      */
-    bool    checkLiveNeedSave();    
 
     const char* getPicVidCfgNameByIndex(std::vector<struct stPicVideoCfg*> & mList, int iIndex);
     struct stPicVideoCfg* getPicVidCfgByName(std::vector<struct stPicVideoCfg*>& mList, const char* name);
@@ -931,6 +922,8 @@ private:
     void    handleUpdateSysInfo(sp<SYS_INFO> &mSysInfo);
     void    handleSetSyncInfo(sp<SYNC_INIT_INFO> &mSyncInfo);
     bool    handleCheckBatteryState(bool bUpload = false);
+
+    void    handleShutdown();
 
 
     /********************************************* 拍照部分 ****************************************************/
@@ -1118,6 +1111,7 @@ private:
     int                         mWhoReqSpeedTest = UI_REQ_TESTSPEED;
     int                         mWhoReqEnterPrew = APP_REQ_PREVIEW;             /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
     int                         mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
+
 
     sp<Json::Value>             mCurTakePicJson;
     sp<Json::Value>             mCurTakeVidJson;

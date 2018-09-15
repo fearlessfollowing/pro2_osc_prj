@@ -23,7 +23,6 @@
 class InputManager {
 
 public:
-    InputManager(const sp<ARMessage>& msg);
     virtual ~InputManager() {}
 	
 	/* 
@@ -33,11 +32,15 @@ public:
 	 *	- 
 	 */
 
-	void exit();
-	void start();
+	void 					exit();
+	void 					start();
+    static InputManager*	Instance();
+	void					setNotifyRecv(sp<ARMessage> notify);
 	
 	 
 private:
+    InputManager();
+
 
     int mCtrlPipe[2]; // 0 -- read , 1 -- write
 	
@@ -51,18 +54,36 @@ private:
 	struct pollfd *ufds = nullptr;
 	int nfds;
 
-	void writePipe(int p, int val);
-	int openDevice(const char *device);
+	void 		writePipe(int p, int val);
+	int 		openDevice(const char *device);
 
-	int inputEventLoop();
-	bool scanDir();
-	int getKey(u16 code);
-	void reportEvent(int iKey);
-	void reportLongPressEvent(int iKey);
-	
+	int 		inputEventLoop();
+	bool 		scanDir();
+	int 		getKey(u16 code);
+	void 		reportEvent(int iKey);
+	void 		reportLongPressEvent(int iKey);
+
+	bool		initLongPressMonitor();
+
+	bool 		getReportState();
+	void		setEnableReport(bool bEnable);
+
+
+    int			mLongPressMonitorPipe[2];
+    pthread_t	mLongPressThread;
+
+    static InputManager*   sInstance;
+
 	sp<ARMessage>	mNotify;
 
+	bool		mEnableReport;
+
     std::thread 	loopThread;			/* 循环线程 */
+
+public:
+	void		runLongPressMonitorListener();
+
+
 };
 
 #endif /* _INPUT_MANAGER_H_ */

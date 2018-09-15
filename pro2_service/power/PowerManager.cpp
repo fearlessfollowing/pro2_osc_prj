@@ -62,7 +62,6 @@ static const char* pHubRestProp = NULL;
 static const char* pCamRestProp = NULL;
 
 
-
 /*
  * 模组上电,包括开风扇
  */

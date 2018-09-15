@@ -3717,6 +3717,8 @@ ICON_INFO remoteControlIconInfo = {
 	0, 48, 78, 16, sizeof(stateRemoteControl), stateRemoteControl,
 };
 
+
+
 /*****************************************************************************************
  * Format 
  */

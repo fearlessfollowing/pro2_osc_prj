@@ -50,6 +50,8 @@
 #include <sys/VolumeManager.h> 
 #include <sys/NetlinkEvent.h>
 
+#include <hw/ins_i2c.h>
+
 #include <system_properties.h>
 
 #include <sys/inotify.h>
@@ -235,8 +237,10 @@ static void clearAllunmountPoint()
     struct dirent* de;
     
     while ((de = readdir(dir))) {
-    int iParentLen = strlen(cPath); 
-        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") || strlen(de->d_name) + iParentLen + 1 >= PATH_MAX)
+
+        int iLen = strlen(cPath); 
+        if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") 
+                || strlen(de->d_name) + iLen + 1 >= PATH_MAX)
             continue;
 
         cPath[iParentLen] = 0;
@@ -245,7 +249,7 @@ static void clearAllunmountPoint()
         Log.d(TAG, "[%s: %d] Current Path name: %s", __FILE__, __LINE__, cPath);
 
         if (false == isMountpointMounted(cPath)) {
-            Log.d(TAG, "[%s: %d] Remove it [%s]", __FILE__, __LINE__, cPath);
+            Log.w(TAG, "[%s: %d] Remove it [%s]", __FILE__, __LINE__, cPath);
             string rmCmd = "rm -rf ";
             rmCmd += cPath;
             system(rmCmd.c_str());
@@ -303,6 +307,7 @@ VolumeManager::VolumeManager() :
                                 mLiveRecSec(0),
                                 mTakePicLeftNum(0),
                                 mTimeLapseLeftNum(0),
+                                mTaketimelapseCnt(0),
                                 mNotify(NULL)                          
 {
 
@@ -313,6 +318,8 @@ VolumeManager::VolumeManager() :
     mModuleVols.clear();
     mCurSaveVolList.clear();
     mSysStorageVolList.clear();
+
+    mI2CLight = sp<ins_i2c>(new ins_i2c(0, 0x77, true));
 
     /* 挂载点初始化 */
     #ifdef ENABLE_MOUNT_TFCARD_RO
@@ -344,7 +351,7 @@ VolumeManager::VolumeManager() :
 
 
     /* 根据类型将各个卷加入到系统多个Vector中 */
-    for (int i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
+    for (u32 i = 0; i < sizeof(gSysVols) / sizeof(gSysVols[0]); i++) {
 
         tmpVol = &gSysVols[i];  
         mVolumes.push_back(tmpVol);
@@ -417,6 +424,38 @@ void VolumeManager::checkAllUdiskIdle()
 
 
 
+static Mutex gTimelapseLock;
+
+
+u32 VolumeManager::getTakeTimelapseCnt()
+{
+    AutoMutex _l(gTimelapseLock);
+    return mTaketimelapseCnt;
+}
+
+void VolumeManager::clearTakeTimelapseCnt()
+{
+    AutoMutex _l(gTimelapseLock);
+    mTaketimelapseCnt = 0;
+}
+
+void VolumeManager::calcTakeTimelapseCnt(Json::Value& jsonCmd)
+{   
+    {
+        AutoMutex _l(gTimelapseLock);
+        mTaketimelapseCnt = calcTakepicLefNum(jsonCmd, false);
+    }
+    Log.d(TAG, "[%s: %d] ++++++++++++++++++>>> calcTakeTimelapseCnt [%d]", __FILE__, __LINE__, mTaketimelapseCnt);
+}
+
+
+void VolumeManager::decTakeTimelapseCnt()
+{
+    AutoMutex _l(gTimelapseLock);
+    if (mTaketimelapseCnt > 0) {
+        mTaketimelapseCnt--;
+    }
+}
 
 
 
@@ -473,7 +512,114 @@ void VolumeManager::doEnterUdiskMode()
 }
 #endif
 
-void VolumeManager::enterUdiskMode()
+
+/*
+ * 给所有的模组上电
+ */
+void VolumeManager::powerOffAllModule()
+{
+	u8 module1_val = 0;
+	u8 module2_val = 0; 	
+	u8 readVal1 = 0;
+	u8 readVal2 = 0;
+
+    mI2CLight->i2c_read(0x2, &module1_val);
+			
+	module1_val &= ~(1 << 6);
+	mI2CLight->i2c_write_byte(0x2, module1_val);
+							
+	module1_val &= ~(1 << 7);
+	mI2CLight->i2c_write_byte(0x2, module1_val);
+
+    mI2CLight->i2c_read(0x3, &module2_val);
+    
+    module2_val &= ~(1 << 0);
+    mI2CLight->i2c_write_byte(0x3, module2_val);
+    module2_val &= ~(1 << 1);
+    mI2CLight->i2c_write_byte(0x3, module2_val);
+    module2_val &= ~(1 << 2);
+    mI2CLight->i2c_write_byte(0x3, module2_val);
+    module2_val &= ~(1 << 3);
+    mI2CLight->i2c_write_byte(0x3, module2_val);
+}
+
+
+/*
+ * 单独给指定的模组上电
+ */
+void VolumeManager::powerOnModuleByIndex(int iIndex)
+{
+	u8 module1_val = 0;
+	u8 module2_val = 0; 
+
+    mI2CLight->i2c_read(0x2, &module1_val);
+    mI2CLight->i2c_read(0x3, &module2_val);		
+
+    switch (iIndex) {
+        case 1: {
+    		module1_val |= (1 << 6);
+	    	mI2CLight->i2c_write_byte(0x2, module1_val);
+            break;
+        }
+
+        case 2: {
+    		module1_val |= (1 << 7);
+	    	mI2CLight->i2c_write_byte(0x2, module1_val);
+            break;
+        }
+
+        case 3: {
+    		module2_val |= (1 << 0);
+	    	mI2CLight->i2c_write_byte(0x3, module2_val);
+            break;
+        }
+
+        case 4: {
+    		module2_val |= (1 << 1);
+	    	mI2CLight->i2c_write_byte(0x3, module2_val);
+            break;
+        }
+
+        case 5: {
+    		module2_val |= (1 << 2);
+	    	mI2CLight->i2c_write_byte(0x3, module2_val);
+            break;
+        }
+
+        case 6: {
+    		module2_val |= (1 << 3);
+	    	mI2CLight->i2c_write_byte(0x3, module2_val);
+            break;
+        }
+    }
+}
+
+
+void VolumeManager::resetHub()
+{
+    system("echo 1 > /sys/class/gpio/gpio457/value");
+    system("echo in > /sys/class/gpio/gpio457/direction");
+    msg_util::sleep_ms(50);
+    system("echo out > /sys/class/gpio/gpio457/direction");
+    system("echo 0 > /sys/class/gpio/gpio457/value");
+
+    msg_util::sleep_ms(50);
+
+    system("echo 1 > /sys/class/gpio/gpio461/value");
+    system("echo in > /sys/class/gpio/gpio461/direction");
+    msg_util::sleep_ms(50);
+    system("echo out > /sys/class/gpio/gpio461/direction");
+    system("echo 0 > /sys/class/gpio/gpio461/value");
+}
+
+
+
+
+/*
+ * 最终目标：确保两个HUB都处于上电状态
+ * 给一个HUB上电
+ */
+bool VolumeManager::enterUdiskMode()
 {
     /* 1.检查所有卷的状态，如果非IDLE状态（MOUNTED状态），先进行强制卸载操作
      * 1.将gpio456, gpio478设置为1，0
@@ -489,10 +635,15 @@ void VolumeManager::enterUdiskMode()
     checkAllUdiskIdle();
 
     system("echo 0 > /sys/class/gpio/gpio478/value");   /* gpio456 = 1 */
-    system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio456 = 1 */
-    system("power_manager power_on");
+    system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio478 = 1 */
+    
+    resetHub(); /* 复位HUB */
 
-    /* TODO: 等待所有的U盘都挂载上 */
+    /* 依次给模组上电 */
+    for (int i = 1; i <= 6; i++) {
+        powerOnModuleByIndex(i);
+        msg_util::sleep_ms(1000);
+    }    
 }
 
 /*
@@ -610,13 +761,13 @@ void VolumeManager::incOrClearRecSec(bool bClrFlg)
 
 void VolumeManager::convSec2TimeStr(u64 secs, char* strBuf, int iLen)
 {
-    u64 sec, min, hour;
+    u32 sec, min, hour;
     min = secs / 60;
     sec = secs % 60;
     hour = min / 60;
     min = min % 60;
 
-    snprintf(strBuf, iLen, "%02d:%02d:%02d", hour, min, sec);
+    snprintf(strBuf, iLen, "%02u:%02u:%02u", hour, min, sec);
 }
 
 
@@ -729,7 +880,7 @@ void VolumeManager::unmountAll()
 
     msg_util::sleep_ms(3000);
 
-    system("power_manager power_off"); 
+    powerOffAllModule();
 }
 
 
@@ -778,7 +929,7 @@ void VolumeManager::exitUdiskMode()
 
     msg_util::sleep_ms(3000);
 
-    system("power_manager power_off");  
+    powerOffAllModule();
 
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_NORMAL);
 }
@@ -790,7 +941,7 @@ void VolumeManager::runFileMonitorListener()
     int iRes;
 	u32 readCount = 0;
     char inotifyBuf[MAXCOUNT];
-    char epollBuf[MAXCOUNT];
+    // char epollBuf[MAXCOUNT];
 
 	struct inotify_event inotifyEvent;
 	struct inotify_event* curInotifyEvent;
@@ -811,7 +962,6 @@ void VolumeManager::runFileMonitorListener()
 
     Log.d(TAG, "[%s: %d] Add Listener object /mnt", __FILE__, __LINE__);
 
-    int iTimes = 0;
     while (true) {
 
         #ifndef USB_UDISK_AUTO_RAUN
@@ -979,6 +1129,8 @@ bool VolumeManager::deInitFileMonitor()
     close(mFileMonitorPipe[1]);
     mFileMonitorPipe[0] = -1;
     mFileMonitorPipe[1] = -1;
+    
+    return true;
 }
 
 bool VolumeManager::stop()
@@ -1082,7 +1234,6 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
     }
 
     char line[1024];
-    char value[128];
      
     if (fgets(line, sizeof(line), fp) != NULL) {
 		//blkid identified as /dev/block/vold/179:14: LABEL="ROCKCHIP" UUID="0FE6-0808" TYPE="vfat"
@@ -1116,7 +1267,7 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
             }
 
             pType += strlen("TYPE=") + 1;
-            for (u32 i = 0; i < iLen; i++) {
+            for (int i = 0; i < iLen; i++) {
                 if (pType[i] != '"') {
                      volFsType[i] = pType[i];                   
                 } else {
@@ -1176,7 +1327,6 @@ bool VolumeManager::checkMountPath(const char* mountPath)
 bool VolumeManager::isValidFs(const char* devName, Volume* pVol)
 {
     char cDevNodePath[128] = {0};
-    char cVolFsType[64] = {0};
     bool bResult = false;
 
     memset(pVol->cDevNode, 0, sizeof(pVol->cDevNode));
@@ -1244,7 +1394,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     if (tmpVol->iVolState == VOLUME_STATE_MOUNTED) {
                         Log.e(TAG, "[%s: %d] Volume Maybe unmount failed, last time", __FILE__, __LINE__);
                         unmountVolume(tmpVol, evt, true);
-                        tmpVol->iVolState == VOLUME_STATE_INIT;
+                        tmpVol->iVolState = VOLUME_STATE_INIT;
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
@@ -1565,6 +1715,20 @@ void VolumeManager::asyncQueryTfCardState()
 
 #endif
 
+
+/*
+ * 查询TF卡的信息
+ */
+void VolumeManager::sendAsyncQueryTfCardInfo(int iAction)
+{
+    sp<ARMessage> msg = mNotify->dup();
+    msg->setWhat(MenuUI::OLED_KEY);   
+    msg->set<int>("action", iAction);
+    fifo::getSysTranObj()->postTranMessage(msg);
+}
+
+
+
 void VolumeManager::sendCurrentSaveListNotify()
 {
     vector<Volume*>& curDevList = getCurSavepathList();
@@ -1807,6 +1971,8 @@ void VolumeManager::updateLocalVolSpeedTestResult(int iResult)
     }
 }
 
+
+
 void VolumeManager::updateRemoteVolSpeedTestResult(Volume* pVol)
 {
     Volume* tmpVol = NULL;
@@ -1821,6 +1987,7 @@ void VolumeManager::updateRemoteVolSpeedTestResult(Volume* pVol)
         }  
     }
 }
+
 
 bool VolumeManager::checkAllmSdSpeedOK()
 {
@@ -1844,6 +2011,7 @@ bool VolumeManager::checkAllmSdSpeedOK()
 }
 
 
+
 bool VolumeManager::checkLocalVolSpeedOK()
 {
     if (mCurrentUsedLocalVol) {
@@ -1852,6 +2020,7 @@ bool VolumeManager::checkLocalVolSpeedOK()
         return false;
     }
 }
+
 
 /*
  * checkSavepathChanged - 本地存储路径是否发生改变
@@ -1962,6 +2131,7 @@ int VolumeManager::mountVolume(Volume* pVol)
     const char* pMountFlag = NULL;
     pMountFlag = property_get(PROP_RO_MOUNT_TF);
 
+    #if 0
     if ((pMountFlag && !strcmp(pMountFlag, "true")) && volumeIsTfCard(pVol)) {
         const char *args[5];
         args[0] = "/bin/mount";
@@ -1978,6 +2148,16 @@ int VolumeManager::mountVolume(Volume* pVol)
         args[2] = pVol->pMountPath;
         iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
     }
+    #else 
+
+    /* 1.第一步都是挂成读写的 */
+    const char *args[3];
+    args[0] = "/bin/mount";
+    args[1] = pVol->cDevNode;
+    args[2] = pVol->pMountPath;
+    iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+
+    #endif
 
     if (iRet != 0) {
         Log.e(TAG, "mount failed due to logwrap error");
@@ -1991,15 +2171,32 @@ int VolumeManager::mountVolume(Volume* pVol)
 
     status = WEXITSTATUS(status);
     if (status == 0) {
-        Log.d(TAG, ">>>> Mount Volume OK");
+
+        Log.d(TAG, "------------> Mount Volume Step 1 is OK");
 
         char lost_path[256] = {0};
         Log.d(TAG, "[%s: %d] Mkdir in mount point", __FILE__, __LINE__);
-        sprintf(lost_path, "%s/LOST.DIR", pVol->pMountPath);
+
+        sprintf(lost_path, "%s/.LOST.DIR", pVol->pMountPath);
+        if (access(lost_path, F_OK) == 0) {
+            rmdir(lost_path);
+        }
+
         if (mkdir(lost_path, 0755)) {
             Log.e(TAG, "Unable to create LOST.DIR (%s)", strerror(errno));
         }
 
+        /* 对于TF卡，挂载成功后，根据标志再次挂载成只读的 */
+        if ((pMountFlag && !strcmp(pMountFlag, "true")) && volumeIsTfCard(pVol)) {
+            const char *args[5];
+            args[0] = "/bin/mount";
+            args[1] = "-o";
+            args[2] = "remount,ro";
+            args[3] = pVol->cDevNode;
+            args[4] = pVol->pMountPath;
+            forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+            Log.d(TAG, "[%s: %d] Step 2 Mount device to Read Only device", __FILE__, __LINE__);
+        }
         return 0;
     } else {
         Log.e(TAG, ">>> Mount Volume failed (unknown exit code %d)", status);
@@ -2144,7 +2341,6 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
 
 int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
 {
-    int iRet = 0;
     int iUnitSize = 25;     /* 默认为20MB */
     int iTfCardUnitSize = -1;
     u64 uLocalVolSize = 0;
@@ -2162,7 +2358,10 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
     
     if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture") || 
         !strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
+
         if (jsonCmd["parameters"].isMember("bracket")) {            /* 包围曝光：全部存储在本地 - AEB3 */
+
+            Log.d(TAG, "[%s: %d] ----- calcTakepicLefNum for bracket mode", __FILE__, __LINE__);
 
             if (jsonCmd["parameters"]["origin"].isMember("mime")) {
                 if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
@@ -2178,6 +2377,8 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
             }
         } else if (jsonCmd["parameters"].isMember("burst")) {       /* Burst：全部存储在本地 */
 
+            Log.d(TAG, "[%s: %d] ----- calcTakepicLefNum for burst mode", __FILE__, __LINE__);
+
             if (jsonCmd["parameters"]["origin"].isMember("mime")) {
                 if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
                     iUnitSize = 150;     /* backet - jpeg */
@@ -2186,21 +2387,24 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
                 } else {
                     iUnitSize = 1200;    /* 8K - raw */
                 }
-
                 uTakepicNum = uLocalVolSize / iUnitSize;
+                Log.d(TAG, "[%s: %d] burst mode can take pic num = %d", __FILE__, __LINE__, uTakepicNum);
+
             } else {
                 Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
             }
         } else if (jsonCmd["parameters"].isMember("timelapse")) {   /* 表示拍的是Timelapse */
 
+            Log.d(TAG, "[%s: %d] ----- calcTakepicLefNum for timelapse mode", __FILE__, __LINE__);
+
             if (jsonCmd["parameters"]["origin"].isMember("mime")) {
                 if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
-                    iUnitSize = 30;     /* timelapse - jpeg 存在大卡 */
+                    iUnitSize = 12;     /* timelapse - jpeg 存在大卡 */
                 } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
-                    iUnitSize = 25;    /* backet - raw + jpeg */     
-                    iTfCardUnitSize = 30;
+                    iUnitSize = 12;    /* timelapse - raw + jpeg */     
+                    iTfCardUnitSize = 23;
                 } else {
-                    iTfCardUnitSize = 30;    /* 8K - raw */
+                    iTfCardUnitSize = 23;    /* 8K - raw */
                     iUnitSize = -1;
                 }
 
@@ -2208,10 +2412,13 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
                     uTfCanTakeNum = uRemoteVolSize / iTfCardUnitSize;
                     uTakepicTmpNum = uLocalVolSize / iUnitSize;
                     uTakepicNum = (uTfCanTakeNum > uTakepicTmpNum) ? uTakepicTmpNum: uTfCanTakeNum;
+                    Log.d(TAG, "[%s: %d] ---- Timeplapse[raw+jpeg] Remote can store num[%d], Local can store num[%d]", __FILE__, __LINE__, uTfCanTakeNum, uTakepicTmpNum);
                 } else if ((iTfCardUnitSize > 0) && (iUnitSize < 0)) {
                     uTakepicNum = uRemoteVolSize / iTfCardUnitSize;
+                    Log.d(TAG, "[%s: %d] ---- Timeplapse[raw only] Remote can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
                 } else {
                     uTakepicNum = uLocalVolSize / iUnitSize;
+                    Log.d(TAG, "[%s: %d] ---- Timeplapse[jpeg] Local can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
                 }
 
             } else {
@@ -2224,6 +2431,8 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
              * stitch: on/off
              * saveOrigin: on/off
              */
+            Log.d(TAG, "[%s: %d] ----- calcTakepicLefNum for normal mode", __FILE__, __LINE__);
+
             iUnitSize = 20; 
             if (jsonCmd["parameters"].isMember("stiching")) {   /* 有"stitch" */
 
@@ -2263,7 +2472,7 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
                 }
             } else {    /* 无"stitch" */
 
-                Log.d(TAG, "[%s: %d] calcTakepicLefNum Normal In non-stitch Mode!!", __FILE__, __LINE__);
+                Log.d(TAG, "[%s: %d] ------- calcTakepicLefNum Normal In non-stitch Mode!!", __FILE__, __LINE__);
             
                 /* 分为"raw", "raw+jpeg", "jpeg" */
                 if (jsonCmd["parameters"]["origin"].isMember("mime")) {
@@ -2326,8 +2535,6 @@ int VolumeManager::doUnmount(const char *path, bool force)
  */
 int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
-    int iRet = 0;
-
     if (pEvt->getEventSrc() == NETLINK_EVENT_SRC_KERNEL) {
         string devnode = "/dev/";
         devnode += pEvt->getDevNodeName();
@@ -2377,9 +2584,8 @@ int VolumeManager::checkFs(Volume* pVol)
     Log.d(TAG, "[%s: %d] >>> checkFs: Type[%s], Mount Point[%s]", __FILE__, __LINE__, pVol->cVolFsType, pVol->pMountPath);
 
     if (!strcmp(pVol->cVolFsType, "exfat")) {
-        const char *args[3];
+        const char *args[2];
         args[0] = "/sbin/exfatfsck";
-        args[1] = "-V";
         args[2] = pVol->cDevNode;
 
         Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s %s", __FILE__, __LINE__, args[0], args[1], args[2]);
@@ -2435,7 +2641,6 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
 {
     struct statfs diskInfo;
     u64 totalsize = 0;
-    u64 used_size = 0;
 
     /* 卡槽使能并且卷已经被挂载 */
     if ((pVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (pVol->iVolState == VOLUME_STATE_MOUNTED)) {
@@ -2597,7 +2802,7 @@ int VolumeManager::formatVolume(Volume* pVol, bool wipe)
         return FORMAT_ERR_UNKOWN;
     }
 
-    pVol->iVolState == VOLUME_STATE_FORMATTING;
+    pVol->iVolState = VOLUME_STATE_FORMATTING;
 
     /* 更改本地卷的存储路径 */
     setSavepathChanged(VOLUME_ACTION_REMOVE, pVol);

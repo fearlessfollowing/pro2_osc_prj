@@ -55,7 +55,7 @@ COM_FLAGS += ' -DHAVE_SYS_UIO_H -DHAVE_PTHREADS -DHAVE_ANDROID_OS '
 COM_FLAGS += ' -DENABLE_DEBUG_MODE '
 
 # 无TF卡也可以拍照开关
-COM_FLAGS += ' -DENABLE_MODE_NO_TF_TAKEPIC '
+# COM_FLAGS += ' -DENABLE_MODE_NO_TF_TAKEPIC '
 
 # 拍timelapse只存大卡
 COM_FLAGS +=  ' -DENABLE_TIME_LAPSE_STOR_SD '
@@ -130,6 +130,7 @@ COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
 
 
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
+
 
 # toolchains options
 CROSS_TOOL  = 'aarch64'

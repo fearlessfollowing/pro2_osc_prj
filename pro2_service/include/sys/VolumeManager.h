@@ -27,6 +27,7 @@
 #include <util/ARMessage.h>
 #include <sys/NetlinkEvent.h>
 
+#include <hw/ins_i2c.h>
 #include <json/json.h>
 
 #include <sys/Mutex.h>
@@ -457,7 +458,7 @@ public:
     /*
      * U盘模式
      */
-    void        enterUdiskMode();
+    bool        enterUdiskMode();
     void        exitUdiskMode();
     void        checkAllUdiskIdle();
     int         checkAllUdiskMounted();
@@ -469,6 +470,11 @@ public:
 
     int         getCurHandleAddUdiskVolCnt();
     int         getCurHandleRemoveUdiskVolCnt();
+
+
+    void        resetHub();
+    void        powerOnModuleByIndex(int iIndex);
+    void        powerOffAllModule();
 
 
     u32         calcTakeLiveRecLefSec(Json::Value& jsonCmd);
@@ -494,6 +500,19 @@ public:
     u32         calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode = false);
     int         calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached);
 
+    /***************************************************************************************
+     * Timelapse
+     ***************************************************************************************/
+    /* 可拍timelapse的张数 */
+    u32         getTakeTimelapseCnt();
+
+    void        calcTakeTimelapseCnt(Json::Value& jsonCmd);
+    
+    void        decTakeTimelapseCnt();
+
+    void        clearTakeTimelapseCnt();
+
+    void        sendAsyncQueryTfCardInfo(int iAction);
 
     void        repairVolume(Volume* pVol);
     /*
@@ -526,17 +545,19 @@ private:
 
     u64                     mReoteRecLiveLeftSize;                  /* 远端设备(小卡)的录像,直播剩余时间 */
 
-    int                     mVolumeManagerWorkMode;                     /* 卷管理器的工作模式: U盘模式;普通模式 */
+    int                     mVolumeManagerWorkMode;                 /* 卷管理器的工作模式: U盘模式;普通模式 */
 
     int                     mHandledAddUdiskVolCnt;
     int                     mHandledRemoveUdiskVolCnt;
 
+    u32                     mTaketimelapseCnt;                      /* 可拍timelapse的张数 */
+
     /*
      * 录像，直播录像的剩余秒数
      */
-    u64                     mRecLeftSec;                                /* 当前挡位可录像的剩余时长 */
+    u64                     mRecLeftSec;                            /* 当前挡位可录像的剩余时长 */
     u64                     mRecSec;    
-    u64                     mLiveRecLeftSec;                            /* 当前挡位直播存片的剩余时长 */
+    u64                     mLiveRecLeftSec;                        /* 当前挡位直播存片的剩余时长 */
     u64                     mLiveRecSec;
 
     /*
@@ -544,6 +565,8 @@ private:
      */
     u32                     mTakePicLeftNum;                            /* 普通拍照的剩余张数 */
     u32                     mTimeLapseLeftNum;                          /* Timelapse可拍剩余张数 */
+
+    sp<ins_i2c>             mI2CLight;
 
     struct timeval          mEnterUdiskTime;
 
