@@ -523,6 +523,7 @@ public:
     static VolumeManager *Instance();
 
 private:
+
     int                     mListenerMode;                  /* 监听模式 */
     Volume*                 mCurrentUsedLocalVol;           /* 当前被使用的本地卷 */
     Volume*                 mSavedLocalVol;                 /* 上次保存 */
@@ -574,34 +575,36 @@ private:
 
 	sp<ARMessage>	        mNotify;
 
-    VolumeManager();
-
     pthread_t               mFileMonitorThread;
     int                     mFileMonitorPipe[2];
+
+
+                            VolumeManager();
+
     bool                    initFileMonitor();
     bool                    deInitFileMonitor();
 
-    int         mountVolume(Volume* pVol);
+    int                     mountVolume(Volume* pVol);
 
-    int         doUnmount(const char *path, bool force);
-    bool        extractMetadata(const char* devicePath, char* volFsType, int iLen);
+    int                     doUnmount(const char *path, bool force);
+    bool                    extractMetadata(const char* devicePath, char* volFsType, int iLen);
 
-    void        setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt);
-    void        setSavepathChanged(int iAction, Volume* pVol);
+    void                    setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt);
+    void                    setSavepathChanged(int iAction, Volume* pVol);
 
-    bool        checkMountPath(const char* mountPath);
-    bool        isMountpointMounted(const char *mp);
+    bool                    checkMountPath(const char* mountPath);
+    bool                    isMountpointMounted(const char *mp);
 
-    bool        isValidFs(const char* devName, Volume* pVol);
+    bool                    isValidFs(const char* devName, Volume* pVol);
 
-    int         checkFs(Volume* pVol);
-    Volume*     isSupportedDev(const char* busAddr);
+    int                     checkFs(Volume* pVol);
+    Volume*                 isSupportedDev(const char* busAddr);
 
-    bool        formatVolume2Exfat(Volume* pVol);
-    bool        formatVolume2Ext4(Volume* pVol);
+    bool                    formatVolume2Exfat(Volume* pVol);
+    bool                    formatVolume2Ext4(Volume* pVol);
 
 public:
-    void        runFileMonitorListener();
+    void                    runFileMonitorListener();
 };
 
 #endif

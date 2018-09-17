@@ -44,6 +44,8 @@
 
 #define PROP_RO_MOUNT_TF            "sys.tf_mount_ro"
 
+#define PROP_CAN_ENTER_UDISK        "sys.can_enter_udisk"
+
 /*
  * 模组的数组/TF卡的数目
  */

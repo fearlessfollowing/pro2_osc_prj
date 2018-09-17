@@ -506,6 +506,7 @@ void MenuUI::init()
 
     Log.d(TAG, "init UI state: STATE_IDLE");
     mCamState = STATE_IDLE;
+    mGpsState = GPS_STATE_NO_DEVICE;
 
     Log.d(TAG, "Create OLED display Object...");
 	/* OLED对象： 显示系统 */
@@ -705,6 +706,9 @@ void MenuUI::init()
         volInstance->setNotifyRecv(dev_notify);
         volInstance->start();
     }
+
+    /* 播放开机音乐 */
+    // system("aplay /home/nvidia/insta360/wav/Power_on_48k.wav");
 
     Log.d(TAG, ">>>>>>>> Init MenUI object ok ......");
 }
@@ -1002,8 +1006,7 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"ensure SD card or", 16, 24, false, 128);
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
-            dispStr((const u8*)"Shutting down", 32, 32, false, 128);
-            dispStr((const u8*)"ejecting storage devices...", 16, 48, false, 128);
+
             // dispStr((const u8*)"Testing...", 36, 16, false, 128);
             // dispStr((const u8*)"do not remove your", 12, 32, false, 128);
             // dispStr((const u8*)"storage device please", 8, 48, false, 128);
@@ -2116,6 +2119,15 @@ bool MenuUI::check_allow_pic()
     return bRet;
 }
 
+bool MenuUI::checkAllowEnterUdiskMode()
+{
+    if (check_state_equal(STATE_IDLE)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 
 bool MenuUI::checkVidLiveStorageSpeed()
 {
@@ -2594,6 +2606,10 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 			setLightDirect(FRONT_GREEN);
 			break;		
         }	
+
+        case ACTION_QUERY_GPS_STATE: {
+            break;
+        }
 
 		case ACTION_QUERY_STORAGE:
 			break;
@@ -4866,6 +4882,25 @@ void MenuUI::disp_org_rts(sp<struct _action_info_> &mAct, int hdmi)
 }
 
 
+bool MenuUI::checkHaveGpsSignal()
+{
+    bool bHaveSignal = false;
+    switch (mGpsState) {
+        case 0:
+        case 1: {
+            bHaveSignal = false;
+            break;
+        }
+
+        case 2:
+        case 3: {
+            bHaveSignal = true;
+            break;
+        }
+    }
+    return bHaveSignal;
+}
+
 void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
 {
     int org = 0, rts = 0;
@@ -4878,14 +4913,25 @@ void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
     if (jsonCmd.isMember("name")) {
 
         if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture")) {  /* 拍照 */
+            #if 0
             if (jsonCmd["parameters"].isMember("origin")) {
                 org = 1;
             }
+            #else 
+            if (checkHaveGpsSignal()) {
+                org = 1;
+            } else {
+                org = 0;
+            }
+
+            #endif
             if (jsonCmd["parameters"].isMember("stiching")) {
                 rts = 1;      
             }
 
         } else if (!strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
+            
+            #if 0
             if (jsonCmd["parameters"].isMember("origin")) {
                 if (jsonCmd["parameters"]["origin"].isMember("saveOrigin")) {
                     if (true == jsonCmd["parameters"]["origin"]["saveOrigin"].asBool()) {
@@ -4893,12 +4939,20 @@ void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
                     }
                 }
             }
+            #else 
+            if (checkHaveGpsSignal()) {
+                org = 1;
+            } else {
+                org = 0;
+            }
+            #endif
 
             if (jsonCmd["parameters"].isMember("stiching")) {
                 rts = 1;     
             }     
 
         } else if (!strcmp(jsonCmd["name"].asCString(), "camera._startLive")) {
+            #if 0
             if (jsonCmd["parameters"].isMember("origin")) {
                 if (jsonCmd["parameters"]["origin"].isMember("saveOrigin")) {
                     if (true == jsonCmd["parameters"]["origin"]["saveOrigin"].asBool()) {
@@ -4906,6 +4960,13 @@ void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
                     }
                 }
             }
+            #else
+            if (checkHaveGpsSignal()) {
+                org = 1;
+            } else {
+                org = 0;
+            }
+            #endif
 
             if (jsonCmd["parameters"]["stiching"].isMember("fileSave")) {
                 if (true == jsonCmd["parameters"]["stiching"]["fileSave"].asBool()) {
@@ -4944,18 +5005,22 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
         switch (new_org_rts) {
             case 0:
                 // dispIconByType(ICON_INFO_ORIGIN32_16);
+                drawGpsState();
                 dispIconByType(ICON_INFO_RTS32_16);
                 break;
             case 1:
                 // dispIconByType(ICON_INFO_ORIGIN32_16);
+                drawGpsState();
                 clearIconByType(ICON_INFO_RTS32_16);
                 break;
             case 2:
                 // clearIconByType(ICON_INFO_ORIGIN32_16);
+                clearGpsState();
                 dispIconByType(ICON_INFO_RTS32_16);
                 break;
             case 3:
                 // clearIconByType(ICON_INFO_ORIGIN32_16);
+                clearGpsState();
                 clearIconByType(ICON_INFO_RTS32_16);
                 break;
             SWITCH_DEF_ERROR(new_org_rts)
@@ -5705,12 +5770,10 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         case MENU_UDISK_MODE: { /* 状态由外部锁定 */
             
             VolumeManager* vm = VolumeManager::Instance();
-            clearArea(0, 16);
-            
-            dispStr((const u8*)"Reading", 36, 16, false, 128);
-            dispStr((const u8*)"all storage devices...", 4, 32, false, 128);
-            
-            vm->enterUdiskMode();
+            tipEnterUdisk();            
+            if (vm->enterUdiskMode()) {
+                enterUdiskSuc();
+            }
             break;
         }
 
@@ -6098,10 +6161,24 @@ void MenuUI::procPowerKeyEvent()
 					#if 0
                     handleGyroCalcEvent();
                     #else 
-                    if (!check_state_in(STATE_UDISK)) {
-                        Log.d(TAG, "[%s: %d] Enter new way U-disk now....", __FILE__, __LINE__);
-                        oled_disp_type(ENTER_UDISK_MODE);
-                    } 
+                    const char* pEnterUdiskFlag = NULL;    
+                    if (checkAllowEnterUdiskMode()) {   /* 本地可以进入，检查远端能否进入 */
+                        /* 通知Web,清除STATE_UDISK状态 */
+                        sendRpc(ACTION_ENTER_UDISK_MODE);
+                        msg_util::sleep_ms(100);
+
+                        pEnterUdiskFlag = property_get(PROP_CAN_ENTER_UDISK);
+                        if (pEnterUdiskFlag && !strcmp(pEnterUdiskFlag, "true")) {
+                            property_set(PROP_CAN_ENTER_UDISK, "false");
+                            Log.d(TAG, "[%s: %d] Enter new way U-disk now....", __FILE__, __LINE__);
+                            oled_disp_type(ENTER_UDISK_MODE);
+                        } else {
+                            Log.e(TAG, "[%s: %d] Remote not allow enter Udisk Mode", __FILE__, __LINE__);
+                        }
+
+                    } else {
+                        Log.w(TAG, "[%s: %d] Can't enter U-disk mode in current state[0x%x]", __FILE__, __LINE__, mCamState);
+                    }
                     #endif
                     break;
                 }
@@ -8285,13 +8362,11 @@ int MenuUI::oled_disp_type(int type)
 
 
         case ENTER_UDISK_MODE: {    /* 进入U盘模式 STATE_IDLE */
+            
             if (!check_state_in(STATE_UDISK)) {
                 Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>>>>>>>>> Enter Udisk Mode ....", __FILE__, __LINE__);
                 add_state(STATE_UDISK);
                 setCurMenu(MENU_UDISK_MODE);
-
-                /* 通知Web,清除STATE_UDISK状态 */
-                sendRpc(ACTION_ENTER_UDISK_MODE);
             } else {
                 Log.e(TAG, "[%s: %d] Enter Udisk Mode failed [%s -> 0x%x]", 
                                 __FILE__, __LINE__, getMenuName(cur_menu), mCamState);                
@@ -8302,16 +8377,17 @@ int MenuUI::oled_disp_type(int type)
         case EXIT_UDISK_MODE: {     /* 退出U盘模式 */
             if ( (cur_menu == MENU_UDISK_MODE) && (check_state_in(STATE_UDISK)) ) {
                 Log.d(TAG, "[%s: %d] Exit Udisk Mode, Current Menu[%s]",  __FILE__, __LINE__, getMenuName(cur_menu));
-                rm_state(STATE_UDISK);  /* 清除U盘状态 */
+
+                dispQuitUdiskMode();
 
                 VolumeManager* vm = VolumeManager::Instance();
                 vm->exitUdiskMode();
 
-                procBackKeyEvent();
-
+                rm_state(STATE_UDISK);  /* 清除U盘状态 */
+                
                 /* 通知Web,清除STATE_UDISK状态 */
                 sendRpc(ACTION_QUIT_UDISK_MODE);
-
+                procBackKeyEvent();
             } else {
                 Log.e(TAG, "[%s: %d] Not in MENU_UDISK_MODE && State not STATE_UDISK [%s -> 0x%x]", 
                                 __FILE__, __LINE__, getMenuName(cur_menu), mCamState);
@@ -8871,15 +8947,21 @@ void MenuUI::handleLongKeyMsg(int key)
             clearArea();            /* 关屏 */
         }
 
+        /* 播放开机音乐 */
+        // system("aplay /home/nvidia/insta360/wav/Power_off_48k.wav");
+
         /* shutdown 关机 */
         if (bNeedShutdown == true) {
             Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>>>>>>> Shutdown now", __FILE__, __LINE__);
+            
+            /* 关掉OLED显示，避免屏幕上显示东西 */
+            mOLEDModule->display_onoff(0);
+            
             system("shutdown -h now");
         }
     }
 
 }
-
 
 
 /*
@@ -9141,9 +9223,10 @@ void MenuUI::drawGpsState()
 }
 
 
-void MenuUI::handleGpsState(int iGpstate)
+void MenuUI::handleGpsState()
 {
-    switch (iGpstate) {
+    switch (mGpsState) {
+#if 1       
         case 0:
         case 1: {   /* 无GPS或无效定位 */
             if (checkCurMenuShowGps()) {
@@ -9159,6 +9242,24 @@ void MenuUI::handleGpsState(int iGpstate)
             }        
             break;
         }
+#else 
+        case 2:
+        case 3: {   /* 无GPS或无效定位 */
+            if (checkCurMenuShowGps()) {
+                clearGpsState();
+            }
+            break;
+        }
+
+        case 0:
+        case 1: {   /* 有GPS或有定位 */
+            if (checkCurMenuShowGps()) {
+                drawGpsState();
+            }        
+            break;
+        }
+#endif
+
     }
 }
 
@@ -9672,7 +9773,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
 				break;
             }
                
-			
+
             case UI_MSG_KEY_EVENT: {	/* 短按键消息处理 */
                 int key = -1;
                 CHECK_EQ(msg->find<int>("oled_key", &key), true);
@@ -9709,7 +9810,6 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                	break;
             }
 
-
             case UI_MSG_CONFIG_WIFI:  {	/* 配置WIFI (UI-CORE处理) */
                 sp<WifiConfig> mConfig;
                 CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
@@ -9717,7 +9817,6 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
                 
-
             case UI_MSG_SET_SN: {	/* 设置SN */
                 sp<SYS_INFO> mSysInfo;
                 CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
@@ -9733,19 +9832,24 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 sp<SYNC_INIT_INFO> mSyncInfo;
                 CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
                 handleSetSyncInfo(mSyncInfo);	/* 根据同步系统初始化系统参数及显示 */
+                
+                /* 查询GPS的状态 */
+                sendRpc(ACTION_QUERY_GPS_STATE);
                 break;
             }
 
-            case UI_DISP_INIT: {	/* 1.初始化显示消息 */
-                handleDispInit();	                    /* 初始化显示 */
-                sendRpc(ACTION_REQ_SYNC);	/* 发送请求同步消息 */
+            case UI_DISP_INIT: {	            /* 1.初始化显示消息 */
+                handleDispInit();               /* 初始化显示 */
+                sendRpc(ACTION_REQ_SYNC);	    /* 发送请求同步消息 */
                 break;
             }
+
 
             case UI_MSG_UPDATE_GPS_STATE: {
                 int iGpstate;
                 CHECK_EQ(msg->find<int>("gps_state", &iGpstate), true);
-                handleGpsState(iGpstate);
+                mGpsState = iGpstate;
+                handleGpsState();
                 break;
             }
 
@@ -10106,6 +10210,44 @@ void MenuUI::dispSaving()
 void MenuUI::clearReady()
 {
     clearIconByType(ICON_CAMERA_READY_20_16_76_32);
+}
+
+void MenuUI::tipEnterUdisk()
+{
+    clearArea(0, 16);
+
+    dispStr((const u8*)"Loading...", 40, 16, false, 128);
+    dispStr((const u8*)"Please do not remove", 6, 32, false, 128);
+    dispStr((const u8*)"any storage devices.", 10, 48, false, 128);
+}
+
+void MenuUI::enterUdiskSuc()
+{
+    clearArea(0, 16);
+
+    /* 进入U盘成功 */
+    dispStr((const u8*)"Reading", 44, 16, false, 128);
+    dispStr((const u8*)"storage devices", 24, 32, false, 128);
+}
+
+
+void MenuUI::dispQuitUdiskMode()
+{
+    clearArea(0, 16);
+    /* 正在退出U盘模式 */
+    dispStr((const u8*)"Ejecting...", 40, 16, false, 128);
+    dispStr((const u8*)"Please do not remove", 6, 32, false, 128);
+    dispStr((const u8*)"any storage devices.", 10, 48, false, 128);
+}
+
+
+void MenuUI::dispEnterUdiskFailed()
+{
+    clearArea();
+    dispStr((const u8*)"Loading failed...", 20, 0, false, 128);
+    dispStr((const u8*)"Please ensure storage", 4, 16, false, 128);
+    dispStr((const u8*)"devices are working", 8, 32, false, 128);
+    dispStr((const u8*)" normally", 32, 48, false, 128);
 }
 
 

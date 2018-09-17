@@ -938,6 +938,14 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
+        case ACTION_QUERY_GPS_STATE: {
+            paramNode["name"] = "camera._queryGpsStatus";
+            rootNode["action"] = ACTION_QUERY_GPS_STATE;
+            rootNode["parameters"] = paramNode;
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Query Gps State: %s", sendDataStr.c_str());
+            break;
+        }
 
         case ACTION_QUIT_UDISK_MODE: {
             Json::Value innerParam;

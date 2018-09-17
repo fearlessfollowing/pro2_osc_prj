@@ -273,7 +273,7 @@ enum {
     ACTION_UPDATE_LIVE_REC_LEFT_SEC = 204,
     ACTION_ENTER_UDISK_MODE = 205,
     ACTION_UPDATE_TIMELAPSE = 206,
-
+    ACTION_QUERY_GPS_STATE  = 207,
 };
 
 
@@ -448,6 +448,15 @@ enum {
     LIGHT_ALL 		= 0xff		/* 所有的灯亮白色 */
 };
 
+enum {
+    GPS_STATE_NO_DEVICE,
+    GPS_STATE_NO_LOCATION,
+    GPS_STATE_LOW_SIGNAL,
+    GPS_STATE_SIGNAL,
+    GPS_STATE_MAX,
+};
+
+
 
 struct _icon_info_;
 struct _lr_menu_;
@@ -574,6 +583,8 @@ private:
     void    disp_msg_box(int type);
     const u8 *get_disp_str(int lan_index);
     bool    check_allow_pic();
+
+    bool    checkAllowEnterUdiskMode();
 
     //reset camera state and disp as begging
     int     oled_reset_disp(int type);
@@ -709,10 +720,13 @@ private:
     void    initUiMsgHandler(); 
 
 
-    void    handleGpsState(int iGpstate);
+    void    handleGpsState();
     void    drawGpsState();
     void    clearGpsState();
     bool    checkCurMenuShowGps();
+
+    bool    checkHaveGpsSignal();
+
 
 /******************************************************************************************************
  * 模式类
@@ -753,6 +767,13 @@ private:
     void    clearArea(u8 x, u8 y, u8 w, u8 h);
     void    clearArea(u8 x = 0, u8 y = 0);
 
+    /*
+     * U盘模式提示
+     */
+    void    tipEnterUdisk();
+    void    enterUdiskSuc();
+    void    dispQuitUdiskMode();
+    void    dispEnterUdiskFailed();
 
     /*
      * 格式化
@@ -1061,6 +1082,7 @@ private:
 
     int                         mStoreQueryTfMenu;
 
+
 	/*
 	 * 是否已经配置SSID
 	 */
@@ -1104,6 +1126,8 @@ private:
     bool                        mNeedSendAction = true;                         /* 是否需要发真实的请求给Camerad */
     bool                        mCalibrateSrc;
 
+
+
 	sp<InputManager>            mInputManager;                                  /* 按键输入管理器 */
 
     bool                        mSpeedTestUpdateFlag = false;                   /* 测速更新标志 */
@@ -1112,6 +1136,11 @@ private:
     int                         mWhoReqEnterPrew = APP_REQ_PREVIEW;             /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
     int                         mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
 
+
+    /*
+     * GPS状态(0: 无设备; 1: 无效定位; 2:)
+     */
+    int                         mGpsState;  
 
     sp<Json::Value>             mCurTakePicJson;
     sp<Json::Value>             mCurTakeVidJson;

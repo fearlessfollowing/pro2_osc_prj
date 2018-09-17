@@ -109,6 +109,8 @@ static Mutex gRecLeftMutex;
 static Mutex gLiveRecLeftMutex;
 static Mutex gRecMutex;
 static Mutex gLiveRecMutex;
+static Mutex gTimelapseLock;
+
 
 
 
@@ -422,11 +424,6 @@ void VolumeManager::checkAllUdiskIdle()
 }
 
 
-
-
-static Mutex gTimelapseLock;
-
-
 u32 VolumeManager::getTakeTimelapseCnt()
 {
     AutoMutex _l(gTimelapseLock);
@@ -456,7 +453,6 @@ void VolumeManager::decTakeTimelapseCnt()
         mTaketimelapseCnt--;
     }
 }
-
 
 
 /*
@@ -637,14 +633,17 @@ bool VolumeManager::enterUdiskMode()
     system("echo 0 > /sys/class/gpio/gpio478/value");   /* gpio456 = 1 */
     system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio478 = 1 */
     
-    resetHub(); /* 复位HUB */
+    // resetHub(); /* 复位HUB */
+    system("power_manager powr_off");
 
     /* 依次给模组上电 */
     for (int i = 1; i <= 6; i++) {
         powerOnModuleByIndex(i);
         msg_util::sleep_ms(1000);
     }    
+    return true;
 }
+
 
 /*
  * 怎么来确认所有的盘都挂载成功???
@@ -847,7 +846,6 @@ void VolumeManager::unmountAll()
         delete evt;
     }    
 
-
 #if 1
     /* 处理TF卡的移除 */
     {
@@ -881,6 +879,8 @@ void VolumeManager::unmountAll()
     msg_util::sleep_ms(3000);
 
     powerOffAllModule();
+
+    system("power_manager power_off");
 }
 
 
@@ -1568,8 +1568,6 @@ void VolumeManager::syncLocalDisk()
 }
 
 
-
-
 /*************************************************************************
 ** 方法名称: setSavepathChanged
 ** 方法功能: 检查是否修改当前的存储路径
@@ -1670,6 +1668,8 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
             break;
         }
     }
+
+    // Json::StreamWriterBuilder jsrocd;
 
     if (mBsavePathChanged == true) {
     #ifdef USE_TRAN_SEND_MSG
@@ -2077,11 +2077,13 @@ void VolumeManager::repairVolume(Volume* pVol)
 
     Log.d(TAG, "[%s: %d] export repair data: %s", __FILE__, __LINE__, cmd);
     system(cmd);
+
     system("sync");
 
     sprintf(repairCmd, "dd of=%s if=./repair.data bs=512 count=12 skip=12", pVol->cDevNode);
     Log.d(TAG, "[%s: %d] repair cmd: %s", __FILE__, __LINE__, repairCmd);
     system(repairCmd);
+    
     system("sync");
 }
 
@@ -2408,15 +2410,15 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
                     iUnitSize = -1;
                 }
 
-                if ((iTfCardUnitSize > 0) && (iUnitSize > 0) )  {
+                if ((iTfCardUnitSize > 0) && (iUnitSize > 0) )  {       /* Raw + jpeg */
                     uTfCanTakeNum = uRemoteVolSize / iTfCardUnitSize;
                     uTakepicTmpNum = uLocalVolSize / iUnitSize;
                     uTakepicNum = (uTfCanTakeNum > uTakepicTmpNum) ? uTakepicTmpNum: uTfCanTakeNum;
                     Log.d(TAG, "[%s: %d] ---- Timeplapse[raw+jpeg] Remote can store num[%d], Local can store num[%d]", __FILE__, __LINE__, uTfCanTakeNum, uTakepicTmpNum);
-                } else if ((iTfCardUnitSize > 0) && (iUnitSize < 0)) {
+                } else if ((iTfCardUnitSize > 0) && (iUnitSize < 0)) {  /* Raw */
                     uTakepicNum = uRemoteVolSize / iTfCardUnitSize;
                     Log.d(TAG, "[%s: %d] ---- Timeplapse[raw only] Remote can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
-                } else {
+                } else {                                                /* jpeg */
                     uTakepicNum = uLocalVolSize / iUnitSize;
                     Log.d(TAG, "[%s: %d] ---- Timeplapse[jpeg] Local can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
                 }
@@ -2590,7 +2592,9 @@ int VolumeManager::checkFs(Volume* pVol)
 
         Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s %s", __FILE__, __LINE__, args[0], args[1], args[2]);
         rc = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+
     } else if (!strcmp(pVol->cVolFsType, "ext4") || !strcmp(pVol->cVolFsType, "ext3") || !strcmp(pVol->cVolFsType, "ext2")) {
+        
         const char *args[4];
         args[0] = "/sbin/e2fsck";
         args[1] = "-p";

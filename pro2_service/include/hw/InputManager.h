@@ -20,10 +20,18 @@
 #include <common/sp.h>
 
 
+enum {
+	MONITOR_STATE_INIT,
+	MONITOR_STATE_WAKEUP,
+	MONITOR_STATE_CANCEL,
+	MONITOR_STATE_MAX,
+};
+
+
 class InputManager {
 
 public:
-    virtual ~InputManager() {}
+	virtual					~InputManager();
 	
 	/* 
 	 * 1.含有一个获取事件的线程
@@ -39,50 +47,53 @@ public:
 	
 	 
 private:
-    InputManager();
+    						InputManager();
+	void 					writePipe(int p, int val);
+	int 					openDevice(const char *device);
+
+	int 					inputEventLoop();
+	int						longPressMonitorLoop();
 
 
-    int mCtrlPipe[2]; // 0 -- read , 1 -- write
+	bool 					scanDir();
+	int 					getKey(u16 code);
+	void 					reportEvent(int iKey);
+	void 					reportLongPressEvent(int iKey);
+
+	bool					initLongPressMonitor();
+
+	bool 					getReportState();
+	void					setEnableReport(bool bEnable);
+
+
+	void 					setMonitorState(int iState);
+	int						getMonitorState();
+
+    int 					mCtrlPipe[2]; // 0 -- read , 1 -- write
 	
-    int last_down_key = 0;
-    int64 last_key_ts = 0;
+    int 					last_down_key = 0;
+    int64 					last_key_ts = 0;
 	
-    std::mutex mutexKey;
+    std::mutex 				mutexKey;
 	
-	bool haveInstance = false;
 	
-	struct pollfd *ufds = nullptr;
-	int nfds;
+	struct pollfd*			ufds = nullptr;
+	int 					nfds;
+    int						mLongPressMonitorPipe[2];
+    pthread_t				mLongPressThread;
 
-	void 		writePipe(int p, int val);
-	int 		openDevice(const char *device);
+    static InputManager*   	sInstance;
 
-	int 		inputEventLoop();
-	bool 		scanDir();
-	int 		getKey(u16 code);
-	void 		reportEvent(int iKey);
-	void 		reportLongPressEvent(int iKey);
+	sp<ARMessage>			mNotify;
 
-	bool		initLongPressMonitor();
+	bool					mEnableReport;
+	bool					mLongPressReported;
 
-	bool 		getReportState();
-	void		setEnableReport(bool bEnable);
+	int						mLongPressVal;					/* 长按下的键值 */
 
-
-    int			mLongPressMonitorPipe[2];
-    pthread_t	mLongPressThread;
-
-    static InputManager*   sInstance;
-
-	sp<ARMessage>	mNotify;
-
-	bool		mEnableReport;
-
-    std::thread 	loopThread;			/* 循环线程 */
-
-public:
-	void		runLongPressMonitorListener();
-
+	int 					mLongPressState;
+    std::thread 			mLooperThread;						/* 循环线程 */
+	std::thread				mLongPressMonitorThread;		/* 长按监听线程 */
 
 };
 
