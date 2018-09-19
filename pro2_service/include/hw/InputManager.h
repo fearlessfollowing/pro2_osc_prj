@@ -45,6 +45,8 @@ public:
     static InputManager*	Instance();
 	void					setNotifyRecv(sp<ARMessage> notify);
 	
+	bool 					getReportState();
+	void					setEnableReport(bool bEnable);
 	 
 private:
     						InputManager();
@@ -61,10 +63,6 @@ private:
 	void 					reportLongPressEvent(int iKey);
 
 	bool					initLongPressMonitor();
-
-	bool 					getReportState();
-	void					setEnableReport(bool bEnable);
-
 
 	void 					setMonitorState(int iState);
 	int						getMonitorState();

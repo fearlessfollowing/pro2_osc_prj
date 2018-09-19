@@ -2320,6 +2320,7 @@ void pro_cfg::create_user_cfg()
 	/* 判断默认的配置参数文件是否存在 */
     if (access(DEF_CFG_PARAM_PATH, F_OK | R_OK | W_OK) == -1) {		/* 不存在,创建def_cfg文件 */
         snprintf(sys_cmd, sizeof(sys_cmd), "touch %s", DEF_CFG_PARAM_PATH);
+        
         system(sys_cmd);		
     }
 
@@ -2330,7 +2331,6 @@ void pro_cfg::create_user_cfg()
 
 void pro_cfg::reset_all(bool deleteCfg)
 {
-    //memset(mCurInfo.get(), 0, sizeof(OLED_CUR_INFO));
     if (deleteCfg)
 	    create_user_cfg();
 

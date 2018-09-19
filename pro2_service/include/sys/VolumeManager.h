@@ -164,6 +164,7 @@ typedef struct stVol {
     u64             uTotal;			                    /* 总容量:  (单位为MB) */
     u64             uAvail;			                    /* 剩余容量:(单位为MB) */
 	int 	        iSpeedTest;		                    /* 1: 已经测速通过; 0: 没有进行测速或测速未通过 */
+    Mutex           mVolLock;                           /* 访问卷的互踩锁 */
 } Volume;
 
 
@@ -471,8 +472,9 @@ public:
     int         getCurHandleAddUdiskVolCnt();
     int         getCurHandleRemoveUdiskVolCnt();
 
+    bool        checkEnterUdiskResult();
 
-    void        resetHub();
+
     void        powerOnModuleByIndex(int iIndex);
     void        powerOffAllModule();
 
@@ -553,6 +555,8 @@ private:
 
     u32                     mTaketimelapseCnt;                      /* 可拍timelapse的张数 */
 
+
+
     /*
      * 录像，直播录像的剩余秒数
      */
@@ -578,6 +582,8 @@ private:
     pthread_t               mFileMonitorThread;
     int                     mFileMonitorPipe[2];
 
+    bool                    mAllowExitUdiskMode;
+
 
                             VolumeManager();
 
@@ -602,6 +608,14 @@ private:
 
     bool                    formatVolume2Exfat(Volume* pVol);
     bool                    formatVolume2Ext4(Volume* pVol);
+
+
+    void                    resetHub1();
+    void                    resetHub2();
+
+    bool                    waitHub1RestComplete();
+    bool                    waitHub2RestComplete();
+
 
 public:
     void                    runFileMonitorListener();

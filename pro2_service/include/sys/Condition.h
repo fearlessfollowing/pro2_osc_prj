@@ -67,7 +67,7 @@ inline Condition::~Condition()
     pthread_cond_destroy(&mCond);
 }
 
-inline status_t Condition::wait(Mutex& mutex) 
+inline int Condition::wait(Mutex& mutex) 
 {
     return -pthread_cond_wait(&mCond, &mutex.mMutex);
 }

@@ -61,22 +61,28 @@ MG_INTERNAL struct mg_connection *mg_do_connect(struct mg_connection *nc,
 
 MG_INTERNAL int mg_parse_address(const char *str, union socket_address *sa,
                                  int *proto, char *host, size_t host_len);
+
 MG_INTERNAL void mg_call(struct mg_connection *nc,
                          mg_event_handler_t ev_handler, int ev, void *ev_data);
+
 void mg_forward(struct mg_connection *from, struct mg_connection *to);
+
 MG_INTERNAL void mg_add_conn(struct mg_mgr *mgr, struct mg_connection *c);
+
 MG_INTERNAL void mg_remove_conn(struct mg_connection *c);
+
 MG_INTERNAL struct mg_connection *mg_create_connection(
     struct mg_mgr *mgr, mg_event_handler_t callback,
     struct mg_add_sock_opts opts);
+
 #ifdef _WIN32
 /* Retur value is the same as for MultiByteToWideChar. */
 int to_wchar(const char *path, wchar_t *wbuf, size_t wbuf_len);
 #endif
 
 struct ctl_msg {
-  mg_event_handler_t callback;
-  char message[MG_CTL_MSG_MESSAGE_SIZE];
+    mg_event_handler_t callback;
+    char message[MG_CTL_MSG_MESSAGE_SIZE];
 };
 
 #if MG_ENABLE_MQTT
@@ -206,15 +212,15 @@ extern "C" {
 #endif /* __cplusplus */
 
 enum cs_log_level {
-  LL_NONE = -1,
-  LL_ERROR = 0,
-  LL_WARN = 1,
-  LL_INFO = 2,
-  LL_DEBUG = 3,
-  LL_VERBOSE_DEBUG = 4,
+    LL_NONE = -1,
+    LL_ERROR = 0,
+    LL_WARN = 1,
+    LL_INFO = 2,
+    LL_DEBUG = 3,
+    LL_VERBOSE_DEBUG = 4,
 
-  _LL_MIN = -2,
-  _LL_MAX = 5,
+    _LL_MIN = -2,
+    _LL_MAX = 5,
 };
 
 void cs_log_set_level(enum cs_log_level level);
@@ -307,17 +313,17 @@ void cs_log_print_prefix(const char *func) {
 
 void cs_log_printf(const char *fmt, ...) WEAK;
 void cs_log_printf(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vfprintf(cs_log_file, fmt, ap);
-  va_end(ap);
-  fputc('\n', cs_log_file);
-  fflush(cs_log_file);
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(cs_log_file, fmt, ap);
+    va_end(ap);
+    fputc('\n', cs_log_file);
+    fflush(cs_log_file);
 }
 
 void cs_log_set_file(FILE *file) WEAK;
 void cs_log_set_file(FILE *file) {
-  cs_log_file = file;
+    cs_log_file = file;
 }
 
 #endif /* CS_ENABLE_STDIO */
@@ -357,63 +363,67 @@ void cs_log_set_level(enum cs_log_level level) {
  * Doesn't use memory, thus it's safe to use to safely dump memory in crashdumps
  */
 static void cs_base64_emit_code(struct cs_base64_ctx *ctx, int v) {
-  if (v < NUM_UPPERCASES) {
-    ctx->b64_putc(v + 'A', ctx->user_data);
-  } else if (v < (NUM_LETTERS)) {
-    ctx->b64_putc(v - NUM_UPPERCASES + 'a', ctx->user_data);
-  } else if (v < (NUM_LETTERS + NUM_DIGITS)) {
-    ctx->b64_putc(v - NUM_LETTERS + '0', ctx->user_data);
-  } else {
-    ctx->b64_putc(v - NUM_LETTERS - NUM_DIGITS == 0 ? '+' : '/',
-                  ctx->user_data);
-  }
+    if (v < NUM_UPPERCASES) {
+        ctx->b64_putc(v + 'A', ctx->user_data);
+    } else if (v < (NUM_LETTERS)) {
+        ctx->b64_putc(v - NUM_UPPERCASES + 'a', ctx->user_data);
+    } else if (v < (NUM_LETTERS + NUM_DIGITS)) {
+        ctx->b64_putc(v - NUM_LETTERS + '0', ctx->user_data);
+    } else {
+        ctx->b64_putc(v - NUM_LETTERS - NUM_DIGITS == 0 ? '+' : '/',
+                    ctx->user_data);
+    }
 }
 
-static void cs_base64_emit_chunk(struct cs_base64_ctx *ctx) {
-  int a, b, c;
+static void cs_base64_emit_chunk(struct cs_base64_ctx *ctx) 
+{
+    int a, b, c;
 
-  a = ctx->chunk[0];
-  b = ctx->chunk[1];
-  c = ctx->chunk[2];
+    a = ctx->chunk[0];
+    b = ctx->chunk[1];
+    c = ctx->chunk[2];
 
-  cs_base64_emit_code(ctx, a >> 2);
-  cs_base64_emit_code(ctx, ((a & 3) << 4) | (b >> 4));
-  if (ctx->chunk_size > 1) {
+    cs_base64_emit_code(ctx, a >> 2);
+    cs_base64_emit_code(ctx, ((a & 3) << 4) | (b >> 4));
+    if (ctx->chunk_size > 1) {
     cs_base64_emit_code(ctx, (b & 15) << 2 | (c >> 6));
-  }
-  if (ctx->chunk_size > 2) {
+    }
+    if (ctx->chunk_size > 2) {
     cs_base64_emit_code(ctx, c & 63);
-  }
+    }
 }
 
 void cs_base64_init(struct cs_base64_ctx *ctx, cs_base64_putc_t b64_putc,
-                    void *user_data) {
-  ctx->chunk_size = 0;
-  ctx->b64_putc = b64_putc;
-  ctx->user_data = user_data;
+                    void *user_data) 
+{
+    ctx->chunk_size = 0;
+    ctx->b64_putc = b64_putc;
+    ctx->user_data = user_data;
 }
 
-void cs_base64_update(struct cs_base64_ctx *ctx, const char *str, size_t len) {
-  const unsigned char *src = (const unsigned char *) str;
-  size_t i;
-  for (i = 0; i < len; i++) {
-    ctx->chunk[ctx->chunk_size++] = src[i];
-    if (ctx->chunk_size == 3) {
-      cs_base64_emit_chunk(ctx);
-      ctx->chunk_size = 0;
+void cs_base64_update(struct cs_base64_ctx *ctx, const char *str, size_t len) 
+{
+    const unsigned char *src = (const unsigned char *) str;
+    size_t i;
+    for (i = 0; i < len; i++) {
+        ctx->chunk[ctx->chunk_size++] = src[i];
+        if (ctx->chunk_size == 3) {
+            cs_base64_emit_chunk(ctx);
+            ctx->chunk_size = 0;
+        }
     }
-  }
 }
 
-void cs_base64_finish(struct cs_base64_ctx *ctx) {
-  if (ctx->chunk_size > 0) {
-    int i;
-    memset(&ctx->chunk[ctx->chunk_size], 0, 3 - ctx->chunk_size);
-    cs_base64_emit_chunk(ctx);
-    for (i = 0; i < (3 - ctx->chunk_size); i++) {
-      ctx->b64_putc('=', ctx->user_data);
+void cs_base64_finish(struct cs_base64_ctx *ctx) 
+{
+    if (ctx->chunk_size > 0) {
+        int i;
+        memset(&ctx->chunk[ctx->chunk_size], 0, 3 - ctx->chunk_size);
+        cs_base64_emit_chunk(ctx);
+        for (i = 0; i < (3 - ctx->chunk_size); i++) {
+            ctx->b64_putc('=', ctx->user_data);
+        }
     }
-  }
 }
 
 #define BASE64_ENCODE_BODY                                                \
@@ -516,24 +526,27 @@ static unsigned char from_b64(unsigned char ch) {
 }
 
 int cs_base64_decode(const unsigned char *s, int len, char *dst, int *dec_len) {
-  unsigned char a, b, c, d;
-  int orig_len = len;
-  char *orig_dst = dst;
-  while (len >= 4 && (a = from_b64(s[0])) != 255 &&
-         (b = from_b64(s[1])) != 255 && (c = from_b64(s[2])) != 255 &&
-         (d = from_b64(s[3])) != 255) {
-    s += 4;
-    len -= 4;
-    if (a == 200 || b == 200) break; /* '=' can't be there */
-    *dst++ = a << 2 | b >> 4;
-    if (c == 200) break;
-    *dst++ = b << 4 | c >> 2;
-    if (d == 200) break;
-    *dst++ = c << 6 | d;
-  }
-  *dst = 0;
-  if (dec_len != NULL) *dec_len = (dst - orig_dst);
-  return orig_len - len;
+    unsigned char a, b, c, d;
+    int orig_len = len;
+    char *orig_dst = dst;
+
+    while (len >= 4 && (a = from_b64(s[0])) != 255 &&
+            (b = from_b64(s[1])) != 255 && (c = from_b64(s[2])) != 255 &&
+            (d = from_b64(s[3])) != 255) {
+        s += 4;
+        len -= 4;
+        if (a == 200 || b == 200) break; /* '=' can't be there */
+        *dst++ = a << 2 | b >> 4;
+        if (c == 200) break;
+        *dst++ = b << 4 | c >> 2;
+        if (d == 200) break;
+        *dst++ = c << 6 | d;
+    }
+    
+    *dst = 0;
+    if (dec_len != NULL) 
+        *dec_len = (dst - orig_dst);
+    return orig_len - len;
 }
 
 #endif /* EXCLUDE_COMMON */
@@ -628,114 +641,120 @@ struct dirent *readdir(DIR *dir);
 #endif
 
 #ifdef _WIN32
-DIR *opendir(const char *name) {
-  DIR *dir = NULL;
-  wchar_t wpath[MAX_PATH];
-  DWORD attrs;
+DIR *opendir(const char *name) 
+{
+    DIR *dir = NULL;
+    wchar_t wpath[MAX_PATH];
+    DWORD attrs;
 
-  if (name == NULL) {
-    SetLastError(ERROR_BAD_ARGUMENTS);
-  } else if ((dir = (DIR *) MG_MALLOC(sizeof(*dir))) == NULL) {
-    SetLastError(ERROR_NOT_ENOUGH_MEMORY);
-  } else {
-    to_wchar(name, wpath, ARRAY_SIZE(wpath));
-    attrs = GetFileAttributesW(wpath);
-    if (attrs != 0xFFFFFFFF && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-      (void) wcscat(wpath, L"\\*");
-      dir->handle = FindFirstFileW(wpath, &dir->info);
-      dir->result.d_name[0] = '\0';
+    if (name == NULL) {
+        SetLastError(ERROR_BAD_ARGUMENTS);
+    } else if ((dir = (DIR *) MG_MALLOC(sizeof(*dir))) == NULL) {
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
     } else {
-      MG_FREE(dir);
-      dir = NULL;
+        to_wchar(name, wpath, ARRAY_SIZE(wpath));
+        attrs = GetFileAttributesW(wpath);
+        if (attrs != 0xFFFFFFFF && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+            (void) wcscat(wpath, L"\\*");
+            dir->handle = FindFirstFileW(wpath, &dir->info);
+            dir->result.d_name[0] = '\0';
+        } else {
+            MG_FREE(dir);
+            dir = NULL;
+        }
     }
-  }
 
-  return dir;
+    return dir;
 }
 
-int closedir(DIR *dir) {
-  int result = 0;
+int closedir(DIR *dir) 
+{
+    int result = 0;
 
-  if (dir != NULL) {
-    if (dir->handle != INVALID_HANDLE_VALUE)
-      result = FindClose(dir->handle) ? 0 : -1;
-    MG_FREE(dir);
-  } else {
-    result = -1;
-    SetLastError(ERROR_BAD_ARGUMENTS);
-  }
-
-  return result;
+    if (dir != NULL) {
+        if (dir->handle != INVALID_HANDLE_VALUE)
+            result = FindClose(dir->handle) ? 0 : -1;
+        MG_FREE(dir);
+    } else {
+        result = -1;
+        SetLastError(ERROR_BAD_ARGUMENTS);
+    }
+    return result;
 }
 
-struct dirent *readdir(DIR *dir) {
-  struct dirent *result = NULL;
+struct dirent *readdir(DIR *dir) 
+{
+    struct dirent *result = NULL;
 
-  if (dir) {
-    if (dir->handle != INVALID_HANDLE_VALUE) {
-      result = &dir->result;
-      (void) WideCharToMultiByte(CP_UTF8, 0, dir->info.cFileName, -1,
-                                 result->d_name, sizeof(result->d_name), NULL,
-                                 NULL);
+    if (dir) {
+        if (dir->handle != INVALID_HANDLE_VALUE) {
+            result = &dir->result;
+            (void) WideCharToMultiByte(CP_UTF8, 0, dir->info.cFileName, -1,
+                                    result->d_name, sizeof(result->d_name), NULL,
+                                    NULL);
 
-      if (!FindNextFileW(dir->handle, &dir->info)) {
-        (void) FindClose(dir->handle);
-        dir->handle = INVALID_HANDLE_VALUE;
-      }
+            if (!FindNextFileW(dir->handle, &dir->info)) {
+                (void) FindClose(dir->handle);
+                dir->handle = INVALID_HANDLE_VALUE;
+            }
 
+        } else {
+            SetLastError(ERROR_FILE_NOT_FOUND);
+        }
     } else {
-      SetLastError(ERROR_FILE_NOT_FOUND);
+        SetLastError(ERROR_BAD_ARGUMENTS);
     }
-  } else {
-    SetLastError(ERROR_BAD_ARGUMENTS);
-  }
 
-  return result;
+    return result;
 }
 #endif
 
 #if CS_ENABLE_SPIFFS
 
-DIR *opendir(const char *dir_name) {
-  DIR *dir = NULL;
-  spiffs *fs = cs_spiffs_get_fs();
+DIR *opendir(const char *dir_name) 
+{
+    DIR *dir = NULL;
+    spiffs *fs = cs_spiffs_get_fs();
 
-  if (dir_name == NULL || fs == NULL ||
-      (dir = (DIR *) calloc(1, sizeof(*dir))) == NULL) {
-    return NULL;
-  }
+    if (dir_name == NULL || fs == NULL ||
+        (dir = (DIR *) calloc(1, sizeof(*dir))) == NULL) {
+        return NULL;
+    }
 
-  if (SPIFFS_opendir(fs, dir_name, &dir->dh) == NULL) {
-    free(dir);
-    dir = NULL;
-  }
-
-  return dir;
+    if (SPIFFS_opendir(fs, dir_name, &dir->dh) == NULL) {
+        free(dir);
+        dir = NULL;
+    }
+    return dir;
 }
 
-int closedir(DIR *dir) {
-  if (dir != NULL) {
-    SPIFFS_closedir(&dir->dh);
-    free(dir);
-  }
-  return 0;
+int closedir(DIR *dir) 
+{
+    if (dir != NULL) {
+        SPIFFS_closedir(&dir->dh);
+        free(dir);
+    }
+    return 0;
 }
 
-struct dirent *readdir(DIR *dir) {
-  return SPIFFS_readdir(&dir->dh, &dir->de);
+struct dirent *readdir(DIR *dir) 
+{
+    return SPIFFS_readdir(&dir->dh, &dir->de);
 }
 
 /* SPIFFs doesn't support directory operations */
-int rmdir(const char *path) {
-  (void) path;
-  return ENOTSUP;
+int rmdir(const char *path) 
+{
+    (void) path;
+    return ENOTSUP;
 }
 
-int mkdir(const char *path, mode_t mode) {
-  (void) path;
-  (void) mode;
-  /* for spiffs supports only root dir, which comes from mongoose as '.' */
-  return (strlen(path) == 1 && *path == '.') ? 0 : ENOTSUP;
+int mkdir(const char *path, mode_t mode) 
+{
+    (void) path;
+    (void) mode;
+    /* for spiffs supports only root dir, which comes from mongoose as '.' */
+    return (strlen(path) == 1 && *path == '.') ? 0 : ENOTSUP;
 }
 
 #endif /* CS_ENABLE_SPIFFS */
@@ -770,31 +789,32 @@ typedef int cs_dirent_dummy;
 
 double cs_time(void) WEAK;
 double cs_time(void) {
-  double now;
+    double now;
 #ifndef _WIN32
-  struct timeval tv;
-  if (gettimeofday(&tv, NULL /* tz */) != 0) return 0;
-  now = (double) tv.tv_sec + (((double) tv.tv_usec) / 1000000.0);
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL /* tz */) != 0) return 0;
+    now = (double) tv.tv_sec + (((double) tv.tv_usec) / 1000000.0);
 #else
-  SYSTEMTIME sysnow;
-  FILETIME ftime;
-  GetLocalTime(&sysnow);
-  SystemTimeToFileTime(&sysnow, &ftime);
-  /*
-   * 1. VC 6.0 doesn't support conversion uint64 -> double, so, using int64
-   * This should not cause a problems in this (21th) century
-   * 2. Windows FILETIME is a number of 100-nanosecond intervals since January
-   * 1, 1601 while time_t is a number of _seconds_ since January 1, 1970 UTC,
-   * thus, we need to convert to seconds and adjust amount (subtract 11644473600
-   * seconds)
-   */
-  now = (double) (((int64_t) ftime.dwLowDateTime +
-                   ((int64_t) ftime.dwHighDateTime << 32)) /
-                  10000000.0) -
+    SYSTEMTIME sysnow;
+    FILETIME ftime;
+    GetLocalTime(&sysnow);
+    SystemTimeToFileTime(&sysnow, &ftime);
+    /*
+    * 1. VC 6.0 doesn't support conversion uint64 -> double, so, using int64
+    * This should not cause a problems in this (21th) century
+    * 2. Windows FILETIME is a number of 100-nanosecond intervals since January
+    * 1, 1601 while time_t is a number of _seconds_ since January 1, 1970 UTC,
+    * thus, we need to convert to seconds and adjust amount (subtract 11644473600
+    * seconds)
+    */
+    now = (double) (((int64_t) ftime.dwLowDateTime +
+                    ((int64_t) ftime.dwHighDateTime << 32)) /
+                    10000000.0) -
         11644473600;
 #endif /* _WIN32 */
-  return now;
+    return now;
 }
+
 #ifdef MG_MODULE_LINES
 #line 1 "common/cs_endian.h"
 #endif
@@ -877,183 +897,190 @@ static void byteReverse(unsigned char *buf, unsigned longs) {
  * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
  * initialization constants.
  */
-void MD5_Init(MD5_CTX *ctx) {
-  ctx->buf[0] = 0x67452301;
-  ctx->buf[1] = 0xefcdab89;
-  ctx->buf[2] = 0x98badcfe;
-  ctx->buf[3] = 0x10325476;
+void MD5_Init(MD5_CTX *ctx) 
+{
+    ctx->buf[0] = 0x67452301;
+    ctx->buf[1] = 0xefcdab89;
+    ctx->buf[2] = 0x98badcfe;
+    ctx->buf[3] = 0x10325476;
 
-  ctx->bits[0] = 0;
-  ctx->bits[1] = 0;
+    ctx->bits[0] = 0;
+    ctx->bits[1] = 0;
 }
 
-static void MD5Transform(uint32_t buf[4], uint32_t const in[16]) {
-  register uint32_t a, b, c, d;
+static void MD5Transform(uint32_t buf[4], uint32_t const in[16]) 
+{
+    register uint32_t a, b, c, d;
 
-  a = buf[0];
-  b = buf[1];
-  c = buf[2];
-  d = buf[3];
+    a = buf[0];
+    b = buf[1];
+    c = buf[2];
+    d = buf[3];
 
-  MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
-  MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
-  MD5STEP(F1, c, d, a, b, in[2] + 0x242070db, 17);
-  MD5STEP(F1, b, c, d, a, in[3] + 0xc1bdceee, 22);
-  MD5STEP(F1, a, b, c, d, in[4] + 0xf57c0faf, 7);
-  MD5STEP(F1, d, a, b, c, in[5] + 0x4787c62a, 12);
-  MD5STEP(F1, c, d, a, b, in[6] + 0xa8304613, 17);
-  MD5STEP(F1, b, c, d, a, in[7] + 0xfd469501, 22);
-  MD5STEP(F1, a, b, c, d, in[8] + 0x698098d8, 7);
-  MD5STEP(F1, d, a, b, c, in[9] + 0x8b44f7af, 12);
-  MD5STEP(F1, c, d, a, b, in[10] + 0xffff5bb1, 17);
-  MD5STEP(F1, b, c, d, a, in[11] + 0x895cd7be, 22);
-  MD5STEP(F1, a, b, c, d, in[12] + 0x6b901122, 7);
-  MD5STEP(F1, d, a, b, c, in[13] + 0xfd987193, 12);
-  MD5STEP(F1, c, d, a, b, in[14] + 0xa679438e, 17);
-  MD5STEP(F1, b, c, d, a, in[15] + 0x49b40821, 22);
+    MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
+    MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
+    MD5STEP(F1, c, d, a, b, in[2] + 0x242070db, 17);
+    MD5STEP(F1, b, c, d, a, in[3] + 0xc1bdceee, 22);
+    MD5STEP(F1, a, b, c, d, in[4] + 0xf57c0faf, 7);
+    MD5STEP(F1, d, a, b, c, in[5] + 0x4787c62a, 12);
+    MD5STEP(F1, c, d, a, b, in[6] + 0xa8304613, 17);
+    MD5STEP(F1, b, c, d, a, in[7] + 0xfd469501, 22);
+    MD5STEP(F1, a, b, c, d, in[8] + 0x698098d8, 7);
+    MD5STEP(F1, d, a, b, c, in[9] + 0x8b44f7af, 12);
+    MD5STEP(F1, c, d, a, b, in[10] + 0xffff5bb1, 17);
+    MD5STEP(F1, b, c, d, a, in[11] + 0x895cd7be, 22);
+    MD5STEP(F1, a, b, c, d, in[12] + 0x6b901122, 7);
+    MD5STEP(F1, d, a, b, c, in[13] + 0xfd987193, 12);
+    MD5STEP(F1, c, d, a, b, in[14] + 0xa679438e, 17);
+    MD5STEP(F1, b, c, d, a, in[15] + 0x49b40821, 22);
 
-  MD5STEP(F2, a, b, c, d, in[1] + 0xf61e2562, 5);
-  MD5STEP(F2, d, a, b, c, in[6] + 0xc040b340, 9);
-  MD5STEP(F2, c, d, a, b, in[11] + 0x265e5a51, 14);
-  MD5STEP(F2, b, c, d, a, in[0] + 0xe9b6c7aa, 20);
-  MD5STEP(F2, a, b, c, d, in[5] + 0xd62f105d, 5);
-  MD5STEP(F2, d, a, b, c, in[10] + 0x02441453, 9);
-  MD5STEP(F2, c, d, a, b, in[15] + 0xd8a1e681, 14);
-  MD5STEP(F2, b, c, d, a, in[4] + 0xe7d3fbc8, 20);
-  MD5STEP(F2, a, b, c, d, in[9] + 0x21e1cde6, 5);
-  MD5STEP(F2, d, a, b, c, in[14] + 0xc33707d6, 9);
-  MD5STEP(F2, c, d, a, b, in[3] + 0xf4d50d87, 14);
-  MD5STEP(F2, b, c, d, a, in[8] + 0x455a14ed, 20);
-  MD5STEP(F2, a, b, c, d, in[13] + 0xa9e3e905, 5);
-  MD5STEP(F2, d, a, b, c, in[2] + 0xfcefa3f8, 9);
-  MD5STEP(F2, c, d, a, b, in[7] + 0x676f02d9, 14);
-  MD5STEP(F2, b, c, d, a, in[12] + 0x8d2a4c8a, 20);
+    MD5STEP(F2, a, b, c, d, in[1] + 0xf61e2562, 5);
+    MD5STEP(F2, d, a, b, c, in[6] + 0xc040b340, 9);
+    MD5STEP(F2, c, d, a, b, in[11] + 0x265e5a51, 14);
+    MD5STEP(F2, b, c, d, a, in[0] + 0xe9b6c7aa, 20);
+    MD5STEP(F2, a, b, c, d, in[5] + 0xd62f105d, 5);
+    MD5STEP(F2, d, a, b, c, in[10] + 0x02441453, 9);
+    MD5STEP(F2, c, d, a, b, in[15] + 0xd8a1e681, 14);
+    MD5STEP(F2, b, c, d, a, in[4] + 0xe7d3fbc8, 20);
+    MD5STEP(F2, a, b, c, d, in[9] + 0x21e1cde6, 5);
+    MD5STEP(F2, d, a, b, c, in[14] + 0xc33707d6, 9);
+    MD5STEP(F2, c, d, a, b, in[3] + 0xf4d50d87, 14);
+    MD5STEP(F2, b, c, d, a, in[8] + 0x455a14ed, 20);
+    MD5STEP(F2, a, b, c, d, in[13] + 0xa9e3e905, 5);
+    MD5STEP(F2, d, a, b, c, in[2] + 0xfcefa3f8, 9);
+    MD5STEP(F2, c, d, a, b, in[7] + 0x676f02d9, 14);
+    MD5STEP(F2, b, c, d, a, in[12] + 0x8d2a4c8a, 20);
 
-  MD5STEP(F3, a, b, c, d, in[5] + 0xfffa3942, 4);
-  MD5STEP(F3, d, a, b, c, in[8] + 0x8771f681, 11);
-  MD5STEP(F3, c, d, a, b, in[11] + 0x6d9d6122, 16);
-  MD5STEP(F3, b, c, d, a, in[14] + 0xfde5380c, 23);
-  MD5STEP(F3, a, b, c, d, in[1] + 0xa4beea44, 4);
-  MD5STEP(F3, d, a, b, c, in[4] + 0x4bdecfa9, 11);
-  MD5STEP(F3, c, d, a, b, in[7] + 0xf6bb4b60, 16);
-  MD5STEP(F3, b, c, d, a, in[10] + 0xbebfbc70, 23);
-  MD5STEP(F3, a, b, c, d, in[13] + 0x289b7ec6, 4);
-  MD5STEP(F3, d, a, b, c, in[0] + 0xeaa127fa, 11);
-  MD5STEP(F3, c, d, a, b, in[3] + 0xd4ef3085, 16);
-  MD5STEP(F3, b, c, d, a, in[6] + 0x04881d05, 23);
-  MD5STEP(F3, a, b, c, d, in[9] + 0xd9d4d039, 4);
-  MD5STEP(F3, d, a, b, c, in[12] + 0xe6db99e5, 11);
-  MD5STEP(F3, c, d, a, b, in[15] + 0x1fa27cf8, 16);
-  MD5STEP(F3, b, c, d, a, in[2] + 0xc4ac5665, 23);
+    MD5STEP(F3, a, b, c, d, in[5] + 0xfffa3942, 4);
+    MD5STEP(F3, d, a, b, c, in[8] + 0x8771f681, 11);
+    MD5STEP(F3, c, d, a, b, in[11] + 0x6d9d6122, 16);
+    MD5STEP(F3, b, c, d, a, in[14] + 0xfde5380c, 23);
+    MD5STEP(F3, a, b, c, d, in[1] + 0xa4beea44, 4);
+    MD5STEP(F3, d, a, b, c, in[4] + 0x4bdecfa9, 11);
+    MD5STEP(F3, c, d, a, b, in[7] + 0xf6bb4b60, 16);
+    MD5STEP(F3, b, c, d, a, in[10] + 0xbebfbc70, 23);
+    MD5STEP(F3, a, b, c, d, in[13] + 0x289b7ec6, 4);
+    MD5STEP(F3, d, a, b, c, in[0] + 0xeaa127fa, 11);
+    MD5STEP(F3, c, d, a, b, in[3] + 0xd4ef3085, 16);
+    MD5STEP(F3, b, c, d, a, in[6] + 0x04881d05, 23);
+    MD5STEP(F3, a, b, c, d, in[9] + 0xd9d4d039, 4);
+    MD5STEP(F3, d, a, b, c, in[12] + 0xe6db99e5, 11);
+    MD5STEP(F3, c, d, a, b, in[15] + 0x1fa27cf8, 16);
+    MD5STEP(F3, b, c, d, a, in[2] + 0xc4ac5665, 23);
 
-  MD5STEP(F4, a, b, c, d, in[0] + 0xf4292244, 6);
-  MD5STEP(F4, d, a, b, c, in[7] + 0x432aff97, 10);
-  MD5STEP(F4, c, d, a, b, in[14] + 0xab9423a7, 15);
-  MD5STEP(F4, b, c, d, a, in[5] + 0xfc93a039, 21);
-  MD5STEP(F4, a, b, c, d, in[12] + 0x655b59c3, 6);
-  MD5STEP(F4, d, a, b, c, in[3] + 0x8f0ccc92, 10);
-  MD5STEP(F4, c, d, a, b, in[10] + 0xffeff47d, 15);
-  MD5STEP(F4, b, c, d, a, in[1] + 0x85845dd1, 21);
-  MD5STEP(F4, a, b, c, d, in[8] + 0x6fa87e4f, 6);
-  MD5STEP(F4, d, a, b, c, in[15] + 0xfe2ce6e0, 10);
-  MD5STEP(F4, c, d, a, b, in[6] + 0xa3014314, 15);
-  MD5STEP(F4, b, c, d, a, in[13] + 0x4e0811a1, 21);
-  MD5STEP(F4, a, b, c, d, in[4] + 0xf7537e82, 6);
-  MD5STEP(F4, d, a, b, c, in[11] + 0xbd3af235, 10);
-  MD5STEP(F4, c, d, a, b, in[2] + 0x2ad7d2bb, 15);
-  MD5STEP(F4, b, c, d, a, in[9] + 0xeb86d391, 21);
+    MD5STEP(F4, a, b, c, d, in[0] + 0xf4292244, 6);
+    MD5STEP(F4, d, a, b, c, in[7] + 0x432aff97, 10);
+    MD5STEP(F4, c, d, a, b, in[14] + 0xab9423a7, 15);
+    MD5STEP(F4, b, c, d, a, in[5] + 0xfc93a039, 21);
+    MD5STEP(F4, a, b, c, d, in[12] + 0x655b59c3, 6);
+    MD5STEP(F4, d, a, b, c, in[3] + 0x8f0ccc92, 10);
+    MD5STEP(F4, c, d, a, b, in[10] + 0xffeff47d, 15);
+    MD5STEP(F4, b, c, d, a, in[1] + 0x85845dd1, 21);
+    MD5STEP(F4, a, b, c, d, in[8] + 0x6fa87e4f, 6);
+    MD5STEP(F4, d, a, b, c, in[15] + 0xfe2ce6e0, 10);
+    MD5STEP(F4, c, d, a, b, in[6] + 0xa3014314, 15);
+    MD5STEP(F4, b, c, d, a, in[13] + 0x4e0811a1, 21);
+    MD5STEP(F4, a, b, c, d, in[4] + 0xf7537e82, 6);
+    MD5STEP(F4, d, a, b, c, in[11] + 0xbd3af235, 10);
+    MD5STEP(F4, c, d, a, b, in[2] + 0x2ad7d2bb, 15);
+    MD5STEP(F4, b, c, d, a, in[9] + 0xeb86d391, 21);
 
-  buf[0] += a;
-  buf[1] += b;
-  buf[2] += c;
-  buf[3] += d;
+    buf[0] += a;
+    buf[1] += b;
+    buf[2] += c;
+    buf[3] += d;
 }
 
-void MD5_Update(MD5_CTX *ctx, const unsigned char *buf, size_t len) {
-  uint32_t t;
+void MD5_Update(MD5_CTX *ctx, const unsigned char *buf, size_t len) 
+{
+    uint32_t t;
 
-  t = ctx->bits[0];
-  if ((ctx->bits[0] = t + ((uint32_t) len << 3)) < t) ctx->bits[1]++;
-  ctx->bits[1] += (uint32_t) len >> 29;
+    t = ctx->bits[0];
+    if ((ctx->bits[0] = t + ((uint32_t) len << 3)) < t) ctx->bits[1]++;
+    ctx->bits[1] += (uint32_t) len >> 29;
 
-  t = (t >> 3) & 0x3f;
+    t = (t >> 3) & 0x3f;
 
-  if (t) {
-    unsigned char *p = (unsigned char *) ctx->in + t;
+    if (t) {
+        unsigned char *p = (unsigned char *) ctx->in + t;
 
-    t = 64 - t;
-    if (len < t) {
-      memcpy(p, buf, len);
-      return;
+        t = 64 - t;
+        if (len < t) {
+            memcpy(p, buf, len);
+            return;
+        }
+        memcpy(p, buf, t);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += t;
+        len -= t;
     }
-    memcpy(p, buf, t);
-    byteReverse(ctx->in, 16);
-    MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-    buf += t;
-    len -= t;
-  }
 
-  while (len >= 64) {
-    memcpy(ctx->in, buf, 64);
-    byteReverse(ctx->in, 16);
-    MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-    buf += 64;
-    len -= 64;
-  }
+    while (len >= 64) {
+        memcpy(ctx->in, buf, 64);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += 64;
+        len -= 64;
+    }
 
-  memcpy(ctx->in, buf, len);
+    memcpy(ctx->in, buf, len);
 }
 
-void MD5_Final(unsigned char digest[16], MD5_CTX *ctx) {
-  unsigned count;
-  unsigned char *p;
-  uint32_t *a;
+void MD5_Final(unsigned char digest[16], MD5_CTX *ctx) 
+{
+    unsigned count;
+    unsigned char *p;
+    uint32_t *a;
 
-  count = (ctx->bits[0] >> 3) & 0x3F;
+    count = (ctx->bits[0] >> 3) & 0x3F;
 
-  p = ctx->in + count;
-  *p++ = 0x80;
-  count = 64 - 1 - count;
-  if (count < 8) {
-    memset(p, 0, count);
-    byteReverse(ctx->in, 16);
+    p = ctx->in + count;
+    *p++ = 0x80;
+    count = 64 - 1 - count;
+
+    if (count < 8) {
+        memset(p, 0, count);
+        byteReverse(ctx->in, 16);
+        MD5Transform(ctx->buf, (uint32_t *) ctx->in);
+        memset(ctx->in, 0, 56);
+    } else {
+        memset(p, 0, count - 8);
+    }
+    
+    byteReverse(ctx->in, 14);
+
+    a = (uint32_t *) ctx->in;
+    a[14] = ctx->bits[0];
+    a[15] = ctx->bits[1];
+
     MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-    memset(ctx->in, 0, 56);
-  } else {
-    memset(p, 0, count - 8);
-  }
-  byteReverse(ctx->in, 14);
-
-  a = (uint32_t *) ctx->in;
-  a[14] = ctx->bits[0];
-  a[15] = ctx->bits[1];
-
-  MD5Transform(ctx->buf, (uint32_t *) ctx->in);
-  byteReverse((unsigned char *) ctx->buf, 4);
-  memcpy(digest, ctx->buf, 16);
-  memset((char *) ctx, 0, sizeof(*ctx));
+    byteReverse((unsigned char *) ctx->buf, 4);
+    memcpy(digest, ctx->buf, 16);
+    memset((char *) ctx, 0, sizeof(*ctx));
 }
 #endif /* DISABLE_MD5 */
 
-char *cs_md5(char buf[33], ...) {
-  unsigned char hash[16];
-  const unsigned char *p;
-  va_list ap;
-  MD5_CTX ctx;
+char *cs_md5(char buf[33], ...) 
+{
+    unsigned char hash[16];
+    const unsigned char *p;
+    va_list ap;
+    MD5_CTX ctx;
 
-  MD5_Init(&ctx);
+    MD5_Init(&ctx);
 
-  va_start(ap, buf);
-  while ((p = va_arg(ap, const unsigned char *) ) != NULL) {
-    size_t len = va_arg(ap, size_t);
-    MD5_Update(&ctx, p, len);
-  }
-  va_end(ap);
+    va_start(ap, buf);
+    while ((p = va_arg(ap, const unsigned char *) ) != NULL) {
+        size_t len = va_arg(ap, size_t);
+        MD5_Update(&ctx, p, len);
+    }
+    va_end(ap);
 
-  MD5_Final(hash, &ctx);
-  cs_to_hex(buf, hash, sizeof(hash));
+    MD5_Final(hash, &ctx);
+    cs_to_hex(buf, hash, sizeof(hash));
 
-  return buf;
+    return buf;
 }
 
 #endif /* EXCLUDE_COMMON */
@@ -1080,84 +1107,92 @@ char *cs_md5(char buf[33], ...) {
 #endif
 
 void mbuf_init(struct mbuf *mbuf, size_t initial_size) WEAK;
-void mbuf_init(struct mbuf *mbuf, size_t initial_size) {
-  mbuf->len = mbuf->size = 0;
-  mbuf->buf = NULL;
-  mbuf_resize(mbuf, initial_size);
+void mbuf_init(struct mbuf *mbuf, size_t initial_size) 
+{
+    mbuf->len = mbuf->size = 0;
+    mbuf->buf = NULL;
+    mbuf_resize(mbuf, initial_size);
 }
 
 void mbuf_free(struct mbuf *mbuf) WEAK;
-void mbuf_free(struct mbuf *mbuf) {
-  if (mbuf->buf != NULL) {
-    MBUF_FREE(mbuf->buf);
-    mbuf_init(mbuf, 0);
-  }
+void mbuf_free(struct mbuf *mbuf) 
+{
+    if (mbuf->buf != NULL) {
+        MBUF_FREE(mbuf->buf);
+        mbuf_init(mbuf, 0);
+    }
 }
 
 void mbuf_resize(struct mbuf *a, size_t new_size) WEAK;
-void mbuf_resize(struct mbuf *a, size_t new_size) {
-  if (new_size > a->size || (new_size < a->size && new_size >= a->len)) {
-    char *buf = (char *) MBUF_REALLOC(a->buf, new_size);
-    /*
-     * In case realloc fails, there's not much we can do, except keep things as
-     * they are. Note that NULL is a valid return value from realloc when
-     * size == 0, but that is covered too.
-     */
-    if (buf == NULL && new_size != 0) return;
-    a->buf = buf;
-    a->size = new_size;
-  }
+void mbuf_resize(struct mbuf *a, size_t new_size) 
+{
+    if (new_size > a->size || (new_size < a->size && new_size >= a->len)) {
+        char *buf = (char *) MBUF_REALLOC(a->buf, new_size);
+        /*
+         * In case realloc fails, there's not much we can do, except keep things as
+         * they are. Note that NULL is a valid return value from realloc when
+         * size == 0, but that is covered too.
+         */
+        if (buf == NULL && new_size != 0) return;
+        a->buf = buf;
+        a->size = new_size;
+    }
 }
 
 void mbuf_trim(struct mbuf *mbuf) WEAK;
-void mbuf_trim(struct mbuf *mbuf) {
-  mbuf_resize(mbuf, mbuf->len);
+void mbuf_trim(struct mbuf *mbuf) 
+{
+    mbuf_resize(mbuf, mbuf->len);
 }
 
 size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t) WEAK;
-size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t len) {
-  char *p = NULL;
+size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t len) 
+{
+    char *p = NULL;
 
-  assert(a != NULL);
-  assert(a->len <= a->size);
-  assert(off <= a->len);
+    assert(a != NULL);
+    assert(a->len <= a->size);
+    assert(off <= a->len);
 
-  /* check overflow */
-  if (~(size_t) 0 - (size_t) a->buf < len) return 0;
+    /* check overflow */
+    if (~(size_t) 0 - (size_t) a->buf < len) return 0;
 
-  if (a->len + len <= a->size) {
-    memmove(a->buf + off + len, a->buf + off, a->len - off);
-    if (buf != NULL) {
-      memcpy(a->buf + off, buf, len);
-    }
-    a->len += len;
-  } else {
-    size_t new_size = (size_t)((a->len + len) * MBUF_SIZE_MULTIPLIER);
-    if ((p = (char *) MBUF_REALLOC(a->buf, new_size)) != NULL) {
-      a->buf = p;
-      memmove(a->buf + off + len, a->buf + off, a->len - off);
-      if (buf != NULL) memcpy(a->buf + off, buf, len);
-      a->len += len;
-      a->size = new_size;
+    if (a->len + len <= a->size) {
+        memmove(a->buf + off + len, a->buf + off, a->len - off);
+        if (buf != NULL) {
+            memcpy(a->buf + off, buf, len);
+        }
+        a->len += len;
     } else {
-      len = 0;
+        size_t new_size = (size_t)((a->len + len) * MBUF_SIZE_MULTIPLIER);
+        if ((p = (char *) MBUF_REALLOC(a->buf, new_size)) != NULL) {
+            a->buf = p;
+            memmove(a->buf + off + len, a->buf + off, a->len - off);
+            if (buf != NULL) 
+                memcpy(a->buf + off, buf, len);
+            a->len += len;
+            a->size = new_size;
+        } else {
+            len = 0;
+        }
     }
-  }
 
-  return len;
+    return len;
 }
 
 size_t mbuf_append(struct mbuf *a, const void *buf, size_t len) WEAK;
-size_t mbuf_append(struct mbuf *a, const void *buf, size_t len) {
-  return mbuf_insert(a, a->len, buf, len);
+size_t mbuf_append(struct mbuf *a, const void *buf, size_t len) 
+{
+    return mbuf_insert(a, a->len, buf, len);
 }
 
 void mbuf_remove(struct mbuf *mb, size_t n) WEAK;
-void mbuf_remove(struct mbuf *mb, size_t n) {
-  if (n > 0 && n <= mb->len) {
-    memmove(mb->buf, mb->buf + n, mb->len - n);
-    mb->len -= n;
-  }
+void mbuf_remove(struct mbuf *mb, size_t n) 
+{
+    if (n > 0 && n <= mb->len) {
+        memmove(mb->buf, mb->buf + n, mb->len - n);
+        mb->len -= n;
+    }
 }
 
 #endif /* EXCLUDE_COMMON */
@@ -1177,49 +1212,55 @@ void mbuf_remove(struct mbuf *mb, size_t n) {
 int mg_ncasecmp(const char *s1, const char *s2, size_t len) WEAK;
 
 struct mg_str mg_mk_str(const char *s) WEAK;
-struct mg_str mg_mk_str(const char *s) {
-  struct mg_str ret = {s, 0};
-  if (s != NULL) ret.len = strlen(s);
-  return ret;
+struct mg_str mg_mk_str(const char *s) 
+{
+    struct mg_str ret = {s, 0};
+    if (s != NULL) 
+        ret.len = strlen(s);
+    return ret;
 }
 
 struct mg_str mg_mk_str_n(const char *s, size_t len) WEAK;
-struct mg_str mg_mk_str_n(const char *s, size_t len) {
-  struct mg_str ret = {s, len};
-  return ret;
+struct mg_str mg_mk_str_n(const char *s, size_t len) 
+{
+    struct mg_str ret = {s, len};
+    return ret;
 }
 
 int mg_vcmp(const struct mg_str *str1, const char *str2) WEAK;
-int mg_vcmp(const struct mg_str *str1, const char *str2) {
-  size_t n2 = strlen(str2), n1 = str1->len;
-  int r = memcmp(str1->p, str2, (n1 < n2) ? n1 : n2);
-  if (r == 0) {
-    return n1 - n2;
-  }
-  return r;
+int mg_vcmp(const struct mg_str *str1, const char *str2) 
+{
+    size_t n2 = strlen(str2), n1 = str1->len;
+    int r = memcmp(str1->p, str2, (n1 < n2) ? n1 : n2);
+    if (r == 0) {
+        return n1 - n2;
+    }
+    return r;
 }
 
 int mg_vcasecmp(const struct mg_str *str1, const char *str2) WEAK;
-int mg_vcasecmp(const struct mg_str *str1, const char *str2) {
-  size_t n2 = strlen(str2), n1 = str1->len;
-  int r = mg_ncasecmp(str1->p, str2, (n1 < n2) ? n1 : n2);
-  if (r == 0) {
-    return n1 - n2;
-  }
-  return r;
+int mg_vcasecmp(const struct mg_str *str1, const char *str2) 
+{
+    size_t n2 = strlen(str2), n1 = str1->len;
+    int r = mg_ncasecmp(str1->p, str2, (n1 < n2) ? n1 : n2);
+    if (r == 0) {
+        return n1 - n2;
+    }
+    return r;
 }
 
 struct mg_str mg_strdup(const struct mg_str s) WEAK;
-struct mg_str mg_strdup(const struct mg_str s) {
-  struct mg_str r = {NULL, 0};
-  if (s.len > 0 && s.p != NULL) {
-    r.p = (char *) malloc(s.len);
-    if (r.p != NULL) {
-      memcpy((char *) r.p, s.p, s.len);
-      r.len = s.len;
+struct mg_str mg_strdup(const struct mg_str s) 
+{
+    struct mg_str r = {NULL, 0};
+    if (s.len > 0 && s.p != NULL) {
+        r.p = (char *) malloc(s.len);
+        if (r.p != NULL) {
+        memcpy((char *) r.p, s.p, s.len);
+            r.len = s.len;
+        }
     }
-  }
-  return r;
+    return r;
 }
 
 int mg_strcmp(const struct mg_str str1, const struct mg_str str2) WEAK;

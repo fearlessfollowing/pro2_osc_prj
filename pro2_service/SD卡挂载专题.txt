@@ -58,3 +58,24 @@ root@tegra-ubuntu:/home/nvidia#
 [93024.895904] sd 64:0:0:0: [sda] Attached SCSI removable disk
 root@tegra-ubuntu:/home/nvidia#
 
+
+
+
+USB通信问题（HUB部分）
+09-19 09:59:49.494 D/NetlinkEvent(23287): >>>> Action is add
+09-19 09:59:49.494 D/NetlinkEvent(23287): >>>> subsystem is 1
+09-19 09:59:49.494 D/NetlinkEvent(23287): New Version usb bus addr: 1-3.3
+09-19 09:59:49.494 D/NetlinkEvent(23287): New Version dev node name: sdc1
+09-19 09:59:49.494 D/Vold    (23287): >>>>>>>>>>>>>>>>>> handleBlockEvent(action: 1) <<<<<<<<<<<<<<<
+09-19 09:59:49.494 D/Vold    (23287): [pro2_service/VolumeManager.cpp: 1336] Volume Addr: usb1-3.3, Current dev Addr: 1-3.3
+09-19 09:59:49.494 D/Vold    (23287): [pro2_service/VolumeManager.cpp: 1466] dev node path: /dev/sdc1
+09-19 09:59:49.494 D/Vold    (23287): dev node path exist /dev/sdc1
+09-19 09:59:49.556 D/KernLog ( 1081): <3>[10134.230030] usb 1-3-port3: cannot reset (err = -71)
+09-19 09:59:49.576 D/KernLog ( 1081): <3>[10134.249193] scsi 36:0:0:0: rejecting I/O to offline device
+09-19 09:59:49.591 D/KernLog ( 1081): <6>[10134.267277] scsi 36:0:0:0: [sdc] CDB: opcode=0x28 28 00 07 73 fd 00 00 01 00 00
+09-19 09:59:49.612 D/KernLog ( 1081): <3>[10134.288619] Buffer I/O error on dev sdc1, logical block 512, async page read
+09-19 09:59:49.646 W/Vold    (23287): blkid failed to identify /dev/sdc1
+
+
+11:26:19.473
+11:26:32.817

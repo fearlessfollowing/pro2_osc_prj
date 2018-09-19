@@ -60,6 +60,8 @@
 #include <json/value.h>
 #include <json/json.h>
 
+#include <sys/Condition.h>
+
 #include <trans/fifo.h>
 
 
@@ -68,11 +70,14 @@ using namespace std;
 
 #define ENABLE_MOUNT_TFCARD_RO
 
+#define ENABLE_USB_NEW_UDISK_POWER_ON       /* 新的进入U盘模式的上电方式 */
+
+
 /*********************************************************************************************
  *  输出日志的TAG(用于刷选日志)
  *********************************************************************************************/
-#undef  TAG
-#define TAG     "Vold"
+#undef      TAG
+#define     TAG "Vold"
 
 
 /*********************************************************************************************
@@ -82,14 +87,12 @@ using namespace std;
 #define EPOLL_COUNT 		20
 #define MAXCOUNT 			500
 #define EPOLL_SIZE_HINT 	8
-
 #define CtrlPipe_Shutdown   0
 #define CtrlPipe_Wakeup     1
 
 
 #define MKFS_EXFAT          "/sbin/mkexfatfs"
 #define USE_TRAN_SEND_MSG
-
 
 
 /*********************************************************************************************
@@ -111,7 +114,13 @@ static Mutex gRecMutex;
 static Mutex gLiveRecMutex;
 static Mutex gTimelapseLock;
 
+static Mutex gCurVolLock;
+static Mutex gRemoteVolLock;
 
+
+static Mutex        gHandleBlockEvtLock;        /* 处理块设备事件锁 */
+static Mutex        gMountMutex;
+static Condition    gWaitMountComplete;
 
 
 /*********************************************************************************************
@@ -310,7 +319,8 @@ VolumeManager::VolumeManager() :
                                 mTakePicLeftNum(0),
                                 mTimeLapseLeftNum(0),
                                 mTaketimelapseCnt(0),
-                                mNotify(NULL)                          
+                                mNotify(NULL),
+                                mAllowExitUdiskMode(false)                          
 {
 
 	Volume* tmpVol = NULL;
@@ -408,6 +418,7 @@ void handleDevRemove(const char* pDevNode)
 void VolumeManager::checkAllUdiskIdle()
 {
     Volume* tmpVol = NULL;
+
 
     for (u32 i = 0; i < mModuleVols.size(); i++) {
         tmpVol = mModuleVols.at(i);
@@ -591,24 +602,78 @@ void VolumeManager::powerOnModuleByIndex(int iIndex)
 }
 
 
-void VolumeManager::resetHub()
+/*
+ * usb1 / 1-3: 3,4,5    - gpio457
+ * usb1 / 1-2: 6,1,2    - gpio461
+ */
+
+const string moduleHubBasePath = "/sys/devices/3530000.xhci/usb1";
+
+
+bool VolumeManager::waitHub1RestComplete()
 {
-    system("echo 1 > /sys/class/gpio/gpio457/value");
-    system("echo in > /sys/class/gpio/gpio457/direction");
-    msg_util::sleep_ms(50);
-    system("echo out > /sys/class/gpio/gpio457/direction");
-    system("echo 0 > /sys/class/gpio/gpio457/value");
-
-    msg_util::sleep_ms(50);
-
-    system("echo 1 > /sys/class/gpio/gpio461/value");
-    system("echo in > /sys/class/gpio/gpio461/direction");
-    msg_util::sleep_ms(50);
-    system("echo out > /sys/class/gpio/gpio461/direction");
-    system("echo 0 > /sys/class/gpio/gpio461/value");
+    string hub1Path = moduleHubBasePath + "/1-2";
+    if (access(hub1Path.c_str(), F_OK) == 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
+bool VolumeManager::waitHub2RestComplete()
+{
+    string hub2Path = moduleHubBasePath + "/1-3";
+    if (access(hub2Path.c_str(), F_OK) == 0) {
+        return true;
+    } else {
+        return false;
+    }    
+}
+
+/*
+ * HUB1 - gpio461(6,1,2)
+ */
+void VolumeManager::resetHub1()
+{
+    system("echo 1 > /sys/class/gpio/gpio461/value");
+    system("echo in > /sys/class/gpio/gpio461/direction");
+    msg_util::sleep_ms(500);
+    system("echo out > /sys/class/gpio/gpio461/direction");
+    system("echo 0 > /sys/class/gpio/gpio461/value");
+    msg_util::sleep_ms(500);
+}
+
+
+/*
+ * HUB2 - gpio457(3,4,5)
+ */
+void VolumeManager::resetHub2()
+{
+    system("echo 1 > /sys/class/gpio/gpio457/value");
+    system("echo in > /sys/class/gpio/gpio457/direction");
+    msg_util::sleep_ms(500);
+    system("echo out > /sys/class/gpio/gpio457/direction");
+    system("echo 0 > /sys/class/gpio/gpio457/value");
+    msg_util::sleep_ms(500);
+}
+
+
+/*
+ * 检查进入U盘的结果 
+ * 返回
+ * true - 表示所有的模组都挂载成功
+ * false - 表示有模组没有挂载成功
+ */
+bool VolumeManager::checkEnterUdiskResult()
+{
+    mAllowExitUdiskMode = true;
+    if (mHandledAddUdiskVolCnt >= mModuleVols.size()) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 
 /*
@@ -617,6 +682,10 @@ void VolumeManager::resetHub()
  */
 bool VolumeManager::enterUdiskMode()
 {
+
+    struct timeval enterTv, exitTv;
+    int iEnterTotalLen = 15;        /* 将整个进入U盘的周期定为15s */
+
     /* 1.检查所有卷的状态，如果非IDLE状态（MOUNTED状态），先进行强制卸载操作
      * 1.将gpio456, gpio478设置为1，0
      * 2.调用power_manager power_on给所有的模组上电
@@ -624,23 +693,90 @@ bool VolumeManager::enterUdiskMode()
      * 4.检查是否所有的模组都挂载成功
      */
     Log.d(TAG, "[%s: %d] Enter U-disk Mode now ...", __FILE__, __LINE__);
-    
-    mHandledAddUdiskVolCnt = 0;
+
+    mHandledAddUdiskVolCnt = 0;     /* 成功挂载模组的个数 */
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_UDISK);
-    
     checkAllUdiskIdle();
 
     system("echo 0 > /sys/class/gpio/gpio478/value");   /* gpio456 = 1 */
     system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio478 = 1 */
-    
-    // resetHub(); /* 复位HUB */
-    system("power_manager powr_off");
+
+
+#ifdef ENABLE_USB_NEW_UDISK_POWER_ON
+
+    int iHub1Index[] = {6, 1, 2};
+    int iHub2Index[] = {3, 4, 5};
+
+    mAllowExitUdiskMode = false;
+
+    system("power_manager power_off");
+    msg_util::sleep_ms(1000);
+
+    gettimeofday(&enterTv, NULL);   
+
+    /* 
+     * 1.给6,1,2模组所在的HUB上电
+     * 2.确定HUB已经正常工作
+     * 3.依次给各个模组上电（上电一个睡眠<超时值设置为3秒>，直到挂载程序将其唤醒）
+     * 
+     * 4.给3,4,5模组所在的HUB上电
+     * 5.确定HUB已经正常工作
+     * 6.依次给各个模组上电
+     */
+
+    int iRetry;
+    int iModulePowerOnTimes;
+
+
+    for (iRetry = 0; iRetry < 3; iRetry++) {
+        resetHub1();
+        if (waitHub1RestComplete()) {
+            Log.d(TAG, "[%s: %d] -------> Hub1 Rest Ok", __FILE__, __LINE__);
+            break;
+        }
+        msg_util::sleep_ms(200);
+    }
+
+    for (int i = 0; i < 3; i++) {
+        powerOnModuleByIndex(iHub1Index[i]);        /* 6, 1, 2 */
+        msg_util::sleep_ms(500);
+    }
+
+
+    for (iRetry = 0; iRetry < 3; iRetry++) {
+        resetHub2();
+        if (waitHub2RestComplete()) {
+            Log.d(TAG, "[%s: %d] -------> Hub2 Rest Ok", __FILE__, __LINE__);
+            break;
+        }
+        msg_util::sleep_ms(200);
+    }
+
+    for (int i = 0; i < 3; i++) {
+        powerOnModuleByIndex(iHub2Index[i]);        /* 6, 1, 2 */
+        msg_util::sleep_ms(500);
+    }
+
+    gettimeofday(&exitTv, NULL);   
+
+    int iNeedSleepTime = iEnterTotalLen - (exitTv.tv_sec - enterTv.tv_sec);
+
+    Log.d(TAG, "[%s: %d] Should Sleep time: %ds", __FILE__, __LINE__, iNeedSleepTime);
+    if (iNeedSleepTime > 0) {
+        sleep(iNeedSleepTime);
+    }
+
+    return checkEnterUdiskResult();
+
+#else
 
     /* 依次给模组上电 */
     for (int i = 1; i <= 6; i++) {
         powerOnModuleByIndex(i);
         msg_util::sleep_ms(1000);
-    }    
+    }
+
+#endif    
     return true;
 }
 
@@ -651,15 +787,7 @@ bool VolumeManager::enterUdiskMode()
 
 bool VolumeManager::checkEnteredUdiskMode()
 {
-    #if 0
-    if (mHandledAddUdiskVolCnt == mModuleVolNum) {
-        return true;
-    } else {
-        return false;
-    }
-    #else
-    return true;
-    #endif
+    return mAllowExitUdiskMode;
 }
 
 
@@ -782,6 +910,7 @@ void VolumeManager::setRecLeftSec(u64 leftSecs)
         mRecLeftSec = leftSecs;
     }
 }
+
 
 /*
  * decRecLefSec - 剩余可录像时长减1
@@ -1376,16 +1505,23 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
      * 卸载: 需要处理卸载不掉的情况(杀掉所有打开文件的进程???))
      * 挂载成功后/卸载成功后,通知UI(SD/USB attached/detacheed)
      */
+
+    AutoMutex _l(gHandleBlockEvtLock);
+
+
     Log.d(TAG, ">>>>>>>>>>>>>>>>>> handleBlockEvent(action: %d) <<<<<<<<<<<<<<<", evt->getAction());
+    
     Volume* tmpVol = NULL;
     int iResult = 0;
 
     switch (evt->getAction()) {
+
         case NETLINK_ACTION_ADD: {
 
             /* 1.检查，检查该插入的设备是否在系统的支持范围内 */
             tmpVol = isSupportedDev(evt->getBusAddr());
             if (tmpVol && (tmpVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE)) {
+
                 /* 2.检查卷对应的槽是否已经被挂载，如果已经挂载说明上次卸载出了错误
                  * 需要先进行强制卸载操作否则会挂载不上
                  */
@@ -1398,9 +1534,6 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                     }
 
                     Log.d(TAG, "[%s: %d] dev[%s] mount point[%s]", __FILE__, __LINE__, tmpVol->cDevNode, tmpVol->pMountPath);
-                    if ( (getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
-                        mHandledAddUdiskVolCnt++;  /* 不能确保所有的卷都能挂载(比如说卷已经损坏) */
-                    }
 
                     if (mountVolume(tmpVol)) {
                         Log.e(TAG, "mount device[%s -> %s] failed, reason [%d]", tmpVol->cDevNode, tmpVol->pMountPath, errno);
@@ -1409,6 +1542,10 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                         Log.d(TAG, "mount device[%s] on path [%s] success", tmpVol->cDevNode, tmpVol->pMountPath);
 
                         tmpVol->iVolState = VOLUME_STATE_MOUNTED;
+
+                        if ((getVolumeManagerWorkMode() == VOLUME_MANAGER_WORKMODE_UDISK) && volumeIsTfCard(tmpVol)) {
+                            mHandledAddUdiskVolCnt++;  
+                        }
 
                         /* 如果是TF卡,不需要做如下操作 */
                         if (volumeIsTfCard(tmpVol) == false) {
@@ -1472,6 +1609,8 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
     }  
     return iResult;  
 }
+
+
 
 
 /*************************************************************************
@@ -1561,11 +1700,13 @@ void VolumeManager::setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt)
 void VolumeManager::syncLocalDisk()
 {
     string cmd = "sync -f ";
+
     if (mCurrentUsedLocalVol != NULL) {
         cmd += mCurrentUsedLocalVol->pMountPath;
         system(cmd.c_str());
     }
 }
+
 
 
 /*************************************************************************
@@ -1669,9 +1810,8 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
         }
     }
 
-    // Json::StreamWriterBuilder jsrocd;
-
     if (mBsavePathChanged == true) {
+
     #ifdef USE_TRAN_SEND_MSG
         if (mCurrentUsedLocalVol) {            
             sendSavepathChangeNotify(mCurrentUsedLocalVol->pMountPath);
@@ -1679,6 +1819,7 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
             sendSavepathChangeNotify("none");
         }
     #endif
+    
     }
 }
 
@@ -1724,6 +1865,7 @@ void VolumeManager::sendAsyncQueryTfCardInfo(int iAction)
     sp<ARMessage> msg = mNotify->dup();
     msg->setWhat(MenuUI::OLED_KEY);   
     msg->set<int>("action", iAction);
+
     fifo::getSysTranObj()->postTranMessage(msg);
 }
 
@@ -1848,6 +1990,7 @@ bool VolumeManager::checkLocalVolumeExist()
         return false;
     }
 }
+
 
 
 /*************************************************************************
@@ -2095,6 +2238,8 @@ int VolumeManager::mountVolume(Volume* pVol)
 {
     int iRet = 0;
 
+    AutoMutex _l(pVol->mVolLock);
+
     /* 如果使能了Check,在挂载之前对卷进行check操作 */
     iRet = checkFs(pVol);
     if (iRet) {
@@ -2206,10 +2351,8 @@ int VolumeManager::mountVolume(Volume* pVol)
     }
 
     #endif
-
     return 0;
 }
-
 
 
 u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode)
@@ -2353,13 +2496,11 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
 
     if (checkLocalVolumeExist()) {
         uLocalVolSize = getLocalVolLeftSize(bUseCached);
-        uRemoteVolSize = calcRemoteRemainSpace(false);
-    } else {
-        return -1;
-    }
+    } 
     
-    if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture") || 
-        !strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
+    uRemoteVolSize = calcRemoteRemainSpace(false);
+
+    if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture") || !strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
 
         if (jsonCmd["parameters"].isMember("bracket")) {            /* 包围曝光：全部存储在本地 - AEB3 */
 
@@ -2395,18 +2536,20 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
             } else {
                 Log.e(TAG, "[%s: %d] >>> origin not mime!", __FILE__, __LINE__);
             }
+
         } else if (jsonCmd["parameters"].isMember("timelapse")) {   /* 表示拍的是Timelapse */
 
-            Log.d(TAG, "[%s: %d] ----- calcTakepicLefNum for timelapse mode", __FILE__, __LINE__);
+            Log.d(TAG, "[%s: %d] ----->>>>> calcTakepicLefNum for timelapse mode", __FILE__, __LINE__);
 
             if (jsonCmd["parameters"]["origin"].isMember("mime")) {
                 if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "jpeg")) {
-                    iUnitSize = 12;     /* timelapse - jpeg 存在大卡 */
+                    iUnitSize = 13;     /* timelapse - jpeg 存在大卡 */
+                    Log.d(TAG, "[%s: %d] Just Capture jpeg, each group size 13M", __FILE__, __LINE__);
                 } else if (!strcmp(jsonCmd["parameters"]["origin"]["mime"].asCString(), "raw+jpeg")) {
-                    iUnitSize = 12;    /* timelapse - raw + jpeg */     
-                    iTfCardUnitSize = 23;
+                    iUnitSize = 13;    /* timelapse - raw + jpeg */     
+                    iTfCardUnitSize = 22;
                 } else {
-                    iTfCardUnitSize = 23;    /* 8K - raw */
+                    iTfCardUnitSize = 22;    /* 8K - raw */
                     iUnitSize = -1;
                 }
 
@@ -2414,13 +2557,13 @@ int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
                     uTfCanTakeNum = uRemoteVolSize / iTfCardUnitSize;
                     uTakepicTmpNum = uLocalVolSize / iUnitSize;
                     uTakepicNum = (uTfCanTakeNum > uTakepicTmpNum) ? uTakepicTmpNum: uTfCanTakeNum;
-                    Log.d(TAG, "[%s: %d] ---- Timeplapse[raw+jpeg] Remote can store num[%d], Local can store num[%d]", __FILE__, __LINE__, uTfCanTakeNum, uTakepicTmpNum);
+                    Log.d(TAG, "[%s: %d] -------- Timeplapse[raw+jpeg] Remote can store num[%d], Local can store num[%d]", __FILE__, __LINE__, uTfCanTakeNum, uTakepicTmpNum);
                 } else if ((iTfCardUnitSize > 0) && (iUnitSize < 0)) {  /* Raw */
                     uTakepicNum = uRemoteVolSize / iTfCardUnitSize;
-                    Log.d(TAG, "[%s: %d] ---- Timeplapse[raw only] Remote can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
+                    Log.d(TAG, "[%s: %d] -------- Timeplapse[raw only] Remote can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
                 } else {                                                /* jpeg */
                     uTakepicNum = uLocalVolSize / iUnitSize;
-                    Log.d(TAG, "[%s: %d] ---- Timeplapse[jpeg] Local can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
+                    Log.d(TAG, "[%s: %d] -------- Timeplapse[jpeg] Local can store num[%d]", __FILE__, __LINE__, uTakepicNum);                    
                 }
 
             } else {
@@ -2537,6 +2680,8 @@ int VolumeManager::doUnmount(const char *path, bool force)
  */
 int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
 {
+    AutoMutex _l(pVol->mVolLock);
+
     if (pEvt->getEventSrc() == NETLINK_EVENT_SRC_KERNEL) {
         string devnode = "/dev/";
         devnode += pEvt->getDevNodeName();
@@ -2582,15 +2727,15 @@ int VolumeManager::checkFs(Volume* pVol)
 {
     int rc = 0;
     int status;
-    
+        
     Log.d(TAG, "[%s: %d] >>> checkFs: Type[%s], Mount Point[%s]", __FILE__, __LINE__, pVol->cVolFsType, pVol->pMountPath);
 
     if (!strcmp(pVol->cVolFsType, "exfat")) {
         const char *args[2];
         args[0] = "/sbin/exfatfsck";
-        args[2] = pVol->cDevNode;
+        args[1] = pVol->cDevNode;
 
-        Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s %s", __FILE__, __LINE__, args[0], args[1], args[2]);
+        Log.d(TAG, "[%s: %d] Check Fs cmd: %s %s", __FILE__, __LINE__, args[0], args[1]);
         rc = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
 
     } else if (!strcmp(pVol->cVolFsType, "ext4") || !strcmp(pVol->cVolFsType, "ext3") || !strcmp(pVol->cVolFsType, "ext2")) {
@@ -2612,8 +2757,7 @@ int VolumeManager::checkFs(Volume* pVol)
     }
 
     if (!WIFEXITED(status)) {
-        Log.e(TAG, "Filesystem check did not exit properly");
-        errno = EIO;
+        Log.e(TAG, "[%s: %d] Filesystem check did not exit properly", __FILE__, __LINE__);
         return -1;
     }
 
@@ -2621,16 +2765,16 @@ int VolumeManager::checkFs(Volume* pVol)
 
     switch(status) {
     case 0:
-        Log.d(TAG, "Filesystem check completed OK");
+        Log.d(TAG, "-------> Filesystem check completed OK");
         return 0;
 
     case 2:
-        Log.d(TAG, "Filesystem check failed (not a FAT filesystem)");
+        Log.d(TAG, "----> Filesystem check failed (not a FAT filesystem)");
         errno = ENODATA;
         return -1;
 
     default:
-        Log.d(TAG, "Filesystem check failed (unknown exit code %d)", status);
+        Log.d(TAG, "----> Filesystem check failed (unknown exit code %d)", status);
         errno = EIO;
         return -1;
     }
@@ -2644,19 +2788,39 @@ int VolumeManager::checkFs(Volume* pVol)
 void VolumeManager::updateVolumeSpace(Volume* pVol) 
 {
     struct statfs diskInfo;
+    
+    
     u64 totalsize = 0;
+
+    // AutoMutex _l(pVol->mVolLock);
 
     /* 卡槽使能并且卷已经被挂载 */
     if ((pVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (pVol->iVolState == VOLUME_STATE_MOUNTED)) {
+        
         if (!statfs(pVol->pMountPath, &diskInfo)) {
-            u64 blocksize = diskInfo.f_bsize;                                   //每个block里包含的字节数
-            totalsize = blocksize * diskInfo.f_blocks;                          // 总的字节数，f_blocks为block的数目
-            pVol->uTotal = (totalsize >> 20);
+            
+            u32 uBlockSize = diskInfo.f_bsize / 1024;
+
+            Log.d(TAG, "[%s: %d] stat fs path: %s", __FILE__, __LINE__, pVol->pMountPath);
+
+            Log.d(TAG, "[%s: %d] statfs block size: %d KB", __FILE__, __LINE__, uBlockSize);
+            Log.d(TAG, "[%s: %d] statfs total block: %d ", __FILE__, __LINE__, diskInfo.f_blocks);
+            Log.d(TAG, "[%s: %d] statfs free block: %d ", __FILE__, __LINE__, diskInfo.f_bfree);
+
+            Log.d(TAG, "[%s: %d] statfs Tatol size = %u MB", __FILE__, __LINE__, (diskInfo.f_blocks * uBlockSize) / 1024);
+            Log.d(TAG, "[%s: %d] state Avail size = %u MB", __FILE__, __LINE__, (diskInfo.f_bfree * uBlockSize) / 1024);
+
+            pVol->uTotal = (uBlockSize * diskInfo.f_blocks) / 1024;
             
             /* 预留1GB的空间 */
-            pVol->uAvail = ((diskInfo.f_bfree * blocksize) >> 20) - lefSpaceThreshold;
-            Log.d(TAG, "[%s: %d] Local Volume Tatol size = %ld MB", __FILE__, __LINE__, pVol->uTotal);
-            Log.d(TAG, "[%s: %d] Local Volume Avail size = %ld MB", __FILE__, __LINE__, pVol->uAvail);
+            if (((diskInfo.f_bfree * uBlockSize) >> 10) > lefSpaceThreshold) {
+                pVol->uAvail = ((diskInfo.f_bfree * uBlockSize) / 1024) - lefSpaceThreshold;
+            } else {
+                pVol->uAvail = 0;
+            }
+            
+            Log.d(TAG, "[%s: %d] Local Volume Tatol size = %d MB", __FILE__, __LINE__, pVol->uTotal);
+            Log.d(TAG, "[%s: %d] Local Volume Avail size = %d MB", __FILE__, __LINE__, pVol->uAvail);
 
         } else {
             Log.d(TAG, "[%s: %d] statfs failed ...", __FILE__, __LINE__);
@@ -2881,8 +3045,8 @@ err_umount_volume:
 
 void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
 {
-    {
-        unique_lock<mutex> lock(mRemoteDevLock);   
+    {        
+        AutoMutex _l(gRemoteVolLock);
 
         sp<Volume> tmpVolume = NULL;
         Volume* localVolume = NULL;

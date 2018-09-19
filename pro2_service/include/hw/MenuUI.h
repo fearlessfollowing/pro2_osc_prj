@@ -1062,7 +1062,7 @@ private:
     bool                        bDispTop = false;
     int                         last_down_key = 0;
     int                         tl_count = -1;
-    int                         aging_times = 0;
+    // int                         aging_times = 0;
     int                         bat_jump_times = 0;
     int64                       last_key_ts = 0;
 	
