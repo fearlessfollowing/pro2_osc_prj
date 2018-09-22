@@ -77,6 +77,7 @@ enum {
     CMD_WEB_UI_QUERY_LEFT_INFO = 34, 
     CMD_WEB_UI_GPS_STATE_CHANGE = 35,
     CMD_WEB_UI_SHUT_DOWN = 36,
+    CMD_WEB_UI_SWITCH_MOUNT_MODE = 37,
 };
 
 
@@ -211,7 +212,6 @@ private:
 
     sp<MenuUI>          mOLEDHandle;
 	
-
 };
 
 #endif //INC_360PRO_SERVICE_FIFO_H

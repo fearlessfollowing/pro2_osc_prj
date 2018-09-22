@@ -39,15 +39,15 @@
 #include <hw/MenuUI.h>
 #include <sys/MidProto.h>
 
-#undef TAG
-#define TAG "pro2_service"
+#undef      TAG
+#define     TAG "pro2_service"
 
 void start_all();
 void init_fifo();
 void debug_version_info();
 
 
-#define PRO2_VER    "V0.2.18"
+#define PRO2_VER    "V0.2.35"
 
 
 int main(int argc ,char *argv[])

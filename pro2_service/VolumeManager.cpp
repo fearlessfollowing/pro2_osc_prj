@@ -15,6 +15,7 @@
 ** 修改记录:
 ** V1.0			Skymixos		2018-08-04		创建文件，添加注释
 ** V2.0         skymixos        2018-09-05      存储事件直接通过传输层发送，去掉从UI层发送
+** V3.0         SKymixos        2018-09-22      增加切换挂载模式接口
 ******************************************************************************************************/
 
 #include <stdio.h>
@@ -513,12 +514,6 @@ bool VolumeManager::isMountpointMounted(const char *mp)
 }
 
 
-#if 0
-void VolumeManager::doEnterUdiskMode()
-{
-}
-#endif
-
 
 /*
  * 给所有的模组上电
@@ -554,48 +549,82 @@ void VolumeManager::powerOffAllModule()
 /*
  * 单独给指定的模组上电
  */
-void VolumeManager::powerOnModuleByIndex(int iIndex)
+void VolumeManager::powerOnOffModuleByIndex(bool bOnOff, int iIndex)
 {
 	u8 module1_val = 0;
 	u8 module2_val = 0; 
+    int iRet1 = -1, iRet2 = -1;
 
-    mI2CLight->i2c_read(0x2, &module1_val);
-    mI2CLight->i2c_read(0x3, &module2_val);		
+    iRet1 = mI2CLight->i2c_read(0x2, &module1_val);
+    if (iRet1) {
+        Log.e(TAG, "[%s: %d] I2c read 0x77 -> 0x2 Failed", __FILE__, __LINE__);
+        return;
+    }
+
+    iRet2 = mI2CLight->i2c_read(0x3, &module2_val);		
+    if (iRet2) {
+        Log.e(TAG, "[%s: %d] I2c read 0x77 -> 0x3 Failed", __FILE__, __LINE__);
+        return;
+    }
 
     switch (iIndex) {
         case 1: {
-    		module1_val |= (1 << 6);
+            if (bOnOff) {
+        		module1_val |= (1 << 7);
+            } else {
+        		module1_val &= ~(1 << 7);
+            }
 	    	mI2CLight->i2c_write_byte(0x2, module1_val);
             break;
         }
 
         case 2: {
-    		module1_val |= (1 << 7);
-	    	mI2CLight->i2c_write_byte(0x2, module1_val);
+            if (bOnOff) {   /* On */
+        		module1_val |= (1 << 6);
+            } else {    /* Off */
+        		module1_val &= ~(1 << 6);
+            }
+            mI2CLight->i2c_write_byte(0x2, module1_val);
             break;
         }
 
         case 3: {
-    		module2_val |= (1 << 0);
+            if (bOnOff) {
+        		module2_val |= (1 << 3);
+            } else {
+        		module2_val &= ~(1 << 3);
+            }
 	    	mI2CLight->i2c_write_byte(0x3, module2_val);
             break;
         }
 
         case 4: {
-    		module2_val |= (1 << 1);
+            if (bOnOff) {
+        		module2_val |= (1 << 2);
+            } else {
+        		module2_val &= ~(1 << 2);
+            }
 	    	mI2CLight->i2c_write_byte(0x3, module2_val);
             break;
         }
 
         case 5: {
-    		module2_val |= (1 << 2);
+            if (bOnOff) {
+        		module2_val |= (1 << 1);
+            } else {
+        		module2_val &= ~(1 << 1);
+            }
 	    	mI2CLight->i2c_write_byte(0x3, module2_val);
             break;
         }
 
         case 6: {
-    		module2_val |= (1 << 3);
-	    	mI2CLight->i2c_write_byte(0x3, module2_val);
+            if (bOnOff) {
+        		module2_val |= (1 << 0);
+            } else {
+        		module2_val &= ~(1 << 0);
+            }
+	    	mI2CLight->i2c_write_byte(0x3, module2_val);            
             break;
         }
     }
@@ -676,6 +705,43 @@ bool VolumeManager::checkEnterUdiskResult()
 }
 
 
+Volume* VolumeManager::getUdiskVolByIndex(int iIndex)
+{
+    Volume* pVol = NULL;
+    if (iIndex < 0 || iIndex > mModuleVols.size()) {
+        Log.e(TAG, "[%s: %d] Invalid udisk index[%d], please check", __FILE__, __LINE__, iIndex);
+    } else {
+        for (u32 i = 0; i < mModuleVols.size(); i++) {
+            if (mModuleVols.at(i)->iIndex == iIndex) {
+                pVol = mModuleVols.at(i);
+                break;
+            }
+        }
+    }
+    return pVol;
+}
+
+
+bool VolumeManager::checkVolIsMountedByIndex(int iIndex, int iTimeout)
+{
+    bool bResult = false;
+    Volume* pVol = NULL;
+    pVol = getUdiskVolByIndex(iIndex);
+
+    while (iTimeout > 0) {
+        msg_util::sleep_ms(1000);
+        bResult = isMountpointMounted(pVol->pMountPath);
+        if (bResult) {
+            break;
+        } else {
+            msg_util::sleep_ms(1000);
+            iTimeout -= 1000;
+        }
+    }
+    return bResult;
+}
+
+
 /*
  * 最终目标：确保两个HUB都处于上电状态
  * 给一个HUB上电
@@ -704,63 +770,53 @@ bool VolumeManager::enterUdiskMode()
 
 #ifdef ENABLE_USB_NEW_UDISK_POWER_ON
 
-    int iHub1Index[] = {6, 1, 2};
-    int iHub2Index[] = {3, 4, 5};
 
     mAllowExitUdiskMode = false;
 
     system("power_manager power_off");
-    msg_util::sleep_ms(1000);
+    msg_util::sleep_ms(2000);
+    
+    if (waitHub1RestComplete()) {
+        Log.d(TAG, "[%s: %d] -------------- Hub1 Reset Complete", __FILE__, __LINE__);
+    }
+    
+    if (waitHub2RestComplete()) {
+        Log.d(TAG, "[%s: %d] -------------- Hub2 Reset Complete", __FILE__, __LINE__);
+    }
 
     gettimeofday(&enterTv, NULL);   
 
-    /* 
-     * 1.给6,1,2模组所在的HUB上电
-     * 2.确定HUB已经正常工作
-     * 3.依次给各个模组上电（上电一个睡眠<超时值设置为3秒>，直到挂载程序将其唤醒）
-     * 
-     * 4.给3,4,5模组所在的HUB上电
-     * 5.确定HUB已经正常工作
-     * 6.依次给各个模组上电
-     */
-
+    /* 给模组上电 */
     int iRetry;
     int iModulePowerOnTimes;
 
-
-    for (iRetry = 0; iRetry < 3; iRetry++) {
-        resetHub1();
-        if (waitHub1RestComplete()) {
-            Log.d(TAG, "[%s: %d] -------> Hub1 Rest Ok", __FILE__, __LINE__);
-            break;
+    for (int i = 6; i >= 1; i--) {
+        for (iModulePowerOnTimes = 0; iModulePowerOnTimes < 3; iModulePowerOnTimes++) {
+            Log.d(TAG, "[%s: %d] Power on for device[%d]", __FILE__, __LINE__, i);
+            powerOnOffModuleByIndex(true, i);        /* 6, 1, 2 */
+            if (checkVolIsMountedByIndex(i)) {
+                break;
+            } else {
+                powerOnOffModuleByIndex(false, i);  /* 给模组下电 */
+                msg_util::sleep_ms(2000);
+            }
         }
-        msg_util::sleep_ms(200);
-    }
 
-    for (int i = 0; i < 3; i++) {
-        powerOnModuleByIndex(iHub1Index[i]);        /* 6, 1, 2 */
-        msg_util::sleep_ms(500);
-    }
-
-
-    for (iRetry = 0; iRetry < 3; iRetry++) {
-        resetHub2();
-        if (waitHub2RestComplete()) {
-            Log.d(TAG, "[%s: %d] -------> Hub2 Rest Ok", __FILE__, __LINE__);
-            break;
+        if (iModulePowerOnTimes >= 3) {
+            Log.e(TAG, "[%s: %d] Mount Module[%d] Failed, What's wrong!", __FILE__, __LINE__, i);
         }
-        msg_util::sleep_ms(200);
     }
 
+#if 0
     for (int i = 0; i < 3; i++) {
         powerOnModuleByIndex(iHub2Index[i]);        /* 6, 1, 2 */
-        msg_util::sleep_ms(500);
+        msg_util::sleep_ms(1000);
     }
+#endif    
+
 
     gettimeofday(&exitTv, NULL);   
-
     int iNeedSleepTime = iEnterTotalLen - (exitTv.tv_sec - enterTv.tv_sec);
-
     Log.d(TAG, "[%s: %d] Should Sleep time: %ds", __FILE__, __LINE__, iNeedSleepTime);
     if (iNeedSleepTime > 0) {
         sleep(iNeedSleepTime);
@@ -1005,7 +1061,7 @@ void VolumeManager::unmountAll()
     system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
     system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
 
-    msg_util::sleep_ms(3000);
+    msg_util::sleep_ms(5000);
 
     powerOffAllModule();
 
@@ -1056,9 +1112,9 @@ void VolumeManager::exitUdiskMode()
     system("echo 0 > /sys/class/gpio/gpio456/value");   /* gpio456 = 0 */
     system("echo 1 > /sys/class/gpio/gpio478/value");   /* gpio456 = 0 */
 
-    msg_util::sleep_ms(3000);
+    msg_util::sleep_ms(6 * 1000);
 
-    powerOffAllModule();
+    system("power_manager power_off");
 
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_NORMAL);
 }
@@ -1261,6 +1317,7 @@ bool VolumeManager::deInitFileMonitor()
     
     return true;
 }
+
 
 bool VolumeManager::stop()
 {
@@ -1668,6 +1725,39 @@ bool VolumeManager::volumeIsTfCard(Volume* pVol)
     }
 
 }
+
+
+bool VolumeManager::changeMountMethod(const char* mode)
+{
+    /* 根据模式来修改所有已经挂上的卡 */
+    Log.d(TAG, "[%s: %d] changeMountMethod ---> %s", __FILE__, __LINE__, mode);
+    Volume* tmpVol = NULL;
+
+    int status;
+    const char *args[5];
+    args[0] = "/bin/mount";
+    args[1] = "-o";
+    
+    if (!strcmp(mode, "ro")) {
+        args[2] = "remount,ro";
+    } else {
+        args[2] = "remount,rw";
+    }
+
+    for (u32 i = 0; i < mVolumes.size(); i++) {
+
+        tmpVol = mVolumes.at(i);
+        if (tmpVol && isMountpointMounted(tmpVol->pMountPath)) {
+            args[3] = tmpVol->cDevNode;
+            args[4] = tmpVol->pMountPath;
+            forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
+            Log.d(TAG, "[%s: %d] Remount Device mount way", __FILE__, __LINE__);    
+        } else {
+            Log.d(TAG, "[%s: %d] Volume [%s] not mounted???", __FILE__, __LINE__, tmpVol->pMountPath);
+        }
+    }
+}
+
 
 
 /*************************************************************************

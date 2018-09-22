@@ -125,10 +125,17 @@ COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
 # 使能设备文件删除监听线程
 # COM_FLAGS += ' -DENABLE_REMOVE_LISTEN_THREAD '
 
+
+# 进入U盘模式后使能按键事件的接收
+# COMFLAGS += ' -DENBALE_INPUT_EVENT_WHEN_ENTER_UDISK ' 
+
+
 # 调试Netlink消息
 # COM_FLAGS += ' -DENABLE_DEBUG_NETLINK_MSG '
 
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
+
+
 
 # toolchains options
 CROSS_TOOL  = 'aarch64'

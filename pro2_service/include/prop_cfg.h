@@ -61,11 +61,11 @@
 #define PROP_SYS_UA_VER 			"sys.ua_ver"
 #define PROP_PRO2_VER               "sys.pro2_ver"
 
-
 #define PROP_PWR_FIRST      	    "sys.hub_reset_first"
 #define PROP_KEY_RESPRATE           "sys.key_resprate"
+#define PROP_SKIP_SPEED_TEST        "sys.skip_speed_test"
 
-
+#define PROP_CAM_STATE              "sys.cam_state"
 
 
 /*
@@ -194,6 +194,10 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define TAKE_VID_MODE_4K_120F_3D        "vid_4k_120f_3d"
 #define TAKE_VID_4K_30F_RTS             "vid_4k_30f_rts"
 #define TAKE_VID_4K_30F_3D_RTS          "vid_4k_30f_3d_rts"
+
+#define TAKE_VID_8K_30F_3D_HDR          "vid_8k_30f_3d_hdr"
+
+
 #define TAKE_VID_MOD_CUSTOMER           "vid_customer"
 
 /*

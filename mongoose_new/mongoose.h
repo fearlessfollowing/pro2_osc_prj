@@ -1629,8 +1629,8 @@ extern "C" {
 
 /* Describes chunk of memory */
 struct mg_str {
-  const char *p; /* Memory chunk pointer */
-  size_t len;    /* Memory chunk length */
+    const char *p; /* Memory chunk pointer */
+    size_t len;    /* Memory chunk length */
 };
 
 /*
@@ -1698,9 +1698,9 @@ extern "C" {
 
 /* Memory buffer descriptor */
 struct mbuf {
-  char *buf;   /* Buffer pointer */
-  size_t len;  /* Data length. Data is located between offset 0 and len. */
-  size_t size; /* Buffer size allocated by realloc(1). Must be >= len */
+    char *buf;   /* Buffer pointer */
+    size_t len;  /* Data length. Data is located between offset 0 and len. */
+    size_t size; /* Buffer size allocated by realloc(1). Must be >= len */
 };
 
 /*
@@ -2960,44 +2960,47 @@ union socket_address;
 struct mg_iface_vtable;
 
 struct mg_iface {
-  struct mg_mgr *mgr;
-  void *data; /* Implementation-specific data */
-  struct mg_iface_vtable *vtable;
+    struct mg_mgr *mgr;
+    void *data; /* Implementation-specific data */
+    struct mg_iface_vtable *vtable;
 };
 
 struct mg_iface_vtable {
-  void (*init)(struct mg_iface *iface);
-  void (*free)(struct mg_iface *iface);
-  void (*add_conn)(struct mg_connection *nc);
-  void (*remove_conn)(struct mg_connection *nc);
-  time_t (*poll)(struct mg_iface *iface, int timeout_ms);
+    void (*init)(struct mg_iface *iface);
+    void (*free)(struct mg_iface *iface);
+    void (*add_conn)(struct mg_connection *nc);
+    void (*remove_conn)(struct mg_connection *nc);
+    time_t (*poll)(struct mg_iface *iface, int timeout_ms);
 
-  /* Set up a listening TCP socket on a given address. rv = 0 -> ok. */
-  int (*listen_tcp)(struct mg_connection *nc, union socket_address *sa);
-  /* Request that a "listening" UDP socket be created. */
-  int (*listen_udp)(struct mg_connection *nc, union socket_address *sa);
+    /* Set up a listening TCP socket on a given address. rv = 0 -> ok. */
+    int (*listen_tcp)(struct mg_connection *nc, union socket_address *sa);
 
-  /* Request that a TCP connection is made to the specified address. */
-  void (*connect_tcp)(struct mg_connection *nc, const union socket_address *sa);
-  /* Open a UDP socket. Doesn't actually connect anything. */
-  void (*connect_udp)(struct mg_connection *nc);
+    /* Request that a "listening" UDP socket be created. */
+    int (*listen_udp)(struct mg_connection *nc, union socket_address *sa);
 
-  /* Send functions for TCP and UDP. Sent data is copied before return. */
-  void (*tcp_send)(struct mg_connection *nc, const void *buf, size_t len);
-  void (*udp_send)(struct mg_connection *nc, const void *buf, size_t len);
+    /* Request that a TCP connection is made to the specified address. */
+    void (*connect_tcp)(struct mg_connection *nc, const union socket_address *sa);
 
-  void (*recved)(struct mg_connection *nc, size_t len);
+    /* Open a UDP socket. Doesn't actually connect anything. */
+    void (*connect_udp)(struct mg_connection *nc);
 
-  /* Perform interface-related connection initialization. Return 1 on ok. */
-  int (*create_conn)(struct mg_connection *nc);
-  /* Perform interface-related cleanup on connection before destruction. */
-  void (*destroy_conn)(struct mg_connection *nc);
+    /* Send functions for TCP and UDP. Sent data is copied before return. */
+    void (*tcp_send)(struct mg_connection *nc, const void *buf, size_t len);
+    void (*udp_send)(struct mg_connection *nc, const void *buf, size_t len);
 
-  /* Associate a socket to a connection. */
-  void (*sock_set)(struct mg_connection *nc, sock_t sock);
+    void (*recved)(struct mg_connection *nc, size_t len);
 
-  /* Put connection's address into *sa, local (remote = 0) or remote. */
-  void (*get_conn_addr)(struct mg_connection *nc, int remote,
+    /* Perform interface-related connection initialization. Return 1 on ok. */
+    int (*create_conn)(struct mg_connection *nc);
+
+    /* Perform interface-related cleanup on connection before destruction. */
+    void (*destroy_conn)(struct mg_connection *nc);
+
+    /* Associate a socket to a connection. */
+    void (*sock_set)(struct mg_connection *nc, sock_t sock);
+
+    /* Put connection's address into *sa, local (remote = 0) or remote. */
+    void (*get_conn_addr)(struct mg_connection *nc, int remote,
                         union socket_address *sa);
 };
 
@@ -3080,17 +3083,17 @@ struct mg_connection;
 void mg_ssl_if_init();
 
 enum mg_ssl_if_result {
-  MG_SSL_OK = 0,
-  MG_SSL_WANT_READ = -1,
-  MG_SSL_WANT_WRITE = -2,
-  MG_SSL_ERROR = -3,
+    MG_SSL_OK = 0,
+    MG_SSL_WANT_READ = -1,
+    MG_SSL_WANT_WRITE = -2,
+    MG_SSL_ERROR = -3,
 };
 
 struct mg_ssl_if_conn_params {
-  const char *cert;
-  const char *key;
-  const char *ca_cert;
-  const char *server_name;
+    const char *cert;
+    const char *key;
+    const char *ca_cert;
+    const char *server_name;
 };
 
 enum mg_ssl_if_result mg_ssl_if_conn_init(
@@ -3170,13 +3173,13 @@ extern "C" {
 #endif /* __cplusplus */
 
 union socket_address {
-  struct sockaddr sa;
-  struct sockaddr_in sin;
-#if MG_ENABLE_IPV6
-  struct sockaddr_in6 sin6;
-#else
-  struct sockaddr sin6;
-#endif
+    struct sockaddr sa;
+    struct sockaddr_in sin;
+    #if MG_ENABLE_IPV6
+    struct sockaddr_in6 sin6;
+    #else
+    struct sockaddr sin6;
+    #endif
 };
 
 struct mg_connection;
@@ -3201,75 +3204,83 @@ typedef void (*mg_event_handler_t)(struct mg_connection *nc, int ev,
  * Mongoose event manager.
  */
 struct mg_mgr {
-  struct mg_connection *active_connections;
+    struct mg_connection *active_connections;
+
 #if MG_ENABLE_HEXDUMP
-  const char *hexdump_file; /* Debug hexdump file path */
+    const char *hexdump_file; /* Debug hexdump file path */
 #endif
+
 #if MG_ENABLE_BROADCAST
-  sock_t ctl[2]; /* Socketpair for mg_broadcast() */
+    sock_t ctl[2]; /* Socketpair for mg_broadcast() */
 #endif
-  void *user_data; /* User data */
-  int num_ifaces;
-  struct mg_iface **ifaces; /* network interfaces */
+
+    void *user_data; /* User data */
+    int num_ifaces;
+    struct mg_iface **ifaces; /* network interfaces */
+
 #if MG_ENABLE_JAVASCRIPT
-  struct v7 *v7;
+    struct v7 *v7;
 #endif
+
 };
 
 /*
  * Mongoose connection.
  */
 struct mg_connection {
-  struct mg_connection *next, *prev; /* mg_mgr::active_connections linkage */
-  struct mg_connection *listener;    /* Set only for accept()-ed connections */
-  struct mg_mgr *mgr;                /* Pointer to containing manager */
+    struct mg_connection *next, *prev; /* mg_mgr::active_connections linkage */
+    struct mg_connection *listener;    /* Set only for accept()-ed connections */
+    struct mg_mgr *mgr;                /* Pointer to containing manager */
 
-  sock_t sock; /* Socket to the remote peer */
-  int err;
-  union socket_address sa; /* Remote peer address */
-  size_t recv_mbuf_limit;  /* Max size of recv buffer */
-  struct mbuf recv_mbuf;   /* Received data */
-  struct mbuf send_mbuf;   /* Data scheduled for sending */
-  time_t last_io_time;     /* Timestamp of the last socket IO */
-  double ev_timer_time;    /* Timestamp of the future MG_EV_TIMER */
+    sock_t sock; /* Socket to the remote peer */
+    int err;
+    union socket_address sa; /* Remote peer address */
+    size_t recv_mbuf_limit;  /* Max size of recv buffer */
+    struct mbuf recv_mbuf;   /* Received data */
+    struct mbuf send_mbuf;   /* Data scheduled for sending */
+    time_t last_io_time;     /* Timestamp of the last socket IO */
+    double ev_timer_time;    /* Timestamp of the future MG_EV_TIMER */
+
 #if MG_ENABLE_SSL
-  void *ssl_if_data; /* SSL library data. */
+    void *ssl_if_data; /* SSL library data. */
 #endif
-  mg_event_handler_t proto_handler; /* Protocol-specific event handler */
-  void *proto_data;                 /* Protocol-specific data */
-  void (*proto_data_destructor)(void *proto_data);
-  mg_event_handler_t handler; /* Event handler function */
-  void *user_data;            /* User-specific data */
-  union {
-    void *v;
-    /*
-     * the C standard is fussy about fitting function pointers into
-     * void pointers, since some archs might have fat pointers for functions.
-     */
-    mg_event_handler_t f;
-  } priv_1;       /* Used by mg_enable_multithreading() */
-  void *priv_2;   /* Used by mg_enable_multithreading() */
-  void *mgr_data; /* Implementation-specific event manager's data. */
-  struct mg_iface *iface;
-  unsigned long flags;
-/* Flags set by Mongoose */
-#define MG_F_LISTENING (1 << 0)          /* This connection is listening */
-#define MG_F_UDP (1 << 1)                /* This connection is UDP */
-#define MG_F_RESOLVING (1 << 2)          /* Waiting for async resolver */
-#define MG_F_CONNECTING (1 << 3)         /* connect() call in progress */
-#define MG_F_SSL (1 << 4)                /* SSL is enabled on the connection */
-#define MG_F_SSL_HANDSHAKE_DONE (1 << 5) /* SSL hanshake has completed */
-#define MG_F_WANT_READ (1 << 6)          /* SSL specific */
-#define MG_F_WANT_WRITE (1 << 7)         /* SSL specific */
-#define MG_F_IS_WEBSOCKET (1 << 8)       /* Websocket specific */
+    mg_event_handler_t proto_handler; /* Protocol-specific event handler */
+    void *proto_data;                 /* Protocol-specific data */
+    void (*proto_data_destructor)(void *proto_data);
+    mg_event_handler_t handler; /* Event handler function */
+    void *user_data;            /* User-specific data */
+    union {
+        void *v;
+        /*
+        * the C standard is fussy about fitting function pointers into
+        * void pointers, since some archs might have fat pointers for functions.
+        */
+        mg_event_handler_t f;
+    } priv_1;       /* Used by mg_enable_multithreading() */
+  
+    void *priv_2;   /* Used by mg_enable_multithreading() */
+    void *mgr_data; /* Implementation-specific event manager's data. */
+    struct mg_iface *iface;
+    unsigned long flags;
+
+    /* Flags set by Mongoose */
+#define MG_F_LISTENING              (1 << 0)          /* This connection is listening */
+#define MG_F_UDP                    (1 << 1)                /* This connection is UDP */
+#define MG_F_RESOLVING              (1 << 2)          /* Waiting for async resolver */
+#define MG_F_CONNECTING             (1 << 3)         /* connect() call in progress */
+#define MG_F_SSL                    (1 << 4)                /* SSL is enabled on the connection */
+#define MG_F_SSL_HANDSHAKE_DONE     (1 << 5)        /* SSL hanshake has completed */
+#define MG_F_WANT_READ              (1 << 6)          /* SSL specific */
+#define MG_F_WANT_WRITE             (1 << 7)         /* SSL specific */
+#define MG_F_IS_WEBSOCKET           (1 << 8)       /* Websocket specific */
 
 /* Flags that are settable by user */
-#define MG_F_SEND_AND_CLOSE (1 << 10)       /* Push remaining data and close  */
-#define MG_F_CLOSE_IMMEDIATELY (1 << 11)    /* Disconnect */
-#define MG_F_WEBSOCKET_NO_DEFRAG (1 << 12)  /* Websocket specific */
-#define MG_F_DELETE_CHUNK (1 << 13)         /* HTTP specific */
-#define MG_F_ENABLE_BROADCAST (1 << 14)     /* Allow broadcast address usage */
-#define MG_F_TUN_DO_NOT_RECONNECT (1 << 15) /* Don't reconnect tunnel */
+#define MG_F_SEND_AND_CLOSE         (1 << 10)       /* Push remaining data and close  */
+#define MG_F_CLOSE_IMMEDIATELY      (1 << 11)    /* Disconnect */
+#define MG_F_WEBSOCKET_NO_DEFRAG    (1 << 12)  /* Websocket specific */
+#define MG_F_DELETE_CHUNK           (1 << 13)         /* HTTP specific */
+#define MG_F_ENABLE_BROADCAST       (1 << 14)     /* Allow broadcast address usage */
+#define MG_F_TUN_DO_NOT_RECONNECT   (1 << 15) /* Don't reconnect tunnel */
 
 #define MG_F_USER_1 (1 << 20) /* Flags left for application */
 #define MG_F_USER_2 (1 << 21)
@@ -3305,9 +3316,9 @@ void mg_mgr_init(struct mg_mgr *mgr, void *user_data);
  * `num_ifaces` pointers it contains will be reclaimed by `mg_mgr_free`.
  */
 struct mg_mgr_init_opts {
-  struct mg_iface_vtable *main_iface;
-  int num_ifaces;
-  struct mg_iface_vtable **ifaces;
+    struct mg_iface_vtable *main_iface;
+    int num_ifaces;
+    struct mg_iface_vtable **ifaces;
 };
 
 /*
@@ -3374,10 +3385,10 @@ struct mg_connection *mg_next(struct mg_mgr *, struct mg_connection *);
  * see `MG_F_*` flags definitions.
  */
 struct mg_add_sock_opts {
-  void *user_data;           /* Initial value for connection's user_data */
-  unsigned int flags;        /* Initial connection flags */
-  const char **error_string; /* Placeholder for the error string */
-  struct mg_iface *iface;    /* Interface instance */
+    void *user_data;           /* Initial value for connection's user_data */
+    unsigned int flags;        /* Initial connection flags */
+    const char **error_string; /* Placeholder for the error string */
+    struct mg_iface *iface;    /* Interface instance */
 };
 
 /*
@@ -3405,19 +3416,20 @@ struct mg_connection *mg_add_sock_opt(struct mg_mgr *, sock_t,
  * see `MG_F_*` flags definitions.
  */
 struct mg_bind_opts {
-  void *user_data;           /* Initial value for connection's user_data */
-  unsigned int flags;        /* Extra connection flags */
-  const char **error_string; /* Placeholder for the error string */
-  struct mg_iface *iface;    /* Interface instance */
+    void *user_data;           /* Initial value for connection's user_data */
+    unsigned int flags;        /* Extra connection flags */
+    const char **error_string; /* Placeholder for the error string */
+    struct mg_iface *iface;    /* Interface instance */
+
 #if MG_ENABLE_SSL
-  /* SSL settings. */
-  const char *ssl_cert;    /* Server certificate to present to clients
+    /* SSL settings. */
+    const char *ssl_cert;    /* Server certificate to present to clients
                             * Or client certificate to present to tunnel
                             * dispatcher. */
-  const char *ssl_key;     /* Private key corresponding to the certificate.
-                              If ssl_cert is set but ssl_key is not, ssl_cert
-                              is used. */
-  const char *ssl_ca_cert; /* CA bundle used to verify client certificates or
+    const char *ssl_key;     /* Private key corresponding to the certificate.
+                                If ssl_cert is set but ssl_key is not, ssl_cert
+                                is used. */
+    const char *ssl_ca_cert; /* CA bundle used to verify client certificates or
                             * tunnel dispatchers. */
 #endif
 };
@@ -3453,29 +3465,30 @@ struct mg_connection *mg_bind_opt(struct mg_mgr *mgr, const char *address,
 
 /* Optional parameters to `mg_connect_opt()` */
 struct mg_connect_opts {
-  void *user_data;           /* Initial value for connection's user_data */
-  unsigned int flags;        /* Extra connection flags */
-  const char **error_string; /* Placeholder for the error string */
-  struct mg_iface *iface;    /* Interface instance */
-#if MG_ENABLE_SSL
-  /* SSL settings. */
-  const char *ssl_cert;    /* Client certificate to present to the server */
-  const char *ssl_key;     /* Private key corresponding to the certificate.
-                              If ssl_cert is set but ssl_key is not, ssl_cert
-                              is used. */
-  const char *ssl_ca_cert; /* Verify server certificate using this CA bundle.
-                              If set to "*", then SSL is enabled but no cert
-                              verification is performed. */
+    void *user_data;           /* Initial value for connection's user_data */
+    unsigned int flags;        /* Extra connection flags */
+    const char **error_string; /* Placeholder for the error string */
+    struct mg_iface *iface;    /* Interface instance */
 
-  /*
-   * Server name verification. If ssl_ca_cert is set and the certificate has
-   * passed verification, its subject will be verified against this string.
-   * By default (if ssl_server_name is NULL) hostname part of the address will
-   * be used. Wildcard matching is supported. A special value of "*" disables
-   * name verification.
-   */
-  const char *ssl_server_name;
-#endif
+    #if MG_ENABLE_SSL
+    /* SSL settings. */
+    const char *ssl_cert;    /* Client certificate to present to the server */
+    const char *ssl_key;     /* Private key corresponding to the certificate.
+                                If ssl_cert is set but ssl_key is not, ssl_cert
+                                is used. */
+    const char *ssl_ca_cert; /* Verify server certificate using this CA bundle.
+                                If set to "*", then SSL is enabled but no cert
+                                verification is performed. */
+
+    /*
+    * Server name verification. If ssl_ca_cert is set and the certificate has
+    * passed verification, its subject will be verified against this string.
+    * By default (if ssl_server_name is NULL) hostname part of the address will
+    * be used. Wildcard matching is supported. A special value of "*" disables
+    * name verification.
+    */
+    const char *ssl_server_name;
+    #endif
 };
 
 /*
@@ -3629,7 +3642,7 @@ int mg_check_ip_acl(const char *acl, uint32_t remote_ip);
  * Optional parameters for mg_enable_multithreading_opt()
  */
 struct mg_multithreading_opts {
-  int poll_timeout; /* Polling interval */
+    int poll_timeout; /* Polling interval */
 };
 
 /*
@@ -4000,58 +4013,58 @@ extern "C" {
 
 /* HTTP message */
 struct http_message {
-  struct mg_str message; /* Whole message: request line + headers + body */
+    struct mg_str message; /* Whole message: request line + headers + body */
 
-  /* HTTP Request line (or HTTP response line) */
-  struct mg_str method; /* "GET" */
-  struct mg_str uri;    /* "/my_file.html" */
-  struct mg_str proto;  /* "HTTP/1.1" -- for both request and response */
+    /* HTTP Request line (or HTTP response line) */
+    struct mg_str method; /* "GET" */
+    struct mg_str uri;    /* "/my_file.html" */
+    struct mg_str proto;  /* "HTTP/1.1" -- for both request and response */
 
-  /* For responses, code and response status message are set */
-  int resp_code;
-  struct mg_str resp_status_msg;
+    /* For responses, code and response status message are set */
+    int resp_code;
+    struct mg_str resp_status_msg;
 
-  /*
-   * Query-string part of the URI. For example, for HTTP request
-   *    GET /foo/bar?param1=val1&param2=val2
-   *    |    uri    |     query_string     |
-   *
-   * Note that question mark character doesn't belong neither to the uri,
-   * nor to the query_string
-   */
-  struct mg_str query_string;
+    /*
+    * Query-string part of the URI. For example, for HTTP request
+    *    GET /foo/bar?param1=val1&param2=val2
+    *    |    uri    |     query_string     |
+    *
+    * Note that question mark character doesn't belong neither to the uri,
+    * nor to the query_string
+    */
+    struct mg_str query_string;
 
-  /* Headers */
-  struct mg_str header_names[MG_MAX_HTTP_HEADERS];
-  struct mg_str header_values[MG_MAX_HTTP_HEADERS];
+    /* Headers */
+    struct mg_str header_names[MG_MAX_HTTP_HEADERS];
+    struct mg_str header_values[MG_MAX_HTTP_HEADERS];
 
-  /* Message body */
-  struct mg_str body; /* Zero-length for requests with no body */
+    /* Message body */
+    struct mg_str body; /* Zero-length for requests with no body */
 };
 
 #if MG_ENABLE_HTTP_WEBSOCKET
 /* WebSocket message */
 struct websocket_message {
-  unsigned char *data;
-  size_t size;
-  unsigned char flags;
+    unsigned char *data;
+    size_t size;
+    unsigned char flags;
 };
 #endif
 
 /* HTTP multipart part */
 struct mg_http_multipart_part {
-  const char *file_name;
-  const char *var_name;
-  struct mg_str data;
-  int status; /* <0 on error */
-  void *user_data;
+    const char *file_name;
+    const char *var_name;
+    struct mg_str data;
+    int status; /* <0 on error */
+    void *user_data;
 };
 
 /* SSI call context */
 struct mg_ssi_call_ctx {
-  struct http_message *req; /* The request being processed. */
-  struct mg_str file;       /* Filesystem path of the file being processed. */
-  struct mg_str arg; /* The argument passed to the tag: <!-- call arg -->. */
+    struct http_message *req; /* The request being processed. */
+    struct mg_str file;       /* Filesystem path of the file being processed. */
+    struct mg_str arg; /* The argument passed to the tag: <!-- call arg -->. */
 };
 
 /* HTTP and websocket events. void *ev_data is described in a comment. */
@@ -4414,25 +4427,25 @@ int mg_get_http_var(const struct mg_str *buf, const char *name, char *dst,
  * Best practice is to set only required settings, and leave the rest as NULL.
  */
 struct mg_serve_http_opts {
-  /* Path to web root directory */
-  const char *document_root;
+    /* Path to web root directory */
+    const char *document_root;
 
-  /* List of index files. Default is "" */
-  const char *index_files;
+    /* List of index files. Default is "" */
+    const char *index_files;
 
-  /*
-   * Leave as NULL to disable authentication.
-   * To enable directory protection with authentication, set this to ".htpasswd"
-   * Then, creating ".htpasswd" file in any directory automatically protects
-   * it with digest authentication.
-   * Use `mongoose` web server binary, or `htdigest` Apache utility to
-   * create/manipulate passwords file.
-   * Make sure `auth_domain` is set to a valid domain name.
-   */
-  const char *per_directory_auth_file;
+    /*
+    * Leave as NULL to disable authentication.
+    * To enable directory protection with authentication, set this to ".htpasswd"
+    * Then, creating ".htpasswd" file in any directory automatically protects
+    * it with digest authentication.
+    * Use `mongoose` web server binary, or `htdigest` Apache utility to
+    * create/manipulate passwords file.
+    * Make sure `auth_domain` is set to a valid domain name.
+    */
+    const char *per_directory_auth_file;
 
-  /* Authorization domain (domain name of this web server) */
-  const char *auth_domain;
+    /* Authorization domain (domain name of this web server) */
+    const char *auth_domain;
 
   /*
    * Leave as NULL to disable authentication.
@@ -4901,43 +4914,43 @@ int mg_http_create_digest_auth_header(char *buf, size_t buf_len,
 /* Amalgamated: #include "mongoose/src/net.h" */
 
 struct mg_mqtt_message {
-  int cmd;
-  int qos;
-  struct mg_str topic;
-  struct mg_str payload;
+    int cmd;
+    int qos;
+    struct mg_str topic;
+    struct mg_str payload;
 
-  uint8_t connack_ret_code; /* connack */
-  uint16_t message_id;      /* puback */
+    uint8_t connack_ret_code; /* connack */
+    uint16_t message_id;      /* puback */
 
-  /* connect */
-  uint8_t protocol_version;
-  uint8_t connect_flags;
-  uint16_t keep_alive_timer;
-  struct mg_str protocol_name;
-  struct mg_str client_id;
-  struct mg_str will_topic;
-  struct mg_str will_message;
-  struct mg_str user_name;
-  struct mg_str password;
+    /* connect */
+    uint8_t protocol_version;
+    uint8_t connect_flags;
+    uint16_t keep_alive_timer;
+    struct mg_str protocol_name;
+    struct mg_str client_id;
+    struct mg_str will_topic;
+    struct mg_str will_message;
+    struct mg_str user_name;
+    struct mg_str password;
 };
 
 struct mg_mqtt_topic_expression {
-  const char *topic;
-  uint8_t qos;
+    const char *topic;
+    uint8_t qos;
 };
 
 struct mg_send_mqtt_handshake_opts {
-  unsigned char flags; /* connection flags */
-  uint16_t keep_alive;
-  const char *will_topic;
-  const char *will_message;
-  const char *user_name;
-  const char *password;
+    unsigned char flags; /* connection flags */
+    uint16_t keep_alive;
+    const char *will_topic;
+    const char *will_message;
+    const char *user_name;
+    const char *password;
 };
 
 /* mg_mqtt_proto_data should be in header to allow external access to it */
 struct mg_mqtt_proto_data {
-  uint16_t keep_alive;
+    uint16_t keep_alive;
 };
 
 /* Message types */
@@ -5476,10 +5489,10 @@ extern "C" {
 #endif /* __cplusplus */
 
 enum mg_resolve_err {
-  MG_RESOLVE_OK = 0,
-  MG_RESOLVE_NO_ANSWERS = 1,
-  MG_RESOLVE_EXCEEDED_RETRY_COUNT = 2,
-  MG_RESOLVE_TIMEOUT = 3
+    MG_RESOLVE_OK = 0,
+    MG_RESOLVE_NO_ANSWERS = 1,
+    MG_RESOLVE_EXCEEDED_RETRY_COUNT = 2,
+    MG_RESOLVE_TIMEOUT = 3
 };
 
 typedef void (*mg_resolve_callback_t)(struct mg_dns_message *dns_message,
@@ -5487,12 +5500,12 @@ typedef void (*mg_resolve_callback_t)(struct mg_dns_message *dns_message,
 
 /* Options for `mg_resolve_async_opt`. */
 struct mg_resolve_async_opts {
-  const char *nameserver_url;
-  int max_retries;    /* defaults to 2 if zero */
-  int timeout;        /* in seconds; defaults to 5 if zero */
-  int accept_literal; /* pseudo-resolve literal ipv4 and ipv6 addrs */
-  int only_literal;   /* only resolves literal addrs; sync cb invocation */
-  struct mg_connection **dns_conn; /* return DNS connection */
+    const char *nameserver_url;
+    int max_retries;    /* defaults to 2 if zero */
+    int timeout;        /* in seconds; defaults to 5 if zero */
+    int accept_literal; /* pseudo-resolve literal ipv4 and ipv6 addrs */
+    int only_literal;   /* only resolves literal addrs; sync cb invocation */
+    struct mg_connection **dns_conn; /* return DNS connection */
 };
 
 /* See `mg_resolve_async_opt()` */

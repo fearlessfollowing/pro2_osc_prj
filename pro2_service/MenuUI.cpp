@@ -15,6 +15,7 @@
 ** V3.0         skymixos        2018年08月05日          修改存储逻辑及各种模式下的处理方式
 ** V3.1         skymixos        2018年08月31日          将存储相关的成员放入卷管理子系统中统一管理，删除
 **                                                      dev_manager.cpp
+** V3.2         skymixos        2018年09月20日          UI进入需要长时间操作时，禁止InputManager的上报功能
 ******************************************************************************************************/
 #include <future>
 #include <vector>
@@ -67,18 +68,14 @@ using namespace std;
 #undef  TAG
 #define TAG "MenuUI"
 
-
-//#define USE_OLD_NET
 #define ENABLE_LIGHT
 
 #define ENABLE_SOUND
 
 #define SN_LEN          (14)
 
-//sometimes met bat jump to 3 ,but in fact not
-#define BAT_LOW_VAL     (3)
+#define BAT_LOW_VAL     (5)
 
-//#define BAT_LOW_PROTECT (5)
 #define MAX_ADB_TIMES   (5)
 #define LONG_PRESS_MSEC (2000)
 
@@ -137,14 +134,13 @@ enum {
 
     UI_MSG_SET_SN,
     UI_MSG_SET_SYNC_INFO,
-//    OLED_CHECK_LIVE_OR_REC,
     UI_UPDATE_DEV_INFO,
-    UI_UPDATE_MID, //10
+    UI_UPDATE_MID,              //10
     OLED_DISP_BAT_LOW,
     OLED_UPDATE_CAPTURE_LIGHT,
     OLED_UPDATE_CAL_LIGHT,
     UI_CLEAR_MSG_BOX,
-    UI_READ_BAT, //15
+    UI_READ_BAT,                // 15
     UI_DISP_LIGHT,
     //disp oled info at start
     UI_DISP_INIT,
@@ -275,7 +271,6 @@ typedef struct _err_code_detail_ {
     const char *str;
     int icon;
 } ERR_CODE_DETAIL;
-
 
 enum {
     TAKE_VID_IN_NORMAL,
@@ -505,7 +500,9 @@ void MenuUI::init()
     CHECK_EQ(sizeof(astSysRead) / sizeof(astSysRead[0]), SYS_KEY_MAX);
 
     Log.d(TAG, "init UI state: STATE_IDLE");
-    mCamState = STATE_IDLE;
+    // mCamState = STATE_IDLE;
+    add_state(STATE_IDLE);
+    
     mGpsState = GPS_STATE_NO_DEVICE;
 
     Log.d(TAG, "Create OLED display Object...");
@@ -516,9 +513,6 @@ void MenuUI::init()
     Log.d(TAG, "Create System Configure Object...");
     mProCfg = sp<pro_cfg>(new pro_cfg());
 
-    mRemainInfo = sp<REMAIN_INFO>(new REMAIN_INFO());
-    CHECK_NE(mRemainInfo, nullptr);
-    memset(mRemainInfo.get(), 0, sizeof(REMAIN_INFO));
 
     mRecInfo = sp<REC_INFO>(new REC_INFO());
     CHECK_NE(mRecInfo, nullptr);
@@ -526,10 +520,8 @@ void MenuUI::init()
 
     Log.d(TAG, "Create System Light Manager Object...");
 
-    #ifdef ENABLE_LIGHT
     mOLEDLight = sp<oled_light>(new oled_light());
     CHECK_NE(mOLEDLight, nullptr);
-    #endif
 
     Log.d(TAG, "Create System Battery Manager Object...");
     mBatInterface = sp<battery_interface>(new battery_interface());
@@ -589,6 +581,7 @@ void MenuUI::init()
 	Log.d(TAG, "get pesudo sn [%s]", property_get(PROP_SYS_AP_PESUDO_SN));
 
     #else
+
 	char tmpName[128] = {0};
     char* pEnd = NULL;
 
@@ -683,16 +676,10 @@ void MenuUI::init()
 
 
     Log.d(TAG, "Init Input Manager");
-    #if 0
-    sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
-	mInputManager = sp<InputManager>(new InputManager(inputNotify));
-    CHECK_NE(mInputManager, nullptr);
-    #else
-
     sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
     InputManager* in = InputManager::Instance();
     in->setNotifyRecv(inputNotify);
-    #endif
+
 
     /*******************************************************************************
      * 启动卷管理器
@@ -809,7 +796,6 @@ void MenuUI::init_cfg_select()
     Log.d(TAG, "init_cfg_select: wifi state[%d]", mProCfg->get_val(KEY_WIFI_ON));
     msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
     NetManager::getNetManagerInstance()->postNetMessage(msg);
-
 }
 
 
@@ -1007,15 +993,15 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            // dispStr((const u8*)"Testing...", 36, 16, false, 128);
-            // dispStr((const u8*)"do not remove your", 12, 32, false, 128);
-            // dispStr((const u8*)"storage device please", 8, 48, false, 128);
+            dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
+            dispStr((const u8*)" storage devices...", 8, 32, false, 128);
+            dispStr((const u8*)"Stop pressing button", 8, 48, false, 128);
             #endif
             break;
         }
 
         case DISP_NEED_QUERY_TFCARD: {
-            #if 1
+            #if 2
             clearArea();
             dispStr((const u8*)"Please ensure mSD", 16, 8, false, 128);
             dispStr((const u8*)"cards exist and query", 8, 24, false, 128);
@@ -1024,6 +1010,7 @@ void MenuUI::disp_msg_box(int type)
             clearArea();
             dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
             dispStr((const u8*)" storage devices...", 8, 32, false, 128);
+            dispStr((const u8*)"Stop pressing button", 6, 48, false, 128);
 
             #endif
             break;
@@ -1403,17 +1390,16 @@ void MenuUI::setMenuCfgInit()
                 );
 
 
-    tmPos.xPos 		= 25;   /* 水平方向的起始坐标 */
+    tmPos.xPos 		= 25;       /* 水平方向的起始坐标 */
     tmPos.yPos 		= 16;
-    tmPos.iWidth	= 103;   /* 显示的宽 */
-    tmPos.iHeight   = 16;   /* 显示的高 */
+    tmPos.iWidth	= 103;      /* 显示的宽 */
+    tmPos.iHeight   = 16;       /* 显示的高 */
     setCommonMenuInit(&mMenuInfos[MENU_STORAGE], mStorageList, gStorageSetItems, &tmPos);   /* 设置系统菜单初始化 */
 
 
     mMenuInfos[MENU_SHOW_SPACE].priv = static_cast<void*>(&spaceNvIconInfo);
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.select = 0;
     mMenuInfos[MENU_SHOW_SPACE].mSelectInfo.page_max = 3;
-
 
 
     mMenuInfos[MENU_TF_FORMAT_SELECT].priv = static_cast<void*>(&storageNvIconInfo);
@@ -1691,6 +1677,7 @@ void MenuUI::printJsonCfg(Json::Value& json)
 }
 
 
+
 void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPicVideoCfg*>& pItemLists)
 {
     if (pParentMenu && !pItemLists.size()) {
@@ -1813,6 +1800,8 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                             pCommJsonCmd = pCmdTakeVid_4K30FRTS;
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_4K_30F_3D_RTS)) {
                             pCommJsonCmd = pCmdTakeVid_4K30F3DRTS;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_3D_HDR)) {
+                            pCommJsonCmd = pCmdTakeVid_8K30F3DHDR;
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {
                             pCommJsonCmd = pCmdTakeVid_Customer;
                         } 
@@ -2015,25 +2004,31 @@ void MenuUI::set_cur_menu_from_exit()
     }
 	
     switch (new_menu) {
-        case MENU_PIC_SET_DEF:
+        case MENU_PIC_SET_DEF: {
             setCurMenu(MENU_PIC_INFO);
             break;
+        }
 		
-        case MENU_VIDEO_SET_DEF:
+        case MENU_VIDEO_SET_DEF: {
             setCurMenu(MENU_VIDEO_INFO);
             break;
+        }
 		
-        case MENU_LIVE_SET_DEF:
+        case MENU_LIVE_SET_DEF: {
             setCurMenu(MENU_LIVE_INFO);
             break;
+        }
 		
-        case MENU_SYS_ERR:
+        case MENU_SYS_ERR: {
             Log.e(TAG, "func back to sys err");
             break;
+        }
 		
-        case MENU_CALIBRATION:
+        case MENU_CALIBRATION: {
             Log.d(TAG, "func back from other to calibration");
             break;
+        }
+
         default:
             break;
     }
@@ -2052,7 +2047,6 @@ void MenuUI::restore_all()
 }
 
 
-
 void MenuUI::update_sys_info()
 {
     SELECT_INFO * mSelect = getCurMenuSelectInfo();
@@ -2062,30 +2056,29 @@ void MenuUI::update_sys_info()
     Log.d(TAG, " mSelect->last_select %d select %d\n", mSelect->last_select, mSelect->select);
 
     switch (mSelect->last_select) {
-    case 0:
-        dispIconByType(ICON_INFO_SN_NORMAL_25_48_0_16103_16);
-        break;
-	
-    case 1:
-        dispStr((const u8 *)mVerInfo->r_v_str, 25,16,false,103);
-        break;
-	
-    SWITCH_DEF_ERROR(mSelect->last_select)
+        case 0:
+            dispIconByType(ICON_INFO_SN_NORMAL_25_48_0_16103_16);
+            break;
+        
+        case 1:
+            dispStr((const u8 *)mVerInfo->r_v_str, 25,16,false,103);
+            break;
+        
+        SWITCH_DEF_ERROR(mSelect->last_select)
     }
 
     switch (mSelect->select) {
-    case 0:
-        dispIconByType(ICON_INFO_SN_LIGHT_25_48_0_16103_16);
-        break;
-	
-    case 1:
-        dispStr((const u8 *)mVerInfo->r_v_str, 25,16,true,103);
-        break;
-	
-    SWITCH_DEF_ERROR(mSelect->last_select)
+        case 0:
+            dispIconByType(ICON_INFO_SN_LIGHT_25_48_0_16103_16);
+            break;
+        
+        case 1:
+            dispStr((const u8 *)mVerInfo->r_v_str, 25,16,true,103);
+            break;
+        
+        SWITCH_DEF_ERROR(mSelect->last_select)
     }
 }
-
 
 
 void MenuUI::dispSysInfo()
@@ -2128,12 +2121,11 @@ bool MenuUI::checkAllowEnterUdiskMode()
     }
 }
 
-
 bool MenuUI::checkVidLiveStorageSpeed()
 {
     VolumeManager* vm = VolumeManager::Instance();
 
-    if (property_get("sys.skip_speed_test")) {
+    if (property_get(PROP_SKIP_SPEED_TEST)) {
         return true;
     } else {
         if (vm->checkAllmSdSpeedOK()) {
@@ -2284,7 +2276,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                     }
                 }
 
-
                 if ((*pTakePicJson)["parameters"].isMember("properties")) {
                     Log.d(TAG, "[%s: %d] -----------> Send Takepic Customer args First", __FILE__, __LINE__);
                     sendRpc(ACTION_CUSTOM_PARAM, 0, pTakePicJson);
@@ -2385,29 +2376,31 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 pTakeLiveJson = pTmpPicVidCfg->jsonCmd.get();
                 Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
                 
-                int iSaveMode = check_live_save(pTakeLiveJson);
-                if (iSaveMode == LIVE_SAVE_NONE) {
-                    oled_disp_type(STRAT_LIVING);
-                    Log.d(TAG, "[%s: %d] Start Live not save", __FILE__, __LINE__);
-                    bAllow = true;
-                } else {
-
-                    if (checkStorageSatisfy(option)) {  /* 对于不需要存片的挡位直接返回true */
-                        if (checkVidLiveStorageSpeed() == false) {
-                            bAllow = false;
-                        } else {
-                            oled_disp_type(STRAT_LIVING);
-                            Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
-                            
-                            if ((*pTakeLiveJson)["parameters"].isMember("properties")) {
-                                Log.d(TAG, "[%s: %d] -----------> Send Takepic Customer args First", __FILE__, __LINE__);
-                                sendRpc(ACTION_CUSTOM_PARAM, 0, pTakeLiveJson);
-                            }                       
-                        }
+                if (pTakeLiveJson) {
+                    int iSaveMode = check_live_save(pTakeLiveJson);
+                    if (iSaveMode == LIVE_SAVE_NONE) {
+                        oled_disp_type(STRAT_LIVING);
+                        Log.d(TAG, "[%s: %d] Start Live not save", __FILE__, __LINE__);
+                        bAllow = true;
                     } else {
-                        Log.w(TAG, "[%s: %d] SD Card or TF Card Lost, Can't take live now ...", __FILE__, __LINE__);
-                        bAllow = false;                    
+
+                        if (checkStorageSatisfy(option)) {  /* 对于不需要存片的挡位直接返回true */
+                            if (checkVidLiveStorageSpeed() == false) {
+                                bAllow = false;
+                            } else {
+                                oled_disp_type(STRAT_LIVING);
+                                Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);                    
+                            }
+                        } else {
+                            Log.w(TAG, "[%s: %d] SD Card or TF Card Lost, Can't take live now ...", __FILE__, __LINE__);
+                            bAllow = false;                    
+                        }
                     }
+
+                    if ((*pTakeLiveJson)["parameters"].isMember("properties")) {
+                        Log.d(TAG, "[%s: %d] -----------> Send Takepic Customer args First", __FILE__, __LINE__);
+                        sendRpc(ACTION_CUSTOM_PARAM, 0, pTakeLiveJson);
+                    }   
                 }
 
                 msg->set<Json::Value*>("take_live", pTakeLiveJson);
@@ -2769,7 +2762,6 @@ bool MenuUI::read_sys_info(int type, const char *name)
 }
 
 
-
 /*************************************************************************
 ** 方法名称: read_sys_info
 ** 方法功能: 读取系统信息
@@ -3037,21 +3029,28 @@ void MenuUI::procBackKeyEvent()
                 switch (cur_menu) {
                     case MENU_PIC_INFO:
                     case MENU_VIDEO_INFO:
-                    case MENU_LIVE_INFO:
+                    case MENU_LIVE_INFO: {
+
+                        if (mTakeVideInTimelapseMode == true) {
+                            mTakeVideInTimelapseMode = false;
+                        }
+
                         if (sendRpc(ACTION_PREVIEW)) {
                             oled_disp_type(STOP_PREVIEWING);
                         } else {
                             Log.e(TAG, "stop preview fail");
                         }
                         break;
+                    }
 						
                      // preview state sent from http req while calibrating ,qr scan,gyro_start
                     case MENU_CALIBRATION:
                     case MENU_QR_SCAN:
                     case MENU_GYRO_START:
-                    case MENU_NOSIE_SAMPLE:
+                    case MENU_NOSIE_SAMPLE: {
                         setCurMenu(MENU_PIC_INFO);
                         break;
+                    }
 					
                     case MENU_PIC_SET_DEF:
                     case MENU_VIDEO_SET_DEF:
@@ -3527,6 +3526,7 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
             mClientTakePicUpdate = true;    /* 检查是否需要进行组装 */
             mControlPicJsonCmd["name"] = "camera._takePicture";
             mControlPicJsonCmd["parameters"] = actionJson;
+            setTakePicDelay(mControlPicJsonCmd["parameters"]["delay"].asInt());
             break;
         }
 
@@ -3568,12 +3568,11 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
                     Log.d(TAG, "Templet args: %s", actionStr.c_str());
 
                     Json::Value picRoot;
-
-                    if (actionJson.isMember("timelapse")) {
-                        picRoot["name"] = "camera._startRecording";                        
-                    } else {
-                        picRoot["name"] = "camera._takePicture";
-                    }
+/*
+ * 1.9.6版本的APP保存Timelapse的模板参数保存到camera._startRecording中
+ * 2018年9月21日
+ */
+                    picRoot["name"] = "camera._takePicture";
                     picRoot["parameters"] = actionJson;
                     writeJson2File(ACTION_PIC, TAKE_PIC_TEMPLET_PATH, picRoot);
                     break;
@@ -3585,9 +3584,14 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
                     Log.d(TAG, "Templet args: %s", actionStr.c_str());
 
                     Json::Value vidRoot;
+
                     vidRoot["name"] = "camera._startRecording";
                     vidRoot["parameters"] = actionJson;
-                    writeJson2File(ACTION_VIDEO, TAKE_VID_TEMPLET_PATH, vidRoot);
+                    if (actionJson.isMember("timelapse")) { /* 如果是拍timelapse，需要保存到拍照的Customer中 */
+                        writeJson2File(ACTION_PIC, TAKE_PIC_TEMPLET_PATH, vidRoot);
+                    } else {
+                        writeJson2File(ACTION_VIDEO, TAKE_VID_TEMPLET_PATH, vidRoot);
+                    }
                     break;
                 }
 
@@ -3601,7 +3605,6 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
                     writeJson2File(ACTION_LIVE, TAKE_LIVE_TEMPLET_PATH, liveRoot);
                     break;
                 }
-
                 SWITCH_DEF_ERROR(type);
             }
             break;
@@ -3668,9 +3671,7 @@ void MenuUI::updateMenu()
 
         case MENU_LIVE_SET_DEF: {
             mProCfg->set_def_info(KEY_ALL_LIVE_DEF, item);
-
             PicVideoCfg* pTmpCfg = mLiveAllItemsList.at(item);
-            // printJsonCfg( *(pTmpCfg->jsonCmd.get()) );
             dispLiveReady();
             dispBottomInfo(true, true);
             break;
@@ -3883,156 +3884,6 @@ void MenuUI::calcRemainSpace(bool bUseCached)
 }
 
 
-#if 0
-/*
- * convSize2LeftNumTime - 转换剩余空间为可拍张数，可录时长
- */
-void MenuUI::convSize2LeftNumTime(u64 size, int iMode)
-{
-    VolumeManager* vm = VolumeManager::Instance();
-
-    INFO_MENU_STATE(cur_menu, mCamState);
-
-    u64 size_M = size;
-    u64 recLefSecs = 0;
-    u64 liveRecLeftSecs = 0;
-
-	Log.d(TAG, "[%s: %d] >>>>>> convSize2LeftNumTime size = %d MB", __FILE__, __LINE__, size);
-
-    if (size_M > VolumeManager::lefSpaceThreshold) {
-		
-        size_M -= VolumeManager::lefSpaceThreshold;;
-        int item = 0;
-		
-        switch (iMode) {
-            case CALC_MODE_TAKE_PIC: {
-
-                if (mClientTakePicUpdate == true) { /* 计算客户端发起的拍照的剩余张数 */
-
-                    mCanTakePicNum = 1000;  //size_M / mControlAct->size_per_act;
-                    Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_PIC (%d %d)",
-                                            __FILE__, __LINE__, size_M, mCanTakePicNum);
-                } else {
-					/*
-                     * 使能RAW和没有使能RAW
-                     * 实测下大概每中模式下一组照片的大小
-                     */
-                    item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-                    int iRawVal = mProCfg->get_val(KEY_RAW);
-
-                    Log.d(TAG, "[%s: %d] Raw[%d]", __FILE__, __LINE__, iRawVal);
-                    
-                    struct stPicVideoCfg* pPicVidCfg = mPicAllItemsList.at(item);
-                    int iUnitSize = 30;
-                    if (pPicVidCfg) {
-                        if (strcmp(pPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
-                            iUnitSize = pPicVidCfg->pStAction->size_per_act;
-                            if (iRawVal) {
-                                iUnitSize = iUnitSize * pPicVidCfg->iRawStorageRatio;
-                            }
-                            Log.d(TAG, "[%s:%d] One Group Picture size [%d]M", __FILE__, __LINE__, iUnitSize);
-
-                        } else {
-                            iUnitSize = mProCfg->get_def_info(KEY_ALL_PIC_DEF)->size_per_act;
-                        }
-                    } else {
-                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, item);
-                    }
-                    
-                    if (iUnitSize <= 0) {
-                        Log.e(TAG, "[%s: %d] What's wrong One Group Picture size smaller than 0", __FILE__, __LINE__);
-                        iUnitSize = 40;     /* 避免挂掉 */
-                    }
-
-                    mCanTakePicNum = size_M / iUnitSize;
-
-                    Log.d(TAG, "[%s: %d] Calc Can Take Picture num [%d] in CALC_MODE_TAKE_PIC Mode.", __FILE__, __LINE__, mCanTakePicNum);
-                
-                }
-                break;
-            }
-
-
-            case CALC_MODE_TAKE_TIMELAPSE: {
-                break;
-            }
-
-
-            case CALC_MODE_TAKE_VIDEO: {
-
-                /* 如果是由客户端启动录像, 此时已经进入了STATE_RECORD状态 */
-                if (mControlAct != nullptr) {
-                    recLefSecs = size_M / mControlAct->size_per_act;
-                    Log.d(TAG, "[%s: %d] convSize2LeftNumTime -> CALC_MODE_TAKE_VIDEO size_per_act %d", 
-                                                                    __FILE__, __LINE__, mControlAct->size_per_act);
-                    vm->setRecLeftSec(recLefSecs);
-                } else {
-
-                    int index = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
-                    
-                    struct stPicVideoCfg* pPicVidCfg = mVidAllItemsList.at(index);
-                    if (pPicVidCfg) {
-
-                        Log.d(TAG, ">> calc item name [%s], unit size [%d]", pPicVidCfg->pItemName, pPicVidCfg->pStAction->size_per_act);
-
-                        if (strcmp(pPicVidCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
-                            recLefSecs = size_M / pPicVidCfg->pStAction->size_per_act;
-                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs[%ld s] for Take Vide Non Customer Mode", 
-                                                        __FILE__, __LINE__, recLefSecs);
-                        } else {
-                            recLefSecs = size_M / mProCfg->get_def_info(KEY_ALL_VIDEO_DEF)->size_per_act;
-                            Log.d(TAG, "[%s: %d] >>> Calc Rest secs for Take Vide Customer Mode[%ld]",
-                                                        __FILE__, __LINE__, recLefSecs);
-                        }
-
-                        vm->setRecLeftSec(recLefSecs);
-                    } else {
-                        Log.e(TAG, "[%s: %d] Invalid item[%d]", __FILE__, __LINE__, index);
-                    }
-                }
-                break;
-            }
-
-            case CALC_MODE_TAKE_REC_LIVE: {
-                break;
-            }
-
-        }
-    } else {    /* 达到剩余空间阀值 */
-        Log.d(TAG, "[%s: %d] convSize2LeftNumTime Left space too low ....", __FILE__, __LINE__);
-
-        switch (iMode) {
-            case CALC_MODE_TAKE_PIC: {
-                mCanTakePicNum = 0;        
-                break;
-            }
-
-            case CALC_MODE_TAKE_TIMELAPSE: {
-                mCanTakeTimelapseNum = 0;
-                break;
-            }
-
-            case CALC_MODE_TAKE_VIDEO: {
-                vm->setRecLeftSec(0);
-                break;
-            }
-
-            case CALC_MODE_TAKE_REC_LIVE: {
-                vm->setLiveRecLeftSec(0);
-                break;
-            }
-        }
-    }
-
-    Log.d(TAG, "[%s: %d] >>>> Calc Left Rec or Live Rec secs: %ld s", __FILE__, __LINE__, recLefSecs);
-    
-    /* 将当前挡位录像,直播录像的剩余秒数发送到心跳包 */
-    // sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
-}
-#endif
-
-
-
 void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
 {
     double size_b = (double)size;
@@ -4064,12 +3915,8 @@ void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
 }
 
 
-#if 0
-void MenuUI::dispLeftNum(u32 uLeftNum)
-{
 
-}
-#endif
+
 
 
 /*
@@ -4111,18 +3958,24 @@ void MenuUI::dispBottomLeftSpace()
                      * 否则显示可拍的张数
                      */
                     if (true == checkIsTakeTimelpaseInCustomer()) {
-                        snprintf(disk_info, sizeof(disk_info), "  %d", vm->getTakeTimelapseCnt());
+                        snprintf(disk_info, sizeof(disk_info), "%u", vm->getTakeTimelapseCnt());
                     } else {
                         /* 拍照的话直接显示: mCanTakePicNum 的值 */
-                        snprintf(disk_info, sizeof(disk_info), "  %d", mCanTakePicNum);
+                        snprintf(disk_info, sizeof(disk_info), "%u", mCanTakePicNum);
                     }
+
+                    #if 0
                     dispStrFill((const u8 *) disk_info, 78, 48);
+                    #else 
+                    dispLeftNum(disk_info);
+                    #endif
                 }
                 break;
             }
 
             case MENU_VIDEO_INFO:
             case MENU_VIDEO_SET_DEF: {  /* 目前的需求,拍timelapse只需要大卡即可 */
+
                 if (false == mTakeVideInTimelapseMode) {
                     if (takeVideoIsAgeingMode()) {
                         if (check_state_in(STATE_RECORD)) {
@@ -4148,8 +4001,12 @@ void MenuUI::dispBottomLeftSpace()
                         }
                     }
                 } else {    /* timelapse模式 */
-                    snprintf(disk_info, sizeof(disk_info), "  %d", vm->getTakeTimelapseCnt());
+                    snprintf(disk_info, sizeof(disk_info), "%u", vm->getTakeTimelapseCnt());
+                    #if 0
                     dispStrFill((const u8 *) disk_info, 78, 48);                    
+                    #else 
+                    dispLeftNum(disk_info);
+                    #endif
                 }
                 break;
             }
@@ -4777,12 +4634,15 @@ ERROR:
 }
 
 
+
+
 /*
  *  103, 16 - 
  * 宽度103，最大能显示13个字符
  */
 void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
 {
+    const int iRemainSpace = 400;       /* 剩余空间加400M */
 
     /* 根据设置项当前的值来选择显示的图标及位置 
      * total, avail 单位统一为MB
@@ -4792,7 +4652,15 @@ void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
     char cTotal[8] = {0};
     char cUsed[8]  = {0};
 
-    u64 used_size = pStorageItem->pStVolumeInfo->uTotal - pStorageItem->pStVolumeInfo->uAvail;
+    /*
+     * 对于TF卡，显示剩余空间时需要加上400MB
+     */
+    u64 used_size;
+    if (pStorageItem->pStVolumeInfo->iType == VOLUME_TYPE_NV) {
+        used_size = pStorageItem->pStVolumeInfo->uTotal - pStorageItem->pStVolumeInfo->uAvail;
+    } else {    
+        used_size = pStorageItem->pStVolumeInfo->uTotal - (pStorageItem->pStVolumeInfo->uAvail + iRemainSpace);
+    }
 
 #ifdef ENABLE_DEBUG_SET_PAGE
         Log.d(TAG, "[%s:%d] dispStorageItem item name [%s], selected[%s]", __FILE__, __LINE__, 
@@ -4811,6 +4679,8 @@ void MenuUI::dispStorageItem(struct stStorageItem* pStorageItem, bool bSelected)
     /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
     dispStr((const u8 *)cItems, pStorageItem->stPos.xPos, pStorageItem->stPos.yPos, bSelected, pStorageItem->stPos.iWidth);
 }
+
+
 
 
 void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
@@ -5045,6 +4915,14 @@ void MenuUI::disp_qr_res(bool high)
 }
 
 
+void MenuUI::dispFontByLoc(PicVideoCfg* pCfg, bool bLight)
+{
+    /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
+    dispStr((const u8 *)pCfg->pNote, pCfg->stPos.xPos, pCfg->stPos.yPos, bLight, pCfg->stPos.iWidth);
+
+}
+
+
 void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
 {
 	ICON_INFO iconInfo = {0};
@@ -5060,12 +4938,18 @@ void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
         Log.e(TAG, "[%s: %d] Invalid Current val[%d], Max val[%d]", __FILE__, __LINE__, pCfg->iCurVal, pCfg->iItemMaxVal);
         Log.e(TAG, "Can't show bottom Mode!!!!!");
     } else {
+        /* 显示图标版本 */
+        #if  1
         if (bLight) {
             iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
         } else {
             iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
         }
         dispIconByLoc(&iconInfo);
+        #else    
+        /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
+        dispStr((const u8 *)pCfg->pNote, pCfg->stPos.xPos, pCfg->stPos.yPos, bLight, pCfg->stPos.iWidth);
+        #endif
     }
 
 }
@@ -5133,9 +5017,9 @@ void MenuUI::updateBottomMode(bool bLight)
         /* Video/Live */
         case MENU_VIDEO_INFO:
         case MENU_VIDEO_SET_DEF: {
+
             if (true == mTakeVideInTimelapseMode) {   /* timelapse拍摄: 本地拍Timelapse及客户端控制拍摄timelapse */
-                Log.d(TAG, "[%s: %d] Show Bottom Video Mode ---> Timelapse[remote control]", __FILE__, __LINE__);
-                
+                Log.d(TAG, "[%s: %d] Show Bottom Video Mode ---> Timelapse[remote control]", __FILE__, __LINE__);                
                 disp_org_rts(mControlVideoJsonCmd, 0);
                 
                 if (true == mClientTakeVideoUpdate) {   /* 客户端请求发送拍timelapse */
@@ -5590,7 +5474,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
     #endif
 
 		
-
         case MENU_SYS_SETTING: {     /* 显示"设置菜单"" */
             clearArea(0, 16);
 
@@ -5737,24 +5620,26 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         }
 #endif
 
-        case MENU_AGEING:
+        case MENU_AGEING: {
             disp_ageing();
             break;
+        }
 
-        case MENU_NOSIE_SAMPLE:
+        case MENU_NOSIE_SAMPLE: {
             dispIconByType(ICON_SAMPLING_128_48128_48);
             break;
+        }
 
         case MENU_LIVE_REC_TIME:
             break;
 
 #ifdef ENABLE_MENU_STITCH_BOX
-        case MENU_STITCH_BOX:
+        case MENU_STITCH_BOX: {
             bStiching = false;
             dispIconByType(ICON_WAITING_STITCH_128_48128_48);
             break;
+        }
 #endif
-
 
         case MENU_CALC_BLC:
         case MENU_CALC_BPC: {   /* 设置菜单 */
@@ -5773,7 +5658,11 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             VolumeManager* vm = VolumeManager::Instance();
             InputManager* in = InputManager::Instance();
 
-            // in->setEnableReport(false);
+            /* 进入U盘模式后将不响应任何按键事件，除非关机 */
+            in->setEnableReport(false);
+
+            /* 主动切网卡为直接模式 */
+            switchEtherIpMode(0);
 
             tipEnterUdisk();            
             if (vm->enterUdiskMode()) {
@@ -5782,7 +5671,9 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 dispEnterUdiskFailed();
             }
 
+            #ifdef ENBALE_INPUT_EVENT_WHEN_ENTER_UDISK
             // in->setEnableReport(true);
+            #endif
 
             break;
         }
@@ -5797,7 +5688,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         disp_top_info();
     }
 }
-
 
 
 /*
@@ -5877,7 +5767,6 @@ bool MenuUI::checkStorageSatisfy(int action)
             break;
         }
     }
-
     return bRet;
 }
 
@@ -5888,7 +5777,6 @@ void MenuUI::handleGyroCalcEvent()
 	Log.d(TAG, ">>>> handleGyroCalcEvent START");
     sendRpc(ACTION_CALIBRATION);
 }
-
 
 
 bool MenuUI::switchEtherIpMode(int iMode)
@@ -5911,9 +5799,7 @@ bool MenuUI::switchEtherIpMode(int iMode)
 
     msg->set<sp<DEV_IP_INFO>>("info", tmpInfo);
     NetManager::getNetManagerInstance()->postNetMessage(msg);
-
     return true;
-
 }
 
 
@@ -6067,7 +5953,6 @@ void MenuUI::procSetMenuKeyEvent()
         } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_CALC_STITCH)) {
             sendRpc(ACTION_CALIBRATION);
         }
-        
     }
 }
 
@@ -6079,25 +5964,31 @@ bool MenuUI::checkIsTakeTimelpaseInCustomer()
     Json::FastWriter writer;
     string cmd;
 
-    int item = getMenuSelectIndex(MENU_PIC_SET_DEF);
-    PicVideoCfg* pTmpCfg = mPicAllItemsList.at(item);   
-    picJsonCmd = (pTmpCfg->jsonCmd).get();
+    if (true == mClientTakePicUpdate) {     /* 客户端控制拍照(非timelapse) */
+        return false;
+    } else {
 
-    if (picJsonCmd) {
-        cmd = writer.write(*picJsonCmd);
-        Log.d(TAG, "[%s: %d] take picture cmd: %s", __FILE__, __LINE__, cmd.c_str());
-        
-        if ( (*picJsonCmd)["parameters"].isMember("timelapse")) {
-            if ((*picJsonCmd)["parameters"]["timelapse"]["enable"].asBool() == true) {
-                return true;
+        /* 拍照挡位选中的拍照参数 */
+        int item = getMenuSelectIndex(MENU_PIC_SET_DEF);
+        PicVideoCfg* pTmpCfg = mPicAllItemsList.at(item);   
+        picJsonCmd = (pTmpCfg->jsonCmd).get();
+
+        if (picJsonCmd) {
+            cmd = writer.write(*picJsonCmd);
+            Log.d(TAG, "[%s: %d] take picture cmd: %s", __FILE__, __LINE__, cmd.c_str());
+            
+            if ( (*picJsonCmd)["parameters"].isMember("timelapse")) {
+                if ((*picJsonCmd)["parameters"]["timelapse"]["enable"].asBool() == true) {
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
                 return false;
             }
         } else {
             return false;
         }
-    } else {
-        return false;
     }
 }
 
@@ -6113,7 +6004,8 @@ bool MenuUI::checkIsTakeTimelpaseInCustomer()
 *************************************************************************/
 void MenuUI::procPowerKeyEvent()
 {
-	Log.d(TAG, "cur_menu %d select %d\n", cur_menu, getCurMenuCurSelectIndex());
+	Log.d(TAG, "[%s: %d] procPowerKeyEvent Menu(%s) select %d\n", __FILE__, __LINE__, getMenuName(cur_menu), getCurMenuCurSelectIndex());
+    
     int iIndex = 0;
 
     switch (cur_menu) {	
@@ -6161,9 +6053,7 @@ void MenuUI::procPowerKeyEvent()
                     break;
                 }
 				
-                /*
-                 * 暂时改为进入U盘模式
-                 */
+
                 case MAINMENU_CALIBRATION: {	/* 拼接校准 */
 
                     VolumeManager* vm = VolumeManager::Instance();
@@ -6178,6 +6068,14 @@ void MenuUI::procPowerKeyEvent()
                         if (pEnterUdiskFlag && !strcmp(pEnterUdiskFlag, "true")) {
                             property_set(PROP_CAN_ENTER_UDISK, "false");
                             Log.d(TAG, "[%s: %d] Enter new way U-disk now....", __FILE__, __LINE__);
+                            
+                            /*
+                             * 重启dnsmasq服务
+                             */
+                            system("setprop ctl.stop dnsmasq");
+                            msg_util::sleep_ms(500);
+                            system("setprop ctl.start dnsmasq");
+                            
                             oled_disp_type(ENTER_UDISK_MODE);
                         } else {
                             Log.e(TAG, "[%s: %d] Remote not allow enter Udisk Mode", __FILE__, __LINE__);
@@ -6202,8 +6100,11 @@ void MenuUI::procPowerKeyEvent()
 
 
         case MENU_PIC_INFO: {		/* 拍照子菜单 */
+
             /*
              * 1.检查是常规拍照还是拍timelapse
+             *  检查方法: 如果是客户端直接控制拍照,检查控制端发送的参数
+             *           如果是本地发起的拍照，检查MENU_PIC_SET_DEF选择的挡位参数
              * 如果是拍timelapse - 设置mControlVideoJsonCmd/mTakeVideInTimelapseMode - 
              */
             if (true == checkIsTakeTimelpaseInCustomer()) { /* 判断Customer中保存的是否为timelapse挡位 */
@@ -6524,11 +6425,7 @@ void MenuUI::procSettingKeyEvent()
         }
 		
         case MENU_RESET_INDICATION: {
-            Log.d(TAG, "aging_times %d state 0x%x", aging_times, mCamState);
             if (check_state_equal(STATE_IDLE)) {
-                if (aging_times >= 5) {
-                    sendRpc(ACTION_AGEING);
-                }
             }
             break;
         }
@@ -6554,10 +6451,9 @@ void MenuUI::procUpKeyEvent()
     switch (cur_menu) {
     case MENU_RESET_INDICATION:		/* 如果当前的菜单为MENU_RESET_INDICATION */
 	    if (check_state_equal(STATE_IDLE)) {	/* 如果当前系统为空闲状态 */
-            aging_times++;	/* 老化次数加1 */
         }
 		
-        Log.d(TAG, "aging_times %d mCamState 0x%x\n", aging_times, mCamState);
+        // Log.d(TAG, "aging_times %d mCamState 0x%x\n", aging_times, mCamState);
         break;
 		
     default:	/* 其他的菜单 */
@@ -6580,30 +6476,33 @@ void MenuUI::procDownKeyEvent()
 {
     switch (cur_menu) { /* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
     
-        case MENU_PIC_INFO:
+        case MENU_PIC_INFO: {
 	        if (check_state_preview()) {
 		        setCurMenu(MENU_PIC_SET_DEF);
 	        }
 	        break;
+        }
 		
-        case MENU_VIDEO_INFO:
+        case MENU_VIDEO_INFO: {
             if (check_state_preview()) {
                 setCurMenu(MENU_VIDEO_SET_DEF);
             }
             break;
+        }
 		
-        case MENU_LIVE_INFO:
+        case MENU_LIVE_INFO: {
             if (check_state_preview()) {
                 setCurMenu(MENU_LIVE_SET_DEF);
             }
             break;
+        }
 		
-	    default:
+	    default: {
 	        commDownKeyProc();
 	        break;
         }
+    }
 }
-
 
 
 void MenuUI::exit_sys_err()
@@ -6743,9 +6642,12 @@ void MenuUI::update_by_controller(int action)
 void MenuUI::add_state(u64 state)
 {
 
+    char cState[64] = {0}; 
     {
         AutoMutex _l(gStateLock);
         mCamState |= state;
+        sprintf(cState, "0x%x", mCamState);
+        property_set(PROP_CAM_STATE, cState);
     }
 
     switch (state) {
@@ -6932,8 +6834,12 @@ void MenuUI::add_state(u64 state)
 
 void MenuUI::rm_state(u64 state)
 {
+    char cState[64] = {0};
     AutoMutex _l(gStateLock);
     mCamState &= ~state;
+    sprintf(cState, "0x%x", mCamState);
+    property_set(PROP_CAM_STATE, cState);
+
 }
 
 void MenuUI::set_tl_count(int count)
@@ -7027,10 +6933,17 @@ void MenuUI::disp_err_code(int code, int back_menu)
 
     set_back_menu(MENU_SYS_ERR, back_menu);
 
+#if 1
+    /* 拍摄timelapse期间出错,返回MENU_PIC_INFO页面 */
     if (mTakeVideInTimelapseMode == true) {     /* 拍摄timelapse有错误时，返回PIC菜单页 */
         set_back_menu(MENU_SYS_ERR, MENU_PIC_INFO);
         mTakeVideInTimelapseMode = false;
+        Log.d(TAG, "[%s: %d] Exit Timelapse Mode now...", __FILE__, __LINE__);
     }
+#else 
+    mTakeVideInTimelapseMode = false;
+    Log.d(TAG, "[%s: %d] ------------> Exit Timelapse Mode now...", __FILE__, __LINE__);
+#endif
 
 
     if (mClientTakeVideoUpdate == true) {
@@ -7227,10 +7140,8 @@ void MenuUI::setAllLightOnOffForce(int iOnOff)
 int MenuUI::get_error_back_menu(int force_menu)
 {
     int back_menu = MENU_TOP;
+
     if (check_state_equal(STATE_IDLE)) {
-//        Log.d(TAG,"handleSetSyncInfo oled_reset_disp "
-//                      "mCamState 0x%x, cur_menu %d",
-//              mCamState,cur_menu);
         back_menu = MENU_TOP;
     } else if (check_state_in(STATE_NOISE_SAMPLE)) {
         back_menu = MENU_NOSIE_SAMPLE;
@@ -7274,8 +7185,8 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
     int type = mErr->type;
     int err_code = mErr->err_code;
 
-    Log.d(TAG, "oled_disp_err type %d err_code %d cur_menu %d mCamState 0x%x",
-          type, err_code, cur_menu, mCamState);
+    /* STATE_IDLE */
+    Log.d(TAG, "oled_disp_err type %d err_code %d cur_menu %d mCamState 0x%x", type, err_code, cur_menu, mCamState);
 
     if (err_code == -460) { /* 模组打开失败 */
         system("power_manager power_off");  /* 关闭模组，已免下次打开失败 */
@@ -7285,6 +7196,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
     if (err_code == -1) {
         oled_disp_type(type);
     } else { // new error_code
+
         int back_menu = MENU_TOP;
         tl_count = -1;
 		
@@ -7352,14 +7264,14 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 back_menu = get_error_back_menu();//MENU_TOP;
                 break;
 				
-            case STOP_REC_FAIL:
+            case STOP_REC_FAIL:     /* 停止录像失败 */
                 rm_state(STATE_STOP_RECORDING | STATE_RECORD);
-                back_menu = get_error_back_menu(MENU_VIDEO_INFO);//MENU_VIDEO_INFO;
+                back_menu = get_error_back_menu(MENU_VIDEO_INFO);   //MENU_VIDEO_INFO;
                 break;
 				
             case STOP_LIVE_FAIL: {
                 rm_state(STATE_STOP_LIVING | STATE_LIVE | STATE_LIVE_CONNECTING);
-                back_menu = get_error_back_menu(MENU_LIVE_INFO);//MENU_LIVE_INFO;
+                back_menu = get_error_back_menu(MENU_LIVE_INFO);    //MENU_LIVE_INFO;
                 break;
             }
 				
@@ -7378,7 +7290,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 break;
 			
             default:
-                Log.d(TAG,"bad type %d code %d",type,err_code);
+                Log.d(TAG, "bad type %d code %d", type, err_code);
                 err_code =-1;
                 break;
         }
@@ -7556,18 +7468,30 @@ int MenuUI::oled_disp_type(int type)
                 INFO_MENU_STATE(cur_menu, mCamState)
                 add_state(STATE_RECORD);                /* 添加正在录像状态(去除正在启动录像状态) */
                 setCurMenu(MENU_VIDEO_INFO);
-            } else {
+            } else {    /* 如果是客户端直接启动的录像,应该加上预览状态 */
+            
                 if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
+                    
+                    u64 uState = STATE_RECORD;
+
                     if (check_rec_tl()) {               /* 如果是timelapse拍摄,将tl_count设置为0 */
                         tl_count = 0;                   /* 计算出当前可拍timelapse的数目 */
                     } else {                            /* 非timelapse录像 */
                         vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */
                         set_update_mid();
+
+                        /*
+                         * 如果是客户端启动的录像需加上预览
+                         */
+                        if (mClientTakeVideoUpdate == true) {
+                            uState |= STATE_PREVIEW;
+                        }
                     }
                     
-                    INFO_MENU_STATE(cur_menu, mCamState)
-                    add_state(STATE_RECORD);            /* 添加正在录像状态(去除正在启动录像状态) */
+                    add_state(uState);            /* 添加正在录像状态(去除正在启动录像状态) */
                     setCurMenu(MENU_VIDEO_INFO);
+                    Log.d(TAG, "[%s: %d] Enter Start Record Success, Current Menu[%s], state[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), mCamState);
+
                 } else {
                     Log.e(TAG, "START_REC_SUC error state 0x%x", mCamState);
                 }
@@ -7644,10 +7568,8 @@ int MenuUI::oled_disp_type(int type)
                     mClientTakeVideoUpdate = false;
                 }
 
-                if (true == mTakeVideInTimelapseMode) {
-                    Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
-                    mTakeVideInTimelapseMode = false;
-                }
+                Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
+                mTakeVideInTimelapseMode = false;
 
                 //fix select for changed by controller or timelapse
                 if (cur_menu == MENU_VIDEO_INFO)  {
@@ -7696,10 +7618,8 @@ int MenuUI::oled_disp_type(int type)
                 disp_sys_err(type);
             }
 
-            if (true == mTakeVideInTimelapseMode) {
-                Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
-                mTakeVideInTimelapseMode = false;
-            }       
+            Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
+            mTakeVideInTimelapseMode = false;
 
             if (mClientTakeVideoUpdate == true) {
                 mClientTakeVideoUpdate = false;
@@ -7721,7 +7641,7 @@ int MenuUI::oled_disp_type(int type)
                 	Log.d(TAG, "+++++++++++++++>>>> CAPTURE Come from Client");
                     mNeedSendAction = false;
                     /** 不发送请求 */
-                    setTakePicDelay(0);
+                    // setTakePicDelay(0);
                 } else {
 
                     mNeedSendAction = true;
@@ -7948,11 +7868,11 @@ int MenuUI::oled_disp_type(int type)
             if (!check_state_in(STATE_PREVIEW)) {   
 				Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS");                  
 
-                Log.d(TAG, "[%s: %d] Current Menu[%s] and Statep[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), mCamState);
+                Log.d(TAG, "[%s: %d] Current Menu[%s] and State[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), mCamState);
 
                 /*
                  * 1.如果是按键操作进入预览成功,（先前已经进入了对应的菜单，不需要再次进入菜单）
-                 * 2.如果是客户端发起的进入预览成功,(统一进入MENU_PIC_INFO菜单) STATE_IDLE
+                 * 2.如果是客户端发起的进入预览成功,(统一进入MENU_PIC_INFO菜单) STATE_IDLE STATE_PREVIE
                  */
 
                 if (mWhoReqEnterPrew == APP_REQ_PREVIEW) {
@@ -7966,6 +7886,13 @@ int MenuUI::oled_disp_type(int type)
                 asyncQueryTfCardState();
 
             } else {
+                /* 如果正处于退出预览状态，
+                 * 接收到客户端发送的启动预览成功，清除掉正在退出预览状态
+                 */
+                if (check_state_in(STATE_STOP_PREVIEWING)) {
+                    rm_state(STATE_STOP_PREVIEWING);
+                }
+
                 Log.e(TAG, "[%s: %d] Invalid state change", __FILE__, __LINE__);
             }
             break;
@@ -8925,13 +8852,6 @@ void MenuUI::handleKeyMsg(int iKey)
 }
 
 
-void MenuUI::tipUnmountBeforeShutdown()
-{
-    clearArea();
-    dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
-    dispStr((const u8*)" storage devices...", 8, 32, false, 128);
-}
-
 
 /*************************************************************************
 ** 方法名称: handleLongKeyMsg
@@ -9253,7 +9173,6 @@ void MenuUI::drawGpsState()
 void MenuUI::handleGpsState()
 {
     switch (mGpsState) {
-#if 1       
         case 0:
         case 1: {   /* 无GPS或无效定位 */
             if (checkCurMenuShowGps()) {
@@ -9269,24 +9188,6 @@ void MenuUI::handleGpsState()
             }        
             break;
         }
-#else 
-        case 2:
-        case 3: {   /* 无GPS或无效定位 */
-            if (checkCurMenuShowGps()) {
-                clearGpsState();
-            }
-            break;
-        }
-
-        case 0:
-        case 1: {   /* 有GPS或有定位 */
-            if (checkCurMenuShowGps()) {
-                drawGpsState();
-            }        
-            break;
-        }
-#endif
-
     }
 }
 
@@ -9599,7 +9500,6 @@ void MenuUI::handleUpdateMid()
 }
 
 
-#define HIGH_BATTERY_TMP    70.0f
 
 /*************************************************************************
 ** 方法名称: handleCheckBatteryState
@@ -9637,7 +9537,6 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
         msg->post();
     }
 
-    // if (is_bat_low() || (dInterTmp > HIGH_BATTERY_TMP) || (dExternTmp > HIGH_BATTERY_TMP)) { /* 电池电量低 */
     if (is_bat_low()) { /* 电池电量低 */
 
 #ifdef OPEN_BAT_LOW
@@ -9747,7 +9646,6 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 			break;
 	}
 }
-
 
 
 
@@ -10239,6 +10137,63 @@ void MenuUI::clearReady()
     clearIconByType(ICON_CAMERA_READY_20_16_76_32);
 }
 
+
+void MenuUI::dispLeftNum(const char* pBuf)
+{
+    int iLen = strlen(pBuf);
+    int iStartPos = 78;         /* 默认的显示的横坐标为78 */
+
+    Log.d(TAG, "[%s: %d] Left Num str len = %d", __FILE__, __LINE__, iLen);
+    switch (iLen) {
+        case 1:
+            iStartPos = 122;
+            break;
+
+        case 2:
+            iStartPos = 116;
+            break;
+
+        case 3:
+            iStartPos = 110;
+            break;
+
+        case 4:
+            iStartPos = 104;
+            break;
+        
+        case 5:
+            iStartPos = 98;
+            break;
+
+        case 6:
+            iStartPos = 92;
+            break;
+        
+        case 7:
+            iStartPos = 86;
+            break;
+
+        case 8:
+            iStartPos = 80;
+            break;
+        
+        default:
+            break;
+    }
+
+    dispStrFill((const u8 *) pBuf, iStartPos, 48);
+}
+
+
+void MenuUI::tipUnmountBeforeShutdown()
+{
+    clearArea();
+    dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
+    dispStr((const u8*)" storage devices...", 8, 32, false, 128);
+    dispStr((const u8*)"Stop pressing button", 6, 48, false, 128);
+}
+
+
 void MenuUI::tipEnterUdisk()
 {
     clearArea(0, 16);
@@ -10255,6 +10210,7 @@ void MenuUI::enterUdiskSuc()
     /* 进入U盘成功 */
     dispStr((const u8*)"Reading", 44, 16, false, 128);
     dispStr((const u8*)"storage devices", 24, 32, false, 128);
+    dispStr((const u8*)"smb:192.168.1.188", 12, 48, false, 128);
 }
 
 

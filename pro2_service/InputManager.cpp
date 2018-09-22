@@ -12,6 +12,7 @@
 ** 修改记录:
 ** V1.0			Skymixos		2018-05-04		创建文件，添加注释
 ** V2.0         Skymixos        2018-09-17      长按不松开的情况下上报长按事件
+** V3.0         Skymixos        2018-09-22      将InputManager设计为单例模式
 ******************************************************************************************************/
 #include <dirent.h>
 #include <fcntl.h>
@@ -48,22 +49,17 @@ enum {
 };
 
 enum {
-    CtrlPipe_Shutdown = 0,          /* 关闭管道通知: 线程退出时使用 */
-    CtrlPipe_Wakeup   = 1,          /* 唤醒消息: 长按监听线程执行完依次检测后会睡眠等待唤醒消息的到来 */
-    CtrlPipe_Cancel   = 2,          /* 取消消息: 通知长按监听线程取消本次监听,说明按键已经松开 */
+    CtrlPipe_Shutdown = 0,                  /* 关闭管道通知: 线程退出时使用 */
+    CtrlPipe_Wakeup   = 1,                  /* 唤醒消息: 长按监听线程执行完依次检测后会睡眠等待唤醒消息的到来 */
+    CtrlPipe_Cancel   = 2,                  /* 取消消息: 通知长按监听线程取消本次监听,说明按键已经松开 */
 };
 
-
-enum {
-    QUIT_REASON_PIPE_CANCEL = 1,
-    QUIT_REASON_PIPE_
-};
 
 #define LONG_PRESS_MSEC     (2000)
-#define SHORT_PRESS_THOR	(100)	// 100ms
+#define SHORT_PRESS_THOR	(100)	        // 100ms
 
 static Mutex    gReportLock;
-static int      gIKeyRespRate = 100;      /* 按键的灵敏度,默认为100ms */
+static int      gIKeyRespRate = 100;        /* 按键的灵敏度,默认为100ms */
 static Mutex    gInputManagerMutex;
 static Mutex    gMonitorState;
 
@@ -90,7 +86,6 @@ InputManager::InputManager(): mEnableReport(true),
 {
     const char* pRespRate = NULL;
 
-	/* 构造一个线程对象 */
     pipe(mCtrlPipe);                    /* 控制按键循环线程的管道 */
     pipe(mLongPressMonitorPipe);        /* 用于给长按监听线程通信 */
 	
@@ -110,6 +105,7 @@ InputManager::~InputManager()
     exit(); 
 }
 
+
 void InputManager::writePipe(int p, int val)
 {
     char c = (char)val;
@@ -117,7 +113,7 @@ void InputManager::writePipe(int p, int val)
 
     rc = write(p, &c, 1);
     if (rc != 1) {
-        Log.d(TAG, "Error writing to control pipe (%s) val %d", strerror(errno), val);
+        Log.d(TAG, "[%s: %d] Error writing to control pipe (%s) val %d", __FILE__, __LINE__, strerror(errno), val);
         return;
     }
 }
@@ -125,7 +121,6 @@ void InputManager::writePipe(int p, int val)
 
 void InputManager::exit()
 {
-	/* 等待线程退出 */
 
 	Log.d(TAG, "stop long press monitor mLongPressMonitorPipe[0] %d", mLongPressMonitorPipe[0]);
 
@@ -312,9 +307,9 @@ bool InputManager::getReportState()
     return mEnableReport;
 }
 
+
 int InputManager::longPressMonitorLoop()
 {
-    int iRes;
     struct timeval timeout;
 
 
@@ -383,13 +378,6 @@ int InputManager::longPressMonitorLoop()
 }
 
 
-/*
- * 监听长按现场：
- * 1.构造时创建
- * 2.有按键按下时，通过管道给其发送启动命令
- * 3.继续监听管道，设置3秒的超时值select
- * 4.接收到退出消息，不发送长按事件;超时退出,发送长按消息
- */
 
 int InputManager::inputEventLoop()
 {
@@ -397,7 +385,8 @@ int InputManager::inputEventLoop()
 	struct input_event event;
 	int64 key_ts;
 	int64 key_interval = 0;
-	int rc;
+
+
 	nfds = POLL_FD_NUM;
 	ufds = (pollfd *)calloc(nfds, sizeof(ufds[0]));
 
@@ -415,10 +404,10 @@ int InputManager::inputEventLoop()
 		int pollres = poll(ufds, nfds, -1);
 		
         if (pollres < 0) {
-			Log.e(TAG, "poll error");
+			Log.e(TAG, "[%s: %d] poll error", __FILE__, __LINE__);
 			break;
         } else if (pollres == 0) {
-			Log.e(TAG, "poll happen but no data");
+			Log.e(TAG, "[%s: %d] poll happen but no data", __FILE__, __LINE__);
 			continue;
 		}
 	
@@ -434,7 +423,7 @@ int InputManager::inputEventLoop()
 
 			
             if (c == Pipe_Shutdown) {
-				Log.d(TAG, "oled_handler rec pipe shutdown\n");
+				Log.d(TAG, "[%s: %d] InputManager Looper recv pipe shutdown.", __FILE__, __LINE__);
 				break;
 			}
 		}
@@ -470,9 +459,9 @@ int InputManager::inputEventLoop()
 
                             int iIntervalMs =  key_interval / 1000;
 
-                            // #ifdef DEBUG_INPUT_MANAGER
+                            #ifdef DEBUG_INPUT_MANAGER
 							Log.d(TAG, " event.code is 0x%x, interval = %d ms\n", event.code, iIntervalMs);
-                            // #endif
+                            #endif
 
                             switch (event.value) {
 								case UP: {
@@ -544,10 +533,9 @@ int InputManager::inputEventLoop()
 		ufds = nullptr;
 	}
 	
-	Log.d(TAG, "exit get event loop");
+	Log.d(TAG, "[%s: %d] exit get event loop", __FILE__, __LINE__);
 	return 0;
 }
-
 
 
 void InputManager::setMonitorState(int iState)

@@ -46,7 +46,7 @@ static void registerSig(__sighandler_t func)
 static void ev_handler(struct mg_connection *nc, int ev, void *p) 
 {
     if (ev == MG_EV_HTTP_REQUEST) {
-      mg_serve_http(nc, (struct http_message *) p, s_http_server_opts);
+        mg_serve_http(nc, (struct http_message *) p, s_http_server_opts);
     }
 }
 
@@ -64,11 +64,11 @@ int main(void)
 
     arlog_configure(true, true, HTTP_APP_LOG_PATH, false);	/* 配置日志 */
 
-	  iRet = __system_properties_init();		/* 属性区域初始化 */
-	  if (iRet) {
-		    Log.e(TAG, "File Http Web server init properties failed %d", iRet);
-		    return -1;
-	  }
+    iRet = __system_properties_init();		/* 属性区域初始化 */
+    if (iRet) {
+        Log.e(TAG, "File Http Web server init properties failed %d", iRet);
+        return -1;
+    }
 
 	  Log.d(TAG, "Service: update_check starting ^_^ !!");
 
@@ -101,6 +101,5 @@ int main(void)
 EXIT:
     mg_mgr_free(&mgr);
     arlog_close();	
-
     return 0;
 }

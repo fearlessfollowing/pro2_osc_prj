@@ -803,7 +803,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             rootNode["action"] = ACTION_PIC;
             rootNode["parameters"] = *pTakePicJson;
             sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Pic: %s", sendDataStr.c_str());
+		    Log.d(TAG, "------ Action Pic: %s", sendDataStr.c_str());
             break;
         }
 
@@ -817,7 +817,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
                 rootNode["parameters"] = *pTakeVideoJson;
             }
             sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Video: %s", sendDataStr.c_str());
+		    Log.d(TAG, "----- Action Video: %s", sendDataStr.c_str());
 
             break;
         }
@@ -831,7 +831,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
                 rootNode["parameters"] = *pTakeLiveJson;
             }
             sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Live: %s", sendDataStr.c_str());
+		    Log.d(TAG, "------ Action Live: %s", sendDataStr.c_str());
             break;
         }
 
@@ -1054,6 +1054,23 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action ACTION_FORMAT_TFCARD: %s", sendDataStr.c_str());
+            break;
+        }
+
+        case ACTION_SET_CONTROL_STATE: {
+
+            u32 iState;
+            int iAction;
+            
+            CHECK_EQ(msg->find<u32>("state", &iState), true);
+            CHECK_EQ(msg->find<int>("action", &iAction), true);
+
+            paramNode["action"] = iAction;            
+            paramNode["state"] = iState;            
+            rootNode["action"] = ACTION_SET_CONTROL_STATE;
+            rootNode["parameters"] = paramNode;  
+            sendDataStr = writer.write(rootNode);
+		    Log.d(TAG, "Action ACTION_SET_CONTROL_STATE: %s", sendDataStr.c_str());                      
             break;
         }
 
@@ -2650,6 +2667,7 @@ void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
             /* 直接将消息丢入UI线程的消息队列中 */
             mOLEDHandle->notifyTfcardFormatResult(storageList);
             break;
+
         }
 
 
@@ -2700,6 +2718,30 @@ void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
             mOLEDHandle->sendSpeedTestResult(storageList);
             break;
         }
+
+
+        case CMD_WEB_UI_SWITCH_MOUNT_MODE: {
+            Log.d(TAG, "[%s: %d] Switch Mount Mode", __FILE__, __LINE__);
+            VolumeManager* vm = VolumeManager::Instance();
+
+            if (jsonData.isMember("parameters")) {
+                if (jsonData["parameters"].isMember("mode")) {
+                       if (!strcmp(jsonData["parameters"]["mode"].asCString(), "ro")) {
+                           Log.d(TAG, "[%s: %d] Change mount mode to ReadOnly", __FILE__, __LINE__);
+                           vm->changeMountMethod("ro");
+                       } else if (!strcmp(jsonData["parameters"]["mode"].asCString(), "rw")) {
+                           Log.d(TAG, "[%s: %d] Change mount mode to Read-Write", __FILE__, __LINE__);
+                           vm->changeMountMethod("rw");
+                       }
+                } else {
+                    Log.e(TAG, "[%s: %d] not Member mode", __FILE__, __LINE__);
+                }
+            } else {
+                Log.d(TAG, "[%s: %d] Invalid Arguments", __FILE__, __LINE__);
+            }
+            break;
+        }
+
 
         default: 
             break;

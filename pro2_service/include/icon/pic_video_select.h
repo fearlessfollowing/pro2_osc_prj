@@ -1019,6 +1019,32 @@ const u8 vid_8K60F_Nor_78x16[] = {
 
 
 
+const u8 vid_8K30F_3D_Hdr_Nor_78x16[] = {
+    0x00,0x00,0x00,0x60,0x90,0x90,0x90,0x60,0x00,0xF0,0x80,0x40,0x20,0x10,0x00,0xF8,
+    0x00,0x10,0x90,0x90,0x90,0x60,0x00,0xF0,0x10,0x10,0x10,0x10,0x20,0xC0,0x00,0xF8,
+    0x00,0x10,0x90,0x90,0x90,0x60,0x00,0xE0,0x10,0x10,0x10,0xE0,0x00,0xF0,0x90,0x90,
+    0x90,0x10,0x00,0xF8,0x00,0xF0,0x80,0x80,0x80,0x80,0xF0,0x00,0xF0,0x10,0x10,0x10,
+    0x10,0x20,0xC0,0x00,0xF0,0x10,0x10,0x10,0xE0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x07,0x08,0x08,0x08,0x07,0x00,0x0F,0x01,0x02,0x04,0x08,0x00,0x1F,0x00,0x08,
+    0x08,0x08,0x08,0x07,0x00,0x0F,0x08,0x08,0x08,0x08,0x04,0x03,0x00,0x1F,0x00,0x08,
+    0x08,0x08,0x08,0x07,0x00,0x07,0x08,0x08,0x08,0x07,0x00,0x0F,0x00,0x00,0x00,0x00,
+    0x00,0x1F,0x00,0x0F,0x00,0x00,0x00,0x00,0x0F,0x00,0x0F,0x08,0x08,0x08,0x08,0x04,
+    0x03,0x00,0x0F,0x01,0x01,0x03,0x04,0x08,0x00,0x00,0x00,0x00,
+};
+
+const u8 vid_8K30F_3D_Hdr_Light_78x16[] = {
+    0xFF,0xFF,0xFF,0x9F,0x6F,0x6F,0x6F,0x9F,0xFF,0x0F,0x7F,0xBF,0xDF,0xEF,0xFF,0x07,
+    0xFF,0xEF,0x6F,0x6F,0x6F,0x9F,0xFF,0x0F,0xEF,0xEF,0xEF,0xEF,0xDF,0x3F,0xFF,0x07,
+    0xFF,0xEF,0x6F,0x6F,0x6F,0x9F,0xFF,0x1F,0xEF,0xEF,0xEF,0x1F,0xFF,0x0F,0x6F,0x6F,
+    0x6F,0xEF,0xFF,0x07,0xFF,0x0F,0x7F,0x7F,0x7F,0x7F,0x0F,0xFF,0x0F,0xEF,0xEF,0xEF,
+    0xEF,0xDF,0x3F,0xFF,0x0F,0xEF,0xEF,0xEF,0x1F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xF8,0xF7,0xF7,0xF7,0xF8,0xFF,0xF0,0xFE,0xFD,0xFB,0xF7,0xFF,0xE0,0xFF,0xF7,
+    0xF7,0xF7,0xF7,0xF8,0xFF,0xF0,0xF7,0xF7,0xF7,0xF7,0xFB,0xFC,0xFF,0xE0,0xFF,0xF7,
+    0xF7,0xF7,0xF7,0xF8,0xFF,0xF8,0xF7,0xF7,0xF7,0xF8,0xFF,0xF0,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xE0,0xFF,0xF0,0xFF,0xFF,0xFF,0xFF,0xF0,0xFF,0xF0,0xF7,0xF7,0xF7,0xF7,0xFB,
+    0xFC,0xFF,0xF0,0xFE,0xFE,0xFC,0xFB,0xF7,0xFF,0xFF,0xFF,0xFF,
+};
+
 
 struct stIconPos; 
 struct _action_info_;
@@ -1033,6 +1059,7 @@ typedef struct stPicVideoCfg {
 	sp<Json::Value>			jsonCmd;
 	const u8 * 				stLightIcon[PIC_VIDEO_LIVE_ITEM_MAX];	/* 选中时的图标列表 */
 	const u8 * 				stNorIcon[PIC_VIDEO_LIVE_ITEM_MAX];		/* 未选中时的图标列表 */
+    const char *              pNote;                                  /* 字符串形式的挡位 */
 } PicVideoCfg;
 
 
@@ -1203,7 +1230,8 @@ PicVideoCfg pic8K_3D_OF = {
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8K3DOFNor_78X16,
 		pic8K3DOF_RAW_Nor_78x16,
-	}
+	},
+    pNote:              "8K|3D|OF",
 };
 
 
@@ -1223,7 +1251,8 @@ PicVideoCfg pic8K_3D = {
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8K3DNor_78x16,
 		pic8K3DRAWNor_78X16
-	}
+	},
+    pNote:              "8K|OF",
 };
 
 
@@ -1243,7 +1272,8 @@ PicVideoCfg pic8K = {
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		pic8KNor_78x16,
 		pic8KRAWNor_78X16
-	}
+	},
+    pNote:              "8K",
 };
 
 
@@ -1276,7 +1306,8 @@ PicVideoCfg picAEB = {
 		picAEB5_RAW_Nor_78X16,
 		picAEB7_RAW_Nor_78X16,
 		picAEB9_RAW_Nor_78X16,
-	}
+	},
+    pNote:              "AEB",
 };
 
 
@@ -1295,7 +1326,8 @@ PicVideoCfg picBurst = {
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		picBurstNor_78x16,
 		picBurstRAWNor_78x16,
-	}
+	},
+    pNote:              "Burst",
 };
 
 
@@ -1312,7 +1344,8 @@ PicVideoCfg picCustomer = {
 	},
 	{	/* 未选中时的图标列表 */
 		picVidCustmNor_78x16,
-	}
+	},
+    pNote:              "customize",
 };
 
 
@@ -1547,23 +1580,27 @@ static PicVideoCfg vid8K_30F_3D_Cfg = {
 	},
 	stNorIcon: 			{	/* 未选中时的图标列表 */
 		vid_8K30F3D_Nor_78x16,
-	}
+	},
+    pNote:              "8K|30F|3D",
+
 };
 
 static PicVideoCfg vid8K_60F_Cfg = {
-	pItemName:			TAKE_VID_MODE_8K_60F,		// pItemName
+	pItemName:			TAKE_VID_MODE_8K_60F,			// pItemName
 	iItemMaxVal:		0,								// iItemMaxVal
 	iCurVal:			0,								// iCurVal
 	iRawStorageRatio:	0,								// 5倍
 	stPos:				{0},							// stPos
-	pStAction:			&vid8K_60F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	pStAction:			&vid8K_60F_Action,				/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
 	jsonCmd:			nullptr,
 	stLightIcon:		{	/* 选中时的图标列表 */
 		vid_8K60F_Light_78x16,
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_8K60F_Nor_78x16,
-	}
+	},
+    pNote:              "8K|60F",
+
 };
 
 static PicVideoCfg vid8K_5F_Cfg = {
@@ -1579,7 +1616,9 @@ static PicVideoCfg vid8K_5F_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_8K5F_Nor_78x16,
-	}
+	},
+    pNote:              "8K|5F|GSV",
+
 };
 
 static PicVideoCfg vid6K_60F_3D_Cfg = {
@@ -1595,7 +1634,9 @@ static PicVideoCfg vid6K_60F_3D_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_6K60F3D_Nor_78x16,
-	}
+	},
+    pNote:              "6K|60F|3D",
+
 };
 
 static PicVideoCfg vid4K_120F_3D_Cfg = {
@@ -1611,7 +1652,9 @@ static PicVideoCfg vid4K_120F_3D_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K120F3D_Nor_78x16,
-	}
+	},
+    pNote:              "4K|120F|3D",
+
 };
 
 static PicVideoCfg vid4K_30F_RTS_Cfg = {
@@ -1627,7 +1670,9 @@ static PicVideoCfg vid4K_30F_RTS_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K30F_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F",
+
 };
 
 static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
@@ -1643,7 +1688,9 @@ static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		vid_4K30F3D_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F|3D",
+
 };
 
 static PicVideoCfg vid_Customer_Cfg = {
@@ -1659,9 +1706,28 @@ static PicVideoCfg vid_Customer_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		picVidCustmNor_78x16,
-	}
+	},
+    pNote:              "customize",
+
 };
 
+static PicVideoCfg vid8K_30F_3D_HDR_Cfg = {
+	pItemName:			TAKE_VID_8K_30F_3D_HDR,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
+		vid_8K30F_3D_Hdr_Light_78x16,
+	},
+	stNorIcon:			{	/* 未选中时的图标列表 */
+		vid_8K30F_3D_Hdr_Nor_78x16,
+	},
+    pNote:              "vid_8k_30f_3d_hdr",
+
+};
 
 PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid8K_30F_3D_Cfg,
@@ -1671,6 +1737,7 @@ PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid4K_120F_3D_Cfg,
 	&vid4K_30F_RTS_Cfg,
 	&vid4K_30F_3D_RTS_Cfg,
+    &vid8K_30F_3D_HDR_Cfg,
 	&vid_Customer_Cfg,
 };
 
@@ -1877,7 +1944,9 @@ PicVideoCfg live4K_30F_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F",
+
 };
 
 PicVideoCfg live4K_30F_HDMI_Cfg = {
@@ -1893,7 +1962,9 @@ PicVideoCfg live4K_30F_HDMI_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_HDMI_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F|HDMI",
+
 };
 
 
@@ -1910,7 +1981,9 @@ PicVideoCfg live4K_30F_3D_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_3D_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F|3D",
+
 };
 
 
@@ -1927,7 +2000,9 @@ PicVideoCfg live4K_30F_3D_HDMI_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		live4K_30F_3D_HDMI_Nor_78x16,
-	}
+	},
+    pNote:              "4K|30F|3D|HDMI",
+
 };
 
 
@@ -1944,7 +2019,9 @@ PicVideoCfg live_Customer_Cfg = {
 	},
 	stNorIcon:			{	/* 未选中时的图标列表 */
 		picVidCustmNor_78x16,
-	}
+	},
+    pNote:              "customize",
+
 };
 
 
@@ -1989,9 +2066,10 @@ static const char* pCmdTakeVid_4K30FRTS = "{\"name\":\"camera._startRecording\",
 
 static const char* pCmdTakeVid_4K30F3DRTS = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":61440,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":3840,\"width\":3840,\"framerate\":30,\"bitrate\":51200,\"mime\":\"h264\"},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
 
+static const char* pCmdTakeVid_8K30F3DHDR = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"hdr\":true,\"mime\":\"h264\",\"framerate\":30,\"bitrate\":122880,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";;
+
+
 static const char* pCmdTakeVid_Customer = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":122880,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
-
-
 
 
 

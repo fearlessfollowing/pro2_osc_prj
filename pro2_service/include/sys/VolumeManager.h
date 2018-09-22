@@ -14,8 +14,6 @@
 ** 版     本: V1.0
 ** 日     期: 2018年08月04日
 ******************************************************************************************************/
-
-
 #ifndef _VOLUMEMANAGER_H
 #define _VOLUMEMANAGER_H
 
@@ -56,15 +54,6 @@ enum {
 
 #define ARRAY_SIZE(x)	    (sizeof(x) / sizeof(x[0]))
 
-
-/* 卷:
- * 子系统:      USB/SD
- *             所属的总线（BUS）
- * 容量相关:    总线/剩余/可用/索引
- * 测速相关：   是否已经测速
- * 挂载相关:    该设备的挂载点(由所属的bus-port-subport决定)
- * 状态相关:    未插入,已挂载,正在格式化,格式化完成
- */
 
 
 /*
@@ -130,16 +119,17 @@ enum {
     VOLUME_MANAGER_WORKMODE_MAX,
 };
 
+
 enum {
-    FORMAT_ERR_SUC = 0,
-    FORMAT_ERR_UMOUNT_EXFAT = -1,
-    FORMAT_ERR_FORMAT_EXT4 = -2,
-    FORMAT_ERR_MOUNT_EXT4 = -3,
-    FORMAT_ERR_FSTRIM = -4,
-    FORMAT_ERR_UMOUNT_EXT4 = -5,
-    FORMAT_ERR_FORMAT_EXFAT = -6,
-    FORMAT_ERR_E4DEFRAG = -7,
-    FORMAT_ERR_UNKOWN = - 8,
+    FORMAT_ERR_SUC              = 0,
+    FORMAT_ERR_UMOUNT_EXFAT     = -1,
+    FORMAT_ERR_FORMAT_EXT4      = -2,
+    FORMAT_ERR_MOUNT_EXT4       = -3,
+    FORMAT_ERR_FSTRIM           = -4,
+    FORMAT_ERR_UMOUNT_EXT4      = -5,
+    FORMAT_ERR_FORMAT_EXFAT     = -6,
+    FORMAT_ERR_E4DEFRAG         = -7,
+    FORMAT_ERR_UNKOWN           = - 8,
 };
 
 
@@ -422,6 +412,8 @@ public:
     bool        volumeIsTfCard(Volume* pVol);
 
 
+    bool        changeMountMethod(const char* mode);
+
     /*
      * 更新mSD的查询结果
      */
@@ -475,7 +467,7 @@ public:
     bool        checkEnterUdiskResult();
 
 
-    void        powerOnModuleByIndex(int iIndex);
+    void        powerOnOffModuleByIndex(bool bOnOff, int iIndex);
     void        powerOffAllModule();
 
 
@@ -616,6 +608,8 @@ private:
     bool                    waitHub1RestComplete();
     bool                    waitHub2RestComplete();
 
+    Volume*                 getUdiskVolByIndex(int iIndex);
+    bool                    checkVolIsMountedByIndex(int iIndex, int iTimeout = 6000);
 
 public:
     void                    runFileMonitorListener();

@@ -274,6 +274,7 @@ enum {
     ACTION_ENTER_UDISK_MODE = 205,
     ACTION_UPDATE_TIMELAPSE = 206,
     ACTION_QUERY_GPS_STATE  = 207,
+    ACTION_SET_CONTROL_STATE = 208,
 };
 
 
@@ -751,6 +752,8 @@ private:
     /** 显示字符串 */
     void    dispStr(const u8 *str, const u8 x, const u8 y, bool high = 0,int width = 0);
     
+
+
     /*
      * 显示指定索引值对应的图标(需要被丢弃，在以后的版本)
      */
@@ -766,6 +769,11 @@ private:
     void    dispProcessing();
     void    clearArea(u8 x, u8 y, u8 w, u8 h);
     void    clearArea(u8 x = 0, u8 y = 0);
+
+    void    dispLeftNum(const char* pBuf);
+
+    void    dispFontByLoc(struct stPicVideoCfg* pCfg, bool bLight);
+
 
     /*
      * U盘模式提示
