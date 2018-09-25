@@ -6385,6 +6385,7 @@ void MenuUI::procSettingKeyEvent()
 {
     switch (cur_menu) {
         case MENU_TOP: {	/* 如果当前处于主界面 */
+            #if 0
             if (getCurMenuCurSelectIndex() == MAINMENU_WIFI) {	/* 主界面,当前选中的是WIFI项,按下设置键将启动二维码扫描功能 */
                 Log.d(TAG, "wif state %d ap %d", mProCfg->get_val(KEY_WIFI_ON));
                 
@@ -6397,6 +6398,10 @@ void MenuUI::procSettingKeyEvent()
             } else {	/* 主界面直接按"设置"键,将跳到设置菜单 */
                 setCurMenu(MENU_SYS_SETTING);
             }
+            #else 
+            setCurMenu(MENU_SYS_SETTING);
+            #endif
+            
             break;
         }
 			
