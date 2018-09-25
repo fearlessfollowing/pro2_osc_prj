@@ -1001,17 +1001,17 @@ void MenuUI::disp_msg_box(int type)
         }
 
         case DISP_NEED_QUERY_TFCARD: {
-            #if 2
+            #if 1
             clearArea();
             dispStr((const u8*)"Please ensure mSD", 16, 8, false, 128);
             dispStr((const u8*)"cards exist and query", 8, 24, false, 128);
             dispStr((const u8*)"storage space first...", 6, 40, false, 128);
             #else
             clearArea();
-            dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
-            dispStr((const u8*)" storage devices...", 8, 32, false, 128);
-            dispStr((const u8*)"Stop pressing button", 6, 48, false, 128);
 
+            dispStr((const u8*)"Reading storage devices", 0, 16, false, 128);
+            dispStr((const u8*)"ServerIP:192.168.1.188", 0, 32, false, 128);
+            dispStr((const u8*)"192.168.1.188", 12, 48, false, 128);
             #endif
             break;
         }
@@ -6401,7 +6401,7 @@ void MenuUI::procSettingKeyEvent()
             #else 
             setCurMenu(MENU_SYS_SETTING);
             #endif
-            
+
             break;
         }
 			
@@ -8400,12 +8400,27 @@ void MenuUI::dispSetItem(struct stSetItem* pItem, bool iSelected)
         tmpIconInfo.y = pItem->stPos.yPos;
         tmpIconInfo.w = pItem->stPos.iWidth;
         tmpIconInfo.h = pItem->stPos.iHeight;
+
+        #if 1
         if (iSelected) {
             tmpIconInfo.dat = pItem->stLightIcon[pItem->iCurVal];
         } else {
             tmpIconInfo.dat = pItem->stNorIcon[pItem->iCurVal];
         }
         mOLEDModule->disp_icon(&tmpIconInfo);
+        #else 
+        if (true == pItem->bMode) {
+            if (iSelected) {
+                tmpIconInfo.dat = pItem->stLightIcon[pItem->iCurVal];
+            } else {
+                tmpIconInfo.dat = pItem->stNorIcon[pItem->iCurVal];
+            }
+            dispIconByLoc(&tmpIconInfo);
+        } else {
+            dispStr((const u8 *)pItem->pNote, pItem->stPos.xPos, pItem->stPos.yPos, iSelected, pItem->stPos.iWidth);
+        }
+
+        #endif
     }
 }
 
@@ -10215,10 +10230,15 @@ void MenuUI::enterUdiskSuc()
 {
     clearArea(0, 16);
 
+#if 0
     /* 进入U盘成功 */
     dispStr((const u8*)"Reading", 44, 16, false, 128);
     dispStr((const u8*)"storage devices", 24, 32, false, 128);
     dispStr((const u8*)"smb:192.168.1.188", 12, 48, false, 128);
+#else 
+    dispStr((const u8*)"Reading storage devices", 0, 16, false, 128);
+    dispStr((const u8*)"ServerIP:192.168.1.188", 0, 32, false, 128);
+#endif
 }
 
 
