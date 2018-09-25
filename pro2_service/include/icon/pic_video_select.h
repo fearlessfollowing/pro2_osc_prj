@@ -1778,10 +1778,14 @@ static PicVideoCfg vid_Customer_Cfg = {
 
 PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid8K_30F_3D_Cfg,
+
+#if 0
     &vid8K_30F_3D_HDR_Cfg,
+#endif
+
 	&vid8K_60F_Cfg,
 
-#ifdef ENABLE_8K_30F_HDR    
+#if 0
     &vid8K_30F_HDR_Cfg,
 #endif
 

@@ -98,6 +98,7 @@ int main(void)
     }
 
 EXIT:
+
     mg_mgr_free(&mgr);
     arlog_close();	
     return 0;

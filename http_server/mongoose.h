@@ -3188,8 +3188,7 @@ struct mg_connection;
  * Callback function (event handler) prototype. Must be defined by the user.
  * Mongoose calls the event handler, passing the events defined below.
  */
-typedef void (*mg_event_handler_t)(struct mg_connection *nc, int ev,
-                                   void *ev_data);
+typedef void (*mg_event_handler_t)(struct mg_connection *nc, int ev, void *ev_data);
 
 /* Events. Meaning of event parameter (evp) is given in the comment. */
 #define MG_EV_POLL 0    /* Sent to each connection on each mg_mgr_poll() call */
@@ -3207,16 +3206,16 @@ struct mg_mgr {
     struct mg_connection *active_connections;
 
 #if MG_ENABLE_HEXDUMP
-    const char *hexdump_file; /* Debug hexdump file path */
+    const char *hexdump_file;   /* Debug hexdump file path */
 #endif
 
 #if MG_ENABLE_BROADCAST
-    sock_t ctl[2]; /* Socketpair for mg_broadcast() */
+    sock_t ctl[2];              /* Socketpair for mg_broadcast() */
 #endif
 
-    void *user_data; /* User data */
+    void *user_data;            /* User data */
     int num_ifaces;
-    struct mg_iface **ifaces; /* network interfaces */
+    struct mg_iface **ifaces;   /* network interfaces */
 
 #if MG_ENABLE_JAVASCRIPT
     struct v7 *v7;
@@ -3232,23 +3231,24 @@ struct mg_connection {
     struct mg_connection *listener;    /* Set only for accept()-ed connections */
     struct mg_mgr *mgr;                /* Pointer to containing manager */
 
-    sock_t sock; /* Socket to the remote peer */
+    sock_t sock;                        /* Socket to the remote peer */
     int err;
-    union socket_address sa; /* Remote peer address */
-    size_t recv_mbuf_limit;  /* Max size of recv buffer */
-    struct mbuf recv_mbuf;   /* Received data */
-    struct mbuf send_mbuf;   /* Data scheduled for sending */
-    time_t last_io_time;     /* Timestamp of the last socket IO */
-    double ev_timer_time;    /* Timestamp of the future MG_EV_TIMER */
+    union socket_address sa;            /* Remote peer address */
+    size_t recv_mbuf_limit;             /* Max size of recv buffer */
+    struct mbuf recv_mbuf;              /* Received data */
+    struct mbuf send_mbuf;              /* Data scheduled for sending */
+    time_t last_io_time;                /* Timestamp of the last socket IO */
+    double ev_timer_time;               /* Timestamp of the future MG_EV_TIMER */
 
 #if MG_ENABLE_SSL
     void *ssl_if_data; /* SSL library data. */
 #endif
-    mg_event_handler_t proto_handler; /* Protocol-specific event handler */
-    void *proto_data;                 /* Protocol-specific data */
+    mg_event_handler_t proto_handler;   /* Protocol-specific event handler */
+    void *proto_data;                   /* Protocol-specific data */
     void (*proto_data_destructor)(void *proto_data);
-    mg_event_handler_t handler; /* Event handler function */
-    void *user_data;            /* User-specific data */
+    mg_event_handler_t handler;         /* Event handler function */
+    void *user_data;                    /* User-specific data */
+    
     union {
         void *v;
         /*

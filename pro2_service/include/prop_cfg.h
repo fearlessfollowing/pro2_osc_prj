@@ -159,6 +159,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 #define HTTP_APP_LOG_PATH       "/home/nvidia/insta360/log/http_log"
 
+#define HTTP_SERVER_LOG_PATH    "/home/nvidia/insta360/log/http_server_log"
 
 #define TIME_TZ_LOG_PATH        "/home/nvidia/insta360/log/tz_log"
 

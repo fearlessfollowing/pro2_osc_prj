@@ -21,7 +21,7 @@ src += [config.LIBLOG + '/log_time.cpp']
 src += [config.LIBCUTILS + '/system_properties.c']
 
 com_env['CXXFLAGS'] += ' -I' + config.PRO2_SERVICE + '/include'
-mongoose_obj = com_env.Object(src)
+http_server = com_env.Object(src)
 
-Return('mongoose_obj')
+Return('http_server')
 

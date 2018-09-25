@@ -51,6 +51,10 @@ Export('com_env')
 update_app_obj = SConscript('./update_app/SConscript')
 com_env.Program('out/update_app', update_app_obj)
 
+
+############################ http_server ####################################
+http_server_obj = SConscript('./http_server/SConscript')
+com_env.Program('out/http_server', http_server_obj)
 	
 
 ############################ bootanimation ##################################
