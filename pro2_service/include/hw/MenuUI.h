@@ -49,7 +49,7 @@ typedef enum _type_ {
 
     START_PREVIEWING ,          // 30,
     START_PREVIEW_SUC,          // 31
-    START_PREVIEW_FAIL,
+    START_PREVIEW_FAIL,         // 32
     STOP_PREVIEWING,
     STOP_PREVIEW_SUC,
     STOP_PREVIEW_FAIL ,         // 35,
@@ -213,8 +213,6 @@ enum {
 };
 
 
-
-
 enum {
     REBOOT_NORMAL,
     REBOOT_SHUTDOWN,
@@ -278,7 +276,6 @@ enum {
 };
 
 
-
 typedef struct _sync_init_info_ {
     char a_v[128];
     char c_v[128];
@@ -324,8 +321,6 @@ enum {
     ALL_FR_MAX,
 };
 
-
-
 enum {
     STORAGE_UNIT_MB,
     STORAGE_UNIT_KB,
@@ -367,8 +362,6 @@ enum {
     CALC_MODE_TAKE_REC_LIVE = 4,
     CALC_MODE_MAX
 };
-
-
 
 
 enum {
@@ -558,8 +551,8 @@ private:
     void    dispFormatSd();
 
     bool    check_state_preview();
-    bool    check_state_equal(int state);
-    bool    check_state_in(int state);
+    bool    check_state_equal(u64 state);
+    bool    check_state_in(u64 state);
     bool    check_live();
 
     void    update_menu_page();

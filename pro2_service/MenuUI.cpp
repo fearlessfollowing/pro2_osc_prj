@@ -1802,6 +1802,8 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                             pCommJsonCmd = pCmdTakeVid_4K30F3DRTS;
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_3D_HDR)) {
                             pCommJsonCmd = pCmdTakeVid_8K30F3DHDR;
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_HDR)) {
+                            pCommJsonCmd = pCmdTakeVid_8K30FHDR;
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {
                             pCommJsonCmd = pCmdTakeVid_Customer;
                         } 
@@ -5959,7 +5961,6 @@ void MenuUI::procSetMenuKeyEvent()
 
 bool MenuUI::checkIsTakeTimelpaseInCustomer()
 {
-    int iRet = -1;
     Json::Value* picJsonCmd = NULL;
     Json::FastWriter writer;
     string cmd;
@@ -6056,13 +6057,13 @@ void MenuUI::procPowerKeyEvent()
 
                 case MAINMENU_CALIBRATION: {	/* 拼接校准 */
 
-                    VolumeManager* vm = VolumeManager::Instance();
+                    // VolumeManager* vm = VolumeManager::Instance();
 
                     const char* pEnterUdiskFlag = NULL;    
                     if (checkAllowEnterUdiskMode()) {   /* 本地可以进入，检查远端能否进入 */
                         /* 通知Web,清除STATE_UDISK状态 */
                         sendRpc(ACTION_ENTER_UDISK_MODE);
-                        msg_util::sleep_ms(200);
+                        msg_util::sleep_ms(2*1000);
 
                         pEnterUdiskFlag = property_get(PROP_CAN_ENTER_UDISK);
                         if (pEnterUdiskFlag && !strcmp(pEnterUdiskFlag, "true")) {
@@ -6598,13 +6599,15 @@ bool MenuUI::check_state_preview()
     return check_state_equal(STATE_PREVIEW);
 }
 
-bool MenuUI::check_state_equal(int state)
+
+bool MenuUI::check_state_equal(u64 state)
 {
     AutoMutex _l(gStateLock);
     return (mCamState == state);
 }
 
-bool MenuUI::check_state_in(int state)
+
+bool MenuUI::check_state_in(u64 state)
 {
     bool bRet = false;
 

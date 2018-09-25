@@ -318,7 +318,6 @@ VolumeManager::VolumeManager() :
                                 mLiveRecLeftSec(0),
                                 mLiveRecSec(0),
                                 mTakePicLeftNum(0),
-                                mTimeLapseLeftNum(0),
                                 mTaketimelapseCnt(0),
                                 mNotify(NULL),
                                 mAllowExitUdiskMode(false)                          
@@ -522,8 +521,8 @@ void VolumeManager::powerOffAllModule()
 {
 	u8 module1_val = 0;
 	u8 module2_val = 0; 	
-	u8 readVal1 = 0;
-	u8 readVal2 = 0;
+	// u8 readVal1 = 0;
+	// u8 readVal2 = 0;
 
     mI2CLight->i2c_read(0x2, &module1_val);
 			
@@ -787,7 +786,7 @@ bool VolumeManager::enterUdiskMode()
     gettimeofday(&enterTv, NULL);   
 
     /* 给模组上电 */
-    int iRetry;
+    // int iRetry;
     int iModulePowerOnTimes;
 
     for (int i = 6; i >= 1; i--) {
@@ -2879,11 +2878,8 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
 {
     struct statfs diskInfo;
     
-    
-    u64 totalsize = 0;
-
-    // AutoMutex _l(pVol->mVolLock);
-
+    AutoMutex _l(pVol->mVolLock);    
+ 
     /* 卡槽使能并且卷已经被挂载 */
     if ((pVol->iVolSlotSwitch == VOLUME_SLOT_SWITCH_ENABLE) && (pVol->iVolState == VOLUME_STATE_MOUNTED)) {
         

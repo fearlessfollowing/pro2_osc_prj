@@ -525,9 +525,9 @@ private:
 
     static VolumeManager*   sInstance;
 
-    std::vector<Volume*>    mVolumes;       /* 管理系统中所有的卷 */
-    std::vector<Volume*>    mLocalVols;     /* 管理系统中所有的卷 */
-    std::vector<Volume*>    mModuleVols;    /* 模组卷 */
+    std::vector<Volume*>    mVolumes;                       /* 管理系统中所有的卷 */
+    std::vector<Volume*>    mLocalVols;                     /* 管理系统中所有的卷 */
+    std::vector<Volume*>    mModuleVols;                    /* 模组卷 */
     std::vector<Volume*>    mCurSaveVolList;
     std::vector<Volume*>    mSysStorageVolList;
 
@@ -547,8 +547,6 @@ private:
 
     u32                     mTaketimelapseCnt;                      /* 可拍timelapse的张数 */
 
-
-
     /*
      * 录像，直播录像的剩余秒数
      */
@@ -561,7 +559,6 @@ private:
      * 可拍照，Timelapse可拍的张数
      */
     u32                     mTakePicLeftNum;                            /* 普通拍照的剩余张数 */
-    u32                     mTimeLapseLeftNum;                          /* Timelapse可拍剩余张数 */
 
     sp<ins_i2c>             mI2CLight;
 

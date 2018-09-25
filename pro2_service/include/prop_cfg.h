@@ -196,6 +196,7 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define TAKE_VID_4K_30F_3D_RTS          "vid_4k_30f_3d_rts"
 
 #define TAKE_VID_8K_30F_3D_HDR          "vid_8k_30f_3d_hdr"
+#define TAKE_VID_8K_30F_HDR             "vid_8k_30f_hdr"
 
 
 #define TAKE_VID_MOD_CUSTOMER           "vid_customer"

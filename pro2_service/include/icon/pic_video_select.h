@@ -1045,6 +1045,33 @@ const u8 vid_8K30F_3D_Hdr_Light_78x16[] = {
     0xFC,0xFF,0xF0,0xFE,0xFE,0xFC,0xFB,0xF7,0xFF,0xFF,0xFF,0xFF,
 };
 
+const u8 vid_8K30F_Hdr_Light_78x16[] = {
+    0xFF,0xFF,0xFF,0x9F,0x6F,0x6F,0x6F,0x9F,0xFF,0x0F,0x7F,0xBF,0xDF,0xEF,0xFF,0x07,
+    0xFF,0xEF,0x6F,0x6F,0x6F,0x9F,0xFF,0x1F,0xEF,0xEF,0xEF,0x1F,0xFF,0x0F,0x6F,0x6F,
+    0x6F,0xEF,0xFF,0x07,0xFF,0x0F,0x7F,0x7F,0x7F,0x7F,0x0F,0xFF,0x0F,0xEF,0xEF,0xEF,
+    0xEF,0xDF,0x3F,0xFF,0x0F,0xEF,0xEF,0xEF,0x1F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xF8,0xF7,0xF7,0xF7,0xF8,0xFF,0xF0,0xFE,0xFD,0xFB,0xF7,0xFF,0xE0,0xFF,0xF7,
+    0xF7,0xF7,0xF7,0xF8,0xFF,0xF8,0xF7,0xF7,0xF7,0xF8,0xFF,0xF0,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xE0,0xFF,0xF0,0xFF,0xFF,0xFF,0xFF,0xF0,0xFF,0xF0,0xF7,0xF7,0xF7,0xF7,0xFB,
+    0xFC,0xFF,0xF0,0xFE,0xFE,0xFC,0xFB,0xF7,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+};
+
+
+const u8 vid_8K30F_Hdr_Nor_78x16[] = {
+    0x00,0x00,0x00,0x60,0x90,0x90,0x90,0x60,0x00,0xF0,0x80,0x40,0x20,0x10,0x00,0xF8,
+    0x00,0x10,0x90,0x90,0x90,0x60,0x00,0xE0,0x10,0x10,0x10,0xE0,0x00,0xF0,0x90,0x90,
+    0x90,0x10,0x00,0xF8,0x00,0xF0,0x80,0x80,0x80,0x80,0xF0,0x00,0xF0,0x10,0x10,0x10,
+    0x10,0x20,0xC0,0x00,0xF0,0x10,0x10,0x10,0xE0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x07,0x08,0x08,0x08,0x07,0x00,0x0F,0x01,0x02,0x04,0x08,0x00,0x1F,0x00,0x08,
+    0x08,0x08,0x08,0x07,0x00,0x07,0x08,0x08,0x08,0x07,0x00,0x0F,0x00,0x00,0x00,0x00,
+    0x00,0x1F,0x00,0x0F,0x00,0x00,0x00,0x00,0x0F,0x00,0x0F,0x08,0x08,0x08,0x08,0x04,
+    0x03,0x00,0x0F,0x01,0x01,0x03,0x04,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
 
 struct stIconPos; 
 struct _action_info_;
@@ -1593,10 +1620,10 @@ static PicVideoCfg vid8K_60F_Cfg = {
 	stPos:				{0},							// stPos
 	pStAction:			&vid8K_60F_Action,				/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
 	jsonCmd:			nullptr,
-	stLightIcon:		{	/* 选中时的图标列表 */
+	stLightIcon:		{	                            /* 选中时的图标列表 */
 		vid_8K60F_Light_78x16,
 	},
-	stNorIcon:			{	/* 未选中时的图标列表 */
+	stNorIcon:			{	                            /* 未选中时的图标列表 */
 		vid_8K60F_Nor_78x16,
 	},
     pNote:              "8K|60F",
@@ -1605,20 +1632,19 @@ static PicVideoCfg vid8K_60F_Cfg = {
 
 static PicVideoCfg vid8K_5F_Cfg = {
 	pItemName:			TAKE_VID_MODE_8K_5F,		// pItemName
-	iItemMaxVal:		0,								// iItemMaxVal
-	iCurVal:			0,								// iCurVal
-	iRawStorageRatio:	0,								// 5倍
-	stPos:				{0},							// stPos
+	iItemMaxVal:		0,							// iItemMaxVal
+	iCurVal:			0,							// iCurVal
+	iRawStorageRatio:	0,							// 5倍
+	stPos:				{0},						// stPos
 	pStAction:			&vid8K_5F_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
 	jsonCmd:			nullptr,
-	stLightIcon:		{	/* 选中时的图标列表 */
+	stLightIcon:		{	                        /* 选中时的图标列表 */
 		vid_8K5F_Light_78x16,
 	},
-	stNorIcon:			{	/* 未选中时的图标列表 */
+	stNorIcon:			{	                        /* 未选中时的图标列表 */
 		vid_8K5F_Nor_78x16,
 	},
     pNote:              "8K|5F|GSV",
-
 };
 
 static PicVideoCfg vid6K_60F_3D_Cfg = {
@@ -1636,8 +1662,8 @@ static PicVideoCfg vid6K_60F_3D_Cfg = {
 		vid_6K60F3D_Nor_78x16,
 	},
     pNote:              "6K|60F|3D",
-
 };
+
 
 static PicVideoCfg vid4K_120F_3D_Cfg = {
 	pItemName:			TAKE_VID_MODE_4K_120F_3D,		// pItemName
@@ -1693,6 +1719,45 @@ static PicVideoCfg vid4K_30F_3D_RTS_Cfg = {
 
 };
 
+
+static PicVideoCfg vid8K_30F_3D_HDR_Cfg = {
+	pItemName:			TAKE_VID_8K_30F_3D_HDR,		// pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
+		vid_8K30F_3D_Hdr_Light_78x16,
+	},
+	stNorIcon:			{	/* 未选中时的图标列表 */
+		vid_8K30F_3D_Hdr_Nor_78x16,
+	},
+    pNote:              "8K|30F|3D|HDR",
+
+};
+
+
+static PicVideoCfg vid8K_30F_HDR_Cfg = {
+	pItemName:			TAKE_VID_8K_30F_HDR,		    // pItemName
+	iItemMaxVal:		0,								// iItemMaxVal
+	iCurVal:			0,								// iCurVal
+	iRawStorageRatio:	0,								// 5倍
+	stPos:				{0},							// stPos
+	pStAction:			&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
+	jsonCmd:			nullptr,
+	stLightIcon:		{	/* 选中时的图标列表 */
+		vid_8K30F_Hdr_Light_78x16,
+	},
+	stNorIcon:			{	/* 未选中时的图标列表 */
+		vid_8K30F_Hdr_Nor_78x16,
+	},
+    pNote:              "8K|30F|HDR",
+};
+
+
+
 static PicVideoCfg vid_Customer_Cfg = {
 	pItemName:			TAKE_VID_MOD_CUSTOMER,		// pItemName
 	iItemMaxVal:		0,								// iItemMaxVal
@@ -1711,42 +1776,25 @@ static PicVideoCfg vid_Customer_Cfg = {
 
 };
 
-static PicVideoCfg vid8K_30F_3D_HDR_Cfg = {
-	pItemName:			TAKE_VID_8K_30F_3D_HDR,		// pItemName
-	iItemMaxVal:		0,								// iItemMaxVal
-	iCurVal:			0,								// iCurVal
-	iRawStorageRatio:	0,								// 5倍
-	stPos:				{0},							// stPos
-	pStAction:			&vid_Customer_Action,			/* 默认值,如果由配置文件可以在初始化时使用配置文件的数据替换 */
-	jsonCmd:			nullptr,
-	stLightIcon:		{	/* 选中时的图标列表 */
-		vid_8K30F_3D_Hdr_Light_78x16,
-	},
-	stNorIcon:			{	/* 未选中时的图标列表 */
-		vid_8K30F_3D_Hdr_Nor_78x16,
-	},
-    pNote:              "vid_8k_30f_3d_hdr",
-
-};
-
 PicVideoCfg* gVidAllModeCfgList[] = {
 	&vid8K_30F_3D_Cfg,
+    &vid8K_30F_3D_HDR_Cfg,
 	&vid8K_60F_Cfg,
+
+#ifdef ENABLE_8K_30F_HDR    
+    &vid8K_30F_HDR_Cfg,
+#endif
+
 	&vid8K_5F_Cfg,
 	&vid6K_60F_3D_Cfg,
 	&vid4K_120F_3D_Cfg,
 	&vid4K_30F_RTS_Cfg,
 	&vid4K_30F_3D_RTS_Cfg,
-    &vid8K_30F_3D_HDR_Cfg,
 	&vid_Customer_Cfg,
 };
 
 
 /******************************** 录像部分：END **************************************/
-
-
-
-
 
 
 /******************************** 直播部分：START **************************************/
@@ -1983,7 +2031,6 @@ PicVideoCfg live4K_30F_3D_Cfg = {
 		live4K_30F_3D_Nor_78x16,
 	},
     pNote:              "4K|30F|3D",
-
 };
 
 
@@ -2067,6 +2114,9 @@ static const char* pCmdTakeVid_4K30FRTS = "{\"name\":\"camera._startRecording\",
 static const char* pCmdTakeVid_4K30F3DRTS = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":61440,\"saveOrigin\":true,\"width\":3200,\"height\":2400,\"storage_loc\":1},\"stiching\":{\"mode\":\"3d_top_left\",\"height\":3840,\"width\":3840,\"framerate\":30,\"bitrate\":51200,\"mime\":\"h264\"},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";
 
 static const char* pCmdTakeVid_8K30F3DHDR = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"hdr\":true,\"mime\":\"h264\",\"framerate\":30,\"bitrate\":122880,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";;
+
+
+static const char* pCmdTakeVid_8K30FHDR = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"hdr\":true,\"mime\":\"h264\",\"framerate\":30,\"bitrate\":122880,\"saveOrigin\":true,\"width\":3840,\"height\":2160,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";;
 
 
 static const char* pCmdTakeVid_Customer = "{\"name\":\"camera._startRecording\",\"parameters\":{\"origin\":{\"mime\":\"h264\",\"framerate\":30,\"bitrate\":122880,\"saveOrigin\":true,\"width\":3840,\"height\":2880,\"storage_loc\":1},\"audio\": {\"mime\": \"aac\", \"sampleFormat\": \"s16\", \"samplerate\": 48000, \"bitrate\": 128, \"channelLayout\": \"stereo\"}}}";

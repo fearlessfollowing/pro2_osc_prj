@@ -45,17 +45,7 @@ static QR_STRUCT mQRInfo[] = {
 	100, {{7,4,4,3,1,0}, {6,6,5,0,0,1}, {6,6,6}}
 };
 
-static const char *act_mode[] = {"3d_top_left", "pano"};
 
-static const char *all_mime[] = {"h264", "h265", "jpeg", "raw", "raw+jpeg"};
-
-static const char *all_map[] = {"flat", "cube"};
-
-static const int all_frs[] = {24, 25, 30, 60, 120, 5};
-
-//static const char *cal_mode[] = {"pano", "3d"};
-//kbits/s
-//static const int all_brs[] = {150000,100000,50000,40000,30000,25000,20000,10000,8000,5000,3000};
 
 static sp<fifo> mpFIFO = nullptr;
 static const int qr_array_len = 4;
@@ -97,7 +87,6 @@ static const RES_INFO mResInfos[] = {
 
 
 static int reboot_cmd = -1;
-
 
 
 static sp<fifo> gSysTranObj = NULL;
@@ -147,6 +136,7 @@ void start_all()
 
 }
 
+#if 0
 
 #define GET_CJSON_OBJ_ITEM_STR(child, root, key,str,size) \
     child = cJSON_GetObjectItem(root,key); \
@@ -166,68 +156,8 @@ void start_all()
     {\
         val = child->valuedouble;\
     }
+#endif
 
-static int get_fr_index(int fr)
-{
-    int i;
-    int max = sizeof(all_frs) / sizeof(all_frs[0]);
-    for (i = 0; i < max; i++) {
-        if (all_frs[i] == fr) {
-            break;
-        }
-    }
-	
-    if (i == max) {
-        Log.e(TAG, "fr index not found");
-        i = 0;
-    }
-    return i;
-}
-// 0 --MODE_3D, 1-- MODE_STITCH
-static int get_mode_index(char *mode)
-{
-    int iIndex;
-    if (strcmp(mode, "pano") == 0) {
-        iIndex = 1;
-    } else {
-        iIndex = 0;
-    }
-    return iIndex;
-}
-
-static int get_sti_mode(char *map)
-{
-    int i;
-    int max = sizeof(all_map) / sizeof(all_map[0]);
-    for (i = 0; i < max; i++) {
-        if (strcmp(all_map[i], map) == 0) {
-            break;
-        }
-    }
-	
-    if (i == max) {
-        Log.e(TAG, "map %s not found",map);
-        i = 0;
-    }
-    return i;
-}
-
-static int get_mime_index(char *mime)
-{
-    int i;
-    int max = sizeof(all_mime) / sizeof(all_mime[0]);
-    for (i = 0; i < max; i++) {
-        if (strcmp(all_mime[i], mime) == 0) {
-            break;
-        }
-    }
-	
-    if (i == max) {
-        Log.e(TAG, "mime %s not found",mime);
-        i = 0;
-    }
-    return i;
-}
 
 class my_handler : public ARHandler {
 public:
@@ -259,8 +189,6 @@ fifo::~fifo()
 
 void fifo::init()
 {
-    CHECK_EQ(sizeof(mResInfos) / sizeof(mResInfos[0]), RES_MAX);
-    CHECK_EQ(sizeof(all_frs) / sizeof(all_frs[0]), ALL_FR_MAX);
 	
     make_fifo();
     init_thread();
@@ -1546,6 +1474,8 @@ const char *getDispType(int iType)
 }
 
 
+#if 0
+
 void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode)
 {
 	int iArraySize = cJSON_GetArraySize(subNode);
@@ -1947,6 +1877,7 @@ void fifo::handleQrContent(sp<DISP_TYPE>& mDispType, cJSON* root, cJSON *subNode
 }
 
 
+
 /*
  * 处理来自HTTP的请求
  */
@@ -2247,7 +2178,6 @@ void fifo::handleSetting(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 }
 
 
-#if 0
 void fifo::handleStitchProgress(sp<DISP_TYPE>& mDispType, cJSON *subNode)
 {
     cJSON *child = nullptr;
@@ -2802,12 +2732,14 @@ void fifo::read_fifo_thread()
                     }
                 } else {
                 
+                    #if 0
                     cJSON *root = cJSON_Parse(&buf[FIFO_HEAD_LEN]);
 
                     cJSON *subNode = 0;
                     if (!root) {	/* 解析出错 */
                         Log.e(TAG, "cJSON parse string error, func(%s), line(%d)", __FILE__, __LINE__);
                     }
+                    #endif
 					
                     Json::Value rootJson;
                     Json::Reader reader;
