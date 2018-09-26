@@ -1801,15 +1801,11 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_4K_30F_3D_RTS)) {
                             pCommJsonCmd = pCmdTakeVid_4K30F3DRTS;
 
-                        }  
-                        #if 1
-                        else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_3D_HDR)) {
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_3D_HDR)) {
                             pCommJsonCmd = pCmdTakeVid_8K30F3DHDR;
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_8K_30F_HDR)) {
                             pCommJsonCmd = pCmdTakeVid_8K30FHDR;
-                        }
-                        #endif 
-                        else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {
+                        } else if (!strcmp(pSetItems[i]->pItemName, TAKE_VID_MOD_CUSTOMER)) {
                             pCommJsonCmd = pCmdTakeVid_Customer;
                         } 
                         
