@@ -29,11 +29,11 @@ com_env.Append(CXXCOMSTR ='CXX <=========================================== $SOU
 Export('com_env')
 
 ############################# Monitor ######################################
-#monitor_obj = SConscript('./init/SConscript')
+monitor_obj = SConscript('./init/SConscript')
 
-#MONITOR_EXE = 'out/monitor'
-#MONITOR_OBJS = monitor_obj
-#com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
+MONITOR_EXE = 'out/monitor'
+MONITOR_OBJS = monitor_obj
+com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
 
 
 ############################## VOLD #########################################

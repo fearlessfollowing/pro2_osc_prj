@@ -28,20 +28,24 @@
 static int klog_fd = -1;
 static int klog_level = KLOG_DEFAULT_LEVEL;
 
-int klog_get_level(void) {
+int klog_get_level(void) 
+{
     return klog_level;
 }
 
-void klog_set_level(int level) {
+void klog_set_level(int level) 
+{
     klog_level = level;
 }
 
 void klog_init(void)
 {
-    static const char *name = "/dev/__kmsg__";
+    static const char *name = "/dev/kmsg";
 
-    if (klog_fd >= 0) return; /* Already initialized */
+    if (klog_fd >= 0) 
+        return; /* Already initialized */
 
+    #if 0
     if (mknod(name, S_IFCHR | 0600, (1 << 8) | 11) == 0) {
         klog_fd = open(name, O_WRONLY);
         if (klog_fd < 0)
@@ -50,6 +54,14 @@ void klog_init(void)
         fcntl(klog_fd, F_SETFD, FD_CLOEXEC);
         unlink(name);
     }
+    #else 
+    /* write log to kernel msg buffer */
+    klog_fd = open(name, O_WRONLY);
+    if (klog_fd < 0)
+        return;
+    
+    fcntl(klog_fd, F_SETFD, FD_CLOEXEC);
+    #endif
 }
 
 #define LOG_BUF_MAX 512
@@ -58,9 +70,14 @@ void klog_vwrite(int level, const char *fmt, va_list ap)
 {
     char buf[LOG_BUF_MAX];
 
-    if (level > klog_level) return;
-    if (klog_fd < 0) klog_init();
-    if (klog_fd < 0) return;
+    if (level > klog_level)
+        return;
+    
+    if (klog_fd < 0) 
+        klog_init();
+
+    if (klog_fd < 0) 
+        return;
 
     vsnprintf(buf, LOG_BUF_MAX, fmt, ap);
     buf[LOG_BUF_MAX - 1] = 0;

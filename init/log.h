@@ -17,7 +17,8 @@
 #ifndef _INIT_LOG_H_
 #define _INIT_LOG_H_
 
-#ifdef USE_KLOG
+#if 1
+
 #include <cutils/klog.h>
 
 #define ERROR(x...)   KLOG_ERROR("init", x)

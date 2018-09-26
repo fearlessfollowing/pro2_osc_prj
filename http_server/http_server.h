@@ -1698,16 +1698,18 @@ extern "C" {
 
 /* Memory buffer descriptor */
 struct mbuf {
-    char *buf;   /* Buffer pointer */
-    size_t len;  /* Data length. Data is located between offset 0 and len. */
-    size_t size; /* Buffer size allocated by realloc(1). Must be >= len */
+    char *buf;      /* Buffer pointer */
+    size_t len;     /* Data length. Data is located between offset 0 and len. */
+    size_t size;    /* Buffer size allocated by realloc(1). Must be >= len */
 };
+
 
 /*
  * Initialises an Mbuf.
  * `initial_capacity` specifies the initial capacity of the mbuf.
  */
 void mbuf_init(struct mbuf *, size_t initial_capacity);
+
 
 /* Frees the space allocated for the mbuffer and resets the mbuf structure. */
 void mbuf_free(struct mbuf *);
@@ -1771,9 +1773,9 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct {
-  uint32_t state[5];
-  uint32_t count[2];
-  unsigned char buffer[64];
+    uint32_t state[5];
+    uint32_t count[2];
+    unsigned char buffer[64];
 } cs_sha1_ctx;
 
 void cs_sha1_init(cs_sha1_ctx *);
@@ -1811,9 +1813,9 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct MD5Context {
-  uint32_t buf[4];
-  uint32_t bits[2];
-  unsigned char in[64];
+    uint32_t buf[4];
+    uint32_t bits[2];
+    unsigned char in[64];
 } MD5_CTX;
 
 void MD5_Init(MD5_CTX *c);
@@ -1861,11 +1863,11 @@ extern "C" {
 typedef void (*cs_base64_putc_t)(char, void *);
 
 struct cs_base64_ctx {
-  /* cannot call it putc because it's a macro on some environments */
-  cs_base64_putc_t b64_putc;
-  unsigned char chunk[3];
-  int chunk_size;
-  void *user_data;
+    /* cannot call it putc because it's a macro on some environments */
+    cs_base64_putc_t b64_putc;
+    unsigned char chunk[3];
+    int chunk_size;
+    void *user_data;
 };
 
 void cs_base64_init(struct cs_base64_ctx *ctx, cs_base64_putc_t putc,
@@ -3175,6 +3177,7 @@ extern "C" {
 union socket_address {
     struct sockaddr sa;
     struct sockaddr_in sin;
+
     #if MG_ENABLE_IPV6
     struct sockaddr_in6 sin6;
     #else
@@ -3191,19 +3194,19 @@ struct mg_connection;
 typedef void (*mg_event_handler_t)(struct mg_connection *nc, int ev, void *ev_data);
 
 /* Events. Meaning of event parameter (evp) is given in the comment. */
-#define MG_EV_POLL 0    /* Sent to each connection on each mg_mgr_poll() call */
-#define MG_EV_ACCEPT 1  /* New connection accepted. union socket_address * */
-#define MG_EV_CONNECT 2 /* connect() succeeded or failed. int *  */
-#define MG_EV_RECV 3    /* Data has benn received. int *num_bytes */
-#define MG_EV_SEND 4    /* Data has been written to a socket. int *num_bytes */
-#define MG_EV_CLOSE 5   /* Connection is closed. NULL */
-#define MG_EV_TIMER 6   /* now >= conn->ev_timer_time. double * */
+#define MG_EV_POLL      0       /* Sent to each connection on each mg_mgr_poll() call */
+#define MG_EV_ACCEPT    1       /* New connection accepted. union socket_address * */
+#define MG_EV_CONNECT   2       /* connect() succeeded or failed. int *  */
+#define MG_EV_RECV      3       /* Data has benn received. int *num_bytes */
+#define MG_EV_SEND      4       /* Data has been written to a socket. int *num_bytes */
+#define MG_EV_CLOSE     5       /* Connection is closed. NULL */
+#define MG_EV_TIMER     6       /* now >= conn->ev_timer_time. double * */
 
 /*
  * Mongoose event manager.
  */
 struct mg_mgr {
-    struct mg_connection *active_connections;
+    struct mg_connection* active_connections;
 
 #if MG_ENABLE_HEXDUMP
     const char *hexdump_file;   /* Debug hexdump file path */
@@ -3241,7 +3244,7 @@ struct mg_connection {
     double ev_timer_time;               /* Timestamp of the future MG_EV_TIMER */
 
 #if MG_ENABLE_SSL
-    void *ssl_if_data; /* SSL library data. */
+    void*   ssl_if_data; /* SSL library data. */
 #endif
     mg_event_handler_t proto_handler;   /* Protocol-specific event handler */
     void *proto_data;                   /* Protocol-specific data */
@@ -3258,9 +3261,9 @@ struct mg_connection {
         mg_event_handler_t f;
     } priv_1;       /* Used by mg_enable_multithreading() */
   
-    void *priv_2;   /* Used by mg_enable_multithreading() */
-    void *mgr_data; /* Implementation-specific event manager's data. */
-    struct mg_iface *iface;
+    void*   priv_2;   /* Used by mg_enable_multithreading() */
+    void*   mgr_data; /* Implementation-specific event manager's data. */
+    struct mg_iface* iface;
     unsigned long flags;
 
     /* Flags set by Mongoose */

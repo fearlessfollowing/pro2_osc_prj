@@ -84,6 +84,7 @@ using namespace std;
 #define ERR_UPDATE_SUCCESS 		0
 #define SENSOR_FIRM_CNT 		2
 
+
 enum {
 	CP_FLAG_ADD_X = 0x1,
 	CP_FLAG_MAX
@@ -105,9 +106,14 @@ extern int forkExecvpExt(int argc, char* argv[], int *status, bool bIgnorIntQuit
 extern int exec_sh(const char *str);
 
 typedef int (*pfn_com_update)(const char* mount_point, sp<UPDATE_SECTION>& section);
-static bool update_del_flag = true;
-static UPDATE_HEADER gstHeader;
 
+#ifdef ENABLE_DELETE_UPDATE_FILE
+static bool update_del_flag = true;
+#endif
+
+#ifdef ENABLE_CHECK_HEADER
+static UPDATE_HEADER gstHeader;
+#endif
 
 struct sensor_firm_item firm_items[SENSOR_FIRM_CNT] = {
 	{"sys_dsp_rom.devfw", 0},
@@ -212,16 +218,7 @@ static int parse_sections(std::vector<sp<UPDATE_SECTION>>& sections, const char*
 
 
 
-static u8 get_cid()
-{
-    return DEF_CID;
-}
-
-static u8 get_mid()
-{
-    return DEF_MID;
-}
-
+#ifdef ENABLE_CHECK_HEADER
 
 /*************************************************************************
 ** 方法名称: check_header_match
@@ -248,6 +245,8 @@ static bool check_header_match(UPDATE_HEADER * pstTmp)
     }
     return bRet;
 }
+
+#endif
 
 
 
@@ -322,10 +321,7 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 	int iRet = ERR_UPDATE_SUCCESS;
 	u32 iCnt = 0;
 	char src_path[1024] = {0};
-	char cmd[1024] = {0};
-	char update_prog[256] = {0};
 	u32 firm_item_cnt = SENSOR_FIRM_CNT;
-	int res = 0;
 
 	/*
 	 * 1.检查firmware目录下是否有升级模组所需的文件(upgrade, 固件, version.txt)
@@ -362,34 +358,11 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 			iRet = ERR_UPAPP_MODUE;
 		} else {
 
-		#if 0
-			/* 3.执行升级操作 */
-			sprintf(update_prog, "%s", "/usr/local/bin/upgrade");
-			Log.d(TAG, "update_firmware: prog full path: %s", update_prog);
-			
-			int icnt = 0;
-			for (icnt = 0; icnt < 3; icnt++) {
-				/* 得到升级命令 */
-				sprintf(cmd, "%s -p %s\n", update_prog, section->dst_path);
-				Log.d(TAG, "update cmd: [%s]", cmd);
-				if (exec_sh_firm(cmd) == 0) {
-					Log.e(TAG, "update_firmware: update success...");
-					break;
-				} 
-			}
-
-			if (icnt >= 3) {
-				Log.d(TAG, "update_firmware: update module failed...");
-				iRet = ERR_UPAPP_MODUE;
-			}
-		#else
-		
     		int status;
 			const char *args[3];
         	args[0] = "/usr/local/bin/upgrade";
         	args[1] = "-p";
         	args[2] = section->dst_path;
-			int icnt = 0;
 
 			for (int i = 0; i < 3; i++) {
         		iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
@@ -413,10 +386,6 @@ static int update_firmware(const char* update_root_path, sp<UPDATE_SECTION> & se
 					continue;
 				}
 			}
-
-		#endif
-
-
 		}
 	}
 	return iRet;
@@ -704,8 +673,6 @@ static int pro2Updatecheck(const char* pUpdateFileDir)
     u8 buf[1024 * 1024];
 
 	u32 uReadLen = 0;
-	char ver_str[128] = {0};
-	SYS_VERSION* pVer = NULL;
 	int iPro2UpdateOffset = 0;
 
 	const char* pUpdateFilePathName = NULL;
@@ -767,7 +734,7 @@ static int pro2Updatecheck(const char* pUpdateFileDir)
 #define INSTALL_SAMBA_CMD	"/usr/local/bin/install_samba.sh"
 
 
-static int installVm()
+static void installVm()
 {
 	mkdir("/swap", 0766);
 	system("dd if=/dev/zero of=/swap/sfile bs=1024 count=4000000");
@@ -880,7 +847,7 @@ err_get_pro2_update:
 
 
 
-
+#if 0
 /*************************************************************************
 ** 方法名称: cleanTmpFiles
 ** 方法功能: 清除临时文件及镜像文件
@@ -907,9 +874,9 @@ static void cleanTmpFiles(const char* mount_point)
 	system(pro_update_path);
 
 	Log.d(TAG, "[%s: %d] Remove tmp files and dir OK", __FILE__, __LINE__);
-	
     arlog_close();
 }
+#endif
 
 
 /*
@@ -969,9 +936,7 @@ EXIT:
 **
 *************************************************************************/
 static void handleUpdateSuc()
-{
-	int iRet = -1;
-	
+{	
 	/* 1.提示: 显示升级成功 */	
 	disp_update_icon(ICON_UPDATE_SUC128_64);
 
@@ -1028,6 +993,7 @@ static void handleComUpdateError(int err_type)
 }
 
 
+#if 0
 static void handleUpdateModuleFail(int err_type)
 {
 
@@ -1040,6 +1006,7 @@ static void handleUpdateModuleFail(int err_type)
     disp_start_reboot(5);
 	start_reboot();		/* 重启 */	
 }
+#endif
 
 
 

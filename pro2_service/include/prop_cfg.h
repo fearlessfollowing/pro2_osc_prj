@@ -112,11 +112,11 @@
 /*
  * WIFI固件路径
  */
-#define BCMDHD_DRIVER_PATH 		"/home/nvidia/insta360/wifi/bcmdhd.ko"
-#define WIFI_RAND_NUM_CFG 		"/home/nvidia/insta360/etc/.wifi_rand_sn"
-#define SYS_TMP 				"/home/nvidia/insta360/etc/sys_tmp"
+#define BCMDHD_DRIVER_PATH 		    "/home/nvidia/insta360/wifi/bcmdhd.ko"
+#define WIFI_RAND_NUM_CFG 		    "/home/nvidia/insta360/etc/.wifi_rand_sn"
+#define SYS_TMP 				    "/home/nvidia/insta360/etc/sys_tmp"
 
-#define SYS_SN_PATH             "/home/nvidia/insta360/etc/sn"
+#define SYS_SN_PATH                 "/home/nvidia/insta360/etc/sn"
 
 
 #if 0
@@ -124,48 +124,42 @@ const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
 const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #endif
 
-#define JSON_CFG_FILE_PATH      "/home/nvidia/insta360/etc/"
+#define JSON_CFG_FILE_PATH          "/home/nvidia/insta360/etc/"
 
 /* 
  * FIFO路径
  */
-#define  FIFO_FROM_CLIENT		"/home/nvidia/insta360/fifo/fifo_read_client"
-#define  FIFO_TO_CLIENT			"/home/nvidia/insta360/fifo/fifo_write_client"
-#define  ETC_RESOLV_PATH         "/etc/resolv.conf"
+#define  FIFO_FROM_CLIENT		    "/home/nvidia/insta360/fifo/fifo_read_client"
+#define  FIFO_TO_CLIENT			    "/home/nvidia/insta360/fifo/fifo_write_client"
+#define  ETC_RESOLV_PATH            "/etc/resolv.conf"
 
 
 /*
  * 路径
  */
-#define VER_FULL_PATH 			"/home/nvidia/insta360/etc/.sys_ver"
-#define VER_FULL_TMP_PATH		"/home/nvidia/insta360/etc/.sys_tmp_ver"
-#define VER_BUILD_PATH 			"/home/nvidia/insta360/etc/pro_build_version"
+#define VER_FULL_PATH 			    "/home/nvidia/insta360/etc/.sys_ver"
+#define VER_FULL_TMP_PATH		    "/home/nvidia/insta360/etc/.sys_tmp_ver"
+#define VER_BUILD_PATH 			    "/home/nvidia/insta360/etc/pro_build_version"
 
 /*
  * 配置参数路径
  */
-#define USER_CFG_PARAM_PATH     "/home/nvidia/insta360/etc/user_cfg"
-#define DEF_CFG_PARAM_PATH      "/home/nvidia/insta360/etc/def_cfg"
-#define WIFI_CFG_PARAM_PATH     "/home/nvidia/insta360/etc/wifi_cfg"
+#define USER_CFG_PARAM_PATH         "/home/nvidia/insta360/etc/user_cfg"
+#define DEF_CFG_PARAM_PATH          "/home/nvidia/insta360/etc/def_cfg"
+#define WIFI_CFG_PARAM_PATH         "/home/nvidia/insta360/etc/wifi_cfg"
 
 
 /*
  * 日志存放路径名
  */
-#define PRO2_SERVICE_LOG_PATH   "/home/nvidia/insta360/log/p_log"
-
-
-#define UPDATE_APP_LOG_PATH     "/home/nvidia/insta360/log/ua_log" 
-
-#define HTTP_APP_LOG_PATH       "/home/nvidia/insta360/log/http_log"
-
-#define HTTP_SERVER_LOG_PATH    "/home/nvidia/insta360/log/http_server_log"
-
-#define TIME_TZ_LOG_PATH        "/home/nvidia/insta360/log/tz_log"
-
-#define TAKE_PIC_TEMPLET_PATH   "/home/nvidia/insta360/etc/pic_customer.json"
-#define TAKE_VID_TEMPLET_PATH   "/home/nvidia/insta360/etc/vid_customer.json"
-#define TAKE_LIVE_TEMPLET_PATH   "/home/nvidia/insta360/etc/live_customer.json"
+#define PRO2_SERVICE_LOG_PATH       "/home/nvidia/insta360/log/p_log"
+#define UPDATE_APP_LOG_PATH         "/home/nvidia/insta360/log/ua_log" 
+#define HTTP_APP_LOG_PATH           "/home/nvidia/insta360/log/http_log"
+#define HTTP_SERVER_LOG_PATH        "/home/nvidia/insta360/log/http_server_log"
+#define TIME_TZ_LOG_PATH            "/home/nvidia/insta360/log/tz_log"
+#define TAKE_PIC_TEMPLET_PATH       "/home/nvidia/insta360/etc/pic_customer.json"
+#define TAKE_VID_TEMPLET_PATH       "/home/nvidia/insta360/etc/vid_customer.json"
+#define TAKE_LIVE_TEMPLET_PATH      "/home/nvidia/insta360/etc/live_customer.json"
 /*
  * 拍照模式名称
  */

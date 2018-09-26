@@ -23,27 +23,24 @@
 #include <sys/poll.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <mtd/mtd-user.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/personality.h>
-
-#ifdef HAVE_SELINUX
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-#include <selinux/android.h>
-#endif
 
 #include <libgen.h>
 
 #include <cutils/list.h>
 #include <cutils/sockets.h>
 #include <cutils/iosched_policy.h>
+#include <cutils/klog.h>
+
 #include <private/android_filesystem_config.h>
 #include <termios.h>
 
 #include <system_properties.h>
+
+
 
 #include "devices.h"
 #include "init.h"
@@ -56,28 +53,18 @@
 #include "util.h"
 #include "ueventd.h"
 
-#ifdef HAVE_SELINUX
-struct selabel_handle *sehandle;
-struct selabel_handle *sehandle_prop;
-#endif
+
+#define INIT_RC_PATH    "/home/nvidia/insta360/etc/init.rc"
 
 static int property_triggers_enabled = 0;
-
-#define INIT_RC_PATH "/home/nvidia/insta360/etc/init.rc"
-
-
-#if BOOTCHART
-static int   bootchart_count;
-#endif
-
-
-#ifdef HAVE_SELINUX
-static int selinux_enabled = 1;
-#endif
-
 static struct action *cur_action = NULL;
 static struct command *cur_command = NULL;
 static struct listnode *command_queue UNUSED = NULL;
+static int have_console;
+static char *console_name = "/dev/console";
+static time_t process_needs_restart;
+static const char *ENV[32];
+
 
 void notify_service_state(const char *name, const char *state)
 {
@@ -89,11 +76,6 @@ void notify_service_state(const char *name, const char *state)
     _property_set(pname, state);
 }
 
-static int have_console;
-static char *console_name = "/dev/console";
-static time_t process_needs_restart;
-
-static const char *ENV[32];
 
 /* add_environment - add "key=value" to the current environment */
 int add_environment(const char *key, const char *val)
@@ -157,14 +139,10 @@ void service_start(struct service *svc, const char *dynamic_args)
     pid_t pid;
     int needs_console;
 	
-#ifdef HAVE_SELINUX
-    char *scon = NULL;
-    int rc;
-#endif
-        /* starting a service removes it from the disabled or reset
-         * state and immediately takes it out of the restarting
-         * state if it was in there
-         */
+    /* starting a service removes it from the disabled or reset
+     * state and immediately takes it out of the restarting
+     * state if it was in there
+     */
     svc->flags &= (~(SVC_DISABLED|SVC_RESTARTING|SVC_RESET));
     svc->time_started = 0;
 
@@ -197,34 +175,6 @@ void service_start(struct service *svc, const char *dynamic_args)
         return;
     }
 
-#ifdef HAVE_SELINUX
-    if (is_selinux_enabled() > 0) {
-        char *mycon = NULL, *fcon = NULL;
-
-        INFO("computing context for service '%s'\n", svc->args[0]);
-        rc = getcon(&mycon);
-        if (rc < 0) {
-            ERROR("could not get context while starting '%s'\n", svc->name);
-            return;
-        }
-
-        rc = getfilecon(svc->args[0], &fcon);
-        if (rc < 0) {
-            ERROR("could not get context while starting '%s'\n", svc->name);
-            freecon(mycon);
-            return;
-        }
-
-        rc = security_compute_create(mycon, fcon, string_to_security_class("process"), &scon);
-        freecon(mycon);
-        freecon(fcon);
-        if (rc < 0) {
-            ERROR("could not get context while starting '%s'\n", svc->name);
-            return;
-        }
-    }
-#endif
-
     NOTICE("starting '%s'\n", svc->name);
 
     pid = fork();
@@ -235,21 +185,6 @@ void service_start(struct service *svc, const char *dynamic_args)
         char tmp[32];
         int fd, sz;
 		
-#ifdef __arm__
-        /*
-         * b/7188322 - Temporarily revert to the compat memory layout
-         * to avoid breaking third party apps.
-         *
-         * THIS WILL GO AWAY IN A FUTURE ANDROID RELEASE.
-         *
-         * http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=commitdiff;h=7dbaa466
-         * changes the kernel mapping from bottom up to top-down.
-         * This breaks some programs which improperly embed
-         * an out of date copy of Android's linker.
-         */
-        int current = personality(0xffffFFFF);
-        personality(current | ADDR_COMPAT_LAYOUT);
-#endif
         if (properties_inited()) {
             get_property_workspace(&fd, &sz);
             sprintf(tmp, "%d,%d", dup(fd), sz);
@@ -258,10 +193,6 @@ void service_start(struct service *svc, const char *dynamic_args)
 
         for (ei = svc->envvars; ei; ei = ei->next)
             add_environment(ei->name, ei->value);
-
-#ifdef HAVE_SELINUX
-        setsockcreatecon(scon);
-#endif
 
         for (si = svc->sockets; si; si = si->next) {
             int socket_type = (
@@ -274,21 +205,6 @@ void service_start(struct service *svc, const char *dynamic_args)
             }
         }
 
-#ifdef HAVE_SELINUX
-        freecon(scon);
-        scon = NULL;
-        setsockcreatecon(NULL);
-#endif
-
-#if 0
-        if (svc->ioprio_class != IoSchedClass_NONE) {
-            if (android_set_ioprio(getpid(), svc->ioprio_class, svc->ioprio_pri)) {
-                ERROR("Failed to set pid %d ioprio = %d,%d: %s\n",
-                      getpid(), svc->ioprio_class, svc->ioprio_pri, strerror(errno));
-            }
-        }
-#endif
-
         if (needs_console) {
             setsid();
             open_console();
@@ -296,32 +212,15 @@ void service_start(struct service *svc, const char *dynamic_args)
             zap_stdio();
         }
 
-#if 0
-        for (n = 0; svc->args[n]; n++) {
-            INFO("args[%d] = '%s'\n", n, svc->args[n]);
-        }
-        for (n = 0; ENV[n]; n++) {
-            INFO("env[%d] = '%s'\n", n, ENV[n]);
-        }
-#endif
-
         setpgid(0, getpid());
 
-    /* as requested, set our gid, supplemental gids, and uid */
+        /* as requested, set our gid, supplemental gids, and uid */
         if (svc->gid) {
             if (setgid(svc->gid) != 0) {
                 ERROR("setgid failed: %s\n", strerror(errno));
                 _exit(127);
             }
         }
-#if 0		
-        if (svc->nr_supp_gids) {
-            if (setgroups(svc->nr_supp_gids, svc->supp_gids) != 0) {
-                ERROR("setgroups failed: %s\n", strerror(errno));
-                _exit(127);
-            }
-        }
-#endif
 
         if (svc->uid) {
             if (setuid(svc->uid) != 0) {
@@ -329,15 +228,6 @@ void service_start(struct service *svc, const char *dynamic_args)
                 _exit(127);
             }
         }
-
-#ifdef HAVE_SELINUX
-        if (svc->seclabel) {
-            if (is_selinux_enabled() > 0 && setexeccon(svc->seclabel) < 0) {
-                ERROR("cannot setexeccon('%s'): %s\n", svc->seclabel, strerror(errno));
-                _exit(127);
-            }
-        }
-#endif
 
         if (!dynamic_args) {
             if (execve(svc->args[0], (char**) svc->args, (char**) ENV) < 0) {
@@ -364,10 +254,6 @@ void service_start(struct service *svc, const char *dynamic_args)
         _exit(127);
     }
 
-#ifdef HAVE_SELINUX
-    freecon(scon);
-#endif
-
     if (pid < 0) {
         ERROR("failed to start '%s'\n", svc->name);
         svc->pid = 0;
@@ -382,21 +268,15 @@ void service_start(struct service *svc, const char *dynamic_args)
         notify_service_state(svc->name, "running");
 }
 
-/* The how field should be either SVC_DISABLED or SVC_RESET */
+
 static void service_stop_or_reset(struct service *svc, int how)
 {
-        /* we are no longer running, nor should we
-         * attempt to restart
-         */
     svc->flags &= (~(SVC_RUNNING|SVC_RESTARTING));
 
     if ((how != SVC_DISABLED) && (how != SVC_RESET)) {
-        /* Hrm, an illegal flag.  Default to SVC_DISABLED */
         how = SVC_DISABLED;
     }
-        /* if the service has not yet started, prevent
-         * it from auto-starting with its class
-         */
+
     if (how == SVC_RESET) {
         svc->flags |= (svc->flags & SVC_RC_DISABLED) ? SVC_DISABLED : SVC_RESET;
     } else {
@@ -438,8 +318,7 @@ static void restart_service_if_needed(struct service *svc)
         return;
     }
 
-    if ((next_start_time < process_needs_restart) ||
-        (process_needs_restart == 0)) {
+    if ((next_start_time < process_needs_restart) || (process_needs_restart == 0)) {
         process_needs_restart = next_start_time;
     }
 }
@@ -630,7 +509,7 @@ static int check_startup_action(int nargs, char **args)
         exit(1);
     }
 
-        /* signal that we hit this point */
+    /* signal that we hit this point */
     unlink("/dev/.booting");
 
     return 0;
@@ -644,87 +523,6 @@ static int queue_property_triggers_action(int nargs, char **args)
     return 0;
 }
 
-#if BOOTCHART
-static int bootchart_init_action(int nargs, char **args)
-{
-    bootchart_count = bootchart_init();
-    if (bootchart_count < 0) {
-        ERROR("bootcharting init failure\n");
-    } else if (bootchart_count > 0) {
-        NOTICE("bootcharting started (period=%d ms)\n", bootchart_count*BOOTCHART_POLLING_MS);
-    } else {
-        NOTICE("bootcharting ignored\n");
-    }
-
-    return 0;
-}
-#endif
-
-#ifdef HAVE_SELINUX
-
-static const struct selinux_opt seopts_prop[] = {
-        { SELABEL_OPT_PATH, "/data/system/property_contexts" },
-        { SELABEL_OPT_PATH, "/property_contexts" },
-        { 0, NULL }
-};
-
-struct selabel_handle* selinux_android_prop_context_handle(void)
-{
-    int i = 0;
-    struct selabel_handle* sehandle = NULL;
-    while ((sehandle == NULL) && seopts_prop[i].value) {
-        sehandle = selabel_open(SELABEL_CTX_ANDROID_PROP, &seopts_prop[i], 1);
-        i++;
-    }
-
-    if (!sehandle) {
-        ERROR("SELinux:  Could not load property_contexts:  %s\n",
-              strerror(errno));
-        return NULL;
-    }
-    INFO("SELinux: Loaded property contexts from %s\n", seopts_prop[i - 1].value);
-    return sehandle;
-}
-
-void selinux_init_all_handles(void)
-{
-    sehandle = selinux_android_file_context_handle();
-    sehandle_prop = selinux_android_prop_context_handle();
-}
-
-int selinux_reload_policy(void)
-{
-    if (!selinux_enabled) {
-        return -1;
-    }
-
-    INFO("SELinux: Attempting to reload policy files\n");
-
-    if (selinux_android_reload_policy() == -1) {
-        return -1;
-    }
-
-    if (sehandle)
-        selabel_close(sehandle);
-
-    if (sehandle_prop)
-        selabel_close(sehandle_prop);
-
-    selinux_init_all_handles();
-    return 0;
-}
-
-int audit_callback(void *data, security_class_t cls, char *buf, size_t len)
-{
-    snprintf(buf, len, "property=%s", !data ? "NULL" : (char *)data);
-    return 0;
-}
-
-#endif
-
-
-
-
 int main(int argc, char **argv)
 {
     int fd_count = 0;
@@ -732,10 +530,6 @@ int main(int argc, char **argv)
     int property_set_fd_init = 0;
     int signal_fd_init = 0;
 	int ret = 0;
-
-    //char *tmpdev;
-    //char* debuggable;
-    //char tmp[32];
 	
 #ifdef USE_KEYCHORD
     int keychord_fd_init = 0;
@@ -743,16 +537,11 @@ int main(int argc, char **argv)
 
     bool is_charger = false;
 	
-
+#if 0
     if (!strcmp(basename(argv[0]), "ueventd"))
         return ueventd_main(argc, argv);
+#endif	
 
-#ifdef USE_WATCHDOG
-    if (!strcmp(basename(argv[0]), "watchdogd"))
-        return watchdogd_main(argc, argv);
-#endif
-
-	
 #if 0
     /* clear the umask */
     umask(0);
@@ -801,11 +590,6 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-#if 0
-    get_hardware_name(hardware, &revision);
-    process_kernel_cmdline();
-#endif
-
 
     INFO("property init\n");
 
@@ -829,7 +613,6 @@ int main(int argc, char **argv)
 	}
 
     action_for_each_trigger("early-init", action_add_queue_tail);
-
 
     queue_builtin_action(keychord_init_action, "keychord_init");
 
@@ -860,11 +643,6 @@ int main(int argc, char **argv)
         /* run all property triggers based on current state of the properties */
     queue_builtin_action(queue_property_triggers_action, "queue_property_triggers");
 
-
-#if BOOTCHART
-    queue_builtin_action(bootchart_init_action, "bootchart_init");
-#endif
-
 	INFO("test prop: [ro.version] = %s\n", _property_get("ro.version"));
 
     for(;;) {
@@ -881,6 +659,7 @@ int main(int argc, char **argv)
             fd_count++;
             property_set_fd_init = 1;
         }
+
         if (!signal_fd_init && get_signal_fd() > 0) {
             ufds[fd_count].fd = get_signal_fd();
             ufds[fd_count].events = POLLIN;
@@ -907,17 +686,6 @@ int main(int argc, char **argv)
         if (!action_queue_empty() || cur_action)
             timeout = 0;
 
-#if BOOTCHART
-        if (bootchart_count > 0) {
-            if (timeout < 0 || timeout > BOOTCHART_POLLING_MS)
-                timeout = BOOTCHART_POLLING_MS;
-            if (bootchart_step() < 0 || --bootchart_count == 0) {
-                bootchart_finish();
-                bootchart_count = 0;
-            }
-        }
-#endif
-
         nr = poll(ufds, fd_count, timeout);
         if (nr <= 0)
             continue;
@@ -936,6 +704,5 @@ int main(int argc, char **argv)
             }
         }
     }
-
     return 0;
 }
