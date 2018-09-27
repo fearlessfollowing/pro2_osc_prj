@@ -1,0 +1,29 @@
+{
+  "name":"camera._takePicture",
+  "parameters":
+  {
+    "origin":
+    {
+      "mime": "jpeg",
+      "width": 4000,
+      "height": 3000,
+      "saveOrigin": true
+    },
+    "stiching":
+    {
+      "mode":"pano",
+      "mime":"jpeg",
+      "width": 8192,
+      "height": 4096,
+      "map":"flat",
+      "algorithm":"normal"
+    },
+    "hdr":
+    {
+      "enable": false,
+      "count": 0,
+      "min_ev": 0,
+      "max_ev": 0
+    }
+  }
+}
