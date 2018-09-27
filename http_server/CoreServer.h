@@ -9,19 +9,19 @@
 **
 ** 作     者: Skymixos
 ** 版     本: V1.0
-** 日     期: 2018年08月04日
+** 日     期: 2018年9月27日 STATE_IDLE
 ******************************************************************************************************/
 
 #ifndef _CORE_SERVER_H_
 #define _CORE_SERVER_H_
 
-#include <pthread.h>
+#include <thread>
 #include <sys/ins_types.h>
 #include <vector>
 #include <mutex>
 #include <common/sp.h>
 #include <util/ARMessage.h>
-#include <sys/NetlinkEvent.h>
+
 
 #include <hw/ins_i2c.h>
 #include <json/json.h>
@@ -47,11 +47,18 @@ private:
     int             mSyncSendFd;        /* 发送同步消息的文件句柄 */
     int             mSyncRecvFd;        /* 接收同步消息的文件句柄 */
     int             mAsyncSyncFd;       /* 接收异步消息的文件句柄 */
+    Mutex           mSyncWriteLock;
+    char            mSyncBuf[MAX_DATA_LEN];
+
+    u32             mWriteSeq;                  /* 同步操作的读写序列号 */
+    u32             mReadSeq;
+
     std::thread     mAsyncRecThread;
 
     bool            init();
     void            deInit();
     int             sendData(const char* pData, int iLen);
+    void            fillDataTypeU32(char* pBuf, u32 uData);
 
     Json::Value     mSyncReqResult;     /* 同步请求的结果 */
 
@@ -83,8 +90,7 @@ private:
     sp<InterRpc>    mRpc;
     Json::Value     mCurReq;                    /* 当前正在处理的请求对象 */
 
-    u32             mWriteSeq;                  /* 同步操作的读写序列号 */
-    u32             mReadSeq;
+
 
     u32             writeReq(Json::Value & jsonReq);
     Json::Value     reqResponse();

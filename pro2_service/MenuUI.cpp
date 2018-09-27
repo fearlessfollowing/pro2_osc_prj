@@ -6647,6 +6647,10 @@ void MenuUI::update_by_controller(int action)
 }
 
 
+/*
+ * http的web端，只有查询状态的权力
+ */
+
 
 void MenuUI::add_state(u64 state)
 {
@@ -7913,7 +7917,7 @@ int MenuUI::oled_disp_type(int type)
          */
         case START_QUERY_STORAGE_SUC:
         case START_QUERY_STORAGE_FAIL: {  /* 查询TF卡状态成功 */
-            if (check_state_in(STATE_START_PREVIEWING)) {  /* 表示是预览后的查询 */
+            if (check_state_in(STATE_START_PREVIEWING) || check_state_in(STATE_PREVIEW)) {  /* 表示是预览后的查询 */
 
                 Log.d(TAG, "[%s: %d] Preview Success START_QUERY_STORAGE_SUC, current cam state: 0x%x", __FILE__, __LINE__, mCamState);
                 add_state(STATE_PREVIEW);   /* 添加STATE_PREVIEW，将在屏幕中间显示"No SD Card"或"Need mSD Card"或"Ready"字样 */
@@ -8945,7 +8949,9 @@ void MenuUI::handleTfQueryResult()
     rm_state(STATE_QUERY_STORAGE);
 
     /* 查询之后，更新远端存储已更新标志 */
-    if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_TOP) { 
+    if (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF || 
+        cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_VIDEO_SET_DEF ||
+        cur_menu == MENU_LIVE_INFO ||  cur_menu == MENU_LIVE_SET_DEF || cur_menu == MENU_TOP) { 
 
         Log.d(TAG, "[%s: %d] handleTfQueryResult >> Remain Space Updated mCamState(0x%x)", __FILE__, __LINE__, mCamState);
 
