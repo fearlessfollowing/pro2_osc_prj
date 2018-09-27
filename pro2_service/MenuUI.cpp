@@ -8962,6 +8962,9 @@ void MenuUI::handleTfQueryResult()
     } else if (cur_menu == MENU_SHOW_SPACE) {
         showSpaceQueryTfCallback();
     } else {
+        if (check_state_in(STATE_START_PREVIEWING)) {
+            rm_state(STATE_START_PREVIEWING);
+        }
         Log.d(TAG, "[%s: %d] handleTfQueryResult >> Maybe Disp MsgBox here ...", __FILE__, __LINE__);
     }
 }

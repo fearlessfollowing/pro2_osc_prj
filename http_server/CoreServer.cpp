@@ -56,7 +56,7 @@ bool InterRpc::sendSyncReq(Json::Value& jsonReq, int iTimeout)
     ostringstream os;
     Json::StreamWriterBuilder builder;
     builder.settings_["indentation"] = "";
-
+    
     AutoMutex _l(mSyncWriteLock);
 
     if (mSyncSendFd < 0) {
@@ -68,7 +68,7 @@ bool InterRpc::sendSyncReq(Json::Value& jsonReq, int iTimeout)
         return bResult;
     } 
 
-    memset(mSyncBuf, 0, sizeof(mSyncBuf));
+    resetSyncBuf();
 
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     writer->write(root, &os);
@@ -76,16 +76,50 @@ bool InterRpc::sendSyncReq(Json::Value& jsonReq, int iTimeout)
 
     /* 1.将同送的请求写入发送通道 StreamWriterBuilder */
     u32 uContentLen = resultStr.length();
+    const char* pSendData = resultStr.c_str();
+    const char* pTmp = pSendData;
+    int iFillLen = 0;
+    int iActWrCnt = 0;
+
     if (uContentLen > MAX_DATA_LEN - HEAD_LEN) {
+        Log.d(TAG, "[%s: %d] Send Large sync data(%d) to camerad!", __FILE__, __LINE__, uContentLen);
+        iFillLen = fillDataTypeU32(mWriteSeq);
+        iFillLen += fillDataTypeU32(uContentLen);
+        iActWrCnt = write(mSyncSendFd, mSyncBuf, iFillLen);
+        if (iActWrCnt != iFillLen) {
+            Log.e(TAG, "[%s: %d] Send Large data header failed", __FILE__, __LINE__);
+        }
+
+        while (uContentLen > 0) {
+            resetSyncBuf();
+            int iStepLen = (uContentLen > MAX_DATA_LEN) ? MAX_DATA_LEN : uContentLen; 
+            fillStrData(pTmp, iStepLen);
+            iActWrCnt = write(mSyncSendFd, mSyncBuf, iStepLen);
+            
+        }
 
     } else {
-        /* 填充数据 */
-        fillDataTypeU32(mSyncBuf, );
+        /* 填充数据：writeSeq + content_len + data */
+        iFillLen = fillDataTypeU32(mWriteSeq);
+        iFillLen += fillDataTypeU32(uContentLen);
+        iFillLen += fillStrData(resultStr);
+        Log.d(TAG, "[%s: %d] --------> need send data len: %d", __FILE__, __LINE__, iFillLen);
+        
+        iActWrCnt = write(mSyncSendFd, mSyncBuf, iFillLen);
+        if (iActWrCnt != iFillLen) {
+            Log.e(TAG, "[%s: %d] Write actual count(%d) not equal need write count(%d)", __FILE__, __LINE__, iActWrCnt, iFillLen);
+        }
     }
 
     /* 2.读取响应 */
 }
 
+
+void InterRpc::resetSyncBuf()
+{
+    mCurIndex = 0;
+    memset(mSyncBuf, 0, sizeof(mSyncBuf));
+}
 
 bool InterRpc::init()
 {
@@ -106,16 +140,42 @@ bool InterRpc::init()
     return bResult;
 }
 
-void InterRpc::fillDataTypeU32(char* pBuf, u32 uData)
+int InterRpc::fillDataTypeU32(u32 uData)
 {
-    pBuf[3] = uData & 0xFF;
+    mSyncBuf[mCurIndex + 3] = uData & 0xFF;
     uData >>= 8;
-    pBuf[2] = uData & 0xFF;
+    mSyncBuf[mCurIndex + 2] = uData & 0xFF;
     uData >>= 8;
-    pBuf[1] = uData & 0xFF;
+    mSyncBuf[mCurIndex + 1] = uData & 0xFF;
     uData >>= 8;
-    pBuf[0] = uData & 0xFF;
+    mSyncBuf[mCurIndex + 0] = uData & 0xFF;
 
+    mCurIndex += 4;
+    return 4;
+}
+
+
+int InterRpc::fillStrData(std::string data)
+{
+    const char* pData = data.c_str();
+    int i = 0;
+    while (pData[i]) {
+        mSyncBuf[mCurIndex++] = pData[i++];
+    }
+    return strlen(pData);
+}
+
+
+int InterRpc::fillStrData(const char* pData, int iLen)
+{
+    int i = 0;
+    int iTotal = iLen;
+    while (iLen > 0) {
+        mSyncBuf[mCurIndex++] = pData[i++];
+        iLen--;
+    }
+
+    return iTotal;
 }
 
 

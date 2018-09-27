@@ -48,6 +48,8 @@ private:
     int             mSyncRecvFd;        /* 接收同步消息的文件句柄 */
     int             mAsyncSyncFd;       /* 接收异步消息的文件句柄 */
     Mutex           mSyncWriteLock;
+
+    int             mCurIndex;          /* 当前索引 */
     char            mSyncBuf[MAX_DATA_LEN];
 
     u32             mWriteSeq;                  /* 同步操作的读写序列号 */
@@ -58,7 +60,11 @@ private:
     bool            init();
     void            deInit();
     int             sendData(const char* pData, int iLen);
-    void            fillDataTypeU32(char* pBuf, u32 uData);
+    int             fillDataTypeU32(u32 uData);
+    int             fillStrData(std::string);
+    int             fillStrData(const char* pData, int iLen);
+    
+    void            resetSyncBuf();
 
     Json::Value     mSyncReqResult;     /* 同步请求的结果 */
 
