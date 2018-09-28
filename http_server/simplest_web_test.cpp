@@ -1,11 +1,17 @@
 // Copyright (c) 2015 Cesanta Software Limited
 // All rights reserved
 
-#include "http_server.h"
+#include "http_util.h"
 #include <log/arlog.h>
 #include <sys/types.h>
 #include <log/stlog.h>
 #include <system_properties.h>
+
+#include <iostream>
+#include "http_client.h"
+
+#include <json/value.h>
+#include <json/json.h>
 
 #include <prop_cfg.h>
 
@@ -93,44 +99,30 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p)
 }
 
 
-int main(void) 
+
+void handle_func(std::string rsp)
 {
-    int iRet = -1;
-    struct mg_mgr mgr;
-    struct mg_connection *nc;
+	std::cout << "http rsp1: " << rsp << std::endl;
+}
 
-    registerSig(default_signal_handler);
-    signal(SIGPIPE, pipe_signal_handler);
 
-    arlog_configure(true, true, HTTP_SERVER_LOG_PATH, false);	/* 配置日志 */
+int main()
+{
 
-    iRet = __system_properties_init();		/* 属性区域初始化 */
-    if (iRet) {
-        Log.e(TAG, "File Http Web server init properties failed %d", iRet);
-        return -1;
-    }
+    Json::Value root;
+    Json::Value param;
+    Json::FastWriter writer;
+    std::string content;
 
-    Log.d(TAG, "Service: http_server starting ^_^ !!");
+    param["method"] = "get";
+    root["name"] = "camera._getSetCamState";
+    root["parameters"] = param;
+    content = writer.write(root);
 
-    mg_mgr_init(&mgr, NULL);
+    std::cout << "print message: " << content.c_str() << std::endl;
 
-    Log.d(TAG, "Starting web server on port %s MG_ENABLE_HTTP %d MG_ENABLE_TUN %d\n", s_http_port, MG_ENABLE_HTTP, MG_ENABLE_TUN);
-    nc = mg_bind(&mgr, s_http_port, ev_handler);
-    if (nc == NULL) {
-        Log.e(TAG, "Failed to create listener");
-        iRet = -1;
-        goto EXIT;
-    }
-
-    mg_set_protocol_http_websocket(nc);
-
-    while (true) {
-        mg_mgr_poll(&mgr, 1000);
-    }
-
-EXIT:
-
-    mg_mgr_free(&mgr);
-    arlog_close();	
+	std::string url1 = "http://127.0.0.1:20000/ui/commands/execute";
+	HttpClient::SendReq(url1, handle_func, "Content-Type: application/json\r\n", content.c_str());
+	
     return 0;
 }

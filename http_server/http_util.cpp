@@ -7,7 +7,7 @@
  * https://cesanta.com/docs/overview/intro.html
  */
 
-#include "http_server.h"
+#include "http_util.h"
 #include <log/arlog.h>
 #include <sys/types.h>
 #include <log/stlog.h>

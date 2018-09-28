@@ -6,7 +6,10 @@ Import('com_env')
 
 import config
 
-src = Glob('*.cpp')
+src = ['http_util.cpp']
+src += ['simplest_web_test.cpp']
+src += ['http_client.cpp']
+
 
 src += [config.PRO2_SERVICE + '/util/arlog.c']
 src += [config.PRO2_SERVICE + '/util/stlog.cpp']
