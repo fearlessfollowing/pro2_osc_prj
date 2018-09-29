@@ -263,14 +263,10 @@ enum {
 
     ACTION_SET_STICH = 50,
 	ACTION_QUERY_STORAGE = 200,
-	ACTION_FORMAT_TFCARD = 201,
-    ACTION_QUIT_UDISK_MODE = 202,
 
     /* 录像/直播录像的剩余秒数 */
     ACTION_UPDATE_REC_LEFT_SEC = 203,
     ACTION_UPDATE_LIVE_REC_LEFT_SEC = 204,
-    ACTION_ENTER_UDISK_MODE = 205,
-    ACTION_UPDATE_TIMELAPSE = 206,
     ACTION_QUERY_GPS_STATE  = 207,
     ACTION_SET_CONTROL_STATE = 208,
 };
@@ -797,8 +793,8 @@ private:
     void    dispTipStorageDevSpeedTest();    
     void    dispWriteSpeedTest();
 
-    void    dispTfcardFormatReuslt(std::vector<sp<Volume>>& mTfFormatList, int iIndex);
-   
+    void    dispTfcardFormatReuslt(int iResult, int iIndex);
+
     /*
      * 检查直播时是否需要保存原片
      */

@@ -390,16 +390,13 @@ const char *getActionName(int iAction)
         ACTION_NAME(ACTION_AWB);
         ACTION_NAME(ACTION_SET_STICH);
         ACTION_NAME(ACTION_QUERY_STORAGE);
-        ACTION_NAME(ACTION_FORMAT_TFCARD);
 
 #ifdef ENABLE_MENU_STITCH_BOX
         ACTION_NAME(MENU_STITCH_BOX);
 #endif
 
-        ACTION_NAME(ACTION_QUIT_UDISK_MODE);
         ACTION_NAME(ACTION_UPDATE_REC_LEFT_SEC);
         ACTION_NAME(ACTION_UPDATE_LIVE_REC_LEFT_SEC);
-        ACTION_NAME(ACTION_UPDATE_TIMELAPSE);
 
     default: return "Unkown Action";
     }    
@@ -600,10 +597,6 @@ void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *par
 }
 
 
-void fifo::handleUiTakeLiveReq(sp<ACTION_INFO>& mActInfo, cJSON *root, cJSON *param)
-{
-
-}
 #endif
 
 
@@ -689,26 +682,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
-
-        /* {"action": ACTION_REQ_SYNC, parameters":{"sn":"0123456", "r_v":"xxxx", "p_v":"ddfff", "k_v":"xxxxx"}} */
-        case ACTION_REQ_SYNC: {
-            sp<REQ_SYNC> mReqSync;
-            CHECK_EQ(msg->find<sp<REQ_SYNC>>("req_sync", &mReqSync), true);
-
-            paramNode["sn"] = mReqSync->sn;
-            paramNode["r_v"] = mReqSync->r_v;  
-            paramNode["p_v"] = mReqSync->p_v;
-            paramNode["k_v"] = mReqSync->k_v;
-            rootNode["action"] = ACTION_REQ_SYNC;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Req Sync: %s", sendDataStr.c_str());
-
-            break;
-        }
-
-        
+      
         /* {"action": ACTION_LOW_BAT} */
         case ACTION_LOW_BAT: {
             CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
@@ -742,56 +716,13 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
-        /*
-         * {"action":ACTION_ENTER_UDISK_MODE, "parameters":{"name":"camera._change_udisk_mode", "parameters":{"mode":1}}}
-         */
-        case ACTION_ENTER_UDISK_MODE: {
-            Json::Value innerParam;
-            paramNode["name"] = "camera._change_udisk_mode";
-            innerParam["mode"] = 1;
-
-            paramNode["name"] = "camera._change_udisk_mode";
-            paramNode["parameters"] = innerParam;
-            rootNode["action"] = ACTION_ENTER_UDISK_MODE;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Enter Udisk: %s", sendDataStr.c_str());
-            break;
-        }
-
-        case ACTION_QUERY_GPS_STATE: {
-            paramNode["name"] = "camera._queryGpsStatus";
-            rootNode["action"] = ACTION_QUERY_GPS_STATE;
-            rootNode["parameters"] = paramNode;
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Query Gps State: %s", sendDataStr.c_str());
-            break;
-        }
-
-        case ACTION_QUIT_UDISK_MODE: {
-            Json::Value innerParam;
-            paramNode["name"] = "camera._change_udisk_mode";
-            innerParam["mode"] = 0;
-
-            paramNode["name"] = "camera._change_udisk_mode";
-            paramNode["parameters"] = innerParam;
-            rootNode["action"] = ACTION_QUIT_UDISK_MODE;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Exit Udisk: %s", sendDataStr.c_str());
-            break;
-        }
-
 
         /* {"action": ACTION_NOISE} */
         case ACTION_PREVIEW:
         case ACTION_NOISE: 
         case ACTION_GYRO:
         case ACTION_AGEING:
-        // case ACTION_QUIT_UDISK_MODE:
-        // case ACTION_ENTER_UDISK_MODE:
+
         case ACTION_QUERY_STORAGE: 
         case ACTION_SET_STICH: 
         case ACTION_POWER_OFF: {
@@ -810,19 +741,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 		    Log.d(TAG, "Action AWB: %s", sendDataStr.c_str());
             break;
         }
-
-
-        case ACTION_UPDATE_TIMELAPSE: {
-            int iTlCnt = 0;
-            CHECK_EQ(msg->find<int>("tl_left", &iTlCnt), true);
-            Log.d(TAG, "[%s: %d] Current timelapse left val[%d]", __FILE__, __LINE__, iTlCnt);
-            rootNode["action"] = ACTION_UPDATE_TIMELAPSE;
-            paramNode["tl_left"] = iTlCnt;
-            rootNode["parameters"] = paramNode;
-            sendDataStr = writer.write(rootNode);
-            break;
-        }
-
 
         case ACTION_UPDATE_REC_LEFT_SEC: {
             u64 recLefSecs;
@@ -850,34 +768,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
             break;
         }
 
-
-        /* 
-            {
-                "action":ACTION_FORMAT_TFCARD, 
-                "parameters": {
-                    "name": "camera._formatCameraMoudle",
-                    "parameters":{
-                        "index": 1
-                    }
-                }
-            }
-        */
-        case ACTION_FORMAT_TFCARD: {    /* 格式化请求 */
-            CHECK_EQ(msg->find<int>("index", &iIndex), true);
-
-            Json::Value indexNode;
-
-            indexNode["index"] = iIndex;
-            paramNode["name"] = "camera._formatCameraMoudle";
-            paramNode["parameters"] = indexNode;
-
-            rootNode["action"] = ACTION_FORMAT_TFCARD;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action ACTION_FORMAT_TFCARD: %s", sendDataStr.c_str());
-            break;
-        }
 
         case ACTION_SET_CONTROL_STATE: {
 
@@ -2039,51 +1929,6 @@ void fifo::handleReqFormHttp(sp<DISP_TYPE>& mDispType, cJSON *root, cJSON *subNo
 	}	   
 }
 
-
-void fifo::handleSetting(sp<DISP_TYPE>& mDispType, cJSON *subNode)
-{
-
-    cJSON *child = nullptr;
-    mDispType->mSysSetting = sp<SYS_SETTING>(new SYS_SETTING());
-
-    memset(mDispType->mSysSetting.get(), -1, sizeof(SYS_SETTING));
-
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "flicker", mDispType->mSysSetting->flicker);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "speaker", mDispType->mSysSetting->speaker);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "led_on", mDispType->mSysSetting->led_on);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "fan_on", mDispType->mSysSetting->fan_on);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "aud_on", mDispType->mSysSetting->aud_on);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "aud_spatial", mDispType->mSysSetting->aud_spatial);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "set_logo", mDispType->mSysSetting->set_logo);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "gyro_on", mDispType->mSysSetting->gyro_on);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "video_fragment", mDispType->mSysSetting->video_fragment);
-
-    Log.d(TAG, "%d %d %d %d %d %d %d %d %d",
-        mDispType->mSysSetting->flicker,
-        mDispType->mSysSetting->speaker,
-        mDispType->mSysSetting->led_on,
-        mDispType->mSysSetting->fan_on,
-        mDispType->mSysSetting->aud_on,
-        mDispType->mSysSetting->aud_spatial,
-        mDispType->mSysSetting->set_logo,
-        mDispType->mSysSetting->gyro_on,
-        mDispType->mSysSetting->video_fragment);
-
-}
-
-
-void fifo::handleStitchProgress(sp<DISP_TYPE>& mDispType, cJSON *subNode)
-{
-    cJSON *child = nullptr;
-
-    mDispType->mStichProgress = sp<STICH_PROGRESS>(new STICH_PROGRESS());
-    //finish
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "task_over", mDispType->mStichProgress->task_over);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "total_cnt", mDispType->mStichProgress->total_cnt);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "successful_cnt", mDispType->mStichProgress->successful_cnt);
-    GET_CJSON_OBJ_ITEM_INT(child, subNode, "failing_cnt", mDispType->mStichProgress->failing_cnt);
-    GET_CJSON_OBJ_ITEM_DOUBLE(child, subNode, "runing_task_progress", mDispType->mStichProgress->runing_task_progress);
-}
 #endif
 
 

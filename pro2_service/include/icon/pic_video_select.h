@@ -2096,7 +2096,7 @@ static const char* pCmdTakePic_8KOF 	= "{\"name\":\"camera._takePicture\",\"para
 
 static const char* pCmdTakePic_8K 		= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"origin\":{\"mime\":\"jpeg\",\"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
 
-static const char* pCmdTakePic_AEB 		= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"hdr\":{\"enable\":true,\"count\": 9, \"min_ev\": -10, \"max_ev\": 10}, \"origin\": {\"mime\": \"raw+jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}} ";
+static const char* pCmdTakePic_AEB 		= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"bracket\":{\"enable\":true,\"count\": 9, \"min_ev\": -10, \"max_ev\": 10}, \"origin\": {\"mime\": \"raw+jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}} ";
 
 static const char* pCmdTakePic_Burst 	= "{\"name\":\"camera._takePicture\",\"parameters\":{\"delay\":0,\"burst\":{\"enable\":true,\"count\": 10}, \"origin\": {\"mime\": \"jpeg\", \"saveOrigin\": true, \"width\": 4000, \"height\": 3000, \"storage_loc\": 0}}}";
 

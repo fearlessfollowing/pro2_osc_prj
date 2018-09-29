@@ -59,14 +59,16 @@
 #include <iostream>
 #include <fstream>
 
+#include <sys/ProtoManager.h>
+
 #include <sys/Mutex.h>
 #include <icon/setting_menu_icon.h>
 #include <icon/pic_video_select.h>
 
 using namespace std;
 
-#undef  TAG
-#define TAG "MenuUI"
+#undef      TAG
+#define     TAG "MenuUI"
 
 #define ENABLE_LIGHT
 
@@ -643,6 +645,7 @@ void MenuUI::init()
     sp<ARMessage> listMsg = obtainMessage(NETM_LIST_NETDEV);
     mNetManager->postNetMessage(listMsg);
 
+
 	if (!mHaveConfigSSID) {
 
 		const char* pRandSn = NULL;
@@ -693,9 +696,6 @@ void MenuUI::init()
         volInstance->setNotifyRecv(dev_notify);
         volInstance->start();
     }
-
-    /* 播放开机音乐 */
-    // system("aplay /home/nvidia/insta360/wav/Power_on_48k.wav");
 
     Log.d(TAG, ">>>>>>>> Init MenUI object ok ......");
 }
@@ -2260,10 +2260,10 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 
                     /* 非Customer模式时，需要更新AEB参数 */
                     if (strcmp(pTmpPicVidCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
-                        if ((*pTakePicJson)["parameters"].isMember("hdr")) {
-                            (*pTakePicJson)["parameters"]["hdr"]["count"] = pTmpAeb->hdr_count;
-                            (*pTakePicJson)["parameters"]["hdr"]["min_ev"] = pTmpAeb->min_ev;
-                            (*pTakePicJson)["parameters"]["hdr"]["max_ev"] = pTmpAeb->max_ev;
+                        if ((*pTakePicJson)["parameters"].isMember("bracket")) {
+                            (*pTakePicJson)["parameters"]["bracket"]["count"] = pTmpAeb->hdr_count;
+                            (*pTakePicJson)["parameters"]["bracket"]["min_ev"] = pTmpAeb->min_ev;
+                            (*pTakePicJson)["parameters"]["bracket"]["max_ev"] = pTmpAeb->max_ev;
                         }
                     }
                 } else {
@@ -2415,13 +2415,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
         }
 			
 
-
-        case ACTION_UPDATE_TIMELAPSE: {
-            Log.d(TAG, "[%s: %d] ---> Update Timelapse left val[%d]", __FILE__, __LINE__, cmd);
-            msg->set<int>("tl_left", cmd);
-            break;
-        }
-
         case ACTION_PREVIEW: {
             if (check_state_preview() || check_state_equal(STATE_IDLE)) {
                 bAllow = true;
@@ -2456,15 +2449,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             break;
         }
 			
-        case ACTION_REQ_SYNC: {     /* 请求同步ACTION */
-            sp<REQ_SYNC> mReqSync = sp<REQ_SYNC>(new REQ_SYNC());
-            snprintf(mReqSync->sn, sizeof(mReqSync->sn), "%s", mReadSys->sn);
-            snprintf(mReqSync->r_v, sizeof(mReqSync->r_v), "%s", mVerInfo->r_ver);
-            snprintf(mReqSync->p_v, sizeof(mReqSync->p_v), "%s", mVerInfo->p_ver);
-            snprintf(mReqSync->k_v, sizeof(mReqSync->k_v), "%s", mVerInfo->k_ver);
-            msg->set<sp<REQ_SYNC>>("req_sync", mReqSync);
-			break;
-        }
             
         case ACTION_LOW_BAT: {
             Log.d(TAG, "[%s: %d] Battery is Low, Send Command[%d] to Camerad", __FILE__, __LINE__, cmd);
@@ -2472,9 +2456,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             break;
         }
 		
-//        case ACTION_LOW_PROTECT:
-//            break;
-
 
         case ACTION_SPEED_TEST: {
             if (vm->checkLocalVolumeExist()) {
@@ -2603,29 +2584,8 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 			break;		
         }	
 
-        case ACTION_QUERY_GPS_STATE: {
-            break;
-        }
-
 		case ACTION_QUERY_STORAGE:
 			break;
-
-        case ACTION_FORMAT_TFCARD: {
-
-            msg->set<int>("index", cmd);    /* 格式化卡的索引值 */
-            Log.d(TAG, "[%s: %d] TF card index[%d]", __FILE__, __LINE__, cmd);
-            add_state(STATE_FORMATING);     /* 添加正在格式化状态 */
-            break;
-        }
-
-        case ACTION_QUIT_UDISK_MODE: {
-            break;
-        }
-
-
-        case ACTION_ENTER_UDISK_MODE: {
-            break;
-        }
 
         case ACTION_UPDATE_REC_LEFT_SEC: {
             msg->set<u64>("rec_left_sec", vm->getRecLeftSec());   
@@ -3813,7 +3773,11 @@ void MenuUI::calcRemainSpace(bool bUseCached)
                 } else {    /* Customer模式 */
                     if (true == checkIsTakeTimelpaseInCustomer()) {
                         vm->calcTakeTimelapseCnt( *(pPicVidCfg->jsonCmd.get()) );
-                        sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());   
+                        
+                        // sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());   
+                        
+                        ProtoManager* pm = ProtoManager::Instance();
+                        pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
 
                     } else {
                         Log.d(TAG, "[%s: %d] Use VolumeManager calc take pic num", __FILE__, __LINE__);
@@ -3836,7 +3800,9 @@ void MenuUI::calcRemainSpace(bool bUseCached)
                 vm->calcTakeTimelapseCnt(mControlVideoJsonCmd);  
 
                 /* 将计算能拍timelapse的张数更新到心跳包中 */
-                sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());   
+                ProtoManager* pm = ProtoManager::Instance();
+                pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+
             } else {    /* 客户端控制的普通录像 */
                 u32 uRecLeftSec = vm->calcTakeRecLefSec(mControlVideoJsonCmd);
                 Log.d(TAG, "[%s: %d] >>>>>>>> Client control Rec left secs: %u", __FILE__, __LINE__, uRecLeftSec);
@@ -3849,7 +3815,9 @@ void MenuUI::calcRemainSpace(bool bUseCached)
                 // mCanTakeTimelapseNum = vm->calcTakepicLefNum(mControlVideoJsonCmd, false);
                 Log.d(TAG, "[%s: %d] ------------->> takepicture in Customer, calc it now", __FILE__, __LINE__);
                 vm->calcTakeTimelapseCnt(mControlVideoJsonCmd);   
-                sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());   
+                ProtoManager* pm = ProtoManager::Instance();
+                pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+
 
             } else {
                 int item = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
@@ -4331,12 +4299,12 @@ void MenuUI::dispTfCardIsFormatting(int iType)
 }
 
 
-void MenuUI::dispTfcardFormatReuslt(vector<sp<Volume>>& mTfFormatList, int iIndex)
+void MenuUI::dispTfcardFormatReuslt(int iResult, int iIndex)
 {
     clearArea(0, 16);
     char msg[128] = {0};
 
-    if (mTfFormatList.size() == 0) {    /* 成功 */
+    if (ERROR_FORMAT_SUC == iResult) {    /* 成功 */
         if (iIndex == -1) {
             sprintf(msg, "%s", "All mSD card");
         } else {
@@ -4410,8 +4378,33 @@ void MenuUI::startFormatDevice()
         /* 显示格式化消息: "TF Card X is Formatting..." */
         dispTfCardIsFormatting(iTfIndex);
 
-        /* 状态机添加格式化状态 */
-        sendRpc(ACTION_FORMAT_TFCARD, iTfIndex);
+        ProtoManager* pm = ProtoManager::Instance();
+        int iResult = pm->sendFormatmSDReq(iTfIndex);
+        switch (iResult) {
+            case ERROR_FORMAT_FAILED:
+            case ERROR_FORMAT_SUC: {    /* 格式化卡成功 */
+
+                dispTfcardFormatReuslt(iResult, iTfIndex);
+
+                /* 等待一会,重新进入MENU_TF_FORMAT_SELECT菜单 */
+                msg_util::sleep_ms(1500);
+                setCurMenu(MENU_TF_FORMAT_SELECT);
+                break;
+            }
+
+            case ERROR_FORMAT_REQ_FAILED: { /* 请求失败， */
+                Log.e(TAG, "[%s: %d] Format TF Card request failed...", __FILE__, __LINE__);
+                setCurMenu(MENU_FORMAT_INDICATION);
+                break;
+            }
+
+            case ERROR_FORMAT_STATE_NOT_ALLOW: {    /* 状态不允许 */
+                Log.e(TAG, "[%s: %d] Format TF Card Server State Not Allowed ...", __FILE__, __LINE__);
+                setCurMenu(MENU_FORMAT_INDICATION);
+                break;
+            }
+        }
+
 
     } else {    /* 大卡或USB设备 */
         Log.d(TAG, "[%s: %d] Format Native USB Device", __FILE__, __LINE__);
@@ -4449,7 +4442,6 @@ void MenuUI::startFormatDevice()
         
         add_state(STATE_FORMAT_OVER);
         rm_state(STATE_FORMATING);
-
 
         /*
          * 格式化成功
@@ -5664,9 +5656,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             /* 进入U盘模式后将不响应任何按键事件，除非关机 */
             in->setEnableReport(false);
 
-            /* 主动切网卡为直接模式 */
-            switchEtherIpMode(0);
-
             tipEnterUdisk();            
             if (vm->enterUdiskMode()) {
                 enterUdiskSuc();
@@ -6058,33 +6047,19 @@ void MenuUI::procPowerKeyEvent()
 
                 case MAINMENU_CALIBRATION: {	/* 拼接校准 */
 
-                    // VolumeManager* vm = VolumeManager::Instance();
+                    ProtoManager* pm = ProtoManager::Instance();
 
-                    const char* pEnterUdiskFlag = NULL;    
-                    if (checkAllowEnterUdiskMode()) {   /* 本地可以进入，检查远端能否进入 */
-                        /* 通知Web,清除STATE_UDISK状态 */
-                        sendRpc(ACTION_ENTER_UDISK_MODE);
-                        msg_util::sleep_ms(2*1000);
+                    if (pm->sendSwitchUdiskModeReq(true)) { /* 请求服务器进入U盘模式 */
+                        /* 主动切网卡为直接模式 */
+                        switchEtherIpMode(0);
 
-                        pEnterUdiskFlag = property_get(PROP_CAN_ENTER_UDISK);
-                        if (pEnterUdiskFlag && !strcmp(pEnterUdiskFlag, "true")) {
-                            property_set(PROP_CAN_ENTER_UDISK, "false");
-                            Log.d(TAG, "[%s: %d] Enter new way U-disk now....", __FILE__, __LINE__);
-                            
-                            /*
-                             * 重启dnsmasq服务
-                             */
-                            system("setprop ctl.stop dnsmasq");
-                            msg_util::sleep_ms(500);
-                            system("setprop ctl.start dnsmasq");
-                            
-                            oled_disp_type(ENTER_UDISK_MODE);
-                        } else {
-                            Log.e(TAG, "[%s: %d] Remote not allow enter Udisk Mode", __FILE__, __LINE__);
-                        }
-
+                        /** 重启dnsmasq服务 */
+                        system("setprop ctl.stop dnsmasq");
+                        msg_util::sleep_ms(200);
+                        system("setprop ctl.start dnsmasq");
+                        oled_disp_type(ENTER_UDISK_MODE);
                     } else {
-                        Log.w(TAG, "[%s: %d] Can't enter U-disk mode in current state[0x%x]", __FILE__, __LINE__, mCamState);
+                        Log.w(TAG, "[%s: %d] Server Not Allow enter Udisk mode", __FILE__, __LINE__);
                     }
                     break;
                 }
@@ -7601,7 +7576,10 @@ int MenuUI::oled_disp_type(int type)
                         updateBottomSpace(true, false);
 
                         vm->clearTakeTimelapseCnt();
-                        sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());
+
+                        ProtoManager* pm = ProtoManager::Instance();
+                        pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+
                     } else {    /* 正常的录像结束 */
                         dispBottomInfo(false, true);     
                     }
@@ -7621,11 +7599,14 @@ int MenuUI::oled_disp_type(int type)
         }
 			
         case STOP_REC_FAIL: {
+            ProtoManager* pm = ProtoManager::Instance();
             if (check_state_in(STATE_RECORD)) {
                 tl_count = -1;
                 vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */                
                 vm->clearTakeTimelapseCnt();
-                sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());
+
+                pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+
 
                 rm_state(STATE_STOP_RECORDING | STATE_RECORD);
                 disp_sys_err(type);
@@ -8209,20 +8190,16 @@ int MenuUI::oled_disp_type(int type)
             if (!check_state_in(STATE_RECORD)) {
                 Log.e(TAG," TIMELPASE_COUNT mCamState 0x%x", mCamState);
             } else {
+
                 disp_tl_count(tl_count);    /* 显示timelpase拍摄值以及剩余可拍的张数 */
 
                 if (vm->getTakeTimelapseCnt() > 0) {
                     vm->decTakeTimelapseCnt();
                     dispBottomLeftSpace();
-                    sendRpc(ACTION_UPDATE_TIMELAPSE, vm->getTakeTimelapseCnt());
 
-                #if 0
-                    /* 如果剩余值为0,主动停止拍摄 */
-                    if (0 == vm->getTakeTimelapseCnt()) {
-                        sendRpc(ACTION_VIDEO);
-                    }
-                #endif
-
+                    ProtoManager* pm = ProtoManager::Instance();
+                    pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+                
                 } else {
                     Log.d(TAG, "[%s:%d] Disk is Full, Stop Timelapse take", __FILE__, __LINE__);
                 }
@@ -8230,11 +8207,6 @@ int MenuUI::oled_disp_type(int type)
             }
             break;
         }
-
-//        case POWER_OFF_SUC:
-//            break;
-//        case POWER_OFF_FAIL:
-//            break;
 
         case START_GYRO:
             if (!check_state_in(STATE_START_GYRO)) {
@@ -8337,9 +8309,12 @@ int MenuUI::oled_disp_type(int type)
         }
 
         case EXIT_UDISK_MODE: {     /* 退出U盘模式 */
-            if ((cur_menu == MENU_UDISK_MODE) && (check_state_in(STATE_UDISK)) ) {
-                Log.d(TAG, "[%s: %d] Exit Udisk Mode, Current Menu[%s]",  __FILE__, __LINE__, getMenuName(cur_menu));
+            
+            ProtoManager* pm = ProtoManager::Instance();
 
+            if (cur_menu == MENU_UDISK_MODE && (true == pm->sendSwitchUdiskModeReq(false))) {
+
+                Log.d(TAG, "[%s: %d] Exit Udisk Mode, Current Menu[%s]",  __FILE__, __LINE__, getMenuName(cur_menu));
                 dispQuitUdiskMode();
 
                 VolumeManager* vm = VolumeManager::Instance();
@@ -8347,17 +8322,12 @@ int MenuUI::oled_disp_type(int type)
                 in->setEnableReport(false);
 
                 vm->exitUdiskMode();
-
-                rm_state(STATE_UDISK);  /* 清除U盘状态 */
-                
-                /* 通知Web,清除STATE_UDISK状态 */
-                sendRpc(ACTION_QUIT_UDISK_MODE);
                 procBackKeyEvent();
                 in->setEnableReport(true);
 
             } else {
-                Log.e(TAG, "[%s: %d] Not in MENU_UDISK_MODE && State not STATE_UDISK [%s -> 0x%x]", 
-                                __FILE__, __LINE__, getMenuName(cur_menu), mCamState);
+                Log.e(TAG, "[%s: %d] Not in MENU_UDISK_MODE && Request Server quit Udisk Mode failed [%s]", 
+                                __FILE__, __LINE__, getMenuName(cur_menu));
             }
             break;
         }
@@ -9116,7 +9086,6 @@ void MenuUI::handleSetSyncInfo(sp<SYNC_INIT_INFO> &mSyncInfo)
     Log.d(TAG, "[%s: %d] sync state 0x%x va:%s vc %s vh %s",
           __FILE__, __LINE__, mSyncInfo->state, mSyncInfo->a_v, mSyncInfo->c_v, mSyncInfo->h_v);
 
-    INFO_MENU_STATE(cur_menu, mCamState);
     Log.d(TAG, "[%s: %d] SET SYNC INFO: get state[%d]", __FILE__, __LINE__, state);
 
     if (state == STATE_IDLE) {	            /* 如果相机处于Idle状态: 显示主菜单 */
@@ -9288,7 +9257,7 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
 }
 
 
-
+#if 0
 void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
 {
     rm_state(STATE_FORMATING);
@@ -9336,6 +9305,7 @@ void MenuUI::handleTfFormated(vector<sp<Volume>>& mTfFormatList)
 
     setCurMenu(MENU_TF_FORMAT_SELECT);
 }
+#endif
 
 
 
@@ -9791,14 +9761,36 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
                 handleSetSyncInfo(mSyncInfo);	/* 根据同步系统初始化系统参数及显示 */
                 
-                /* 查询GPS的状态 */
-                sendRpc(ACTION_QUERY_GPS_STATE);
+                ProtoManager* pm = ProtoManager::Instance();
+                int iQueryResult = -1, i;
+                for (i = 0; i < 3; i++) {
+                    iQueryResult = pm->sendQueryGpsState();
+                    if (iQueryResult >= 0) {
+                        break;
+                    } 
+                }
+
+                if (i < 3) {
+                    mGpsState = iQueryResult;
+                } else {
+                    Log.e(TAG, "[%s: %d] Query Gps State failed, what's wrong", __FILE__, __LINE__);
+                   mGpsState = 0;
+                }
                 break;
             }
 
             case UI_DISP_INIT: {	            /* 1.初始化显示消息 */
                 handleDispInit();               /* 初始化显示 */
-                sendRpc(ACTION_REQ_SYNC);	    /* 发送请求同步消息 */
+                
+                REQ_SYNC reqSync;
+                memset(&reqSync, 0, sizeof(reqSync));
+                snprintf(reqSync.sn, sizeof(reqSync.sn), "%s", mReadSys->sn);
+                snprintf(reqSync.r_v, sizeof(reqSync.r_v), "%s", mVerInfo->r_ver);
+                snprintf(reqSync.p_v, sizeof(reqSync.p_v), "%s", mVerInfo->p_ver);
+                snprintf(reqSync.k_v, sizeof(reqSync.k_v), "%s", mVerInfo->k_ver);                
+
+                ProtoManager* pm = ProtoManager::Instance();
+                pm->sendStateSyncReq(&reqSync);
                 break;
             }
 
@@ -9826,7 +9818,6 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
 
-
             case UI_MSG_TF_STATE: {     /* TF卡状态变化: 卡拔出, 卡插入 */
                 vector<sp<Volume>> mTfChangeList;
                 CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfChangeList), true);
@@ -9837,7 +9828,7 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
             case UI_MSG_TF_FORMAT_RES: {
                 vector<sp<Volume>> mTfFormatList;
                 CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfFormatList), true);
-                handleTfFormated(mTfFormatList);       
+                // handleTfFormated(mTfFormatList);       
                 break;         
             }
 

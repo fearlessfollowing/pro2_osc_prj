@@ -26,11 +26,27 @@
 #include <json/value.h>
 #include <json/json.h>
 
-#include "http_util.h"
+#include <util/http_util.h>
+#include <hw/MenuUI.h>
+
 
 // 此处必须用function类，typedef再后面函数指针赋值无效
 using ReqCallback = std::function<void (std::string)>;
 
+enum {
+    ERROR_FORMAT_SUC = 0,
+    ERROR_FORMAT_REQ_FAILED = -1,
+    ERROR_FORMAT_STATE_NOT_ALLOW = -2,
+    ERROR_FORMAT_FAILED = -3,
+};
+
+
+enum {
+    PROTO_MANAGER_REQ_SUC = 0,
+    PROTO_MANAGER_REQ_CONN_FAILED = -1,
+    PROTO_MANAGER_REQ_PARSE_REPLY_FAIL = -2,
+    PROTO_MANAGER_REQ_CONN_CLOSEED = -3,
+};
 
 /*
  * 传输管理器对象 - 负责提供与服务器交互接口(使用http)
@@ -42,6 +58,8 @@ public:
 
     static ProtoManager*            Instance();                         /* 状态机实例 */
 
+
+#if 0
     /* 查询服务器的状态 */
     std::string     getServerState();
 
@@ -80,11 +98,6 @@ public:
     /* 拼接校准 */
     bool            sendStichCalcReq(Json::Value& stitchCalcReq);
 
-    /* 查询GPS状态 */
-    bool            sendQueryGpsStateReq(Json::Value& queryGpsStateReq);
-
-    /* 更新Timelapse的剩余值 */
-    bool            sendUpdateTimeLapseLeftReq(Json::Value& updateTlLeftReq);
 
     /* 更新录像,直播的剩余时间 */
     bool            sendUpdateRecLeftTimeReq(Json::Value& updateRecLeftReq);
@@ -92,18 +105,27 @@ public:
     /* 查询小卡容量：同步返回(预览状态下大概需要40ms) */
     bool            sendUpdateRecLeftTimeReq(Json::Value& updateRecLeftReq);
 
-    /* 格式化小卡： 单独格式化一张;或者格式化所有 */
-    bool            sendFormatmSDReq(Json::Value& formatmSDReq);
-
 
     /* 启动测速 */
     bool            sendSpeedTestReq(Json::Value& speedTestReq);
+#endif
 
+    /* 查询进入U盘模式（注: 进入U盘模式之前需要禁止InputManager上报,在返回结果之后再使能） */
+    bool            sendSwitchUdiskModeReq(bool bEnterExitFlag);
 
-    /* 查询进入U盘模式 */
-    bool            sendEnterUdiskModeReq(Json::Value& enterUdiskModeReq);
+    /* 更新可拍timelapse的剩余值 */
+    bool            sendUpdateTakeTimelapseLeft(u32 leftVal);
 
+    /* 请求同步 */
+    bool            sendStateSyncReq(REQ_SYNC* pReqSyncInfo);
 
+    /* 查询GPS状态 */
+    int             sendQueryGpsState();
+
+    /* 格式化小卡： 单独格式化一张;或者格式化所有(进入格式化之前需要禁止InputManager上报) */
+    int             sendFormatmSDReq(int iIndex);
+
+#if 0
     /* 启动陀螺仪校正 */
     bool            sendGyroCalcReq(Json::Value& gyroCalcReq);
 
@@ -114,12 +136,10 @@ public:
     /* 发送存储设备列表 */
     bool            sendStorageListReq(Json::Value& storageListReq);
 
-    /* 请求同步 */
-    bool            sendStateSyncReq(Json::Value& stateSyncReq);
 
     /* 白平衡校正 */
     bool            sendWbCalcReq(Json::Value& wbCalcReq);
-    
+#endif    
 
     /*------------------------------------- 设置页 -----------------------------------
      * 1.设置视频分段
@@ -135,18 +155,30 @@ public:
     bool            sendSetOptionsReq(Json::Value& optionsReq);
 
 
+
 private:
-	
-    int             s_exit_flag;
 
-	ReqCallback     s_req_callback;
-    Json::Value     mCurRecvData;       /* 用于存储当前请求接收到的数据(json) */
+    static ProtoManager*    sInstance;
 
-                    ProtoManager()
-    void            sendHttpSyncReq(const std::string &url, ReqCallback req_callback);
-    void            sendHttpSyncReq(const std::string &url, ReqCallback req_callback, const char* extra_headers, const char* post_data);
 
-    void            onHttpEvent(mg_connection *connection, int event_type, void *event_data);
+    static int              mSyncReqErrno;
+    Mutex                   mSyncReqLock;
+    bool                    mSyncReqExitFlag; 
+
+    bool                    mAsyncReqExitFlag;
+
+    Json::Value             mCurRecvData;       /* 用于存储当前请求接收到的数据(json) */
+    static Json::Value*     mSaveSyncReqRes;
+
+                    ProtoManager();
+
+    bool            getSyncReqExitFlag();
+    void            setSyncReqExitFlag(bool bFlag);
+
+    int             sendHttpSyncReq(const std::string &url, Json::Value* pJsonRes, 
+                                    const char* pExtraHeaders, const char* pPostData);
+
+    static void     onSyncHttpEvent(mg_connection *conn, int iEventType, void *pEventData);
 };
 
 

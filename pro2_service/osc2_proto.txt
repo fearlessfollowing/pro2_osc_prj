@@ -480,9 +480,116 @@ Async result:
 
 
 -------------------------------------------------------------------------------------
-格式化小卡：
+格式化小卡： STATE_IDLE
 {"name": "camera._formatCameraMoudle", "parameters":{"index": -1}}
 {"name": "camera._formatCameraMoudle", "parameters":{"index": -1}}
 {"name": "camera._formatCameraMoudle", "sequence": 0, "state": "done" }
 
  
+
+
+UI与Http走的私有协议:
+1.查看camera服务器的当前状态:
+{
+    "name": "camera._getSetCamState",
+    "parameters": {
+        "method": "get/set",
+        "state": int
+    }
+}
+
+2.进入U盘模式请求 -- OK
+Request:
+{
+    "name": "camera._change_udisk_mode",
+    "parameters": {
+        "mode":1            # 1:进入U盘模式; 0:退出U盘模式
+    }
+}
+
+Response:
+{
+    "name":"camera._change_udisk_mode",
+    "state":"done"
+    "sequence":int 
+    "error": {
+        "code": int 
+
+    }      
+}
+
+"sequence": 为可选字段
+"state": "done"  # 表示允许进入U盘模式
+         "error" # 表示不允许进入U盘模式 
+
+3.更新拍timelapse的剩余张数 - OK
+Request:
+{
+    "name":"camera._update_tl_left_count",
+    "parameters":{
+        "tl_left": int
+    }
+}
+
+Response:
+{
+    "name":"camera._update_tl_left_count",
+    "state":"done"
+    "sequence":int 
+    "error": {
+        "code": int 
+
+    }      
+}
+
+4.请求同步  -- OK
+Request:
+{
+    "name":"camera._request_sync",
+    "parameters": {
+        "sn": string,
+        "r_v":string,
+        "p_v":string,
+        "k_v":string
+    }
+}
+
+Response:
+{
+    "name":"camera._request_sync",
+    "state":"done"
+}
+
+5.查询GPS状态 - OK
+Request:
+{"name":"camera._queryGpsStatus"}
+
+Response:
+{
+    "name":"camera._queryGpsStatus",
+    "state":"done"
+}
+
+6.格式化小卡
+Request:
+{
+    "name":"camera._formatCameraMoudle",
+    "parameters":{
+        "index":-1
+    }
+}
+
+Response:
+{ 
+    "name": "camera._formatCameraMoudle", 
+    "sequence": 11, 
+    "state": "error",       
+    "error": { 
+        "code": -1, 
+        "description": "unknow error" 
+    } 
+} 
+
+说明:
+"index": -1:表示格式化所有的小卡; [1-6]表示格式化指定的卡
+"state": "done":成功; "error":操作失败
