@@ -68,6 +68,8 @@
 #define PROP_CAM_STATE              "sys.cam_state"
 
 
+#define PROP_PREVIEW_MODE           "sys.preview_mode"
+
 /*
  * 启动动画属性
  */

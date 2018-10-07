@@ -67,13 +67,6 @@ public:
     bool            setServerState();
 
 
-    /* 启动预览 */
-    bool            sendStartPreview(Json::Value& startPreviewReq);
-
-
-    /* 停止预览 */
-    bool            sendStopPreview(Json::Value& stopPreviewReq);
-
 
     /* 请求拍照 */
     bool            sendTakePicReq(Json::Value& takePicReq);
@@ -105,16 +98,29 @@ public:
     /* 查询小卡容量：同步返回(预览状态下大概需要40ms) */
     bool            sendUpdateRecLeftTimeReq(Json::Value& updateRecLeftReq);
 
-
     /* 启动测速 */
     bool            sendSpeedTestReq(Json::Value& speedTestReq);
 #endif
+
+    /* 获取服务器的状态 */
+    bool            getServerState(int64* saveState);
+
+    /* 启动预览 */
+    bool            sendStartPreview();
+
+    /* 停止预览 */
+    bool            sendStopPreview();
+
 
     /* 查询进入U盘模式（注: 进入U盘模式之前需要禁止InputManager上报,在返回结果之后再使能） */
     bool            sendSwitchUdiskModeReq(bool bEnterExitFlag);
 
     /* 更新可拍timelapse的剩余值 */
     bool            sendUpdateTakeTimelapseLeft(u32 leftVal);
+
+    /* 更新录像,直播进行的时间及剩余时间 */
+    bool            sendUpdateRecordLeftSec(u32 uRecSec, u32 uLeftRecSecs, u32 uLiveSec, u32 uLiveRecLeftSec)
+
 
     /* 请求同步 */
     bool            sendStateSyncReq(REQ_SYNC* pReqSyncInfo);

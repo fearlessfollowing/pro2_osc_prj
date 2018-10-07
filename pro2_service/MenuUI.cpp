@@ -2587,14 +2587,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 		case ACTION_QUERY_STORAGE:
 			break;
 
-        case ACTION_UPDATE_REC_LEFT_SEC: {
-            msg->set<u64>("rec_left_sec", vm->getRecLeftSec());   
-            msg->set<u64>("live_rec_left_sec", vm->getLiveRecLeftSec());  
-            msg->set<u64>("rec_sec", vm->getRecSec());   
-            msg->set<u64>("live_rec_sec", vm->getLiveRecSec());                           
-            break;
-        }
-
         SWITCH_DEF_ERROR(option)
     }
 
@@ -5500,7 +5492,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         case MENU_QR_SCAN: {
             clearArea();
 //          reset_last_info();
-            INFO_MENU_STATE(cur_menu,mCamState)
+            INFO_MENU_STATE(cur_menu, mCamState)
             if(check_state_in(STATE_START_QRING) || check_state_in(STATE_STOP_QRING)) {
                 dispWaiting();
             } else if (check_state_in(STATE_START_QR)) {
@@ -5997,14 +5989,17 @@ void MenuUI::procPowerKeyEvent()
 {
 	Log.d(TAG, "[%s: %d] procPowerKeyEvent Menu(%s) select %d\n", __FILE__, __LINE__, getMenuName(cur_menu), getCurMenuCurSelectIndex());
     
+    ProtoManager* pm = ProtoManager::Instance();
     int iIndex = 0;
 
     switch (cur_menu) {	
+
         case MENU_TOP: {
 
             switch (getCurMenuCurSelectIndex()) {	/* 获取当前选择的菜单项 */
                 case MAINMENU_PIC: {	            /* 选择的是"拍照"项 */
 
+                #if 0
                     /* 发送预览请求 */
                     if (sendRpc(ACTION_PREVIEW)) {	/* 发送预览请求: 消息发送完成后需要接收到异步结果 */
                         mWhoReqEnterPrew = UI_REQ_PREVIEW;
@@ -6013,10 +6008,21 @@ void MenuUI::procPowerKeyEvent()
                     } else {
                         Log.d(TAG, "pic preview fail?");
                     }
+                #else 
+                    if (pm->sendStartPreview()) {   /* 调用协议管理器启动预览 */
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
+                        oled_disp_type(START_PREVIEWING);	    /* 屏幕中间会显示"..." */
+                        setCurMenu(MENU_PIC_INFO);	            /* 设置并显示当前菜单 */
+                    } else {
+                        Log.e(TAG, "[%s: %d] Select takepic, Request start preview Failed.", __FILE__, __LINE__);
+                    }
+                #endif
                     break;
                 }
 
                 case MAINMENU_VIDEO: {	            /* 选择的是"录像"项 */
+
+                #if 0
                     if (sendRpc(ACTION_PREVIEW)) {	/* 发送预览请求 */
                         mWhoReqEnterPrew = UI_REQ_PREVIEW;
                         oled_disp_type(START_PREVIEWING);
@@ -6024,10 +6030,21 @@ void MenuUI::procPowerKeyEvent()
                     } else {
                         Log.d(TAG, "vid preview fail?");
                     }
+                #else
+                    if (pm->sendStartPreview()) {   /* 调用协议管理器启动预览 */
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
+                        oled_disp_type(START_PREVIEWING);	    /* 屏幕中间会显示"..." */
+                        setCurMenu(MENU_VIDEO_INFO);	            /* 设置并显示当前菜单 */
+                    } else {
+                        Log.e(TAG, "[%s: %d] Select takeVideo, Request start preview Failed.", __FILE__, __LINE__);
+                    }
+                #endif
                     break;
                 }
 					
                 case MAINMENU_LIVE:	{	            /* 选择的是"Living"项 */
+                
+                #if 0
                     if (sendRpc(ACTION_PREVIEW)) {
                         mWhoReqEnterPrew = UI_REQ_PREVIEW;
                         oled_disp_type(START_PREVIEWING);
@@ -6035,6 +6052,15 @@ void MenuUI::procPowerKeyEvent()
                     } else {
                         Log.d(TAG, "live preview fail?");
                     }
+                #else 
+                    if (pm->sendStartPreview()) {   /* 调用协议管理器启动预览 */
+                        mWhoReqEnterPrew = UI_REQ_PREVIEW;
+                        oled_disp_type(START_PREVIEWING);	    /* 屏幕中间会显示"..." */
+                        setCurMenu(MENU_LIVE_INFO);	            /* 设置并显示当前菜单 */
+                    } else {
+                        Log.e(TAG, "[%s: %d] Select takeLive, Request start preview Failed.", __FILE__, __LINE__);
+                    }
+                #endif
                     break;
                 }
 
@@ -6044,7 +6070,6 @@ void MenuUI::procPowerKeyEvent()
                     break;
                 }
 				
-
                 case MAINMENU_CALIBRATION: {	/* 拼接校准 */
 
                     ProtoManager* pm = ProtoManager::Instance();
@@ -6581,6 +6606,44 @@ bool MenuUI::check_state_preview()
 }
 
 
+bool MenuUI::checkStateEqual(int64 state) 
+{
+    int64 serverState;
+    bool bResult = false;
+    
+    ProtoManager* pm = ProtoManager::Instance();
+    if (pm->getServerState(&serverState)) {
+        Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
+        bResult = (serverState == state) ? true : false;
+    } else {
+        Log.e(TAG, "[%s: %d] checkServerStateInPreview -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+    }
+    return bResult;
+}
+
+bool MenuUI::checkServerStateIn(int64 state)
+{
+    int64 serverState;
+    bool bResult = false;
+    
+    ProtoManager* pm = ProtoManager::Instance();
+    if (pm->getServerState(&serverState)) {
+        Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
+        bResult = ( (serverState & state) == state) ? true : false;
+    } else {
+        Log.e(TAG, "[%s: %d] checkServerStateInPreview -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+    }
+    return bResult;    
+}
+
+
+bool MenuUI::checkServerStateInPreview()
+{
+    return checkStateEqual(STATE_PREVIEW);
+}
+
+
+
 bool MenuUI::check_state_equal(u64 state)
 {
     AutoMutex _l(gStateLock);
@@ -6598,6 +6661,7 @@ bool MenuUI::check_state_in(u64 state)
     }
     return bRet;
 }
+
 
 bool MenuUI::check_live()
 {
@@ -6829,6 +6893,7 @@ void MenuUI::rm_state(u64 state)
     property_set(PROP_CAM_STATE, cState);
 
 }
+
 
 void MenuUI::set_tl_count(int count)
 {
@@ -7850,7 +7915,10 @@ int MenuUI::oled_disp_type(int type)
 /*********************************  预览相关状态 START ********************************************/
 
         case START_PREVIEWING: {
-            add_state(STATE_START_PREVIEWING);
+            // add_state(STATE_START_PREVIEWING);
+
+            /* 状态由服务器统一管理 */
+            dispWaiting();		/* 屏幕中间显示"..." */
             break;
         }
 
@@ -8892,9 +8960,6 @@ void MenuUI::handleLongKeyMsg(int key)
             clearArea();            /* 关屏 */
         }
 
-        /* 播放开机音乐 */
-        // system("aplay /home/nvidia/insta360/wav/Power_off_48k.wav");
-
         /* shutdown 关机 */
         if (bNeedShutdown == true) {
             Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>>>>>>> Shutdown now", __FILE__, __LINE__);
@@ -8905,7 +8970,6 @@ void MenuUI::handleLongKeyMsg(int key)
             system("shutdown -h now");
         }
     }
-
 }
 
 
@@ -9432,19 +9496,23 @@ void MenuUI::handleUpdateMid()
     bSendUpdateMid = false;
     unique_lock<mutex> lock(mutexState);
     VolumeManager* vm = VolumeManager::Instance();
+    ProtoManager* pm  = ProtoManager::Instance();
 
     if (check_state_in(STATE_RECORD)) {         /* 录像状态 */
 
         send_update_mid_msg(INTERVAL_1HZ);      /* 1s后发送更新灯消息 */
 
         if (!check_state_in(STATE_STOP_RECORDING)) {    /* 非录像停止状态 */
-            // if (tl_count == -1) {                       /* 非timelpase拍摄 */
-            if (false == mTakeVideInTimelapseMode) {
+                      
+            if (false == mTakeVideInTimelapseMode) {    /* 非timelpase拍摄 */
                 vm->incOrClearRecSec();
                 if (vm->decRecLeftSec()) {
                     if (cur_menu == MENU_VIDEO_INFO) {  /* 如果是在录像界面,更新录像时间和剩余时间到UI */
                         dispBottomLeftSpace();      /* 显示剩余时长 */
-                        sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
+                        pm->sendUpdateRecordLeftSec(vm->getRecSec(), 
+                                                    vm->getRecLeftSec(),
+                                                    vm->getLiveRecSec(),
+                                                    vm->getLiveRecLeftSec());
                     }
                 } else {
                     /* TODO: 发送停止录像的消息 */
@@ -9469,7 +9537,10 @@ void MenuUI::handleUpdateMid()
             
             if (cur_menu == MENU_LIVE_INFO) {
                 dispBottomLeftSpace();                  /* 显示剩余时长 */
-                sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
+                pm->sendUpdateRecordLeftSec(vm->getRecSec(), 
+                            vm->getRecLeftSec(),
+                            vm->getLiveRecSec(),
+                            vm->getLiveRecLeftSec());
             }
         }
         flick_light();
@@ -9489,7 +9560,11 @@ void MenuUI::handleUpdateMid()
             
             if (cur_menu == MENU_LIVE_INFO) {
                 dispBottomLeftSpace();                  /* 显示剩余时长 */
-                sendRpc(ACTION_UPDATE_REC_LEFT_SEC);
+                pm->sendUpdateRecordLeftSec(vm->getRecSec(), 
+                                            vm->getRecLeftSec(),
+                                            vm->getLiveRecSec(),
+                                            vm->getLiveRecLeftSec());
+
             }
             flick_light();
         } else {

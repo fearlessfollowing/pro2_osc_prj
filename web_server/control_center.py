@@ -140,8 +140,11 @@ class control_center:
             config._START_LIVE:             self.camera_live,
             config._STOP_LIVE:              self.camera_stop_live,
             
+            # 客户端请求启动预览
             config._START_PREVIEW:          self.camera_start_preview,
+            # 客户端请求停止预览
             config._STOP_PREVIEW:           self.camera_stop_preview,
+
             config._TAKE_PICTURE:           self.camera_take_pic,
             config._SET_NTSC_PAL:           self.camera_set_ntsc_pal,
             config._GET_NTSC_PAL:           self.camera_get_ntsc_pal,
@@ -279,13 +282,24 @@ class control_center:
         })
 
 
+        # UI客户端
         self.ui_cmd_func = OrderedDict({
-            # UI客户端
-            config._GET_SET_CAM_STATE:       self.cameraUiGetSetCamState,
-            config._REQ_ENTER_UDISK_MOD:     self.cameraUiSwitchUdiskMode,
-            config._UPDAT_TIMELAPSE_LEFT:    self.cameraUiUpdateTimelapaseLeft,
-            config._REQ_SYNC_INFO:           self.cameraUiRequestSyncInfo,
-            config._REQ_FORMART_TFCARD:      self.cameraUiFormatTfCard,
+ 
+            # 请求查询Camera的状态
+            config._GET_SET_CAM_STATE:          self.cameraUiGetSetCamState,
+            # 请求Server进入U盘模式
+            config._REQ_ENTER_UDISK_MOD:        self.cameraUiSwitchUdiskMode,
+            # 更新拍timelapse的剩余值
+            config._UPDAT_TIMELAPSE_LEFT:       self.cameraUiUpdateTimelapaseLeft,
+            # 请求同步状态
+            config._REQ_SYNC_INFO:              self.cameraUiRequestSyncInfo,
+            # 请求格式化TF卡
+            config._REQ_FORMART_TFCARD:         self.cameraUiFormatTfCard,
+            # 请求更新录像,直播的时间
+            config._REQ_UPDATE_REC_LIVE_INFO:   self.cameraUiUpdateRecLeftSec,
+            # 请求启动预览
+            
+            # 请求停止预览
                                              
         })
 
@@ -350,8 +364,6 @@ class control_center:
 
                 # 查询TF卡信息
                 ACTION_QUERY_STORAGE:       self.cameraUiQueryTfInfo,
-
-                ACTION_UPDATE_REC_LEFT_SEC: self.cameraUiUpddateRecLeftSec,
 
                 # ACTION_ENTER_UDISK_MODE:    self.cameraUiEnterUdisk,
                 ACTION_SET_CONTROL_STATE:   self.cameraChangeWebState,
@@ -450,24 +462,6 @@ class control_center:
         self.release_connect_sem()
 
 
-    # def get_stitch_connect(self):
-    #     self.aquire_connect_sem()
-    #     try:
-    #         state = self._stitchConnect
-    #     except Exception as e:
-    #         Err('get_stitch_connect e {}'.format(e))
-    #     self.release_connect_sem()
-    #     return state
-    #
-    # def set_stitch_connect(self, state):
-    #     self.aquire_connect_sem()
-    #     try:
-    #         self._stitchConnect = state
-    #     except Exception as e:
-    #         Err('set_stitch_connect e {}'.format(e))
-    #     self.release_connect_sem()
-
-
     def get_stitch_mode(self):
         self.aquire_connect_sem()
         try:
@@ -534,6 +528,7 @@ class control_center:
         Info('content is {}'.format(content))
         #os.system("factory_test awb")
         
+
     def cameraChangeWebState(self, req):
         Info('------------> cameraChangeWebState req {}'.format(req))
 
@@ -607,14 +602,7 @@ class control_center:
             #self.send_req(self.get_write_req(config.UI_NOTIFY_CHECK_ENTER_UDISK, res))
 
 
-    # 方法名称: cameraUiUpddateRecLeftSec
-    # 功能: 更新录像,直播存片的剩余秒数
-    # 参数: param - 剩余量
-    # 返回值: 无
-    def cameraUiUpddateRecLeftSec(self, param):
-        Info('---------> cameraUiUpddateRecLeftSec: {}'.format(param))
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.UPDATE_REC_LEFT_SEC, param))
-        
+
 
     def camera_get_result(self, req, from_ui = False):
         try:
@@ -1376,17 +1364,20 @@ class control_center:
             name = req[_name]
             Info('write_and_read req {}'.format(req))
 
+            # 1.将请求发送给camerad
             read_seq = self.write_req(req, self.get_write_fd())
             
-            #write fifo suc
+            # 2.读取camerad的响应
             ret = self.read_response(read_seq, self.get_read_fd())
+
+            # 如果camerad成功处理: "state":"done"
             if ret[_state] == config.DONE:
                 #some cmd doesn't need done operationc
                 if check_dic_key_exist(self.camera_cmd_done, name):
                     #send err is False, so rec or live is sent from http controller -- old
                     # add old = from_oled to judge whether http req from controlled or oled 171204
                     if name in (config._START_LIVE, config._START_RECORD, config._CALIBTRATE_BLC):
-                        if check_dic_key_exist(ret,config.RESULTS):
+                        if check_dic_key_exist(ret, config.RESULTS):
                             self.camera_cmd_done[name](ret[config.RESULTS], req, oled = from_oled)
                         else:
                             self.camera_cmd_done[name](None, req, oled = from_oled)
@@ -1396,9 +1387,9 @@ class control_center:
                         else:
                             self.camera_cmd_done[name]()
 
-                #send err indentify that req is from http controller
-                # Info('from_oled is {} name {}'.format(from_oled,name))
+                # 请求不是来自UI并且请求为异步请求
                 if from_oled is False and name in self.async_cmd:
+                    # 将请求加入异步请求处理队列中
                     self.add_async_cmd_id(name, ret['sequence'])
             else:
                 cmd_fail(name)
@@ -1447,6 +1438,7 @@ class control_center:
 
         # self.syncWriteReadSem.release()
         return ret
+
 
     def write_req_reset(self, req, write_fd):
         Print('write_req_reset start req {}'.format(req))
@@ -1535,98 +1527,7 @@ class control_center:
     # def release(self):
     #     Print('release control center')
 
-    # def check_in_process(self):
-    #     if self._cam_state & config.STATE_TAKE_CAPTURE_IN_PROCESS == config.STATE_TAKE_CAPTURE_IN_PROCESS or config.STATE_COMPOSE_IN_PROCESS == self._cam_state:
-    #         return True
-    #     else:
-    #         return False
-    #
-    # def check_in_picture(self):
-    #     if config.STATE_TAKE_CAPTURE_IN_PROCESS == self.get_cam_state():
-    #         return True
-    #     else:
-    #         return False
 
-    def check_in_compose(self):
-        if config.STATE_COMPOSE_IN_PROCESS == self.get_cam_state():
-            return True
-        else:
-            return False
-
-    def check_in_rec(self):
-        if self.get_cam_state() & config.STATE_RECORD == config.STATE_RECORD:
-            return True
-        else:
-            return False
-
-    def check_in_preview(self):
-        if self.get_cam_state() & config.STATE_PREVIEW == config.STATE_PREVIEW:
-            return True
-        else:
-            return False
-
-    def check_in_test_speed(self):
-        if self.get_cam_state() & config.STATE_SPEED_TEST == config.STATE_SPEED_TEST:
-            return True
-        else:
-            return False
-
-
-    def check_in_qr(self):
-        if (self.get_cam_state() & config.STATE_START_QR == config.STATE_START_QR):
-            return True
-        else:
-            return False
-
-    def check_in_live(self):
-        if (self.get_cam_state() & config.STATE_LIVE == config.STATE_LIVE):
-            return True
-        else:
-            return False
-
-    def check_in_live_connecting(self):
-        if self.get_cam_state() & config.STATE_LIVE_CONNECTING == config.STATE_LIVE_CONNECTING:
-            return True
-        else:
-            return False
-
-    def check_allow_pic(self):
-        Info('>>>> check_allow_pic, cam state {}'.format(self.get_cam_state()))
-        if (self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW)):
-            return True
-        else:
-            return False
-
-    def check_allow_compose(self):
-        if self.get_cam_state() == config.STATE_IDLE:
-            return True
-        else:
-            return False
-
-    def check_allow_rec(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
-
-    def check_allow_preview(self):
-        if (self.get_cam_state() & config.STATE_PREVIEW) != config.STATE_PREVIEW:
-            Info('>>>>>>>>>>>>>>>>>>>> check_allow_preview: current cam state {}'.format(hex(self.get_cam_state())))
-            allow_state = [config.STATE_IDLE, config.STATE_RECORD, config.STATE_LIVE, config.STATE_LIVE_CONNECTING]
-            for st in allow_state:
-                # if (self.get_cam_state() & st) == st:
-                if self.get_cam_state() == st:                    
-                    return True
-            else:
-                return False
-        else:
-            return False
-
-    def check_allow_live(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
 
     def camera_set_options(self, req, from_ui = False):
         read_info = self.write_and_read(req)
@@ -2440,37 +2341,61 @@ class control_center:
     def get_live_url(self):
         return self.url_list[config.LIVE_URL]
 
-    def camera_preview_fail(self, err):
-        self.send_oled_type_err(config.START_PREVIEW_FAIL,err)
 
+    def camera_preview_fail(self, err):
+        self.send_oled_type_err(config.START_PREVIEW_FAIL, err)
+
+
+    # 方法名称: camera_start_preview_done
+    # 功能描述: 启动预览成功的回调处理
+    # 入口参数: res - 启动预览成功返回的结果
+    # 返回值: 
     def camera_start_preview_done(self, res, from_ui = False):
-        self.set_cam_state(self.get_cam_state() | config.STATE_PREVIEW)
+
+        # 1.去除Server正在启动预览状态
+
+        # 2.添加Server预览状态
+        StateMachine.addServerState(config.STATE_PREVIEW)
+
+        # 如果返回结果中含预览的URL，设置该预览URL到全局参数中
         if check_dic_key_exist(res, config.PREVIEW_URL):
             self.set_preview_url(res[config.PREVIEW_URL])
 
+        # 通知UI，启动预览成功
         self.send_oled_type(config.START_PREVIEW_SUC)
 
-    def start_preview(self,req,from_oled = False):
-        read_info = self.write_and_read(req,from_oled)
+
+    # 方法名称: start_preview(同步操作)
+    # 功能描述: 启动预览
+    # 入口参数:  req - 启动预览请求参数
+    #           from_oled - 请求是否来自UI
+    # 返回值: 请求的结果
+    def start_preview(self, req, from_oled = False):
+        read_info = self.write_and_read(req, from_oled)
         return read_info
 
+
     def camera_start_preview(self, req):
-        Print('preview req {} self.check_allow_preview() {}'.format(req, self.check_allow_preview()))
-        if self.check_allow_preview():
-            # req[_param]['imageProperty'] = self.get_preview_def_image_param()
+        Print('preview req {} StateMachine.checkAllowPreview() {}'.format(req, StateMachine.checkAllowPreview()))
+        # 查询状态机，检查是否允许启动预览
+        if StateMachine.checkAllowPreview():
             read_info = self.start_preview(req)
-        elif (self.get_cam_state() & config.STATE_PREVIEW) == config.STATE_PREVIEW:
-            res = OrderedDict({config.PREVIEW_URL:self.get_preview_url()})
+        
+        # Server正处在预览状态
+        elif StateMachine.checkInPreviewState():
+            res = OrderedDict({config.PREVIEW_URL: self.get_preview_url()})
             read_info = cmd_done(req[_name], res)
         else:
             read_info = cmd_error_state(req[_name], self.get_cam_state())
         Print('previe res {}'.format(read_info))
         return read_info
 
+
     def camera_preview_stop_fail(self, err = -1):
         Info('camera_preview_stop_fail err {}'.format(err))
         self.send_oled_type_err(config.STOP_PREVIEW_FAIL, err)
         self.set_cam_state(self.get_cam_state() & ~config.STATE_PREVIEW)
+
 
     def camera_stop_preview_done(self, req = None):
         self.set_preview_url(None)
@@ -2485,8 +2410,8 @@ class control_center:
 
 
     def camera_stop_preview(self, req, from_ui = False):
-        Info('camera_stop_preview req is {} self.check_in_preview() {}'.format(req, self.check_in_preview()))
-        if self.check_in_preview():
+        Info('camera_stop_preview req is {} StateMachine.checkInPreviewState() {}'.format(req, StateMachine.checkInPreviewState()))
+        if StateMachine.checkInPreviewState():
             read_info = self.stop_preview(req) 
         else:
             read_info = cmd_error_state(req[_name], self.get_cam_state())
@@ -2920,6 +2845,19 @@ class control_center:
         return json.dumps(res)
 
 
+    # 方法名称: cameraUiUpddateRecLeftSec
+    # 功能描述: 请求服务器更新录像,直播已进行的秒数及存片的剩余秒数
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    def cameraUiUpdateRecLeftSec(self, req):
+        Info('---------> cameraUiUpddateRecLeftSec: {}'.format(param))
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.UPDATE_REC_LEFT_SEC, req[_param]))
+        res = OrderedDict()
+        res[_name] = req[_name]
+        res[_state] = config.DONE
+        return json.dumps(res)        
+
+
 
     # 方法名称: cameraUiRequestSyncInfo
     # 功能描述: 请求服务器同步状态
@@ -3124,6 +3062,7 @@ class control_center:
             dict[_param] = param
         return dict
 
+
     def get_origin(self,mime='jpeg', w=4000, h=3000, framerate=None, bitrate=None,save_org = None):
         org = OrderedDict({config.MIME: mime,
                            config.WIDTH: w, config.HEIGHT: h,
@@ -3135,6 +3074,7 @@ class control_center:
         if bitrate is not None:
             org[config.BIT_RATE] = bitrate
         return org
+
 
     def get_stich(self,mime='jpeg', w=3840, h=1920, mode='pano', framerate=None, bitrate=None):
         org = OrderedDict({config.MIME: mime, config.MODE: mode, config.WIDTH: w, config.HEIGHT: h})
@@ -3201,7 +3141,7 @@ class control_center:
         # param['flicker']= 0
         return param
 
-    def get_preview_param(self,mode = config.MODE_PANO):
+    def get_preview_param(self, mode = config.MODE_PANO):
         param = OrderedDict()
         if mode == config.MODE_3D:
             param[config.ORG] = self.get_origin(mime='h264', w=1920, h=1440, framerate=30, bitrate=15000)
@@ -3217,14 +3157,17 @@ class control_center:
         Info('new preview param {}'.format(param))
         return param
 
+
     def camera_oled_preview(self):
-        name=config._START_PREVIEW
+        name = config._START_PREVIEW
         try:
-            if self.check_allow_preview():
-                res = self.start_preview(self.get_req(name,self.get_preview_param()),True)
-            elif self.check_in_preview():
+            # 检查是否运行启动预览
+            if StateMachine.checkAllowPreview():
+                # 允许启动预览，发送启动预览请求
+                res = self.start_preview(self.get_req(name, self.get_preview_param()), True)
+            elif StateMachine.checkInPreviewState():
                 name = config._STOP_PREVIEW
-                res = self.stop_preview(self.get_req(name),True)
+                res = self.stop_preview(self.get_req(name), True)
             else:
                 Err('camera_oled_preview error state {}'.format(hex(self.get_cam_state())))
                 self.send_oled_type(config.START_PREVIEW_FAIL)
@@ -3233,10 +3176,7 @@ class control_center:
             Err('camera_oled_preview e {}'.format(e))
             res = cmd_exception(e, name)
         return res
-        #
-        # param[config.ORG] = self.get_origin(mime='h264', w=1920, h=1440, framerate=30, bitrate=15000)
-        # param[config.STICH] = self.get_stich(mime='h264', w=1920, h=960, framerate=30, bitrate=3000)
-        # return param
+
 
     def get_rec_param(self,mode = config.MODE_3D):
         param = OrderedDict()
@@ -3953,13 +3893,6 @@ class control_center:
         return json.dumps(result)
 
 
-    def check_allow_list_file(self):
-        Info('>>>> check_allow_list_file, cam state {}'.format(self.get_cam_state()))
-        if (self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW)):
-            return True
-        else:
-            return False
-
 
     # 列出文件(异步版本)
     # 被列出文件线程回调
@@ -3989,7 +3922,7 @@ class control_center:
     # 4.列出完成,返回
     def cameraListFile(self, req):
         Info('>>>>> cameraListFile req from client {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
-        if self.check_allow_list_file():
+        if StateMachine.checkAllowListFile():
             if self._list_progress == False:
                 if check_dic_key_exist(req[_param], 'path'):
                     path = req[_param]['path']

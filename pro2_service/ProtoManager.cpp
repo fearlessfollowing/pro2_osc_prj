@@ -34,24 +34,61 @@
 /*********************************************************************************************
  *  宏定义
  *********************************************************************************************/
-#define _name       "name"
-#define _param      "parameters"
-#define _count      "count"
-#define _tl_left    "tl_left"
-#define _mode       "mode"
-#define _state      "state"
-#define _done       "done"
-#define _results    "results"
-#define _index      "index"
-#define _error      "error"
-#define _code       "code"
+#define _name               "name"
+#define _param              "parameters"
+#define _count              "count"
+#define _tl_left            "tl_left"
+#define _mode               "mode"
+#define _state              "state"
+#define _done               "done"
+#define _method             "method"
+#define _results            "results"
+#define _index              "index"
+#define _error              "error"
+#define _code               "code"
+#define _rec_left_sec       "rec_left_sec"
+#define _live_rec_left_sec  "live_rec_left_sec"
+#define _rec_left_sec       "rec_sec"
+#define _live_rec_sec       "live_rec_sec"
+
+#define _origin             "origin"
+#define _stitch             "stitch"
+#define _audio              "audio"
+#define _mime               "mime"
+#define _width              "width"
+#define _height             "height"
+#define _prefix             "prefix"
+#define _save_origin        "saveOrigin"
+#define _frame_rate         "framerate"
+#define _live_auto_connect  "autoConnect"
+#define _bit_rate           "bitrate"
+#define _duration           "duration"
+#define _sample_fmt         "sampleFormat"
+#define _channel_layout     "channelLayout"
+#define _sample_rate        "samplerate"
+#define _file_type          "fileType"
+
+
 
 #define REQ_UPDATE_TIMELAPSE_LEFT   "camera._update_tl_left_count"
 #define REQ_SWITCH_UDISK_MODE       "camera._change_udisk_mode"
 #define REQ_SYNC_INFO               "camera._request_sync"
 #define REQ_QUERY_GPS_STATE         "camera._queryGpsStatus"
 #define REQ_FORMAT_TFCARD           "camera._formatCameraMoudle"
+#define REQ_UPDATE_REC_LIVE_INFO    "camera._update_rec_live_info"
 
+#define REQ_START_PREVIEW           "camera._startPreview"
+#define REQ_STOP_PREVIEW            "camera._stopPreview"
+
+#define REQ_TAKE_PIC                "camera._takePicture"
+#define REQ_START_REC               "camera._startRecording"
+#define REQ_STOP_REC                "camera._stopRecording"
+#define REQ_START_LIVE              "camera._startLive"
+#define REQ_STOP_LIVE               "camera._stopLive"
+
+#define REQ_QUERY_STORAGE           "camera._queryStorage"
+
+#define REQ_GET_SET_CAM_STATE       "camera._getSetCamState"
 
 /*********************************************************************************************
  *  外部函数
@@ -66,10 +103,11 @@ static Mutex gProtoManagerMutex;
 static Mutex gSyncReqMutex;
 
 static const std::string gReqUrl = "http://127.0.0.1:20000/ui/commands/execute";
-static const char* pExtraHeaders = "Content-Type:application/json\r\nReq-Src:ProtoManager\r\n";     // Req-Src:ProtoManager\r\n
+static const char* gPExtraHeaders = "Content-Type:application/json\r\nReq-Src:ProtoManager\r\n";     // Req-Src:ProtoManager\r\n
 
 int ProtoManager::mSyncReqErrno = 0;
 Json::Value* ProtoManager::mSaveSyncReqRes = NULL;
+
 
 ProtoManager* ProtoManager::Instance() 
 {
@@ -92,6 +130,7 @@ ProtoManager::~ProtoManager()
 {
 
 }
+
 
 
 
@@ -177,6 +216,178 @@ void ProtoManager::onSyncHttpEvent(mg_connection *conn, int iEventType, void *pE
 }
 
 
+/* getServerState
+ * @param
+ * 获取服务器的状态
+ * 成功返回值大于0
+ */
+bool ProtoManager::getServerState(int64* saveState)
+{
+
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+    Json::Value root;
+    Json::Value param;
+
+    std::ostringstream os;
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_method] = "get";      /* 获取服务器的状态 */
+
+    root[_name] = REQ_GET_SET_CAM_STATE;
+    root[_param] = param;
+	writer->write(root, &os);
+    sendStr = os.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &os);
+            resultStr = os.str();
+            Log.d(TAG, "getServerState -> request Result: %s", resultStr.c_str());
+
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    *saveState = jsonRes["value"].asInt64();
+                    bRet = true;
+                    Log.d(TAG, "[%s: %d] Get Server State: 0x%x", *saveState);
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] getServerState -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+
+/* sendStartPreview
+ * @param 
+ * 发送启动预览请求
+ */
+bool ProtoManager::sendStartPreview()
+{
+    int iResult = -1;
+    bool bRet = false;
+    const char* pPreviewMode = NULL;
+
+    Json::Value jsonRes;   
+    Json::Value root;
+    Json::Value param;
+    Json::Value originParam;
+    Json::Value stitchParam;
+    Json::Value audioParam;
+    Json::Value imageParam;
+
+    std::ostringstream os;
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    pPreviewMode = property_get(PROP_PREVIEW_MODE);
+    if (pPreviewMode && !strcmp(pPreviewMode, "3d_top_left")) {
+        originParam[_mime]          = "h264";
+        originParam[_width]         = 1920;
+        originParam[_height]        = 1440;
+        originParam[_frame_rate]    = 30;
+        originParam[_bit_rate]      = 15000;
+
+        stitchParam[_mime]          = "h264";
+        stitchParam[_width]         = 1920;
+        stitchParam[_height]        = 1920;
+        stitchParam[_frame_rate]    = 30;
+        stitchParam[_bit_rate]      = 1000;
+        stitchParam[_mode]          = pPreviewMode;
+
+    } else {    /* 默认为pano */
+        originParam[_mime]          = "h264";
+        originParam[_width]         = 1920;
+        originParam[_height]        = 1440;
+        originParam[_frame_rate]    = 30;
+        originParam[_bit_rate]      = 15000;
+
+        stitchParam[_mime]          = "h264";
+        stitchParam[_width]         = 1920;
+        stitchParam[_height]        = 960;
+        stitchParam[_frame_rate]    = 30;
+        stitchParam[_bit_rate]      = 1000;
+    }
+
+    audioParam[_mime]               = "aac";
+    audioParam[_sample_fmt]         = "s16";
+    audioParam[_channel_layout]     = "stereo";
+    audioParam[_sample_rate]        = 48000;
+    audioParam[_bit_rate]           = 128;
+
+
+#ifdef ENABLE_PREVIEW_STABLE
+    param["stabilization"] = true;
+#endif
+
+#ifdef ENABLE_PREVIEW_IMAGE_PROPERTY
+    imageParam['sharpness'] = 4
+    // imageParam['wb'] = 0
+    // imageParam['iso_value'] = 0
+    // imageParam['shutter_value']= 0
+    // imageParam['brightness']= 0
+    imageParam['contrast']= 55 #0-255
+    // imageParam['saturation']= 0
+    // imageParam['hue']= 0
+    imageParam['ev_bias'] = 0  // (-96), (-64), (-32), 0, (32), (64), (96)
+    // imageParam['ae_meter']= 0
+    // imageParam['dig_effect']    = 0
+    // imageParam['flicker']       = 0    
+    param["imageProperty"] = imageParam;
+#endif 
+
+    param[_origin] = originParam;
+    param[_stitch] = stitchParam;
+    param[_audio] = audioParam;
+
+    root[_name] = REQ_START_PREVIEW;
+    root[_param] = param;
+	writer->write(root, &os);
+    sendStr = os.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+
 /*
  * 检查是否允许进入U盘模式(同步请求)
  */
@@ -218,7 +429,7 @@ bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
 	writer->write(root, &os);
     sendStr = os.str();
 
-    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, pExtraHeaders, sendStr.c_str());
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             /* 解析响应值来判断是否允许 */
@@ -245,7 +456,69 @@ bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
 }
 
 
+/*
+ * sendUpdateRecordLeftSec
+ * @param   uRecSec - 已录像的时长
+ *          uLeftRecSecs - 可录像的剩余时长
+ *          uLiveSec - 已直播的时长
+ *          uLiveRecLeftSec - 可直播录像的剩余时长
+ * 
+ * 更新已录像/直播的时长及剩余时长
+ */
+bool ProtoManager::sendUpdateRecordLeftSec(u32 uRecSec, u32 uLeftRecSecs, u32 uLiveSec, u32 uLiveRecLeftSec)
+{
+    int iResult = -1;
+    bool bRet = false;
 
+    Json::Value jsonRes;   
+    Json::Value root;
+    Json::Value param;
+
+    std::ostringstream os;
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_rec_sec] = uRecSec;
+    param[_rec_left_sec] = uLeftRecSecs;
+    param[_live_rec_sec] = uLiveSec;
+    param[_live_rec_left_sec] = uLiveRecLeftSec;
+    root[_name] = REQ_UPDATE_REC_LIVE_INFO;
+    root[_param] = param;
+	writer->write(root, &os);
+    sendStr = os.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+
+/*
+ * sendUpdateTakeTimelapseLeft
+ * @param leftVal - 剩余张数
+ * 更新能拍timelapse的剩余张数
+ */
 bool ProtoManager::sendUpdateTakeTimelapseLeft(u32 leftVal)
 {
     int iResult = -1;
@@ -269,7 +542,7 @@ bool ProtoManager::sendUpdateTakeTimelapseLeft(u32 leftVal)
 	writer->write(root, &os);
     sendStr = os.str();
 
-    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, pExtraHeaders, sendStr.c_str());
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             /* 解析响应值来判断是否允许 */
@@ -320,7 +593,7 @@ bool ProtoManager::sendStateSyncReq(REQ_SYNC* pReqSyncInfo)
 	writer->write(root, &os);
     sendStr = os.str();
 
-    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, pExtraHeaders, sendStr.c_str());
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             /* 解析响应值来判断是否允许 */
@@ -343,6 +616,8 @@ bool ProtoManager::sendStateSyncReq(REQ_SYNC* pReqSyncInfo)
 }
 
 
+
+
 int ProtoManager::sendQueryGpsState()
 {
     int iResult = -1;
@@ -362,7 +637,7 @@ int ProtoManager::sendQueryGpsState()
 	writer->write(root, &os);
     sendStr = os.str();
 
-    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, pExtraHeaders, sendStr.c_str());
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             if (jsonRes.isMember(_state)) {
@@ -414,7 +689,7 @@ int ProtoManager::sendFormatmSDReq(int iIndex)
 	writer->write(root, &os);
     sendStr = os.str();
 
-    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, pExtraHeaders, sendStr.c_str());
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             if (jsonRes.isMember(_state)) {

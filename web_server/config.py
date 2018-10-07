@@ -206,11 +206,13 @@ SYS_SETTING_PATH = INSTA360_PRO2_CFG_BASE + "user_cfg"
 #
 
 # 获取/设置Camera Server状态
-_GET_SET_CAM_STATE      = 'camera._getSetCamState'
-_REQ_ENTER_UDISK_MOD    = 'camera._change_udisk_mode'
-_UPDAT_TIMELAPSE_LEFT   = 'camera._update_tl_left_count'
-_REQ_SYNC_INFO          = 'camera._request_sync'
-_REQ_FORMART_TFCARD     = 'camera._formatCameraMoudle'
+_GET_SET_CAM_STATE          = 'camera._getSetCamState'
+_REQ_ENTER_UDISK_MOD        = 'camera._change_udisk_mode'
+_UPDAT_TIMELAPSE_LEFT       = 'camera._update_tl_left_count'
+_REQ_SYNC_INFO              = 'camera._request_sync'
+_REQ_FORMART_TFCARD         = 'camera._formatCameraMoudle'
+_REQ_UPDATE_REC_LIVE_INFO   = 'camera._update_rec_live_info'
+
 
 
 """camera_state"""
