@@ -468,7 +468,6 @@ int InputManager::inputEventLoop()
 
                                     setMonitorState(MONITOR_STATE_CANCEL);
                                     writePipe(mLongPressMonitorPipe[1], CtrlPipe_Cancel);
-                                    Log.d(TAG, "[%s: %d] Send Cancal now", __FILE__, __LINE__);
 
                                     if ((iIntervalMs > gIKeyRespRate) && (iIntervalMs < 1500)) {
 										if (event.code == last_down_key) {

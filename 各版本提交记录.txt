@@ -1179,3 +1179,28 @@ Async result:
         "error":{"code":int, "description":string}
     }   
 }
+
+打包:
+服务器: 192.168.2.238
+用户名,密码均为: nvidia
+git本地镜像: /home/nvidia/work/image/insta360_pro2_image
+
+1.从git上获取最新的版本
+cd /home/nvidia/work/image/insta360_pro2_image
+git pull origin dev 
+用户名: luopinjing@insta360.camera_com
+密码: insta373
+
+
+2.打包
+cd /home/nvidia/work/out/update
+修改gen_img.py中的版本号:
+#print("----------- generated image(Insta360_Pro2_Upate.bin) ------------")
+gen_image(1, 0, 2)  # 主版本号,次版本号,修订版本号
+
+生成镜像: Insta360_Pro2_Upate.bin
+# python3.6 gen_img.py
+
+3.制作成压缩文件
+# zip -r Insta360_Pro2_Upate_vx.x.x.zip Insta360_Pro2_Upate.bin
+

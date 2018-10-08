@@ -27,3 +27,18 @@ class ListFileThread(Thread):
         Info('print list path: {}'.format(self.list_path))
         self.control_obj.async_list_file(self.list_path)
 
+
+class ComSyncReqThread(Thread):
+    def __init__(self, name, controller, req):
+        super().__init__()
+        Info('----------------> constructor ComSyncReqThread obj')
+        self.name = name
+        self.control_obj = controller
+        self.sync_req = req
+
+    def run(self):
+        Info('----------------> run ComSyncReqThread obj')
+        self.control_obj.write_and_read(self.sync_req, True)
+
+
+

@@ -34,40 +34,6 @@
 /*********************************************************************************************
  *  宏定义
  *********************************************************************************************/
-#define _name               "name"
-#define _param              "parameters"
-#define _count              "count"
-#define _tl_left            "tl_left"
-#define _mode               "mode"
-#define _state              "state"
-#define _done               "done"
-#define _method             "method"
-#define _results            "results"
-#define _index              "index"
-#define _error              "error"
-#define _code               "code"
-#define _rec_left_sec       "rec_left_sec"
-#define _live_rec_left_sec  "live_rec_left_sec"
-#define _rec_left_sec       "rec_sec"
-#define _live_rec_sec       "live_rec_sec"
-
-#define _origin             "origin"
-#define _stitch             "stitch"
-#define _audio              "audio"
-#define _mime               "mime"
-#define _width              "width"
-#define _height             "height"
-#define _prefix             "prefix"
-#define _save_origin        "saveOrigin"
-#define _frame_rate         "framerate"
-#define _live_auto_connect  "autoConnect"
-#define _bit_rate           "bitrate"
-#define _duration           "duration"
-#define _sample_fmt         "sampleFormat"
-#define _channel_layout     "channelLayout"
-#define _sample_rate        "samplerate"
-#define _file_type          "fileType"
-
 
 
 #define REQ_UPDATE_TIMELAPSE_LEFT   "camera._update_tl_left_count"
@@ -79,6 +45,8 @@
 
 #define REQ_START_PREVIEW           "camera._startPreview"
 #define REQ_STOP_PREVIEW            "camera._stopPreview"
+
+#define REQ_QUERY_TF_CARD           "camera._queryStorage"
 
 #define REQ_TAKE_PIC                "camera._takePicture"
 #define REQ_START_REC               "camera._startRecording"
@@ -221,9 +189,8 @@ void ProtoManager::onSyncHttpEvent(mg_connection *conn, int iEventType, void *pE
  * 获取服务器的状态
  * 成功返回值大于0
  */
-bool ProtoManager::getServerState(int64* saveState)
+bool ProtoManager::getServerState(uint64_t* saveState)
 {
-
     int iResult = -1;
     bool bRet = false;
 
@@ -231,7 +198,11 @@ bool ProtoManager::getServerState(int64* saveState)
     Json::Value root;
     Json::Value param;
 
-    std::ostringstream os;
+    uint64_t state;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;  
+
     std::string resultStr = "";
     std::string sendStr = "";
     Json::StreamWriterBuilder builder;
@@ -243,22 +214,22 @@ bool ProtoManager::getServerState(int64* saveState)
 
     root[_name] = REQ_GET_SET_CAM_STATE;
     root[_param] = param;
-	writer->write(root, &os);
-    sendStr = os.str();
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
 
     iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             /* 解析响应值来判断是否允许 */
-            writer->write(jsonRes, &os);
-            resultStr = os.str();
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
             Log.d(TAG, "getServerState -> request Result: %s", resultStr.c_str());
 
             if (jsonRes.isMember(_state)) {
                 if (jsonRes[_state] == _done) {
-                    *saveState = jsonRes["value"].asInt64();
+                    *saveState = jsonRes["value"].asUInt64();
                     bRet = true;
-                    Log.d(TAG, "[%s: %d] Get Server State: 0x%x", *saveState);
+                    Log.d(TAG, "[%s: %d] Get Server State: 0x%x", __FILE__, __LINE__, *saveState);
                 }
             } else {
                 bRet = false;
@@ -268,6 +239,61 @@ bool ProtoManager::getServerState(int64* saveState)
 
         default: {  /* 通信错误 */
             Log.e(TAG, "[%s: %d] getServerState -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+bool ProtoManager::setServerState(uint64_t saveState)
+{
+    int iResult = -1;
+    bool bRet = false;
+    
+    Json::Value jsonRes;   
+    Json::Value root;
+    Json::Value param;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;    
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_method] = "set";      /* 设置服务器的状态 */
+    param[_state] = saveState;
+
+    root[_name] = REQ_GET_SET_CAM_STATE;
+    root[_param] = param;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    Log.d(TAG, "[%s: %d] Add state: 0x%x", __FILE__, __LINE__, saveState);
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "setServerState -> request Result: %s", resultStr.c_str());
+
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] setServerState -> Maybe Transfer Error", __FILE__, __LINE__);
             bRet = false;
         }
     }
@@ -308,6 +334,9 @@ bool ProtoManager::sendStartPreview()
         originParam[_height]        = 1440;
         originParam[_frame_rate]    = 30;
         originParam[_bit_rate]      = 15000;
+        originParam[_save_origin]   = false;
+        originParam[_log_mode]      = 0;
+
 
         stitchParam[_mime]          = "h264";
         stitchParam[_width]         = 1920;
@@ -322,12 +351,15 @@ bool ProtoManager::sendStartPreview()
         originParam[_height]        = 1440;
         originParam[_frame_rate]    = 30;
         originParam[_bit_rate]      = 15000;
+        originParam[_save_origin]   = false;
+        originParam[_log_mode]      = 0;
 
         stitchParam[_mime]          = "h264";
         stitchParam[_width]         = 1920;
         stitchParam[_height]        = 960;
         stitchParam[_frame_rate]    = 30;
         stitchParam[_bit_rate]      = 1000;
+        stitchParam[_mode]          = "pano";        
     }
 
     audioParam[_mime]               = "aac";
@@ -339,6 +371,8 @@ bool ProtoManager::sendStartPreview()
 
 #ifdef ENABLE_PREVIEW_STABLE
     param["stabilization"] = true;
+#else 
+    param["stabilization"] = false;
 #endif
 
 #ifdef ENABLE_PREVIEW_IMAGE_PROPERTY
@@ -388,6 +422,184 @@ bool ProtoManager::sendStartPreview()
 }
 
 
+/* sendStopPreview
+ * @param 
+ * 发送停止预览请求
+ */
+bool ProtoManager::sendStopPreview()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+    Json::Value root;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+
+    root[_name] = REQ_STOP_PREVIEW;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStopPreview -> request Result: %s", resultStr.c_str());
+
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStopPreview -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+#if 0
+{
+    "name":"camera._queryStorage",
+    "results":{
+        "module":[
+            {"index":1,"pro_suc":0,"storage_left":30119,"storage_total":30520},
+            {"index":2,"pro_suc":0,"storage_left":60623,"storage_total":61024},
+            {"index":3,"pro_suc":0,"storage_left":60623,"storage_total":61024},
+            {"index":4,"pro_suc":0,"storage_left":30119,"storage_total":30520},
+            {"index":5,"pro_suc":0,"storage_left":60623,"storage_total":61024},
+            {"index":6,"pro_suc":0,"storage_left":30119,"storage_total":30520}
+        ],
+        "storagePath":"none"
+    },
+    "sequence":8,
+    "state":"done"
+}
+#endif
+
+
+bool ProtoManager::parseQueryTfcardResult(Json::Value& jsonData)
+{
+    Log.d(TAG, "[%s:%d] ---> parseQueryTfcardResult", __FILE__, __LINE__);
+
+    bool bResult = false;
+    char cStoragePath[64] = {0};
+    int iModuleArray = 0;
+    
+    mStorageList.clear();
+
+    if (jsonData.isMember("state") && jsonData.isMember("results")) {
+        if (jsonData["state"] == "done") {
+            if (jsonData["results"]["module"].isArray()) {
+                for (int i = 0; i < jsonData["results"]["module"].size(); i++) {
+                    sp<Volume> tmpVol = (sp<Volume>)(new Volume());
+                    if (jsonData["results"]["module"][i]["index"].isInt()) {
+                        tmpVol->iIndex = jsonData["results"]["module"][i]["index"].asInt();
+                    }
+
+                    if (jsonData["results"]["module"][i]["storage_total"].isInt()) {
+                        tmpVol->uTotal = jsonData["results"]["module"][i]["storage_total"].asInt();
+                    }
+
+                    if (jsonData["results"]["module"][i]["storage_left"].isInt()) {
+                        tmpVol->uAvail = jsonData["results"]["module"][i]["storage_left"].asInt();
+                    }
+
+                    if (jsonData["results"]["module"][i]["pro_suc"].isInt()) {
+                        tmpVol->iSpeedTest = jsonData["results"]["module"][i]["pro_suc"].asInt();
+                    }
+
+                    sprintf(tmpVol->cVolName, "mSD%d", tmpVol->iIndex);
+                    Log.d(TAG, "[%s: %d] TF card node[%s] info index[%d], total space[%d]M, left space[%d], speed[%d]",
+                                __FILE__, __LINE__, tmpVol->cVolName, 
+                                tmpVol->iIndex, tmpVol->uTotal, tmpVol->uAvail, tmpVol->iSpeedTest);
+
+                    mStorageList.push_back(tmpVol);
+
+                }
+                bResult = true; 
+            } else {
+                Log.e(TAG, "[%s: %d] module not array, what's wrong", __FILE__, __LINE__);
+            }
+        }
+    } else {
+        Log.e(TAG, "[%s: %d] state node not exist!", __FILE__, __LINE__);
+    } 
+    return bResult;   
+}
+
+
+bool ProtoManager::sendQueryTfCard()
+{
+    int iResult = -1;
+    bool bRet = false;
+    VolumeManager* vm = VolumeManager::Instance();
+
+    Json::Value jsonRes;   
+    Json::Value root;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+
+    root[_name] = REQ_QUERY_TF_CARD;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendQueryTfCard -> request Result: %s", resultStr.c_str());
+
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     /* 调用卷管理器来更新TF卡的信息 */
+                    if (parseQueryTfcardResult(jsonRes)) {
+                        bRet = true;
+                        vm->updateRemoteTfsInfo(mStorageList);
+                    }
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStopPreview -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
+
 /*
  * 检查是否允许进入U盘模式(同步请求)
  */
@@ -411,7 +623,9 @@ bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
     Json::Value root;
     Json::Value param;
 
-    std::ostringstream os;
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
     std::string resultStr = "";
     std::string sendStr = "";
     Json::StreamWriterBuilder builder;
@@ -426,15 +640,15 @@ bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
     }
     root[_name] = REQ_SWITCH_UDISK_MODE;
     root[_param] = param;
-	writer->write(root, &os);
-    sendStr = os.str();
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
 
     iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
     switch (iResult) {
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             /* 解析响应值来判断是否允许 */
-            writer->write(jsonRes, &os);
-            resultStr = os.str();
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
             Log.d(TAG, "sendEnterUdiskModeReq -> request Result: %s", resultStr.c_str());
 
             if (jsonRes.isMember(_state)) {

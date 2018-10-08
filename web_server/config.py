@@ -212,11 +212,17 @@ _UPDAT_TIMELAPSE_LEFT       = 'camera._update_tl_left_count'
 _REQ_SYNC_INFO              = 'camera._request_sync'
 _REQ_FORMART_TFCARD         = 'camera._formatCameraMoudle'
 _REQ_UPDATE_REC_LIVE_INFO   = 'camera._update_rec_live_info'
+_REQ_QUERY_GPS_STATE        = 'camera._queryGpsStatus'
+_REQ_START_PREVIEW          = 'camera._startPreview'
+_REQ_STOP_PREVIEW           = 'camera._stopPreview'
+_REQ_QUERY_TF_CARD          = 'camera._queryStorage'
 
-
-
-"""camera_state"""
+# 2018年10月8日
+# Web Server负责维护Camera的状态，客户端(UI)可以通过http请求来获取当前Server的状态
+# 也可以通过http请求来修改当前Server的状态(这就要求两个进程内的状态值一一对应)
+# 
 STATE_IDLE                      = 0x00
+
 STATE_RECORD                    = 0x01
 STATE_TAKE_CAPTURE_IN_PROCESS   = 0x02
 STATE_COMPOSE_IN_PROCESS        = 0x04
@@ -258,6 +264,8 @@ STATE_MAGMETER_CALIBRATE        = 0x40000000
 STATE_TF_FORMATING              = 0x80000000
 
 STATE_DELETE_FILE               = 0x100000000
+
+
 
 # Camera的工作模式：相机/U盘
 CAMERA_WORK_MODE_CAM    = 0
@@ -436,39 +444,6 @@ UI_NOTIFY_SHUT_DOWN         = 'shut_down'
 UI_NOTIFY_CHECK_ENTER_UDISK = 'check_enter_udisk'
 UI_NOTIFY_SWITCH_MOUNT_MODE = 'switch_mount_mode'
 
-# STR_START_REC = 1
-# STR_START_REC = 1
-# STR_START_REC = 1
-# STR_START_REC = 1
-# STR_START_REC = 1
-# STR_START_REC = 1
-
-# REC = 0
-# REC_FAIL = 1
-# SAVE_REC_SUC = 2
-# SAVE_REC_FAIL = 3
-# CAPTURE = 4
-# CAPTURE_FAIL = 5
-# SAVE_CAPTURE = 6
-# # SAVE_CAPTURE_FAIL = 7
-# START_LIVE_SUC = 8
-# LIVE_FAIL = 9
-# STOP_LIVE_SUC = 10
-# STOP_LIVE_FAIL = 11
-# # COMPOSE_PIC = 12
-# # COMPOSE_PIC_FAIL = 13
-# # COMPOSE_PIC_SUC = 14
-# # COMPOSE_VIDEO = 15
-# # COMPOSE_VIDEO_FAIL = 16
-# COMPOSE = 12
-# COMPOSE_OVER = 13
-# COMPOSE_VIDEO_SUC = 17
-#
-#
-# RESET = 30
-
-# SET_OFFSET = 30
-# SET_OFFSET_FAIL = 31
 
 START_RECING = 0,
 START_REC_SUC = 1

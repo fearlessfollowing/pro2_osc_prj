@@ -36,7 +36,8 @@ from flask import send_file
 # from poll.poll_func import *
 from poll.monitor_event import monitor_fifo_read,mointor_fifo_write_handle,monitor_camera_active_handle
 
-from list_file_thread import *
+from thread_utils import *
+from state_machine import *
 
 # from PIL import Image
 # import io
@@ -109,6 +110,7 @@ ACTION_UPDATE_REC_LEFT_SEC = 203
 # 修改Web Controller的状态
 ACTION_SET_CONTROL_STATE = 208
 
+
 ORG_OVER = 'originOver'
 KEY_STABLIZATION='stabilization'
 
@@ -126,8 +128,8 @@ class control_center:
         self.finger_print = None
         self.random_data = 0
         self._list_progress = False   
-        self._list_file_seq = -1     
-        self.camera_work_mode = config.CAMERA_WORK_MODE_CAM
+        self._list_file_seq = -1  
+        self._client_take_pic = False   
         # self.delete_lists
 
         # 
@@ -173,8 +175,6 @@ class control_center:
             config._CALIBTRATE_BPC:         self.camera_calibrate_bpc,
             config._CALIBRATE_MAGMETER:     self.camerCalibrateMageter,
 
-            # config._CHANGE_MODULE_USB_MODE: self.cameraChangeMode2Udisk,
-
             config._DELETE_TF_CARD:         self.cameraDeleteFile,
 
             config._QUERY_LEFT_INFO:         self.cameraQueryLeftInfo,
@@ -215,8 +215,6 @@ class control_center:
             config._CALIBTRATE_BLC:         self.camera_calibrate_blc_done,
             config._CALIBTRATE_BPC:         self.camera_calibrate_bpc_done,
             config._CALIBRATE_MAGMETER:     self.cameraCalibrateMagmeterDone,
-
-            # config._CHANGE_MODULE_USB_MODE: self.cameraChangeMode2UdiskDone,
 
             config._DELETE_TF_CARD:         self.cameraDeleteFileDone,
 
@@ -275,8 +273,6 @@ class control_center:
             config._CALIBTRATE_BPC:         self.camera_calibrate_bpc_fail,
             config._CALIBRATE_MAGMETER:     self.cameraCalibrateMagmeterFail,
 
-            config._CHANGE_MODULE_USB_MODE: self.cameraChangeMode2UdiskFail,
-
             config._DELETE_TF_CARD:         self.cameraDeleteFileFail,
 
         })
@@ -287,6 +283,7 @@ class control_center:
  
             # 请求查询Camera的状态
             config._GET_SET_CAM_STATE:          self.cameraUiGetSetCamState,
+
             # 请求Server进入U盘模式
             config._REQ_ENTER_UDISK_MOD:        self.cameraUiSwitchUdiskMode,
             # 更新拍timelapse的剩余值
@@ -298,9 +295,15 @@ class control_center:
             # 请求更新录像,直播的时间
             config._REQ_UPDATE_REC_LIVE_INFO:   self.cameraUiUpdateRecLeftSec,
             # 请求启动预览
-            
+            config._REQ_START_PREVIEW:          self.cameraUiStartPreview,
             # 请求停止预览
-                                             
+            config._REQ_STOP_PREVIEW:           self.cameraUiStopPreview,
+
+            # 查询TF卡状态
+            config._REQ_QUERY_TF_CARD:          self.cameraUiQueryTfcard,
+
+            # 查询GPS状态
+            config._REQ_QUERY_GPS_STATE:        self.cameraUiqueryGpsState,
         })
 
 
@@ -365,7 +368,6 @@ class control_center:
                 # 查询TF卡信息
                 ACTION_QUERY_STORAGE:       self.cameraUiQueryTfInfo,
 
-                # ACTION_ENTER_UDISK_MODE:    self.cameraUiEnterUdisk,
                 ACTION_SET_CONTROL_STATE:   self.cameraChangeWebState,
             }
         )
@@ -507,7 +509,7 @@ class control_center:
         Info('start_ageing_test')
 
         Info('content is {}'.format(content))
-        Info('ageing time is {}'.format(time));
+        Info('ageing time is {}'.format(time))
         Info('start_ageing_test write_and_read ....')
 
         # 给oled_handler发送老化消息
@@ -575,35 +577,6 @@ class control_center:
         Info('>>>>>>>>>>>>>>>>>>> cameraUiQuitUdisk req is {}'.format(read_info))
 
 
-    # 方法名称: cameraUiEnterUdisk
-    # 功能: 检查能否进入U盘
-    def cameraUiEnterUdisk(self, req):
-        if self.checkAllowEnterUdiskMode(): # 允许进入U盘
-            Info('>>>>>>>>>>>>>>>>>>> cameraUiEnterUdisk req is {}'.format(req))
-            self.set_cam_state(self.get_cam_state() | config.STATE_UDISK)
-            read_info = self.write_and_read(req)
-            Info('>>>> check can enter udisk, ret {} '.format(read_info))
-            res = json.loads(read_info)
-            if res[_state] == config.DONE:
-                os.system("setprop sys.can_enter_udisk true")
-            else:
-                os.system("setprop sys.can_enter_udisk false")
-                self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-
-            #self.send_req(self.get_write_req(config.UI_NOTIFY_CHECK_ENTER_UDISK, json.load(read_info)))
-        else:
-            # 直接给UI发送不能进入U盘的通知
-            # res = OrderedDict()
-            # res['name'] = req['name']
-            # res['state'] = 'error'
-            # Info('>>>> check can enter udisk, rete {} '.format(res))
-            # 设置属性sys.can_enter_udisk为false
-            os.system("setprop sys.can_enter_udisk false")
-            #self.send_req(self.get_write_req(config.UI_NOTIFY_CHECK_ENTER_UDISK, res))
-
-
-
-
     def camera_get_result(self, req, from_ui = False):
         try:
             req_ids = req[_param]['list_ids']
@@ -666,7 +639,7 @@ class control_center:
         #     self.send_oled_type(config.CAPTURE_ORG_SUC)
         else:
             # self.add_id_result_by_name(config._TAKE_PICTURE, content)
-            self.send_oled_type_err(config.CAPTURE_FAIL,self.get_err_code(content))
+            self.send_oled_type_err(config.CAPTURE_FAIL, self.get_err_code(content))
         self.set_cam_state(self.get_cam_state() & ~(config.STATE_TAKE_CAPTURE_IN_PROCESS | config.STATE_PIC_STITCHING))
 
     # check whether need cam lock while recevie reset from camerad 170217
@@ -837,13 +810,17 @@ class control_center:
         else:
             Info('handle_live_rec_finish　error code {}'.format(self.get_err_code(param)))
 
-    def handle_pic_org_finish(self,param):
-        Info('2handle_pic_org_finish param {} state {}'.format(param,self.get_cam_state_hex()))
-        if (self.get_cam_state() & config.STATE_TAKE_CAPTURE_IN_PROCESS) == config.STATE_TAKE_CAPTURE_IN_PROCESS:
-            self.set_cam_state((self.get_cam_state() & ~config.STATE_TAKE_CAPTURE_IN_PROCESS) | config.STATE_PIC_STITCHING)
+    # handle_pic_org_finish
+    # 拍照完成,进入拼接状态
+    def handle_pic_org_finish(self, param):
+        Info('2handle_pic_org_finish param {} state {}'.format(param, self.get_cam_state_hex()))
+        if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
+            StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+            StateMachine.addServerState(config.STATE_PIC_STITCHING)
             self.send_oled_type(config.PIC_ORG_FINISH)
         else:
             Info('pic org finish err state {}'.format(self.get_cam_state()))
+
 
     def handle_cal_org_finish(self,param):
         Info('handle_cal_org_finish param {} state {}'.format(param, self.get_cam_state()))
@@ -1357,12 +1334,13 @@ class control_center:
     def get_media_name(self,name):
         pass
 
+
     # 暂时添加同步锁操作
     def write_and_read(self, req, from_oled = False):
-        # self.syncWriteReadSem.acquire()
+        self.syncWriteReadSem.acquire()
         try:
             name = req[_name]
-            Info('write_and_read req {}'.format(req))
+            Info('----------> sync write_and_read req {}'.format(req))
 
             # 1.将请求发送给camerad
             read_seq = self.write_req(req, self.get_write_fd())
@@ -1436,7 +1414,7 @@ class control_center:
             ret = cmd_exception(error_dic('write_and_read', str(e)), req)
             self.reset_all()
 
-        # self.syncWriteReadSem.release()
+        self.syncWriteReadSem.release()
         return ret
 
 
@@ -1851,24 +1829,16 @@ class control_center:
             ret = cmd_exception(str(e), config._DISCONNECT)
         return ret
 
-    # suc:
-    #    {
-    #        "name": "camera._startRecording",
-    #        "state": "done"
-    #    }
 
-    # error:
-    #    {
-    #       "name": "camera.info",
-    #       "state": "error",
-    #       "error": {
-    #                   "code": "serverError",
-    #                   "message": "cannot get camera info."
-    #               }
-    #    }
     def camera_rec_done(self, res = None, req = None, oled = False):
-        self.set_cam_state(self.get_cam_state() | config.STATE_RECORD)
         Info('rec done param {}'.format(req))
+
+        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+            StateMachine.rmServerState(config.STATE_START_RECORDING)
+
+        # 进入录像状态
+        StateMachine.addServerState(config.STATE_RECORD)
+
         if req is not None:
             if oled:
                 self.send_oled_type(config.START_REC_SUC)
@@ -1882,11 +1852,16 @@ class control_center:
 
         if res is not None and check_dic_key_exist(res, config.RECORD_URL):
             self.set_rec_url(res[config.RECORD_URL])
-        # self.add_cmd_id_queue(config._START_RECORD)
 
-    def camera_rec_fail(self,err = -1):
-        self.send_oled_type_err(config.START_REC_FAIL,err)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD)
+    def camera_rec_fail(self, err = -1):
+        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+            StateMachine.rmServerState(config.STATE_START_RECORDING)
+
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
+        self.send_oled_type_err(config.START_REC_FAIL, err)
+
 
     def add_async_cmd_id(self, name, id_seq):
         id_dict = OrderedDict()
@@ -2080,8 +2055,7 @@ class control_center:
             return cmd_error(req[_name],'camera_get_sys_setting','sys cfg none')
 
 
-    def start_rec(self,req, from_oled = False):
-        # osc_state_handle.set_rec_info(OrderedDict())
+    def start_rec(self, req, from_oled = False):
         read_info = self.write_and_read(req, from_oled)
         return read_info
 
@@ -2097,7 +2071,7 @@ class control_center:
         return read_info
 
 
-    def camera_rec_stop_done(self,req = None):
+    def camera_rec_stop_done(self, req = None):
         # self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD)
         # self.send_oled_type(config.STOP_REC_SUC)
         Info('camera_rec_stop_done ')
@@ -2112,8 +2086,8 @@ class control_center:
         read_info = self.write_and_read(req, from_oled)
         return read_info
 
-    def camera_rec_stop(self,req, from_ui = False):
-        if self.check_in_rec():
+    def camera_rec_stop(self, req, from_ui = False):
+        if StateMachine.checkInRecord():
             read_info = self.stop_rec(req)
         else:
             read_info =  cmd_error_state(req[_name],self.get_cam_state())
@@ -2201,18 +2175,19 @@ class control_center:
 
     def camera_take_pic_done(self,req = None):
         Info('camera_take_pic_done')
+        self._client_take_pic = False 
+
 
     def camera_take_pic_fail(self, err = -1):
         Info('camera_take_pic_fail happen')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_TAKE_CAPTURE_IN_PROCESS)
-        #force send capture fail
-        self.send_oled_type_err(config.CAPTURE_FAIL,err)
+        self._client_take_pic = False 
+        StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+        self.send_oled_type_err(config.CAPTURE_FAIL, err)
 
 
     def take_pic(self, req, from_oled = False):
         self.set_cam_state(self.get_cam_state() | config.STATE_TAKE_CAPTURE_IN_PROCESS)
         read_info = self.write_and_read(req, from_oled)
-        # osc_state_handle.set_pic_info(OrderedDict());
         return read_info
 
 
@@ -2220,7 +2195,11 @@ class control_center:
 
         Info('take pic req {} state {}'.format(req,self.get_cam_state()))
         
-        if self.check_allow_pic():
+        if StateMachine.checkAllowTakePic():
+            StateMachine.addServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+            
+            # 确实是客户端拍照
+            self._client_take_pic = True
             if from_oled == False:
                 self.send_oled_type(config.CAPTURE, req)
 
@@ -2343,6 +2322,7 @@ class control_center:
 
 
     def camera_preview_fail(self, err):
+        StateMachine.rmServerState(config.STATE_START_PREVIEWING)
         self.send_oled_type_err(config.START_PREVIEW_FAIL, err)
 
 
@@ -2353,7 +2333,8 @@ class control_center:
     def camera_start_preview_done(self, res, from_ui = False):
 
         # 1.去除Server正在启动预览状态
-
+        StateMachine.rmServerState(config.STATE_START_PREVIEWING)
+        
         # 2.添加Server预览状态
         StateMachine.addServerState(config.STATE_PREVIEW)
 
@@ -2378,7 +2359,12 @@ class control_center:
     def camera_start_preview(self, req):
         Print('preview req {} StateMachine.checkAllowPreview() {}'.format(req, StateMachine.checkAllowPreview()))
         # 查询状态机，检查是否允许启动预览
+        # TODO:启动预览的时间比较长,应该在允许启动预览后,设置Server的状态为正在启动预览
+        # 防止客户端正在启动预览时,UI再次发起启动预览的操作
         if StateMachine.checkAllowPreview():
+            # 占用状态位: STATE_START_PREVIEWING
+            StateMachine.addServerState(config.STATE_START_PREVIEWING)
+
             read_info = self.start_preview(req)
         
         # Server正处在预览状态
@@ -2394,13 +2380,15 @@ class control_center:
     def camera_preview_stop_fail(self, err = -1):
         Info('camera_preview_stop_fail err {}'.format(err))
         self.send_oled_type_err(config.STOP_PREVIEW_FAIL, err)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_PREVIEW)
+        StateMachine.rmServerState(config.STATE_STOP_PREVIEWING)
+        StateMachine.rmServerState(config.STATE_PREVIEW)
 
 
     def camera_stop_preview_done(self, req = None):
         self.set_preview_url(None)
         self.send_oled_type(config.STOP_PREVIEW_SUC)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_PREVIEW)
+        StateMachine.rmServerState(config.STATE_STOP_PREVIEWING)
+        StateMachine.rmServerState(config.STATE_PREVIEW)
 
 
     def stop_preview(self, req, from_oled = False):
@@ -2412,53 +2400,13 @@ class control_center:
     def camera_stop_preview(self, req, from_ui = False):
         Info('camera_stop_preview req is {} StateMachine.checkInPreviewState() {}'.format(req, StateMachine.checkInPreviewState()))
         if StateMachine.checkInPreviewState():
+            StateMachine.addServerState(config.STATE_STOP_PREVIEWING)
             read_info = self.stop_preview(req) 
         else:
             read_info = cmd_error_state(req[_name], self.get_cam_state())
         Info('camera_stop_preview over is {}'.format(read_info))
         return read_info
 
-
-    # def camera_start_compose_video_fail(self, from_oled):
-    #     self.send_oled_type(config.COMPOSE_VIDEO_FAIL)
-    #     self.set_cam_state(self.get_cam_state() & ~config.STATE_COMPOSE_IN_PROCESS)
-
-    # def camera_start_compose_video(self,req):
-    #     if self.check_allow_compose():
-    #         self.set_cam_state(self.get_cam_state() | config.STATE_COMPOSE_IN_PROCESS)
-    #         self.send_oled_type(config.COMPOSE_VIDEO)
-    #         read_info = self.write_and_read(req)
-    #     else:
-    #         read_info = cmd_error_state(req[_name], self.get_cam_state())
-    #     return read_info
-
-    # def camera_stop_compose_video_done(self):
-    #     self.set_cam_state(self.get_cam_state() & ~config.STATE_COMPOSE_IN_PROCESS)
-    #     self.send_oled_type(config.COMPOSE_VIDEO_SUC)
-    #
-    # def camera_stop_compose_video(self,req):
-    #     if self.check_in_compose():
-    #         read_info = self.write_and_read(req)
-    #     else:
-    #         read_info = cmd_error_state(req[_name], self.get_cam_state())
-    #
-    #     return read_info
-
-    # def camera_start_compose_pic_done(self):
-    #     self.send_oled_type(config.COMPOSE_PIC_SUC)
-    #
-    # def camera_start_compose_pic_fail(self,err):
-    #     self.send_oled_type_err(config.COMPOSE_PIC_FAIL,err)
-    #
-    # def camera_start_compose_pic(self,req):
-    #     if self.check_allow_compose():
-    #         self.set_cam_state(self.get_cam_state() | config.STATE_COMPOSE_IN_PROCESS)
-    #         self.send_oled_type(config.COMPOSE_PIC)
-    #         read_info = self.write_and_read(req)
-    #         self.set_cam_state(self.get_cam_state() & ~config.STATE_COMPOSE_IN_PROCESS)
-    #     else:
-    #         read_info = cmd_error_state(req[_name], self.get_cam_state())
-    #     return read_info
 
     # Command Input
     # {
@@ -2755,8 +2703,8 @@ class control_center:
 
     def camera_delete(self, req, from_ui = False):
 
-        Info('>>>>> cameraDeleteFile req {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
-        if self.check_allow_delete():
+        Info('----> cameraDeleteFile req {} cam state: {}'.format(req, StateMachine.getCamStateFormatHex()))
+        if StateMachine.checkAllowDelete():
             
             # 设置正在删除文件状态
             # self.set_cam_state(self.get_cam_state() | config.STATE_DELETE_FILE)
@@ -2780,19 +2728,28 @@ class control_center:
             Info('>>>>>>>> read delete req res {}'.format(deleteReq))
         else:
             Info('not allow delete file')
-            read_info = cmd_error_state(req[_name], self.get_cam_state())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
         return read_info
 
 
 ###################################################### UI与Server交互接口 ##########################################################
+
+    # 方法名称: cameraUiGetSetCamState
+    # 功能描述: 获取或设置服务器的状态
+    # 入口参数: req - 请求参数{"name": "camera._getSetCamState", "parameters": {"method":"get"}}
+    # {"name": "camera._getSetCamState", "parameters": {"method":"set", "state": int}}
+    # 返回值: {"name": "camera._getSetCamState", "parameters": {"state":"done/error", "error": "reason"}}
     def cameraUiGetSetCamState(self, req):
         result = OrderedDict()
+        result[_name] = req[_name]
+        result[_state] = config.DONE
+
         if req[_param]['method'] == 'get':
-            result[_name] = req[_name]
-            result[_state] = config.DONE
-            result['value'] = self.get_cam_state()
+            result['value'] = StateMachine.getCamState()
         elif req[_param]['method'] == 'set':
-            Info('-----------> Not support yet')
+            Info('-----------> add state {}'.format(hex(req[_param][_state])))
+            StateMachine.addCamState(req[_param][_state])
+            Info('---> current server state {}'.format(StateMachine.getCamStateFormatHex()))
 
         read_info = json.dumps(result)
         return read_info
@@ -2808,15 +2765,15 @@ class control_center:
         res[_name] = req[_name]
 
         if req[_param]['mode'] == 1:
-            if self.checkAllowEnterUdiskMode(): # 允许进入U盘
+            if StateMachine.checkAllowEnterUdiskMode(): # 允许进入U盘
                 Info('----------> Enter Udisk Req: {}'.format(req))
-                self.set_cam_state(self.get_cam_state() | config.STATE_UDISK)
+                StateMachine.addServerState(config.STATE_UDISK)
                 read_info = self.write_and_read(req)
                 Info('>>>> check can enter udisk, ret {} '.format(read_info))
                 res = json.loads(read_info)
                 if res[_state] != config.DONE:
                     # 不能进入U盘将清除掉U盘状态
-                    self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
+                    StateMachine.rmServerState(config.STATE_UDISK)
                 return read_info                
             else:
                 res[_state] = 'error'
@@ -2828,7 +2785,7 @@ class control_center:
             read_info = self.write_and_read(req)
             res = json.loads(read_info)
             if res[_state] == config.DONE:  #退出U盘模式成功，清除状态
-                self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
+                StateMachine.rmServerState(config.STATE_UDISK)
             return read_info
 
 
@@ -2850,13 +2807,65 @@ class control_center:
     # 入口参数: req - 请求参数
     # 返回值: 
     def cameraUiUpdateRecLeftSec(self, req):
-        Info('---------> cameraUiUpddateRecLeftSec: {}'.format(param))
+        Info('---------> cameraUiUpddateRecLeftSec: {}'.format(req))
         osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.UPDATE_REC_LEFT_SEC, req[_param]))
         res = OrderedDict()
         res[_name] = req[_name]
         res[_state] = config.DONE
         return json.dumps(res)        
 
+
+    # 方法名称: cameraUiStartPreview
+    # 功能描述: 请求服务器启动预览(由于之前UI将启动预览设置为异步的,因此在允许启动预览时，将服务器的状态设置为正在启动预览状态
+    #           然后返回UI操作完成，并启动一个线程来实现耗时的启动预览同步操作)
+    #           
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    def cameraUiStartPreview(self, req):
+        Print('---------> cameraUiStartPreview req {} StateMachine.checkAllowPreview() {}'.format(req, StateMachine.checkAllowPreview()))
+        res = OrderedDict()
+
+        # TODO:启动预览的时间比较长,应该在允许启动预览后,设置Server的状态为正在启动预览
+        # 防止客户端正在启动预览时,UI再次发起启动预览的操作
+        if StateMachine.checkAllowPreview():
+            
+            StateMachine.addServerState(config.STATE_START_PREVIEWING)
+
+            res[_name] = req[_name]
+            res[_state] = config.DONE
+            # read_info = self.start_preview(req)
+            ComSyncReqThread('start_preview', self, req).start()       
+            return json.dumps(res) 
+        else:
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
+        Print('---> cameraUiStartPreview res {}'.format(read_info))
+        return read_info
+
+
+
+
+    # 方法名称: cameraUiStopPreview
+    # 功能描述: 请求服务器启动预览(由于之前UI将启动预览设置为异步的,因此在允许启动预览时，将服务器的状态设置为正在启动预览状态
+    #           然后返回UI操作完成，并启动一个线程来实现耗时的启动预览同步操作)
+    #           
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    def cameraUiStopPreview(self, req):
+        Print('---------> cameraUiStartPreview req {} StateMachine.checkAllowPreview() {}'.format(req, StateMachine.checkAllowPreview()))
+        res = OrderedDict()
+
+        # 只有在预览状态下才可以停止预览
+        if StateMachine.checkAllowStopPreview():
+            
+            StateMachine.addServerState(config.STATE_STOP_PREVIEWING)
+            res[_name] = req[_name]
+            res[_state] = config.DONE
+            ComSyncReqThread('stop_preview', self, req).start()       
+            return json.dumps(res) 
+        else:
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
+        Print('---> cameraUiStopPreview res {}'.format(read_info))
+        return read_info
 
 
     # 方法名称: cameraUiRequestSyncInfo
@@ -2890,6 +2899,33 @@ class control_center:
         Info('----> query return is {}'.format(read_info))
         return read_info        
 
+
+    # 方法名称: cameraUiQueryTfcard
+    # 功能描述: 查询TF卡状态信息
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    # 注: 任何状态下都可以查看TF卡的信息
+    def cameraUiQueryTfcard(self, req):
+        Info('----------> cameraUiQueryTfcard Req: {}'.format(req))
+
+        StateMachine.addServerState(config.STATE_QUERY_STORAGE)
+
+        read_info = self.write_and_read(self.get_req(config._QUERY_STORAGE))
+        ret = json.loads(read_info)
+        Info('resut info is {}'.format(read_info))
+
+        if ret[config._STATE] == config.DONE:
+            Info('>>>>>> query storage is ok.....')
+            
+            # 将查询到的小卡的信息发送到心跳包
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_TF_INFO, ret['results']))
+        else:
+            Info('++++++++>>> query storage bad......')
+            # 查询失败，将心跳包中小卡的信息去除
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TF_INFO))
+
+        StateMachine.rmServerState(config.STATE_QUERY_STORAGE)
+        return read_info
 
     # 当相机处于预览或空闲状态时都可以查询卡的状态，查询的结果用来更新osc状态机器  
     # 方法名称: checkAllowEnterFormatState
@@ -3104,15 +3140,20 @@ class control_center:
 
     def handleUiTakePic(self, req = None):
         name = config._TAKE_PICTURE
+
+        # 在屏幕拍照，倒计时阶段会设置服务器的状态为config.STATE_TAKE_CAPTURE_IN_PROCESS
+        # 所以如果确实是由屏幕发起的拍照，此处需要先去掉config.STATE_TAKE_CAPTURE_IN_PROCESS状态
+        if self._client_take_pic == False:
+            if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
+                StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
         try:
-            Info('>>>>> UI take picture state {}'.format(self.get_cam_state()))
-            if self.check_allow_pic():
+            if StateMachine.checkAllowTakePic():
                 if  req is None:
                     res = self.take_pic(self.get_req(name, self.get_pic_param()),True)
                 else:
                     Info('oled req {}'.format(req))
                     res = self.take_pic(req, True)
-            elif self.get_cam_state() == config.STATE_TAKE_CAPTURE_IN_PROCESS:
+            elif StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
                 Info('camerad is taking picture in processing....')
             else:
                 Err('oled pic:error state {}'.format(self.get_cam_state()))
@@ -3178,44 +3219,32 @@ class control_center:
         return res
 
 
-    def get_rec_param(self,mode = config.MODE_3D):
-        param = OrderedDict()
-        rec_br = 40000
-        if mode == config.MODE_3D:
-            param[config.ORG] = self.get_origin(mime='h264', w=3200, h=2400, framerate=30, bitrate=rec_br)
-            # param[config.STICH] = self.get_stich(mime='h264', w=3840, h=3840, framerate=25, bitrate= 50000,mode = '3d')
-        else:
-            param[config.ORG] = self.get_origin(mime='h264', w=3200, h=2400, framerate=30, bitrate=rec_br)
-            # param[KEY_STABLIZATION] = True
-            # param[config.STICH] = self.get_stich(mime='h264', w=4096, h=2048, framerate=30, bitrate= 50000,mode = 'pano')
-        param[config.AUD] = self.get_audio()
-        #set 20 temporally which should confirm future
-        # param[config.DURATION] = 20
-        return param
-
     def camera_oled_rec(self, action_info = None):
         name = config._START_RECORD
         try:
-            if self.check_allow_rec():
-                if action_info is None:
-                    res = self.start_rec(self.get_req(name, self.get_rec_param()), True)
-                else:
-                    #if check_dic_key_exist(action_info,config.AUD) is False:
-                    #    action_info[config.AUD] = self.get_audio()
-                    #else:
-                    #    Info('rec oled audio exist {}'.format(action_info[config.AUD]))
+            if StateMachine.checkAllowTakeVideo():
+                # 添加正在启动录像的状态
+                StateMachine.addServerState(config.STATE_START_RECORDING)
 
-                    res = self.start_rec(action_info, True)
-                    #res = self.start_rec(self.get_req(name,action_info), True)
-            elif self.check_in_rec():
+                res = self.start_rec(action_info, True)
+            elif StateMachine.checkInRecord():
+                # 添加正在停止录像状态
+                StateMachine.addServerState(config.STATE_STOP_RECORDING)
+
                 name = config._STOP_RECORD
                 res = self.stop_rec(self.get_req(name), True)
             else:
-                Err('camera_oled_rec pic:error state {}'.format(self.get_cam_state()))
+                Err('camera_oled_rec pic:error state {}'.format(StateMachine.getCamState()))
                 self.send_oled_type(config.START_REC_FAIL)
-                res = cmd_error_state(name, self.get_cam_state())
+                res = cmd_error_state(name, StateMachine.getCamState())
         except Exception as e:
             Err('camera_oled_rec e {}'.format(e))
+            if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+                StateMachine.rmServerState(config.STATE_START_RECORDING)
+            
+            if StateMachine.checkStateIn(config.STATE_STOP_RECORDING):
+                StateMachine.rmServerState(config.STATE_STOP_RECORDING)
+
             res = cmd_exception(e, name)
         return res
 
@@ -3540,31 +3569,6 @@ class control_center:
         else:
             return False        
 
-    # 方法名称: checkAllowEnterUdiskMode
-    # 方法功能: 是否允许切换为U盘模式
-    # 入口参数: 无
-    # 返回值: 允许返回True;否则返回False
-    # 只有在Idle状态下才可以进入U盘模式
-    def checkAllowEnterUdiskMode(self):
-        if self.get_cam_state() == config.STATE_IDLE:
-            return True
-        else:
-            return False   
-
-
-    # 方法名称: checkAllowExitUdiskMode
-    # 方法功能: 是否允许切换为U盘模式
-    # 入口参数: 无
-    # 返回值: 允许返回True;否则返回False
-    # 只有已经在Udisk模式才能退出Udisk模式
-    def checkAllowExitUdiskMode(self):
-        if self.get_cam_state() == config.STATE_UDISK or self.camera_work_mode == config.CAMERA_WORK_MODE_UDISK:
-            return True
-        else:
-            return False   
-
-
-
     def check_allow_bpc(self):
         if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
@@ -3670,104 +3674,6 @@ class control_center:
             res = cmd_error_state(req[_name], self.get_cam_state())
         return res
 
-    # 方法名称: cameraChangeMode2Udisk
-    # 方法功能: 切换设备为U盘模式,只有在Idle状态才可以
-    # 入口参数: req - 请求参数
-    # 接收到进入U盘模式时给UI发送进入U盘模式的命令（进入U盘模式需要时间，避免在该段时间内按键操作）
-    # 今早进入U盘模式菜单
-    def cameraChangeMode2Udisk(self, req, from_ui = False):
-        Info('cameraChangeMode2Udisk req {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
-        
-        # 根据参数来判断是进入Udisk模式还是退出Udisk模式
-        if req['parameters']['mode'] == 1:
-            # 进入U盘模式，首先检查是否允许进入U盘模式，如果允许，设置状态并给UI发送进入U盘模式中的消息，最后发送请求给camerad
-            if self.checkAllowEnterUdiskMode():
-                # 允许进入U盘模式
-                self.set_cam_state(self.get_cam_state() | config.STATE_UDISK)
-                
-                # 给UI发送进入U盘模式的消息
-                self.send_oled_type(config.ENTER_UDISK_MODE)
-                
-                time.sleep(8)
-
-                info = OrderedDict()
-                info['name'] = req['name']
-                info['state'] = config.DONE
-
-                res = dict_to_jsonstr(info)
-
-                # 发送请求给Camerad
-                # 新版本请求直接交给屏幕处理，不再发送给camerad
-                # res = self.write_and_read(req)
-            else:
-                # 不允许，返回错误状态
-                res = cmd_error_state(req[_name], self.get_cam_state())            
-        else:
-            if self.checkAllowExitUdiskMode():
-                # res = self.write_and_read(req)
-                
-                # 给屏幕发送退出U盘模式请求
-                self.send_oled_type(config.EXIT_UDISK_MODE)
-
-                time.sleep(5)
-
-                info = OrderedDict()
-                info['name'] = req['name']
-                info['state'] = config.DONE
-
-                self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-
-                res = dict_to_jsonstr(info)
-
-            else:
-                # 不允许，返回错误状态
-                res = cmd_error_state(req[_name], self.get_cam_state())
-
-            # 退出U盘模式,首先检查当前是否为U盘模式，如果不是直接返回错误
-            # 如果是，发送请求给camerad
-            # 退出成功，清除状态，给UI发送退出U盘模式
-            # 退出失败，不清除状态，直接返回错误
-
-        Info('cameraChangeMode2Udisk result {}'.format(res))
-
-        return res
-
-
-    # 方法名称: cameraChangeMode2UdiskDone
-    # 方法功能: 切换为U盘模式成功
-    # 入口参数: req - 请求参数
-    def cameraChangeMode2UdiskDone(self, res = None, req = None, oled = False):
-        Info('cameraChangeMode2UdiskDone req {} self.get_cam_state() {}'.format(req,self.get_cam_state()))
-        if self.camera_work_mode == config.CAMERA_WORK_MODE_CAM:
-            # 进入U盘模式成功，不改变系统的状态，通知UI进入成功，正式进入U盘模式
-            self.camera_work_mode = config.CAMERA_WORK_MODE_UDISK
-        else:
-            self.camera_work_mode = config.CAMERA_WORK_MODE_CAM
-
-            # 退出U盘模式成功，清除状态，给UI发送退出U盘模式
-            self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-
-            # 给UI发送退出U盘模式的消息
-            self.send_oled_type(config.EXIT_UDISK_DONE)
-
-
-    # 方法名称: cameraChangeMode2UdiskFail
-    # 方法功能: 进入/退出 U盘模式失败
-    # 入口参数: err - 错误码
-    def cameraChangeMode2UdiskFail(self, err = -1):
-        Info('cameraChangeMode2UdiskFail')
-        if self.camera_work_mode == config.CAMERA_WORK_MODE_CAM:
-            # 进入U盘模式失败，清除状态，给U盘发送
-            Info('>>>>>> Enter Udisk Mode failed ..... ')
-            self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-            self.send_oled_type(config.EXIT_UDISK_DONE)
-        else:
-            # 退出U盘模式失败
-            Info('>>>>>> Exit Udisk Mode failed ..... ')
-
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-
-
     def cameraCalibrateMagmeterDone(self, res = None,req = None, oled = False):
         if req is not None:
             Info('cameraCalibrateMagmeterDone {}'.format(req))
@@ -3792,11 +3698,8 @@ class control_center:
 
 
 ################################## 文件删除操作 #######################################
-    def check_allow_delete(self):
-        if (self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW)):
-            return True
-        else:
-            return False    
+ 
+
 
     def check_allow_query_left(self):
         if (self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW)):
@@ -3833,7 +3736,7 @@ class control_center:
     def cameraDeleteFile(self, req, from_ui = False):
 
         Info('>>>>> cameraDeleteFile req {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
-        if self.check_allow_delete():
+        if StateMachine.checkAllowDelete():
             
             # 设置正在删除文件状态
             # self.set_cam_state(self.get_cam_state() | config.STATE_DELETE_FILE)

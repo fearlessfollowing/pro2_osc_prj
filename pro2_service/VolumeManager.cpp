@@ -3134,6 +3134,7 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
     {        
         AutoMutex _l(gRemoteVolLock);
 
+        Log.d(TAG, "[%s: %d] ---> updateRemoteTfsInfo", __FILE__, __LINE__);
         sp<Volume> tmpVolume = NULL;
         Volume* localVolume = NULL;
 

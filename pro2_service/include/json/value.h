@@ -310,10 +310,12 @@ Json::Value obj_value(Json::objectValue); // {}
   Value(ValueType type = nullValue);
   Value(Int value);
   Value(UInt value);
+
 #if defined(JSON_HAS_INT64)
   Value(Int64 value);
   Value(UInt64 value);
 #endif // if defined(JSON_HAS_INT64)
+
   Value(double value);
   Value(const char* value); ///< Copy til first 0. (NULL causes to seg-fault.)
   Value(const char* begin, const char* end); ///< Copy all, incl zeroes.

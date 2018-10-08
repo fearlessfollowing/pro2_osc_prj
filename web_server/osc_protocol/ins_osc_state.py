@@ -164,6 +164,7 @@ class osc_state(threading.Thread):
                                  SND_STATE:{}})
 
         self.sem = Semaphore()
+        self.stateSem = Semaphore()
 
     def run(self):
         self.func = OrderedDict({
@@ -424,13 +425,13 @@ class osc_state(threading.Thread):
             Err('rm_res_id exception {}'.format(e))
 
     def get_cam_state(self):
-        self.aquire_sem()
+        self.stateSem.acquire()
         try:
             state = self.poll_info[CAM_STATE]
         except Exception as e:
             Err('get_cam_state exception {}'.format(e))
             state = config.STATE_EXCEPTION
-        self.release_sem()
+        self.stateSem.release()
         return state
 
     def get_save_path(self):
@@ -478,19 +479,24 @@ class osc_state(threading.Thread):
     def get_rec_left_time(self):
         return self._rec_left
 
+    # set_cam_state
+    # 设置服务器的状态
+    # 
     def set_cam_state(self, state):
-        # Info('set cam state {}'.format(state))
+        self.stateSem.acquire()
         try:
             self.poll_info[CAM_STATE] = state
         except Exception as e:
             Err('set_cam_state exception {}'.format(e))
-        # Info('2set cam state {}'.format(state))
+        Info('2set cam state {}'.format(state))
+        self.stateSem.release()
 
     def set_gps_state(self,state):
         try:
             self.poll_info[GPS_STATE] = state
         except Exception as e:
             Err('set_gps_state exception {}'.format(e))
+
 
     # 设置_snd_state
     def set_snd_state(self,param):

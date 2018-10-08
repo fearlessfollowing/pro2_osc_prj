@@ -3,7 +3,7 @@
 # 版本：    V1.0.1
 # 修改记录：
 # 日期              修改人                  版本            备注
-# 2018年9月4日      skymixos                V0.2.19
+# 2018年9月4日      skymixos                V1.0.0
 #
 
 import os
@@ -47,16 +47,19 @@ class StateMachine:
     def setCamState(cls, state):
         osc_state_handle.set_cam_state(state)
 
+    @classmethod
+    def addCamState(cls, state):
+        StateMachine.setCamState(StateMachine.getCamState() | state)
 
     @classmethod
-    def check_in_compose(cls):
-        if config.STATE_COMPOSE_IN_PROCESS == StateMachine.getCamState():
+    def checkStateIn(cls, state):
+        if (StateMachine.getCamState() & state) == state:
             return True
         else:
             return False
 
     @classmethod
-    def check_in_rec(cls):
+    def checkInRecord(cls):
         if StateMachine.getCamState() & config.STATE_RECORD == config.STATE_RECORD:
             return True
         else:
@@ -99,12 +102,22 @@ class StateMachine:
             return False
 
     @classmethod
-    def check_allow_pic(cls):
-        Info('>>>> check_allow_pic, cam state {}'.format(StateMachine.getCamState()))
+    def checkAllowTakePic(cls):
+        Info('-------> checkAllowTakePic, cam state {}'.format(StateMachine.getCamState()))
         if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
             return True
         else:
             return False
+
+
+    @classmethod
+    def checkAllowTakeVideo(cls):
+        Info('-------> checkAllowTakePic, cam state {}'.format(StateMachine.getCamState()))
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
+            return True
+        else:
+            return False
+
 
     @classmethod
     def check_allow_compose(cls):
@@ -113,17 +126,11 @@ class StateMachine:
         else:
             return False
 
-    @classmethod
-    def check_allow_rec(cls):
-        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
 
     @classmethod
     def checkAllowPreview(cls):
         if (StateMachine.getCamState() & config.STATE_PREVIEW) != config.STATE_PREVIEW:
-            Info('>>>>>>>>>>>>>>>>>>>> check_allow_preview: current cam state {}'.format(StateMachine.getCamStateFormatHex()))
+            Info('-------> checkAllowPreview: current cam state {}'.format(StateMachine.getCamStateFormatHex()))
             allow_state = [config.STATE_IDLE, config.STATE_RECORD, config.STATE_LIVE, config.STATE_LIVE_CONNECTING]
             for st in allow_state:
                 if StateMachine.getCamState() == st:                    
@@ -132,6 +139,16 @@ class StateMachine:
                 return False
         else:
             return False
+
+
+    @classmethod
+    def checkAllowStopPreview(cls):
+        if (StateMachine.getCamState() & config.STATE_PREVIEW) == config.STATE_PREVIEW:
+            Info('-------> checkAllowStopPreview: current cam state {}'.format(StateMachine.getCamStateFormatHex()))
+            return True
+        else:
+            return False
+
 
     @classmethod
     def check_allow_live(cls):
@@ -159,4 +176,36 @@ class StateMachine:
         Info('---> before rm, server state is {}'.format(StateMachine.getCamStateFormatHex()))
         StateMachine.setCamState(StateMachine.getCamState() & ~state)
         Info('---> after rm, server state is {}'.format(StateMachine.getCamStateFormatHex()))
-           
+
+    
+    # 方法名称: checkAllowEnterUdiskMode
+    # 方法功能: 是否允许切换为U盘模式
+    # 入口参数: 无
+    # 返回值: 允许返回True;否则返回False
+    # 只有在Idle状态下才可以进入U盘模式
+    @classmethod
+    def checkAllowEnterUdiskMode(cls):
+        if StateMachine.getCamState() == config.STATE_IDLE:
+            return True
+        else:
+            return False   
+
+    # 方法名称: checkAllowExitUdiskMode
+    # 方法功能: 是否允许切换为U盘模式
+    # 入口参数: 无
+    # 返回值: 允许返回True;否则返回False
+    # 只有已经在Udisk模式才能退出Udisk模式
+    @classmethod    
+    def checkAllowExitUdiskMode(self):
+        if StateMachine.getCamState() == config.STATE_UDISK:
+            return True
+        else:
+            return False   
+
+# check_allow_delete
+    @classmethod 
+    def checkAllowDelete(self):
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
+            return True
+        else:
+            return False   
