@@ -38,15 +38,10 @@ from poll.monitor_event import monitor_fifo_read,mointor_fifo_write_handle,monit
 
 from thread_utils import *
 from state_machine import *
-
-# from PIL import Image
-# import io
 from exception.my_exception import *
 
 import shutil
 import time
-
-# sys._getframe() = sys._getframe()
 
 _name    = config._NAME
 _state   = config._STATE
@@ -55,7 +50,6 @@ _results = config._RESULTS
 _result  = config._RESULT
 
 KEY_ID = 'id'
-#MOUNT_ROOT = '/mnt/media_rw'
 MOUNT_ROOT = '/mnt'
 
 
@@ -64,13 +58,6 @@ POLL_TO = 10000
 
 #to to reset camerad process
 FIFO_TO = 30
-
-# OLED_KEY_PIC = 'oled_pic'
-# OLED_KEY_REC = 'oled_rec'
-# OLED_KEY_LIVE = 'oled_live'
-# OLED_KEY_HDMI = 'oled_hdmi'
-# OLED_KEY_CALIBRATION = 'oled_calibration'
-# OLED_SYNC_STATE = 'oled_sync_state'
 
 ACTION_REQ_SYNC = 0
 ACTION_PIC = 1
@@ -94,7 +81,6 @@ ACTION_AGEING = 20
 ACTION_AWB = 21
 ACTION_SET_STICH = 50
 
-
 ACTION_QUERY_STORAGE = 200
 
 #格式化TF卡（2018年8月10日）
@@ -102,9 +88,6 @@ ACTION_FORMAT_TFCARD = 201
 
 # 退出U盘模式
 ACTION_QUIT_UDISK_MODE = 202
-
-# 更新录像的剩余秒数
-ACTION_UPDATE_REC_LEFT_SEC = 203
 
 
 # 修改Web Controller的状态
@@ -137,49 +120,87 @@ class control_center:
         #
         self.camera_cmd_func = OrderedDict({
 
-            config._START_RECORD:           self.camera_rec,
-            config._STOP_RECORD:            self.camera_rec_stop,
-            config._START_LIVE:             self.camera_live,
-            config._STOP_LIVE:              self.camera_stop_live,
-            
-            # 客户端请求启动预览
+            # 客户端请求启动预览 - OK
             config._START_PREVIEW:          self.camera_start_preview,
-            # 客户端请求停止预览
+
+            # 客户端请求停止预览    
             config._STOP_PREVIEW:           self.camera_stop_preview,
 
+            # 客户端请求拍照 - DYZ
             config._TAKE_PICTURE:           self.camera_take_pic,
+
+            # 启动录像
+            config._START_RECORD:           self.camera_rec,
+
+            config._STOP_RECORD:            self.camera_rec_stop,
+
+            # 客户端请求启动直播
+            config._START_LIVE:             self.camera_live,
+
+            config._STOP_LIVE:              self.camera_stop_live,
+            
+            # 设置Flicker - OK
             config._SET_NTSC_PAL:           self.camera_set_ntsc_pal,
+
+            # 获取Flicker - OK
             config._GET_NTSC_PAL:           self.camera_get_ntsc_pal,
+
+            # 设置拼接的Offset - OK
             config._SETOFFSET:              self.set_offset,
+
+            # 获取拼接的Offset - OK
             config._GETOFFSET:              self.get_offset,
+            
+            # s设置图像参数 - OK
             config._SET_IMAGE_PARAM:        self.camera_set_image_param,
+
             config.SET_OPTIONS:             self.camera_set_options,
+
             config.GET_OPTIONS:             self.camera_get_options,
+
             config._GET_IMAGE_PARAM:        self.camera_get_image_param,
+
             config._SET_STORAGE_PATH:       self.set_storage_path,
+
             config._CALIBRATION:            self.camera_start_calibration,
+
             config._QUERY_STATE:            self.camera_query_state,
+
             config._START_GYRO:             self.camera_start_gyro,
             
             # 存储速度测试
             config._SPEED_TEST:             self.camera_start_speed_test,
             
+            # 系统时间更改 - OK
             config._SYS_TIME_CHANGE:        self.camera_sys_time_change,
+
+            # 更新Gamma曲线 - OK
             config._UPDATE_GAMMA_CURVE:     self.camera_update_gamma_curve,
 
+            # 设置系统设置 - CHECK
             config._SET_SYS_SETTING:        self.camera_set_sys_setting,
+
+            # 获取系统设置
             config._GET_SYS_SETTING:        self.camera_get_sys_setting,
 
             # 产测功能: BLC和BPC校正(异步)
             config._CALIBTRATE_BLC:         self.camera_calibrate_blc,
+
+            # BPC矫正
             config._CALIBTRATE_BPC:         self.camera_calibrate_bpc,
+
+            # 磁力计矫正
             config._CALIBRATE_MAGMETER:     self.camerCalibrateMageter,
 
+            # 删除TF里的文件
             config._DELETE_TF_CARD:         self.cameraDeleteFile,
 
             config._QUERY_LEFT_INFO:         self.cameraQueryLeftInfo,
 
+            # 关机
             config._SHUT_DOWN_MACHINE:       self.cameraShutdown,
+
+            # 切换TF卡的挂载方式
             config._SWITCH_MOUNT_MODE:       self.cameraSwitchMountMode,
 
             # 列出文件的异步命令
@@ -189,13 +210,17 @@ class control_center:
 
 
         self.camera_cmd_done = OrderedDict({
+            # 启动预览完成
+            config._START_PREVIEW:          self.camera_start_preview_done,
+
+            # 停止预览完成
+            config._STOP_PREVIEW:           self.camera_stop_preview_done,
+
             config._START_RECORD:           self.camera_rec_done,
             config._STOP_RECORD:            self.camera_rec_stop_done,
             config._START_LIVE:             self.camera_live_done,
             config._STOP_LIVE:              self.camera_stop_live_done,
 
-            config._START_PREVIEW:          self.camera_start_preview_done,
-            config._STOP_PREVIEW:           self.camera_stop_preview_done,
             config._TAKE_PICTURE:           self.camera_take_pic_done,
 
             config._CALIBRATION:            self.camera_start_calibration_done,
@@ -207,7 +232,9 @@ class control_center:
             config._POWER_OFF:              self.camera_power_off_done,
             config._SPEED_TEST:             self.camera_speed_test_done,
             config._START_GYRO:             self.camera_gyro_done,
+
             config._START_NOISE:            self.camera_noise_done,
+
             config._SYS_TIME_CHANGE:        self.camera_sys_time_change_done,
             config._STITCH_START:           self.camera_start_stitch_done,
             config._STITCH_STOP:            self.camera_stop_stitch_done,
@@ -223,10 +250,6 @@ class control_center:
             # 录像: 返回能录的时长
             # 直播存片: 返回能直播存片的时长
             config._QUERY_LEFT_INFO:        self.cameraQueryLeftInfo,
-
-
-            # 列出文件的异步命令
-            # config._LIST_FILES:              self.cameraListFileDone,
 
         })
 
@@ -246,8 +269,13 @@ class control_center:
 
 
         self.camera_cmd_fail = OrderedDict({
+
+            # 启动预览失败
             config._START_PREVIEW:          self.camera_preview_fail,
+
+            # 停止预览失败
             config._STOP_PREVIEW:           self.camera_preview_stop_fail,
+
             config._START_RECORD:           self.camera_rec_fail,
             config._STOP_RECORD:            self.camera_rec_stop_fail,
             config._START_LIVE:             self.camera_live_fail,
@@ -264,13 +292,19 @@ class control_center:
             config._LOW_BAT_PROTECT:        self.camera_low_protect_fail,
             config._SPEED_TEST:             self.camera_speed_test_fail,
             config._START_GYRO:             self.camera_gyro_fail,
+
             config._START_NOISE:            self.camera_noise_fail,
+
             config._SYS_TIME_CHANGE:        self.camera_set_time_change_fail,
+
             config._STITCH_START:           self.camera_start_stitch_fail,
+
             config._STITCH_STOP:            self.camera_stop_stitch_fail,
 
             config._CALIBTRATE_BLC:         self.camera_calibrate_blc_fail,
+
             config._CALIBTRATE_BPC:         self.camera_calibrate_bpc_fail,
+
             config._CALIBRATE_MAGMETER:     self.cameraCalibrateMagmeterFail,
 
             config._DELETE_TF_CARD:         self.cameraDeleteFileFail,
@@ -286,16 +320,22 @@ class control_center:
 
             # 请求Server进入U盘模式
             config._REQ_ENTER_UDISK_MOD:        self.cameraUiSwitchUdiskMode,
+
             # 更新拍timelapse的剩余值
             config._UPDAT_TIMELAPSE_LEFT:       self.cameraUiUpdateTimelapaseLeft,
+
             # 请求同步状态
             config._REQ_SYNC_INFO:              self.cameraUiRequestSyncInfo,
+
             # 请求格式化TF卡
             config._REQ_FORMART_TFCARD:         self.cameraUiFormatTfCard,
+
             # 请求更新录像,直播的时间
             config._REQ_UPDATE_REC_LIVE_INFO:   self.cameraUiUpdateRecLeftSec,
+
             # 请求启动预览
             config._REQ_START_PREVIEW:          self.cameraUiStartPreview,
+
             # 请求停止预览
             config._REQ_STOP_PREVIEW:           self.cameraUiStopPreview,
 
@@ -304,6 +344,12 @@ class control_center:
 
             # 查询GPS状态
             config._REQ_QUERY_GPS_STATE:        self.cameraUiqueryGpsState,
+
+            # 请求拍照
+
+            # 请求录像
+
+            # 请求直播
         })
 
 
@@ -343,32 +389,40 @@ class control_center:
         self.oled_func = OrderedDict(
             {
                 ACTION_PIC:                 self.handleUiTakePic,
+
                 ACTION_VIDEO:               self.camera_oled_rec,
+
                 ACTION_REQ_SYNC:            self.start_oled_syn_state,
+
                 ACTION_LIVE:                self.camera_oled_live,
 
                 ACTION_PREVIEW:             self.camera_oled_preview,
 
-                #ACTION_HDMI:               self.camera_oled_hdmi,
                 ACTION_CALIBRATION:         self.camera_oled_calibration,
+
                 ACTION_QR:                  self.camera_oled_qr,
+
                 ACTION_SET_OPTION:          self.camera_oled_set_option,
+
                 ACTION_LOW_BAT:             self.camera_oled_low_bat,
+
                 ACTION_SPEED_TEST:          self.camera_oled_speed_test,
+
                 ACTION_POWER_OFF:           self.camera_oled_power_off,
+
                 ACTION_GYRO:                self.camera_oled_gyro,
+
                 ACTION_AGEING:              self.camera_oled_aging,
+
                 # ACTION_LOW_PROTECT:       self.camera_low_protect,
+
                 ACTION_NOISE:               self.camera_oled_noise,
+
                 ACTION_LIVE_ORIGIN:         self.camera_oled_live_origin,
+
                 ACTION_CUSTOM_PARAM:        self.camera_oled_custom_param,
-                ACTION_SET_STICH:           self.camera_oled_set_stitch,
+
                 ACTION_AWB:                 self.camera_old_factory_awb,
-
-                # 查询TF卡信息
-                ACTION_QUERY_STORAGE:       self.cameraUiQueryTfInfo,
-
-                ACTION_SET_CONTROL_STATE:   self.cameraChangeWebState,
             }
         )
 
@@ -387,6 +441,8 @@ class control_center:
             config._SPEED_TEST_NOTIFY:      self.storage_speed_test_finish_notify,
             config._LIVE_FINISH:            self.handle_live_finsh,
             config._LIVE_REC_FINISH:        self.handle_live_rec_finish,
+
+            # 拍照完成通知
             config._PIC_ORG_FINISH:         self.handle_pic_org_finish,
             config._CAL_ORG_FINISH:         self.handle_cal_org_finish,
             config._TIMELAPSE_PIC_FINISH:   self.handle_timelapse_pic_finish,
@@ -430,79 +486,12 @@ class control_center:
 
         self.preview_url = ''
         self.live_url = ''
-        # self.progress_cmd_id = OrderedDict()
 
-    def fp_decode(self,data):
-        return base64.urlsafe_b64decode(data)
-
-    def fp_encode(self,data):
-        return base64.urlsafe_b64encode(data)
-
-    def generate_fp(self):
-        self.random_data = os.urandom(8)
-        self.finger_print = bytes_to_str(self.fp_encode(self.random_data))
-        Info('generate random data {} fp {}'.format(self.random_data, self.finger_print))
-
-
-    def get_connect(self):
-        self.aquire_connect_sem()
-        try:
-            Info('>>---- connect state ------<<')
-            state = self.connected
-        except Exception as e:
-            Err('get connect e {}'.format(e))
-        self.release_connect_sem()
-        return state
-
-
-    def set_connect(self,state):
-        self.aquire_connect_sem()
-        try:
-            self.connected = state
-        except Exception as e:
-            Err('set_connect e {}'.format(e))
-        self.release_connect_sem()
-
-
-    def get_stitch_mode(self):
-        self.aquire_connect_sem()
-        try:
-            state = self._stitchMode
-        except Exception as e:
-            Err('get_stitch_mode e {}'.format(e))
-        self.release_connect_sem()
-        return state
-
-
-    def set_stitch_mode(self, state):
-        self.aquire_connect_sem()
-        try:
-            self._stitchMode = state
-        except Exception as e:
-            Err('set_stitch_mode e {}'.format(e))
-        self.release_connect_sem()
 
     def reset_state(self):
         Info('reset busy to idle')
 
-    #same func as reset
-    def state_notify(self,state_str):
-        Info('state_notify info {}'.format(state_str))
-        self.clear_all()
-        self.send_oled_type_err(config.START_FORCE_IDLE,self.get_err_code(state_str))
 
-    # rec_notify
-    # 录像结束通知
-    def rec_notify(self, param):
-        Info('rec_notify param {}'.format(param))
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.STOP_REC_SUC)
-        else:
-            self.send_oled_type_err(config.STOP_REC_FAIL, self.get_err_code(param))
-
-        # self.add_id_result_by_name(config._START_RECORD, param)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD)
 
 
     def start_ageing_test(self, content, time):
@@ -528,55 +517,8 @@ class control_center:
     def camera_old_factory_awb(self, content):
         Info('camera_old_factory_awb')
         Info('content is {}'.format(content))
-        #os.system("factory_test awb")
+        os.system("factory_test awb")
         
-
-    def cameraChangeWebState(self, req):
-        Info('------------> cameraChangeWebState req {}'.format(req))
-
-
-
-    # 方法名称: cameraUiQueryTfInfo
-    # 功能: 查询TF信息
-    # 参数: 无
-    # 返回值: 无
-    # 当相机处于预览或空闲状态时都可以查询卡的状态，查询的结果用来更新osc状态机器
-    def cameraUiQueryTfInfo(self):
-        
-        # 返回info为json字符串 _state
-        self.set_cam_state(self.get_cam_state() | config.STATE_QUERY_STORAGE)
-
-        info = self.write_and_read(self.get_req(config._QUERY_STORAGE))
-        ret = json.loads(info)
-        Info('resut info is {}'.format(info))
-
-        if ret[config._STATE] == config.DONE:
-            Info('>>>>>> query storage is ok.....')
-            
-            # 将查询到的小卡的信息发送到心跳包
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_TF_INFO, ret['results']))
-        else:
-            Info('++++++++>>> query storage bad......')
-            # 查询失败，将心跳包中小卡的信息去除
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TF_INFO))
-
-        # 将卡的信息发送给UI
-        self.sendQueryStorageResults(ret)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_QUERY_STORAGE)
-
-
-
-    # 方法名称: cameraUiQuitUdisk
-    # 功能: 通知Web服务器退出Udisk模式
-    # 参数: 无
-    # 返回值: 无
-    def cameraUiQuitUdisk(self, req):
-        Info('>>>>>>>>>>>>>>>>>>> cameraUiQuitUdisk req is {}'.format(req))
-        read_info = self.write_and_read(req)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_UDISK)
-        Info('>>>>>>>>>>>>>>>>>>> cameraUiQuitUdisk req is {}'.format(read_info))
-
-
     def camera_get_result(self, req, from_ui = False):
         try:
             req_ids = req[_param]['list_ids']
@@ -621,7 +563,7 @@ class control_center:
         Info('camera_get_result read_info {}'.format(read_info))
         return read_info
 
-    def get_err_code(self,content):
+    def get_err_code(self, content):
         err_code = -1
         if content is not None:
             if check_dic_key_exist(content,"error"):
@@ -630,365 +572,12 @@ class control_center:
 
         return err_code
 
-    def pic_notify(self,content):
-        Info('pic_notify content {}'.format(content))
-        if content[_state] == config.DONE:
-            self.send_oled_type(config.CAPTURE_SUC)
-            # self.add_id_result_by_name(config._TAKE_PICTURE, content)
-        # elif content[_state] == ORG_OVER:
-        #     self.send_oled_type(config.CAPTURE_ORG_SUC)
-        else:
-            # self.add_id_result_by_name(config._TAKE_PICTURE, content)
-            self.send_oled_type_err(config.CAPTURE_FAIL, self.get_err_code(content))
-        self.set_cam_state(self.get_cam_state() & ~(config.STATE_TAKE_CAPTURE_IN_PROCESS | config.STATE_PIC_STITCHING))
-
-    # check whether need cam lock while recevie reset from camerad 170217
-    def reset_notify(self):
-        Info('reset_notify rec')
-        self.reset_all()
-        Info('reset_notify rec over')
-
-    def qr_notify(self,param):
-        Info('qr_notify param {}'.format(param))
-        if param[_state] == config.DONE:
-            content = param[config.RESULTS]['content']
-            Info('qr notify content {}'.format(content))
-            if check_dic_key_exist(content,'pro'):
-                if check_dic_key_exist(content, 'proExtra'):
-                    self.send_oled_type(config.QR_FINISH_CORRECT, OrderedDict({'content': content['pro'],'proExtra':content['proExtra']}))
-                else:
-                    self.send_oled_type(config.QR_FINISH_CORRECT,OrderedDict({'content':content['pro']}))
-            elif check_dic_key_exist(content,'pro_w'):
-                self.send_wifi_config(content['pro_w'])
-            else:
-                Info('error qr msg {}'.format(content))
-                self.send_oled_type(config.QR_FINISH_UNRECOGNIZE)
-        else:
-            self.send_oled_type_err(config.QR_FINISH_ERROR,self.get_err_code(param))
-        Info('qr_notify param over {}'.format(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_START_QR)
-
-    def calibration_notify(self,param):
-        Info('calibration_notify param {}'.format(param))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.CALIBRATION_SUC)
-        else:
-            # self.send_oled_type(config.CALIBRATION_FAIL)
-            self.send_oled_type_err(config.CALIBRATION_FAIL, self.get_err_code(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_CALIBRATING)
-
-    def preview_finish_notify(self,param = None):
-        if param is not None:
-            Info('preview_finish_notify param {}'.format(param))
-            self.send_oled_type_err(config.STOP_PREVIEW_FAIL, self.get_err_code(param))
-        else:
-            self.send_oled_type(config.STOP_PREVIEW_FAIL)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_PREVIEW)
-
-    def live_stats_notify(self,param):
-        if param is not None:
-            Info('live_stats_notify param {}'.format(param))
-
-
-    def net_link_state_notify(self,param):
-        Info('net_link_state_notify param {}'.format(param))
-        net_state = param['state']
-        if self.check_in_live():
-            if net_state == 'connecting':
-                self.send_oled_type(config.START_LIVE_CONNECTING)
-                self.set_cam_state((self.get_cam_state() & ~config.STATE_LIVE) | config.STATE_LIVE_CONNECTING)
-        elif self.check_in_live_connecting():
-            if net_state == 'connected':
-                self.send_oled_type(config.START_LIVE_SUC)
-                self.set_cam_state((self.get_cam_state() & ~config.STATE_LIVE_CONNECTING) | config.STATE_LIVE)
-
-
-    def gyro_calibration_finish_notify(self,param):
-        Info('gyro_calibration_finish_notify param {}'.format(param))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.START_GYRO_SUC)
-        else:
-            self.send_oled_type_err(config.START_GYRO_FAIL,self.get_err_code(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_START_GYRO)
-
-    def handle_noise_finish(self,param):
-        Info('nosie_finish_notify param {}'.format(param))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.START_NOISE_SUC)
-        else:
-            self.send_oled_type_err(config.START_NOISE_FAIL,self.get_err_code(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_NOISE_SAMPLE)
-
-
-    # {
-    #     "name": "camera._gps_state_",
-    #     "parameters": {
-    #         "state": int
-    #     }
-    # }
-    # 将GPS的状态发送给UI
-    def gps_notify(self,param):
-        Info('gps_notify param {}'.format(param))
-        self.set_gps_state(param['state'])
-        self.send_req(self.get_write_req(config.UI_NOTIFY_GPS_STATE_CHANGE, param))
-
-
-    # {
-    #     "name": "camera._snd_state_",
-    #     "parameters": {
-    #                       "type": int, // 0:没有音频
-    # 1:内存mic
-    # 2:3.5
-    # mm
-    # 3:usb
-    # "is_spatial":bool, // 0:非全景声
-    # 1:全景声
-    # "dev_name":string
-    # }
-    def snd_notify(self, param, from_ui = False):
-        Info('snd_notify param {}'.format(param))
-        self.set_snd_state(param)
-
-
-    # 方法名称: tfStateChangedNotify - TF状态变化通知（必须在预览状态，即模组上电的状态）
-    # 功能: 通知TF卡状态
-    # 参数: 通知信息
-    # 返回值: 无
-    # 需要将信息传递给UI(有TF卡被移除))
-    def tfStateChangedNotify(self, param):
-        Info('>>>>>>>>>>>>>>> tfStateChangedNotify param {}'.format(param))
-
-        # 将更新的信息发给状态机
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.TF_STATE_CHANGE, param['module']))
-        
-        # 将更新的信息发给UI(2018年8月7日)
-        self.send_req(self.get_write_req(config.UI_NOTIFY_TF_CHANGED, param))
-
-    def stitch_notify(self,param):
-        Info('stitch_notify param {}'.format(param))
-        res = OrderedDict({'stitch_progress':param})
-        self.send_oled_type(config.STITCH_PROGRESS, res)
-
-
-
-    # 方法名称: storage_speed_test_finish_notify - 测速结果通知
-    # 功能: 处理卡测试结果
-    # 参数: param - 通知参数
-    # 返回值: 无
-    # 
-    def storage_speed_test_finish_notify(self, param):
-        Info('storage_speed_test_finish_notify param {}'.format(param))
-
-        # 将测试结果区更新心跳包  
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_DEV_SPEED_SUC, param['results']))
-
-        # 将测试结果发送给UI线程，让其本地保存一份各张卡的测试结果  
-        self.send_req(self.get_write_req(config.UI_NOTIFY_SPEED_TEST_RESULT, param['results']))        
-        
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_SPEED_TEST)
-        self.test_path = None
-
-
-    #always remove rec state while live finish 170901
-    def handle_live_finsh(self, param):
-        self.set_cam_state(self.get_cam_state() & ~(config.STATE_LIVE | config.STATE_LIVE_CONNECTING | config.STATE_RECORD))
-        Info('handle_live finish param {}'.format(param))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.STOP_LIVE_SUC)
-        else:
-            self.send_oled_type_err(config.STOP_LIVE_FAIL,self.get_err_code(param))
-        self.set_live_url(None)
-
-    def handle_live_rec_finish(self,param):
-        Info('start handle live rec finish param {}'.format(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD )
-        Info('2start handle live rec finish param {}'.format(param))
-        if self.get_err_code(param) == -432:
-            self.send_oled_type_err(config.LIVE_REC_OVER, 390)
-        elif self.get_err_code(param) == -434:
-            self.send_oled_type_err(config.LIVE_REC_OVER, 391)
-        else:
-            Info('handle_live_rec_finish　error code {}'.format(self.get_err_code(param)))
-
-    # handle_pic_org_finish
-    # 拍照完成,进入拼接状态
-    def handle_pic_org_finish(self, param):
-        Info('2handle_pic_org_finish param {} state {}'.format(param, self.get_cam_state_hex()))
-        if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
-            StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
-            StateMachine.addServerState(config.STATE_PIC_STITCHING)
-            self.send_oled_type(config.PIC_ORG_FINISH)
-        else:
-            Info('pic org finish err state {}'.format(self.get_cam_state()))
-
-
-    def handle_cal_org_finish(self,param):
-        Info('handle_cal_org_finish param {} state {}'.format(param, self.get_cam_state()))
-
-    def handle_timelapse_pic_finish(self,param):
-        Info("timeplapse pic finish param {}".format(param))
-        count = param["sequence"]
-        self.send_oled_type(config.TIMELPASE_COUNT, OrderedDict({'tl_count': count}))
-        osc_state_handle.send_osc_req(
-            osc_state_handle.make_req(osc_state_handle.SET_TL_COUNT,count))
-
-    #reset INS_FIFO_TO_SERVER and INS_FIFO_TO_CLIENT
-    def reset_fifo(self):
-        Info('reset_fifo a')
-        self.close_read()
-        Info('reset_fifo b')
-        self.close_write()
-        Info('reset_fifo c')
-        self._write_seq = 0
-        # self.set_stitch_mode(False)
-        #self.clear_url_list()
-        self._stitchMode = False
-
-    def check_state_power_offing(self):
-        if self.get_cam_state() & config.STATE_POWER_OFF == config.STATE_POWER_OFF:
-            return True
-        else:
-            return False
-
-
-
-
-    # def check_bat_protect(self):
-    #     return osc_state_handle.check_bat_protect()
-
-    def reset_all(self):
-        # if self.check_state_power_offing():
-        #     Err("met reset while power off")
-        #     # self.send_start_power_off()
-        # else:
-        #     if self.check_bat_protect():
-        #         Err('reset met bat protect')
-        Info('start reset')
-        self.reset_fifo()
-        Info('start reset2')
-        self.clear_all()
-        Info('start reset3')
-        self.send_oled_type(config.RESET_ALL)
-        Info('start reset over')
-
-    def clear_all(self):
-        self.set_cam_state(config.STATE_IDLE)
-        self.clear_url_list()
-        self.async_id_list.clear()
-        osc_state_handle.send_osc_req(
-            osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
 
     def send_reset_camerad(self):
         Info('send_reset_camerad')
         return self.camera_reset(self.get_req(config.CAMERA_RESET),True)
 
-    def check_fp(self, fp):
-        ret = False
-        if fp is not None:
-            random = self.fp_decode(fp)
-            if self.random_data == random or fp == 'test':
-                ret = True
-            else:
-                Err('fp mismatch : req {} mine {}'.format(random,self.random_data ))
 
-        return ret
-
-    def osc_path_execute(self,path,fp):
-        try:
-            if self.get_connect():
-                # Info('osc_path_execute path {}'.format(path))
-                if self.check_fp(fp):
-                    ret = self.osc_path_func[path]()
-                else:
-                    Err('error fingerprint fp {} path {}'.format(fp, path))
-                    ret = cmd_exception(
-                        error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
-            elif self.get_stitch_mode():
-                Info('stich get osc path {}'.format(path))
-                ret = self.osc_stitch_path_func[path]()
-            else:
-                Err('camera not connected path {}'.format(path))
-                ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
-        except Exception as e:
-            Err('osc_path_execute Exception is {} path {}'.format(e,path))
-            ret = cmd_exception(error_dic('osc_path_execute', str(e)), path)
-        return ret
-
-    def start_camera_cmd_func(self, name, req, from_ui = False):
-        Info('start_camera_cmd_func name {}'.format(name))
-        self.acquire_sem_camera()
-        Info('start_camera_cmd_func name2 {}'.format(name))
-        try:
-            # Info('start_camera_cmd_func name {}'.format(name))
-            ret = self.camera_cmd_func[name](req)
-            # Info('2start_camera_cmd_func name {}'.format(name))
-        except AssertionError as e:
-            Err('start_camera_cmd_func AssertionError e {}'.format(str(e)))
-            ret = cmd_exception(error_dic('start_camera_cmd_func AssertionError', str(e)), req)
-        except Exception as e:
-            Err('start_camera_cmd_func exception {}'.format(e))
-            ret = cmd_exception(e,name)
-        self.release_sem_camera()
-
-        Info('start_camera_cmd_func name3 {}'.format(name))
-        return ret
-
-    def com_cmd_func(self, req):
-        Info('>>>> comon request {}'.format(req))
-        self.acquire_sem_camera()
-        info = self.write_and_read(req)
-        self.release_sem_camera()
-        return info
-
-
-    def start_non_camera_cmd_func(self, name, req, form_ui = False):
-        try:
-            ret = self.non_camera_cmd_func[name](req)
-        except AssertionError as e:
-            Err('start_non_camera_cmd_func AssertionError e {}'.format(str(e)))
-            ret = cmd_exception(error_dic('start_non_camera_cmd_func AssertionError', str(e)), name)
-        except Exception as e:
-            Err('start_non_camera_cmd_func exception {} req {}'.format(e,req))
-            ret = cmd_exception(e,req)
-        return ret
-
-
-    def osc_cmd_execute(self, fp, req):
-        try:
-            name = req[_name]
-            Info('osc_cmd_execute req name {} self.get_connect() {}'.format(name, self.get_connect()))
-            if name == config._CONNECT:
-                if self.get_connect():
-                    ret = cmd_exception(error_dic('connect error', 'already connected by another'),name)
-                elif self.get_stitch_mode():
-                    ret = cmd_exception(error_dic('connect error', 'camera is stitch mode'), name)
-                else:
-                    ret = self.camera_connect(req)
-            else:
-                if self.get_connect():
-                    if self.check_fp(fp):
-                        if name == config.CAMERA_RESET:
-                            ret = self.camera_reset(req)
-                        elif name in self.non_camera_cmd_func:
-                            ret = self.start_non_camera_cmd_func(name, req)    
-                        elif name in self.camera_cmd_func:
-                            ret = self.start_camera_cmd_func(name, req)
-                        else:
-                            ret = self.com_cmd_func(req)
-                            
-                    else:
-                        Err('error fingerprint fp {} req {}'.format(fp, req))
-                        if fp is None:
-                            fp = 'none'
-                        ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])),req)
-                else:
-                    Err('camera not connected req {}'.format(req))
-                    ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), req)
-        except Exception as e:
-            Err('osc_cmd_exectue exception e {} req {}'.format(e,req))
-            ret = cmd_exception(str(e),name)
-        # Info('2osc_cmd_execute req {} self.get_connect() {}'.format(req, self.get_connect()))
-        return ret
 
     def camera_start_stitch_fail(self,err = -1):
         Info('camera_start_stitch_fail')
@@ -1037,47 +626,6 @@ class control_center:
         return ret
 
 
-    # @lazy_property
-    def get_write_fd(self):
-        if self._write_fd == -1:
-            # Print('0get control write fd {}'.format(self._write_fd))
-            self._write_fd = fifo_wrapper.open_write_fifo(config.INS_FIFO_TO_SERVER)
-        # Print('get control write fd {}'.format(self._write_fd))
-        return self._write_fd
-
-    # @lazy_property
-    def get_read_fd(self):
-        if self._read_fd == -1:
-            # Info('0get control self._read_fd is {}'.format(self._read_fd))
-            self._read_fd = fifo_wrapper.open_read_fifo(config.INS_FIFO_TO_CLIENT)
-        # Info('get control self._read_fd is {}'.format(self._read_fd))
-        return self._read_fd
-
-    def get_reset_read_fd(self):
-        if self._reset_read_fd == -1:
-            Info('0get self._reset_read_fd is {}'.format(self._reset_read_fd))
-            self._reset_read_fd = fifo_wrapper.open_read_fifo(config.INS_FIFO_RESET_FROM)
-
-        Info('get  self._reset_read_fd is {}'.format(self._reset_read_fd))
-        return self._reset_read_fd
-
-    def get_reset_write_fd(self):
-        if self._reset_write_fd == -1:
-            Info('0get self._reset_write_fd is {}'.format(self._reset_write_fd))
-            self._reset_write_fd = fifo_wrapper.open_write_fifo(config.INS_FIFO_RESET_TO)
-        Info('get  self._reset_write_fd is {}'.format(self._reset_write_fd))
-        return self._reset_write_fd
-
-    def init_fifo(self):
-        if file_exist(config.INS_FIFO_TO_SERVER) is False:
-            os.mkfifo(config.INS_FIFO_TO_SERVER)
-        if file_exist(config.INS_FIFO_TO_CLIENT) is False:
-            os.mkfifo(config.INS_FIFO_TO_CLIENT)
-        if file_exist(config.INS_FIFO_RESET_FROM) is False:
-            os.mkfifo(config.INS_FIFO_RESET_FROM)
-        if file_exist(config.INS_FIFO_RESET_TO) is False:
-            os.mkfifo(config.INS_FIFO_RESET_TO)
-
     def poll_timeout(self):
         Warn('poll_timeout')
         # self.get_timer_stop_cost()
@@ -1089,8 +637,7 @@ class control_center:
     def start_poll_timer(self):
         # Print('start poll timer id poll_timer {}'.format(id(self.poll_timer)))
         self.poll_timer.start()
-        # Print('start poll timer over')
-        # self.timer_start = time.perf_counter()
+
 
     def stop_poll_timer(self):
         # Print('stop poll timer id poll_timer {}'.format(id(self.poll_timer)))
@@ -1107,7 +654,6 @@ class control_center:
         self.connect_sem.release()
 
     def init_all(self):
-        # self._stitchConnect = False
         self._stitchMode = False
         #whether camera has connected from controller
         self.connected = False
@@ -1145,90 +691,6 @@ class control_center:
         os.system("setprop sys.web_status true")
 
 
-    def init_fifo_monitor_camera_active(self):
-        # Info('init_fifo_monitor_camera_active start')
-        self._monitor_cam_active_handle = monitor_camera_active_handle(self)
-        self._monitor_cam_active_handle.start()
-
-    def stop_monitor_camera_active(self):
-        if self._monitor_cam_active_handle is not None:
-            self._monitor_cam_active_handle.stop()
-
-    def init_fifo_read_write(self):
-        self._fifo_read = monitor_fifo_read(self)
-        self._fifo_write_handle = mointor_fifo_write_handle()
-        self._fifo_read.start()
-        self._fifo_write_handle.start()
-        # Print('init fifo rw')
-
-    def stop_fifo_read(self):
-        if self._fifo_read is not None:
-            self._fifo_read.stop()
-            self._fifo_read.join()
-
-    def stop_fifo_write(self):
-        if self._fifo_write_handle is not None:
-            self._fifo_write_handle.stop()
-            # self._fifo_write_handle.join()
-
-    # def send_oled_disp_direct(self,str):
-    #     self.send_oled_disp(0, 0, str)
-
-    #send req to pro service
-    def send_req(self, req):
-        try:
-            self._fifo_write_handle.send_req(req)
-        except Exception as e:
-            Err('send req exception {}'.format(e))
-
-    def get_write_req(self, msg_what, args):
-        req = OrderedDict()
-        req['msg_what'] = msg_what
-        req['args'] = args
-        return req
-
-    # def send_oled_disp(self,x, y, str,state):
-    #     self.send_req(self.get_write_req(config.OLED_DISP_STR,OrderedDict({'x': x, 'y': y, 'disp_str': str,'state':state})))
-
-    # def send_oled_disp_direct(self, str, state = 0):
-    #     self.send_req(self.get_write_req(config.OLED_DISP_STR,OrderedDict({'disp_str': str,'state':state})))
-
-    # def send_oled_ext(self,x,state = 0):
-    #     self.send_req(self.get_write_req(config.OLED_DISP_EXT,OrderedDict({'ext_id': x,'state':state})))
-
-    # def send_oled_key_res(self,res, state = 0):
-    #     self.send_req(self.get_write_req(config.OLED_KEY_RES,res))
-
-    # def send_oled_type(self,type,content = None,req = None):
-    def send_oled_type(self, type, req = None):
-        req_dict = OrderedDict({'type': type})
-        Info("send_oled_type type is {}".format(type))
-        if req is not None:
-            Info('send_oled_type req {}'.format(req))
-            if check_dic_key_exist(req,'content'):
-                req_dict['content'] = req['content']
-                if check_dic_key_exist(req,'proExtra'):
-                    req_dict['proExtra'] = req['proExtra']
-            elif check_dic_key_exist(req,_name):
-                if check_dic_key_exist(self.req_action,req[_name]):
-                    Info('self.req_action[req[_name]] is {}'.format(self.req_action[req[_name]]))
-                    req_dict['req'] = OrderedDict({'action':self.req_action[req[_name]],'param':req[_param]})
-            elif check_dic_key_exist(req,'tl_count'):
-                req_dict['tl_count'] = req['tl_count']
-            elif check_dic_key_exist(req, 'sys_setting'):
-                req_dict['sys_setting'] = req['sys_setting']
-            elif check_dic_key_exist(req, 'stitch_progress'):
-                req_dict['stitch_progress'] = req['stitch_progress']
-            else:
-                Info('nothing found')
-
-        # Info("2send_oled_type type is {}".format(type))
-        self.send_req(self.get_write_req(config.OLED_DISP_TYPE, req_dict))
-
-    def send_oled_type_err(self,type,code = -1):
-        Info("send_oled_type_err type is {} code {}".format(type,code))
-        err_dict = OrderedDict({'type':type,'err_code':code})
-        self.send_req(self.get_write_req(config.OLED_DISP_TYPE_ERR, err_dict))
 
     def send_sync_init(self,req):
         Info('send sync init req {}'.format(req))
@@ -1254,9 +716,6 @@ class control_center:
         Info('---> send format tf results to UI {}'.format(results))
         self.send_req(self.get_write_req(config.UI_NOTIFY_TF_FORMAT_RESULT, results))
 
-    # def send_start_power_off(self):
-    #     #self.send_req(self.get_write_req(config.OLED_POWER_OFF, req))
-    #     power_off_cmd()
 
     def get_cam_state(self):
         return osc_state_handle.get_cam_state()
@@ -1273,37 +732,6 @@ class control_center:
     def set_snd_state(self,param):
         osc_state_handle.set_snd_state(param)
 
-    def close_read_reset(self):
-        Info('close_read_reset control self._read_fd {}'.format(self._reset_read_fd))
-        if self._reset_read_fd != -1:
-            #flush all the buffer in fifo while close
-            fifo_wrapper.close_fifo(self._reset_read_fd)
-            self._reset_read_fd = -1
-        Info('close_read_reset control {} over'.format(self._reset_read_fd))
-
-    def close_write_reset(self):
-        Info('close_write_reset {} start'.format(self._reset_write_fd))
-        if self._reset_write_fd != -1:
-            Info('_reset_write_fd {}'.format(self._reset_write_fd))
-            fifo_wrapper.close_fifo(self._reset_write_fd)
-            self._reset_write_fd = -1
-        Info('close_write_reset {} over'.format(self._reset_write_fd))
-
-
-    def close_read(self):
-        if self._read_fd != -1:
-            #flush all the buffer in fifo while close
-            # Info('close_read control self._read_fd {}'.format(self._read_fd))
-            fifo_wrapper.close_fifo(self._read_fd)
-            self._read_fd = -1
-            # Info('close_read control {} over'.format(self._read_fd))
-
-    def close_write(self):
-        if self._write_fd != -1:
-            # Info('close_write control self._write_fd {}'.format(self._write_fd))
-            fifo_wrapper.close_fifo(self._write_fd)
-            self._write_fd = -1
-            # Info('close_write control self._write_fd {} over'.format(self._write_fd))
 
     #req is reserved
     def get_osc_info(self):
@@ -1334,178 +762,8 @@ class control_center:
     def get_media_name(self,name):
         pass
 
-
-    # 暂时添加同步锁操作
-    def write_and_read(self, req, from_oled = False):
-        self.syncWriteReadSem.acquire()
-        try:
-            name = req[_name]
-            Info('----------> sync write_and_read req {}'.format(req))
-
-            # 1.将请求发送给camerad
-            read_seq = self.write_req(req, self.get_write_fd())
-            
-            # 2.读取camerad的响应
-            ret = self.read_response(read_seq, self.get_read_fd())
-
-            # 如果camerad成功处理: "state":"done"
-            if ret[_state] == config.DONE:
-                #some cmd doesn't need done operationc
-                if check_dic_key_exist(self.camera_cmd_done, name):
-                    #send err is False, so rec or live is sent from http controller -- old
-                    # add old = from_oled to judge whether http req from controlled or oled 171204
-                    if name in (config._START_LIVE, config._START_RECORD, config._CALIBTRATE_BLC):
-                        if check_dic_key_exist(ret, config.RESULTS):
-                            self.camera_cmd_done[name](ret[config.RESULTS], req, oled = from_oled)
-                        else:
-                            self.camera_cmd_done[name](None, req, oled = from_oled)
-                    else:
-                        if check_dic_key_exist(ret, config.RESULTS):
-                            self.camera_cmd_done[name](ret[config.RESULTS])
-                        else:
-                            self.camera_cmd_done[name]()
-
-                # 请求不是来自UI并且请求为异步请求
-                if from_oled is False and name in self.async_cmd:
-                    # 将请求加入异步请求处理队列中
-                    self.add_async_cmd_id(name, ret['sequence'])
-            else:
-                cmd_fail(name)
-                if check_dic_key_exist(self.camera_cmd_fail, name):
-                    err_code = self.get_err_code(ret)
-                    Err('name {} err_code {}'.format(name,err_code))
-                    self.camera_cmd_fail[name](err_code)
-                    
-            # write_and_read - 返回的是字符串
-            ret = dict_to_jsonstr(ret)
-        except FIFOSelectException as e:
-            Err('FIFOSelectException name {} e {}'.format(req[_name], str(e)))
-            ret = cmd_exception(error_dic('FIFOSelectException', str(e)), req)
-            self.reset_all()
-        except FIFOReadTOException as e:
-            Err('FIFOReadTOException name {} e {}'.format(req[_name], str(e)))
-            # ret = cmd_exception(error_dic('FIFOReadTOException', str(e)), req)
-            ret = self.send_reset_camerad()
-        except WriteFIFOException as e:
-            Err('WriteFIFIOException name {} e {}'.format(req[_name], str(e)))
-            ret = cmd_exception(error_dic('WriteFIFOException', str(e)), req)
-            self.reset_all()
-        except ReadFIFOException as e:
-            Err('ReadFIFIOException name {} e {}'.format(name, str(e)))
-            ret = cmd_exception(error_dic('ReadFIFIOException', str(e)), req)
-            self.reset_all()
-        except SeqMismatchException as e:
-            Err('SeqMismatchException name {} e {}'.format(name, str(e)))
-            ret = cmd_exception(error_dic('SeqMismatchException', str(e)),req)
-            self.reset_all()
-        except BrokenPipeError as e:
-            Err('BrokenPipeError name {} e {}'.format(name, str(e)))
-            ret = cmd_exception(error_dic('BrokenPipeError', str(e)),req)
-            self.reset_all()
-        except OSError as e:
-            Err('IOError e {}'.format(str(e)))
-            ret = cmd_exception(error_dic('IOError', str(e)), req)
-            self.reset_all()
-        except AssertionError as e:
-            Err('AssertionError e {}'.format(str(e)))
-            ret = cmd_exception(error_dic('AssertionError', str(e)), req)
-        except Exception as e:
-            Err('unknown write_and_read e {}'.format(str(e)))
-            ret = cmd_exception(error_dic('write_and_read', str(e)), req)
-            self.reset_all()
-
-        self.syncWriteReadSem.release()
-        return ret
-
-
-    def write_req_reset(self, req, write_fd):
-        Print('write_req_reset start req {}'.format(req))
-        content = json.dumps(req)
-        content_len = len(content)
-        content = int_to_bytes(self._write_seq_reset) + int_to_bytes(content_len) + str_to_bytes(content)
-        # content_len = len(content)
-        Print('write_req_reset seq: {}'.format(self._write_seq_reset))
-        write_len = fifo_wrapper.write_fifo(write_fd, content)
-        read_seq = self._write_seq_reset
-        self._write_seq_reset += 1
-        return read_seq
-
-
-    # 方法名称: write_req
-    # 方法功能: 写请求
-    # 入口参数: req - 请求（字典）
-    #           write_fd - 发送请求的文件句柄
-    # 返回值：读的sequence值
-    def write_req(self, req, write_fd):
-        content = json.dumps(req)
-        content_len = len(content)
-        
-        #Print('write_req {}'.format(req))
-        if content_len > (MAX_FIFO_LEN - config.HEADER_LEN):
-            header = int_to_bytes(self._write_seq) + int_to_bytes(content_len)
-            write_len = fifo_wrapper.write_fifo(write_fd, header)
-            Info('content_len {} h len {} write_len {} '.format(content_len,len(header),write_len))
-            write_total = 0
-            while content_len > 0:
-                Info('content offset {}'.format(write_total))
-                write_len = fifo_wrapper.write_fifo(write_fd, str_to_bytes(content[write_total:]))
-                write_total = write_total + write_len
-                Info(' write_len {} write_total {}'.format(write_len,write_total))
-                content_len = content_len - write_len
-            Info('after write content_len {}'.format(content_len))
-        else:
-            content = int_to_bytes(self._write_seq) + int_to_bytes(content_len) + str_to_bytes(content)
-            write_len = fifo_wrapper.write_fifo(write_fd, content)
-
-        # Print('write seq: {}'.format(self._write_seq))
-        read_seq = self._write_seq
-        self._write_seq += 1
-        return read_seq
-
-    def read_response(self, read_seq, read_fd):
-        # debug_cur_info(sys._getframe().f_lineno, sys._getframe().f_code.co_filename, sys._getframe().f_code.co_name)
-        # Print('read_response start read_fd {}'.format(read_fd))
-        res = fifo_wrapper.read_fifo(read_fd,config.HEADER_LEN,FIFO_TO)
-        if len(res) != config.HEADER_LEN:
-            Info('read response header mismatch len(res) {} config.HEADER_LEN {}'.format(len(res),config.HEADER_LEN))
-        seq = bytes_to_int(res, 0)
-
-        while read_seq != seq:
-            Err('readback seq {} but read seq {} self._read_fd {}'.format(seq, read_seq, read_fd))
-            raise SeqMismatchException('seq mismath')
-        content_len = bytes_to_int(res, config.CONTENT_LEN_OFF)
-
-        if content_len > MAX_FIFO_LEN:
-            Info('content_len too large {} '.format(content_len))
-            all_bytes=b''
-            while content_len > 0:
-                read_bytes = fifo_wrapper.read_fifo(read_fd, content_len, FIFO_TO)
-                content_len = content_len - len(read_bytes)
-                all_bytes = all_bytes + read_bytes
-                Info('read len {} len all_bytes {} content_len {}'.format(len(read_bytes),len(all_bytes),content_len))
-
-            res1 = bytes_to_str(all_bytes)
-            Info('after multi read len res1 {} content_len {}'.format(len(res1),content_len))
-        else:
-            while content_len > 0:
-                res1 = bytes_to_str(fifo_wrapper.read_fifo(read_fd, content_len,FIFO_TO))
-                Info('content_len {}  len res {}'.format(content_len, len(res1)))
-                content_len = content_len - len(res1)
-
-        # assert_match(len(res1), content_len)
-       # Print('read response: {} content len {}'.format(res1, content_len))
-        return jsonstr_to_dic(res1)
-
     def __init__(self):
         self.init_all()
-        #start log timer
-        # self._w_thread.start()
-        # self._r_thread.start()
-
-    # def release(self):
-    #     Print('release control center')
-
-
 
     def camera_set_options(self, req, from_ui = False):
         read_info = self.write_and_read(req)
@@ -1524,19 +782,11 @@ class control_center:
         return read_info
 
     def get_last_info(self):
-        # Info('get last_info is {}'.format(self.last_info))
         return self.last_info
 
     #last camera info produced by last connection
     def set_last_info(self, info):
         self.last_info = info
-
-    # def sync_state_to_pro_service(self,st):
-    #     Info('self.get_cam_state() {} st {}'.format(self.get_cam_state() , st))
-    #     if self.get_cam_state() != st:
-    #         Warn('state mismatch (old {} new {})'.format(self.get_cam_state(), st))
-    #         self.set_cam_state(st)
-    #         self.camera_oled_sync_state()
 
     def check_need_sync(self, st, mine):
         if st != mine:
@@ -1559,7 +809,7 @@ class control_center:
         ret = False
         if check_dic_key_exist(param,'live'):
             Info('live param {}'.format(param['live']))
-            if check_dic_key_exist(param['live'],'liveRecording'):
+            if check_dic_key_exist(param['live'], 'liveRecording'):
                 if param['live']['liveRecording'] is True:
                     ret = True
         return ret
@@ -1644,9 +894,6 @@ class control_center:
         if str_exits(state_str, 'audio_capture'):
             st |= config.STATE_NOISE_SAMPLE
 
-        # if str_exits(state_str, 'stitching_box'):
-        #     pass
-
         return st
 
     #"MMDDhhmm[[CC]YY][.ss]"
@@ -1721,8 +968,7 @@ class control_center:
 
     def camera_connect(self, req):
         Info('a camera_connect req {}'.format(req))
-        #avoid rec connect twice at same time 170621
-        
+
         self.aquire_connect_sem()
         try:
             Info('b camera_connect req {}'.format(req))
@@ -1736,14 +982,9 @@ class control_center:
             self.camera_get_last_info()
             if self.get_last_info() != None:
                 ret[config.RESULTS]['last_info'] = self.get_last_info()
-                # st = self.convert_state(ret[config.RESULTS]['last_info']['state'])
-                # if self.get_cam_state() != st:
-                #     Warn('state mismatch (old {} new {})'.format(self.get_cam_state(),st))
-                #     self.set_cam_state(st)
-                #     self.camera_oled_sync_state()
 
             # Info('a camera_connect ')
-            st = self.get_cam_state()
+            st = StateMachine.getCamState()
             Info('>>>>>> b camera_connect st {}'.format(hex(st)))
             if st != config.STATE_IDLE:
                 if st & config.STATE_PREVIEW == config.STATE_PREVIEW:
@@ -1763,14 +1004,13 @@ class control_center:
                 ret[config.RESULTS]['url_list'] = url_list
             else:
                 
-                Info('>>>>>>>>>>>>>>>>>>>>>>>>>>>>> sync time now........')
+                Info('------------------------------> sync time now.')
 
                 # 参数字典中含有时间参数并且系统没有同步过时间
                 # 是否需要修改时区由time_tz服务来决定
-                if check_dic_key_exist(req, _param):
-                # if check_dic_key_exist(req, _param) and self.has_sync_time is False:
+                # if check_dic_key_exist(req, _param):
+                if check_dic_key_exist(req, _param) and self.has_sync_time is False:
                     self.set_sys_time(req[_param])
-
 
             ret[config.RESULTS]['_cam_state'] = st
 
@@ -1802,65 +1042,24 @@ class control_center:
         # Info("connect at time {}".format(get_local_date_time()))
 
 
-    # def camera_poll(self):
-    #     assert_match(self.connected,True)
-    #     get_poll_info()
-
     def camera_disconnect(self, req, from_ui = False):
-        Info('camera_disconnect req {}'.format(req))
+        Info('---> camera_disconnect req {}'.format(req))
         ret = cmd_done(req[_name])
         try:
-            Info('camera_disconnect self.get_cam_state() {}'.format(self.get_cam_state()))
+            Info('camera_disconnect Server State {}'.format(StateMachine.getCamStateFormatHex()))
             self.set_connect(False)
             self.stop_poll_timer()
             self.random_data = 0
-            # self.end_connect = time.perf_counter();
-            # Info("connect to disconnect interval {}".format(self.end_connect - self.start_connect))
-            # self.start_connect = 0
-            # self.end_connect = 0
 
             #stop preview after disconnect if only preview
-            if self.get_cam_state() == config.STATE_PREVIEW:
+            if StateMachine.getCamState() == config.STATE_PREVIEW:
                 Info("stop preview while disconnect")
                 self.start_camera_cmd_func(config._STOP_PREVIEW, self.get_req(config._STOP_PREVIEW))
-            Info('2camera_disconnect ret {} self.get_cam_state() {}'.format(ret, self.get_cam_state()))
+            Info('2camera_disconnect ret {} self.get_cam_state() {}'.format(ret, StateMachine.getCamStateFormatHex()))
         except Exception as e:
             Err('disconnect exception {}'.format(str(e)))
             ret = cmd_exception(str(e), config._DISCONNECT)
         return ret
-
-
-    def camera_rec_done(self, res = None, req = None, oled = False):
-        Info('rec done param {}'.format(req))
-
-        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
-            StateMachine.rmServerState(config.STATE_START_RECORDING)
-
-        # 进入录像状态
-        StateMachine.addServerState(config.STATE_RECORD)
-
-        if req is not None:
-            if oled:
-                self.send_oled_type(config.START_REC_SUC)
-            else:
-                self.send_oled_type(config.START_REC_SUC, req)
-        else:
-            self.send_oled_type(config.START_REC_SUC)
-
-        # 启动录像成功后，返回剩余信息
-        res['_left_info'] = osc_state_handle.get_rec_info()        
-
-        if res is not None and check_dic_key_exist(res, config.RECORD_URL):
-            self.set_rec_url(res[config.RECORD_URL])
-
-    def camera_rec_fail(self, err = -1):
-        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
-            StateMachine.rmServerState(config.STATE_START_RECORDING)
-
-        if StateMachine.checkStateIn(config.STATE_RECORD):
-            StateMachine.rmServerState(config.STATE_RECORD)
-
-        self.send_oled_type_err(config.START_REC_FAIL, err)
 
 
     def add_async_cmd_id(self, name, id_seq):
@@ -2045,7 +1244,7 @@ class control_center:
             return None
 
     def camera_get_sys_setting(self, req, from_ui = False):
-        Info('camera_get_sys_setting req {}'.format(req))
+        Info('---> camera_get_sys_setting req {}'.format(req))
         ret = self.get_all_sys_cfg()
         if ret is not None:
             res = OrderedDict({_name:req[_name], _state:config.DONE})
@@ -2061,14 +1260,48 @@ class control_center:
 
 
     def camera_rec(self, req, from_ui = False):
-        if self.check_allow_rec():
+        if StateMachine.checkAllowTakeVideo():
             read_info = self.start_rec(req)
-        elif (self.get_cam_state() & config.STATE_RECORD) == config.STATE_RECORD:
+        elif StateMachine.checkInRecord():
             res = OrderedDict({config.RECORD_URL: self.get_rec_url()})
             read_info = cmd_done(req[_name], res)
         else:
-            read_info = cmd_error_state(req[_name],self.get_cam_state())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamStateFormatHex())
         return read_info
+
+
+    def camera_rec_done(self, res = None, req = None, oled = False):
+        Info('rec done param {}'.format(req))
+
+        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+            StateMachine.rmServerState(config.STATE_START_RECORDING)
+
+        # 进入录像状态
+        StateMachine.addServerState(config.STATE_RECORD)
+
+        if req is not None:
+            if oled:
+                self.send_oled_type(config.START_REC_SUC)
+            else:
+                self.send_oled_type(config.START_REC_SUC, req)
+        else:
+            self.send_oled_type(config.START_REC_SUC)
+
+        # 启动录像成功后，返回剩余信息
+        res['_left_info'] = osc_state_handle.get_rec_info()        
+
+        if res is not None and check_dic_key_exist(res, config.RECORD_URL):
+            self.set_rec_url(res[config.RECORD_URL])
+
+    def camera_rec_fail(self, err = -1):
+        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+            StateMachine.rmServerState(config.STATE_START_RECORDING)
+
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
+        self.send_oled_type_err(config.START_REC_FAIL, err)
+
 
 
     def camera_rec_stop_done(self, req = None):
@@ -2110,68 +1343,18 @@ class control_center:
             read_info = cmd_error(req[_name],'length error','ssid or pwd more than 64')
         return read_info
 
-    # def camera_hdmi_on_done(self):
-    #     self.set_cam_state(config.STATE_HDMI)
-    #     self.send_oled_type(config.START_HDMI_SUC)
-    #
-    # def camera_hdmi_on_fail(self,from_oled):
-    #     if from_oled:
-    #         self.send_oled_type(config.START_HDMI_FAIL)
-
-    # def hdmi_on(self, req, from_oled=False):
-    #     read_info = self.write_and_read(req, from_oled)
-    #     return read_info
-
-    # def camera_hdmi_on(self,req):
-    #     if self.get_cam_state() == config.STATE_IDLE:
-    #         read_info = self.hdmi_on(req);
-    #     else:
-    #         read_info = cmd_error_state(req[_name], self.get_cam_state())
-    #     return read_info
-    #
-    # def camera_hdmi_off_done(self):
-    #     self.set_cam_state(config.STATE_IDLE)
-    #     self.send_oled_type(config.STOP_HDMI_SUC)
-    #
-    # def camera_hdmi_off_fail(self, from_oled):
-    #     if from_oled:
-    #         self.send_oled_type(config.STOP_HDMI_FAIL)
-    #
-    # def hdmi_off(self,req, from_oled=False):
-    #     read_info = self.write_and_read(req,from_oled)
-    #     return read_info
-
-    # def camera_hdmi_off(self,req):
-    #     Info('camera_oled_hdmi off')
-    #     if self.get_cam_state() == config.STATE_HDMI:
-    #         read_info = self.hdmi_off(req);
-    #     else:
-    #         read_info = cmd_error_state(req[_name], self.get_cam_state())
-    #     return read_info
-    # def camera_get_ntsc_pal_fail(self):
-    #     pass
-    #
-    # def camera_get_ntsc_pal_done(self):
-    #     pass
-
     def camera_get_ntsc_pal(self, req, from_ui = False):
         read_info = self.write_and_read(req)
         return read_info
-
-    #def camera_set_ntsc_pal_fail(self):
-    #     pass
-    #
-    # def camera_set_ntsc_pal_done(self):
-    #     pass
 
     def camera_set_ntsc_pal(self, req, from_ui = False):
         read_info = self.write_and_read(req)
         return read_info
 
     def set_storage_path(self, req, from_ui = False):
-        # Info('set_storage_path req {}'.format(req))
         read_info = self.write_and_read(req)
         return read_info
+
 
     def camera_take_pic_done(self,req = None):
         Info('camera_take_pic_done')
@@ -2186,7 +1369,6 @@ class control_center:
 
 
     def take_pic(self, req, from_oled = False):
-        self.set_cam_state(self.get_cam_state() | config.STATE_TAKE_CAPTURE_IN_PROCESS)
         read_info = self.write_and_read(req, from_oled)
         return read_info
 
@@ -2213,7 +1395,6 @@ class control_center:
         return read_info
 
 
-
     def check_live_save(self,req):
         res = False
         if req[_param][config.ORG][config.SAVE_ORG] is True or req[_param][config.STICH]['fileSave'] is True:
@@ -2222,7 +1403,7 @@ class control_center:
         return res
 
     #add oled = False to judge whether send req to oled
-    def camera_live_done(self,res = None,req =None,oled = False):
+    def camera_live_done(self, res = None, req = None, oled = False):
         self.set_cam_state(self.get_cam_state() | config.STATE_LIVE)
         if req is not None:
             # Info('live done param {}'.format(req))
@@ -2232,9 +1413,10 @@ class control_center:
             if oled:
                 self.send_oled_type(config.START_LIVE_SUC)
             else:
-                self.send_oled_type(config.START_LIVE_SUC,req)
+                self.send_oled_type(config.START_LIVE_SUC, req)
         else:
             self.send_oled_type(config.START_LIVE_SUC)
+
         if res is not None:
             # 启动直播成功后，返回剩余信息
             res['_left_info'] = osc_state_handle.get_live_rec_info()    
@@ -2242,18 +1424,19 @@ class control_center:
                 self.set_live_url(res[config.LIVE_URL])
 
     def camera_live_fail(self, err = -1):
-        self.send_oled_type_err(config.START_LIVE_FAIL,err)
+        StateMachine.rmServerState(config.STATE_START_LIVING)
+        self.send_oled_type_err(config.START_LIVE_FAIL, err)
 
     def start_live(self,req, from_oled = False):
         read_info = self.write_and_read(req,from_oled)
         return read_info
 
-    def camera_live(self,req, from_ui = False):
-        if self.check_allow_live():
-            # assert_key(req[config.PARAM][config.STICH], config.LIVE_URL)
+    def camera_live(self, req, from_ui = False):
+        if StateMachine.checkAllowLive():
+            StateMachine.addCamState(config.STATE_START_LIVING)
             read_info = self.start_live(req)
-        elif self.check_in_live() or self.check_in_live_connecting():
-            res = OrderedDict({config.LIVE_URL:self.get_live_url()})
+        elif StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
+            res = OrderedDict({config.LIVE_URL: self.get_live_url()})
             read_info = cmd_done(req[_name], res)
         else:
             read_info = cmd_error_state(req[_name], self.get_cam_state())
@@ -2290,7 +1473,7 @@ class control_center:
         return read_info
 
     def camera_stop_live(self, req, from_ui = False):
-        if self.check_in_live() or self.check_in_live_connecting():
+        if StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
             read_info = self.stop_live(req)
         else:
             read_info =  cmd_error_state(req[_name],self.get_cam_state())
@@ -2321,6 +1504,10 @@ class control_center:
         return self.url_list[config.LIVE_URL]
 
 
+    # 方法名称: camera_preview_fail
+    # 功能描述: 启动预览失败
+    # 入口参数: err - 错误信息
+    # 返回值: 
     def camera_preview_fail(self, err):
         StateMachine.rmServerState(config.STATE_START_PREVIEWING)
         self.send_oled_type_err(config.START_PREVIEW_FAIL, err)
@@ -2355,25 +1542,19 @@ class control_center:
         read_info = self.write_and_read(req, from_oled)
         return read_info
 
-
     def camera_start_preview(self, req):
         Print('preview req {} StateMachine.checkAllowPreview() {}'.format(req, StateMachine.checkAllowPreview()))
-        # 查询状态机，检查是否允许启动预览
-        # TODO:启动预览的时间比较长,应该在允许启动预览后,设置Server的状态为正在启动预览
-        # 防止客户端正在启动预览时,UI再次发起启动预览的操作
         if StateMachine.checkAllowPreview():
             # 占用状态位: STATE_START_PREVIEWING
             StateMachine.addServerState(config.STATE_START_PREVIEWING)
-
             read_info = self.start_preview(req)
-        
         # Server正处在预览状态
         elif StateMachine.checkInPreviewState():
             res = OrderedDict({config.PREVIEW_URL: self.get_preview_url()})
             read_info = cmd_done(req[_name], res)
         else:
             read_info = cmd_error_state(req[_name], self.get_cam_state())
-        Print('previe res {}'.format(read_info))
+        Print('--> camera_start_preview res {}'.format(read_info))
         return read_info
 
 
@@ -2631,25 +1812,6 @@ class control_center:
         else:
             read_info = cmd_error(config.LIST_FILES, 'camera_list_files', join_str_list(['error path ', 'none']))
 
-
-        #need get the file info
-        # for f in all_files:
-        #     obj = OrderedDict()
-        #     obj['name'] = f
-        #     read_info[config.RESULTS]['entries'].append(obj)
-
-        # Info('camera_list_files is {}'.format(read_info))
-
-        # read_info['continuationToken'] = 50
-        # self.write_req(req)
-        # read_info = self.read_response()
-        # assert_match(req[_name],read_info[_name])
-        # if read_info[_state] == config.DONE:
-        #     cmd_suc(config.LIST_FILES)
-        #     assert_key(read_info, 'results')
-        # else:
-        #     assert_key(read_info,config.ERROR)
-
         return read_info
 
     # Command Input(API level 2)
@@ -2833,15 +1995,12 @@ class control_center:
 
             res[_name] = req[_name]
             res[_state] = config.DONE
-            # read_info = self.start_preview(req)
             ComSyncReqThread('start_preview', self, req).start()       
             return json.dumps(res) 
         else:
             read_info = cmd_error_state(req[_name], StateMachine.getCamState())
         Print('---> cameraUiStartPreview res {}'.format(read_info))
         return read_info
-
-
 
 
     # 方法名称: cameraUiStopPreview
@@ -3276,7 +2435,7 @@ class control_center:
         name = config._START_LIVE
         Info('camera_oled_live start')
         try:
-            if self.check_allow_live():
+            if self.checkAllowLive():
                 if action_info is None:
                     Info('camera_oled_live action none')
                     res = self.start_live(self.get_req(name, self.get_live_param()), True)
@@ -3296,7 +2455,7 @@ class control_center:
                     res = self.start_live(action_info, True)
                     #res = self.start_live(self.get_req(name,action_info), True)
 
-            elif self.check_in_live() or self.check_in_live_connecting():
+            elif StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
                 name = config._STOP_LIVE
                 res = self.stop_live(self.get_req(name),True)
             else:
@@ -3328,10 +2487,10 @@ class control_center:
         name = config._START_LIVE
         Info('camera_oled_live_origin start')
         try:
-            if self.check_allow_live():
+            if self.checkAllowLive():
                 Info('camera_oled_live_origin action none')
                 res = self.start_live(self.get_req(name, self.get_live_org_param()), True)
-            elif self.check_in_live() or self.check_in_live_connecting():
+            elif StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
                 name = config._STOP_LIVE
                 res = self.stop_live(self.get_req(name), True)
             else:
@@ -3364,75 +2523,21 @@ class control_center:
                 Err('set_len_param e {}'.format(e))
         Info('2set_len_param {}'.format(len_param))
 
-    # def set_len_param(self, len_param):
-    #     Info('set_len_param {}'.format(len_param))
-    #     dict = OrderedDict()
-    #     dict[_name] = config.SET_OPTIONS
-    #     param = []
-    #
-    #     aaa_mode = 1
-    #
-    #     if check_dic_key_exist(len_param,'aaa_mode'):
-    #         p = OrderedDict({'property': 'video_fragment', 'value': aaa_mode})
-    #
-    #     if aaa_mode == 3:
-    #         len_key = ['sharpness', 'brightness', 'wb', 'saturation', 'contrast', 'ev_bias', 'shutter_value']
-    #     elif aaa_mode == 4:
-    #         len_key = ['sharpness', 'brightness', 'wb', 'saturation', 'contrast', 'ev_bias', 'iso_value']
-    #     elif aaa_mode == 0:
-    #         len_key = ['sharpness', 'brightness', 'long_shutter','shutter_value','wb', 'saturation',
-    #                    'contrast', 'iso_value']
-    #     else:
-    #         len_key = [ 'sharpness', 'brightness', 'wb', 'saturation',
-    #                    'contrast', 'ev_bias']
-    #
-    #     for k in len_key:
-    #         if check_dic_key_exist(len_param,k):
-    #             param.append(OrderedDict({'property': k, 'value': len_param[k]}))
-    #
-    #     if len(param) > 0:
-    #         dict[_param] = param
-    #         Info('dict is {}'.format(dict))
-    #         try:
-    #             res = self.camera_set_options(dict)
-    #             Info('set_len_param res is {}'.format(res))
-    #         except Exception as e:
-    #             Err('set_len_param e {}'.format(e))
-    #     Info('2set_len_param {}'.format(len_param))
-
     def camera_oled_custom_param(self, req):
         Info("oled custom req {}".format(req))
         if check_dic_key_exist(req, 'audio_gain'):
-            param = OrderedDict({'property':'audio_gain','value':req['audio_gain']})
+            param = OrderedDict({'property':'audio_gain', 'value':req['audio_gain']})
             self.camera_oled_set_option(param)
         if check_dic_key_exist(req, 'len_param'):
             self.set_len_param(req['len_param'])
         if check_dic_key_exist(req, 'gamma_param'):
             Info('gamma_param {}'.format(req['gamma_param']))
-            param = OrderedDict({'data':req['gamma_param']})
-            self.camera_update_gamma_curve(self.get_req(config._UPDATE_GAMMA_CURVE,param))
+            param = OrderedDict({'data': req['gamma_param']})
+            self.camera_update_gamma_curve(self.get_req(config._UPDATE_GAMMA_CURVE, param))
 
-    def camera_oled_err(self,name,err_des):
+
+    def camera_oled_err(self, name, err_des):
         return cmd_error(name, 'camera_oled_error', err_des)
-
-    def camera_oled_set_stitch(self):
-        Info('2stitch {} connect {}'.format(self.get_stitch_mode(),self.get_connect()))
-        self.aquire_connect_sem()
-        Info('camera_oled_set_stitch start')
-        if self._stitchMode:
-            self.start_stitch_req(self.get_req(config._STITCH_STOP))
-            self._stitchMode = False
-        else:
-            #force normal connect to false to make stitch enable without normal connected client
-            if self.connected is True:
-                Info('camera_oled_set_stitch state is {}'.format(self.get_cam_state()))
-                self.connected = False
-                self.random_data = 0
-                self.stop_poll_timer()
-            self.start_stitch_req(self.get_req(config._STITCH_START))
-            self._stitchMode = True
-        self.release_connect_sem()
-        Info('camera_oled_set_stitch end')
 
     def set_sync_para(self,param):
         Info('sync state param {}'.format(param))
@@ -3460,7 +2565,7 @@ class control_center:
             if self.get_cam_state() & config.STATE_COMPOSE_IN_PROCESS == config.STATE_COMPOSE_IN_PROCESS:
                 self.send_oled_type(config.COMPOSE_PIC)
             #move live before rec 170901
-            elif self.check_in_live():
+            elif StateMachine.checkInLive():
                 if self.get_cam_state() & config.STATE_PREVIEW == config.STATE_PREVIEW:
                     self.send_oled_type(config.SYNC_LIVE_AND_PREVIEW)
                 else:
@@ -3470,7 +2575,7 @@ class control_center:
                     self.send_oled_type(config.SYNC_REC_AND_PREVIEW)
                 else:
                     self.send_oled_type(config.START_REC_SUC)
-            elif self.check_in_live_connecting():
+            elif StateMachine.checkInLiveConnecting():
                 if self.get_cam_state() & config.STATE_PREVIEW == config.STATE_PREVIEW:
                     self.send_oled_type(config.SYNC_LIVE_CONNECTING_AND_PREVIEW)
                 else:
@@ -3533,12 +2638,6 @@ class control_center:
         else:
             return False
 
-    def check_allow_noise(self):
-        if self.get_cam_state() == config.STATE_IDLE:
-            return True
-        else:
-            return False
-
     def check_allow_aging(self):
         if self.get_cam_state()  == config.STATE_IDLE:
             return True
@@ -3557,63 +2656,6 @@ class control_center:
         Info('cal req is {}'.format(req))
         return self.start_calibration(req, False)
 
-    def check_allow_blc(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
-
-    def checkAllowMagmeter(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False        
-
-    def check_allow_bpc(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
-
-
-    def calibration_blc_notify(self,param):
-        Info('calibration_blc_notify param {}'.format(param))
-        self.send_oled_type(config.STOP_BLC)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_BLC_CALIBRATE)
-    
-
-    def camera_calibrate_blc_done(self,res = None,req = None,oled = False):
-        if req is not None:
-            Info('blc done req {}'.format(req))
-            if check_dic_key_exist(req,_param) and check_dic_key_exist(req[_param], "reset"):
-                Info('blc reset do nothing')
-            else:
-                self.set_cam_state(self.get_cam_state() | config.STATE_BLC_CALIBRATE)
-                self.send_oled_type(config.START_BLC)
-        else:
-            self.set_cam_state(self.get_cam_state() | config.STATE_BLC_CALIBRATE)
-            self.send_oled_type(config.START_BLC)
-
-
-    def camera_calibrate_blc_fail(self, err=-1):
-        Info(' camera_calibrate_blc_fail ')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_BLC_CALIBRATE)
-        self.send_oled_type_err(config.CALIBRATION_FAIL, err)
-        self.send_oled_type(config.STOP_BLC)
-
-
-    def start_blc_calibration(self, req):
-        Info('start_blc_calibration req {} self.get_cam_state() {}'.format(req,self.get_cam_state()))
-        if self.check_allow_blc():
-            res = self.write_and_read(req)
-        else:
-            res = cmd_error_state(req[_name], self.get_cam_state())
-        return res
-
-    def camera_calibrate_blc(self, req, from_ui = False):
-        return self.start_blc_calibration(req)
-
-
     def start_calibration(self, req, from_oled = False):
         Info('start_calibration req {} self.get_cam_state() {}'.format(req,self.get_cam_state()))
         if self.check_allow_calibration():
@@ -3627,52 +2669,79 @@ class control_center:
                 self.send_oled_type(config.CALIBRATION_FAIL)
         return res
 
-    def camera_calibrate_bpc(self, req, from_ui = False):
-        return self.start_bpc_calibration(req)
 
-    
-    def calibration_bpc_notify(self, param):
-        Info('calibration_bpc_notify param {}'.format(param))
-        self.send_oled_type(config.STOP_BPC)
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_BPC_CALIBRATE)
+    def calibration_blc_notify(self,param):
+        Info('calibration_blc_notify param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)    
+        self.send_oled_type(config.STOP_BLC)
 
-
-    def start_bpc_calibration(self, req):
-        Info('start_blc_calibration req {} self.get_cam_state() {}'.format(req,self.get_cam_state()))
-        if self.check_allow_bpc():
-            res = self.write_and_read(req)
-        else:
-            res = cmd_error_state(req[_name], self.get_cam_state())
-        return res
-
-    
-    def camera_calibrate_bpc_fail(self, err=-1):
-        Info(' camera_calibrate_bpc_fail ')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_BPC_CALIBRATE)
-        #self.send_oled_type_err(config.CALIBRATION_FAIL, err)
-        self.send_oled_type(config.STOP_BPC)
-
-    
-    def camera_calibrate_bpc_done(self,res = None,req = None,oled = False):
+    def camera_calibrate_blc_done(self,res = None,req = None,oled = False):
         if req is not None:
             Info('blc done req {}'.format(req))
             if check_dic_key_exist(req,_param) and check_dic_key_exist(req[_param], "reset"):
                 Info('blc reset do nothing')
             else:
-                self.set_cam_state(self.get_cam_state() | config.STATE_BPC_CALIBRATE)
-                self.send_oled_type(config.START_BPC)
+                StateMachine.addCamState(config.STATE_BLC_CALIBRATE)
+                self.send_oled_type(config.START_BLC)
         else:
-            self.set_cam_state(self.get_cam_state() | config.STATE_BPC_CALIBRATE)
-            self.send_oled_type(config.START_BPC)
+            StateMachine.addCamState(config.STATE_BLC_CALIBRATE)
+            self.send_oled_type(config.START_BLC)
 
 
-    def camerCalibrateMageter(self, req, from_ui = False):
-        Info('camerCalibrateMageter req {} self.get_cam_state() {}'.format(req,self.get_cam_state()))
-        if self.checkAllowMagmeter():
+    def camera_calibrate_blc_fail(self, err=-1):
+        Info('----> camera_calibrate_blc_fail')
+        StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)
+        self.send_oled_type_err(config.CALIBRATION_FAIL, err)
+
+
+    def camera_calibrate_blc(self, req, from_ui = False):
+        Info('---> camera_calibrate_blc req {} Server State {}'.format(req, StateMachine.getCamState()))
+        if StateMachine.checkAllowBlc():
             res = self.write_and_read(req)
         else:
             res = cmd_error_state(req[_name], self.get_cam_state())
         return res
+
+
+    def camera_calibrate_bpc(self, req, from_ui = False):
+        Info('---> camera_calibrate_bpc req {} Server State {}'.format(req, StateMachine.getCamState()))
+        if StateMachine.checkAllowBpc():
+            res = self.write_and_read(req)
+        else:
+            res = cmd_error_state(req[_name], self.get_cam_state())
+        return res
+
+    def camera_calibrate_bpc_done(self, res = None, req = None, oled = False):
+        if req is not None:
+            Info('blc done req {}'.format(req))
+            if check_dic_key_exist(req,_param) and check_dic_key_exist(req[_param], "reset"):
+                Info('blc reset do nothing')
+            else:
+                StateMachine.addCamState(config.STATE_BPC_CALIBRATE)
+                self.send_oled_type(config.START_BPC)
+        else:
+            StateMachine.addCamState(config.STATE_BPC_CALIBRATE)
+            self.send_oled_type(config.START_BPC)
+
+    def camera_calibrate_bpc_fail(self, err = -1):
+        Err('---> camera_calibrate_bpc_fail')
+        StateMachine.rmServerState(config.STATE_BPC_CALIBRATE)
+        self.send_oled_type(config.STOP_BPC)
+
+
+    def calibration_bpc_notify(self, param):
+        Info('---> calibration_bpc_notify param {}'.format(param))
+        self.send_oled_type(config.STOP_BPC)
+        StateMachine.rmServerState(config.STATE_BPC_CALIBRATE)
+
+    def camerCalibrateMageter(self, req, from_ui = False):
+        Info('camerCalibrateMageter req {} Server State {}'.format(req, StateMachine.getCamState()))
+        if StateMachine.checkAllowMagmeter():
+            res = self.write_and_read(req)
+        else:
+            res = cmd_error_state(req[_name], StateMachine.getCamState())
+        return res
+
 
     def cameraCalibrateMagmeterDone(self, res = None,req = None, oled = False):
         if req is not None:
@@ -3680,21 +2749,18 @@ class control_center:
             if check_dic_key_exist(req, _param) and check_dic_key_exist(req[_param], "reset"):
                 Info('blc reset do nothing')
             else:
-                self.set_cam_state(self.get_cam_state() | config.STATE_MAGMETER_CALIBRATE)
-                #self.send_oled_type(config.START_BLC)
+                StateMachine.addServerState(config.STATE_MAGMETER_CALIBRATE)
         else:
-            self.set_cam_state(self.get_cam_state() | config.STATE_MAGMETER_CALIBRATE)
-            #self.send_oled_type(config.START_BLC)
+            StateMachine.addServerState(config.STATE_MAGMETER_CALIBRATE)
 
 
     def cameraCalibrateMagmeterFail(self, err = -1):
-        Info(' cameraCalibrateMagmeterFail ')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_MAGMETER_CALIBRATE)
-
+        Err('------> cameraCalibrateMagmeterFail')
+        StateMachine.rmServerState(config.STATE_MAGMETER_CALIBRATE)
 
     def CalibrateMageterNotify(self, param):
         Info('CalibrateMageterNotify param {}'.format(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_MAGMETER_CALIBRATE)
+        StateMachine.rmServerState(config.STATE_MAGMETER_CALIBRATE)
 
 
 ################################## 文件删除操作 #######################################
@@ -3779,7 +2845,7 @@ class control_center:
 
 
     def cameraShutdown(self, req):
-        Info('>>>>> cameraShutdown req from client {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
+        Info('------> cameraShutdown req from client {} Server State {}'.format(req, StateMachine.getCamState()))
         self.send_req(self.get_write_req(config.UI_NOTIFY_SHUT_DOWN, req))
         result = OrderedDict()
         result['name'] = req[_name]
@@ -3788,7 +2854,7 @@ class control_center:
 
 
     def cameraSwitchMountMode(self, req):
-        Info('>>>>> cameraSwitchMountMode req from client {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
+        Info('----> cameraSwitchMountMode req from client {} Server State {}'.format(req, StateMachine.getCamState()))
         self.send_req(self.get_write_req(config.UI_NOTIFY_SWITCH_MOUNT_MODE, req))
         result = OrderedDict()
         result['name'] = req[_name]        
@@ -3824,7 +2890,7 @@ class control_center:
     # 3.进入列出等待过程
     # 4.列出完成,返回
     def cameraListFile(self, req):
-        Info('>>>>> cameraListFile req from client {} self.get_cam_state() {}'.format(req, self.get_cam_state()))
+        Info('-----> cameraListFile req from client {} Server State {}'.format(req, StateMachine.getCamState()))
         if StateMachine.checkAllowListFile():
             if self._list_progress == False:
                 if check_dic_key_exist(req[_param], 'path'):
@@ -3851,7 +2917,6 @@ class control_center:
                     read_info = json.dumps(result)
                     self._list_file_pthread = ListFileThread('list_file', self, path)
                     self._list_file_pthread.start()
-                    # Info('list result {}'.format(p))
                 else:
                     read_info = cmd_error(config.LIST_FILES, 'camera_list_files', join_str_list(['error path ', 'none']))
             else:
@@ -3965,16 +3030,6 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-    # def camera_low_bat_done(self,req = None):
-    #     param = OrderedDict()
-    #     param['res'] = 'suc'
-    #     self.send_start_power_off(param)
-    #
-    # def camera_low_bat_fail(self,req = None):
-    #     param = OrderedDict()
-    #     param['res'] = 'fail'
-    #     self.send_start_power_off(param)
-
     def start_power_off(self, req):
         #sync camera backto normal state
         self.set_stitch_mode(False)
@@ -4071,38 +3126,52 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-    def camera_noise_fail(self,err = -1):
+    #
+    # 
+    def handle_noise_finish(self, param):
+        Info('---> nosie_finish_notify param {}'.format(param))
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.START_NOISE_SUC)
+        else:
+            self.send_oled_type_err(config.START_NOISE_FAIL, self.get_err_code(param))
+        StateMachine.rmServerState(config.STATE_NOISE_SAMPLE)
+
+
+    def camera_noise_fail(self, err = -1):
         Err('noise fail')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_NOISE_SAMPLE)
+        StateMachine.rmServerState(config.STATE_NOISE_SAMPLE)
         self.send_oled_type(config.START_NOISE_FAIL)
 
-    def camera_noise_done(self, req=None):
+    def camera_noise_done(self, req = None):
         Info("noise done")
 
     def start_noise(self,req,from_oled = False):
-        Info("oled camera_oled_noise st {}".format(self.get_cam_state()))
-        if self.check_allow_noise():
+        Info("---> start_noise st {}".format(StateMachine.getCamStateFormatHex()))
+        if StateMachine.checkAllowNoise():
+            StateMachine.addCamState(config.STATE_NOISE_SAMPLE)
             if from_oled is False:
                 self.send_oled_type(config.START_NOISE)
-            self.set_cam_state(self.get_cam_state() | config.STATE_NOISE_SAMPLE)
             read_info = self.write_and_read(req, True)
         else:
-            read_info = cmd_error_state(req[_name], self.get_cam_state())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
             if from_oled:
                 self.send_oled_type(config.START_NOISE_FAIL)
         return read_info
+
 
     def camera_oled_noise(self):
         name = config._START_NOISE
 
         try:
-            res = self.start_noise(self.get_req(name),True)
+            res = self.start_noise(self.get_req(name), True)
         except Exception as e:
             Err('camera_power_off e {}'.format(e))
             res = cmd_exception(e, name)
         return res
 
-    def start_aging(self,req,from_oled = False):
+
+
+    def start_aging(self, req, from_oled = False):
         Info("oled camera_oled_aging st {}".format(self.get_cam_state()))
         if self.check_allow_aging():
             if from_oled is False:
@@ -4114,13 +3183,7 @@ class control_center:
                 self.send_oled_type(config.START_AGEING_FAIL)
         return read_info
 
-    """
-    "parameters":{"duration": 3600, "saveFile": false,
-                    "origin": {"mime": "h264", "width": 1920, "height": 1440, "framerate": 24, "bitrate": 25000,
-                               "saveOrigin": true},
-                    "stiching": {"mode": "3d", "mime": "h264", "width": 3840, "height": 3840, "framerate": 24,
-                                 "bitrate": 50000}}}
-    """
+
     def get_aging_param(self):
         param = OrderedDict()
         param['duration'] = 3600
@@ -4205,6 +3268,7 @@ class control_center:
             Err('start_change_save_path exception {}'.format(str(e)))
         # Info('start_change_save_path new')
 
+
     def handle_oled_key(self, content):
         Info('+++++++++++++++ handle_oled_key start')
         self.acquire_sem_camera()
@@ -4226,6 +3290,290 @@ class control_center:
             Err('handle_oled_key exception {}'.format(e))
         self.release_sem_camera()
         Info('+++++++++++++++++++++ handle_oled_key over')
+
+
+######################################### Notify Start ################################
+
+    #same func as reset
+    def state_notify(self,state_str):
+        Info('state_notify info {}'.format(state_str))
+        self.clear_all()
+        self.send_oled_type_err(config.START_FORCE_IDLE, self.get_err_code(state_str))
+
+
+    # 方法名称: rec_notify
+    # 功能描述: 处理录像完成通知(可能是正常停止成功;也可能发生错误被迫停止)
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def rec_notify(self, param):
+        Info('[-------Notify Message -------] rec_notify param {}'.format(param))
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
+        
+        # 清除服务器的录像状态
+        StateMachine.rmServerState(config.STATE_RECORD)
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.STOP_REC_SUC)
+        else:
+            self.send_oled_type_err(config.STOP_REC_FAIL, self.get_err_code(param))
+
+    # 方法名称: pic_notify
+    # 功能描述: 处理拍照完成通知(可能是正常停止成功;也可能发生错误被迫停止)
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def pic_notify(self, param):
+        Info('[-------Notify Message -------] pic_notify param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+        StateMachine.rmServerState(config.STATE_PIC_STITCHING)
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.CAPTURE_SUC)
+        else:
+            self.send_oled_type_err(config.CAPTURE_FAIL, self.get_err_code(param))
+
+
+    # 方法名称: reset_notify
+    # 功能描述: 复位通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def reset_notify(self):
+        Info('[-------Notify Message -------] reset_notify')
+        self.reset_all()
+        Info('reset_notify rec over')
+
+    # 方法名称: qr_notify
+    # 功能描述: 二维码扫描结束通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def qr_notify(self, param):
+        Info('[-------Notify Message -------] qr_notify param {}'.format(param))
+        # 清除正在启动二维码扫描状态
+        StateMachine.rmServerState(config.STATE_START_QR)
+        if param[_state] == config.DONE:
+            content = param[config.RESULTS]['content']
+            Info('qr notify content {}'.format(content))
+            if check_dic_key_exist(content,'pro'):
+                if check_dic_key_exist(content, 'proExtra'):
+                    self.send_oled_type(config.QR_FINISH_CORRECT, OrderedDict({'content': content['pro'],'proExtra':content['proExtra']}))
+                else:
+                    self.send_oled_type(config.QR_FINISH_CORRECT, OrderedDict({'content':content['pro']}))
+            elif check_dic_key_exist(content,'pro_w'):
+                self.send_wifi_config(content['pro_w'])
+            else:
+                Info('error qr msg {}'.format(content))
+                self.send_oled_type(config.QR_FINISH_UNRECOGNIZE)
+        else:
+            self.send_oled_type_err(config.QR_FINISH_ERROR,self.get_err_code(param))
+        Info('qr_notify param over {}'.format(param))
+
+
+    # 方法名称: calibration_notify
+    # 功能描述: 校正通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:
+    def calibration_notify(self, param):
+        Info('[-------Notify Message -------] calibration_notify param {}'.format(param))
+        # 清除校正状态
+        StateMachine.rmServerState(config.STATE_CALIBRATING)
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.CALIBRATION_SUC)
+        else:
+            self.send_oled_type_err(config.CALIBRATION_FAIL, self.get_err_code(param))
+        
+    # 方法名称: preview_finish_notify
+    # 功能描述: 停止预览结束通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:   
+    def preview_finish_notify(self, param = None):
+        Info('[-------Notify Message -------] preview_finish_notify param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_PREVIEW)
+        if param is not None:
+            self.send_oled_type_err(config.STOP_PREVIEW_FAIL, self.get_err_code(param))
+        else:
+            self.send_oled_type(config.STOP_PREVIEW_FAIL)
+
+    # 方法名称: live_stats_notify
+    # 功能描述: 直播状态通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:  
+    def live_stats_notify(self, param):
+        Info('[-------Notify Message -------] live_stats_notify param {}'.format(param))
+        # if param is not None:
+        #     Info('live_stats_notify param {}'.format(param))
+
+    # 方法名称: net_link_state_notify
+    # 功能描述: 网络状态变化通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def net_link_state_notify(self, param):
+        Info('[-------Notify Message -------] net_link_state_notify param {}'.format(param))
+        net_state = param['state']
+        if StateMachine.checkInLive():
+            if net_state == 'connecting':
+                StateMachine.rmServerState(config.STATE_LIVE)
+                StateMachine.addCamState(config.STATE_LIVE_CONNECTING)
+                self.send_oled_type(config.START_LIVE_CONNECTING)
+        elif StateMachine.checkInLiveConnecting():
+            if net_state == 'connected':
+                StateMachine.rmServerState(config.STATE_LIVE_CONNECTING)
+                StateMachine.addCamState(config.STATE_LIVE)
+                self.send_oled_type(config.START_LIVE_SUC)
+
+    # 方法名称: gyro_calibration_finish_notify
+    # 功能描述: 陀螺仪校正结束通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值: 
+    def gyro_calibration_finish_notify(self, param):
+        Info('[-------Notify Message -------] gyro_calibration_finish_notify param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_START_GYRO)      
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.START_GYRO_SUC)
+        else:
+            self.send_oled_type_err(config.START_GYRO_FAIL,self.get_err_code(param))
+
+
+    # 方法名称: gps_notify
+    # 功能描述: GPS状态变化通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:     
+    def gps_notify(self, param):
+        Info('[-------Notify Message -------] gps_notify param {}'.format(param))
+        self.set_gps_state(param['state'])
+        self.send_req(self.get_write_req(config.UI_NOTIFY_GPS_STATE_CHANGE, param))
+
+
+    # {
+    #     "name": "camera._snd_state_",
+    #     "parameters": {
+    #                       "type": int, // 0:没有音频
+    # 1:内存mic
+    # 2:3.5
+    # mm
+    # 3:usb
+    # "is_spatial":bool, // 0:非全景声
+    # 1:全景声
+    # "dev_name":string
+    # }
+    # 方法名称: snd_notify
+    # 功能描述: 音频设备变化及声音模式变化通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:  
+    def snd_notify(self, param, from_ui = False):
+        Info('[-------Notify Message -------] snd_notify param {}'.format(param))
+        self.set_snd_state(param)
+
+
+    # 方法名称: tfStateChangedNotify - TF状态变化通知（必须在预览状态，即模组上电的状态）
+    # 功能: 通知TF卡状态
+    # 参数: 通知信息
+    # 返回值: 无
+    # 需要将信息传递给UI(有TF卡被移除))
+    def tfStateChangedNotify(self, param):
+        Info('[-------Notify Message -------] tfStateChangedNotify param {}'.format(param))
+        # 将更新的信息发给状态机
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.TF_STATE_CHANGE, param['module']))
+        # 将更新的信息发给UI(2018年8月7日)
+        self.send_req(self.get_write_req(config.UI_NOTIFY_TF_CHANGED, param))
+
+    # 方法名称: stitch_notify
+    # 功能描述: 拼接进度变化通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:  
+    def stitch_notify(self, param):
+        Info('[-------Notify Message -------] stitch_notify param {}'.format(param))
+        res = OrderedDict({'stitch_progress': param})
+        self.send_oled_type(config.STITCH_PROGRESS, res)
+
+
+    # 方法名称: storage_speed_test_finish_notify
+    # 功能描述: 存储速度测试完成通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:     
+    def storage_speed_test_finish_notify(self, param):
+        Info('[-------Notify Message -------] storage_speed_test_finish_notify param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_SPEED_TEST) 
+        # 将测试结果区更新心跳包  
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_DEV_SPEED_SUC, param['results']))
+        # 将测试结果发送给UI线程，让其本地保存一份各张卡的测试结果  
+        self.send_req(self.get_write_req(config.UI_NOTIFY_SPEED_TEST_RESULT, param['results']))        
+        self.test_path = None
+
+
+    # 方法名称: handle_live_finsh
+    # 功能描述: 直播结束通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:
+    def handle_live_finsh(self, param):
+        Info('[-------Notify Message -------] handle_live finish param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_LIVE) 
+        StateMachine.rmServerState(config.STATE_LIVE_CONNECTING) 
+        StateMachine.rmServerState(config.STATE_RECORD) 
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.STOP_LIVE_SUC)
+        else:
+            self.send_oled_type_err(config.STOP_LIVE_FAIL, self.get_err_code(param))
+        self.set_live_url(None)
+
+    def handle_live_rec_finish(self,param):
+        Info('start handle live rec finish param {}'.format(param))
+        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD )
+        Info('2start handle live rec finish param {}'.format(param))
+        if self.get_err_code(param) == -432:
+            self.send_oled_type_err(config.LIVE_REC_OVER, 390)
+        elif self.get_err_code(param) == -434:
+            self.send_oled_type_err(config.LIVE_REC_OVER, 391)
+        else:
+            Info('handle_live_rec_finish　error code {}'.format(self.get_err_code(param)))
+
+
+    # 方法名称: handle_pic_org_finish
+    # 功能描述: 拍照完成
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:
+    def handle_pic_org_finish(self, param):
+        Info('[-------Notify Message -------] take pic finish notify param {} state {}'.format(param, StateMachine.getCamStateFormatHex()))
+        if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
+            StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+            StateMachine.addServerState(config.STATE_PIC_STITCHING)
+            self.send_oled_type(config.PIC_ORG_FINISH)
+        else:
+            Info('--> pic org finish err state {}'.format(StateMachine.getCamStateFormatHex()))
+
+
+    # 方法名称: handle_timelapse_pic_finish
+    # 功能描述: org校正结束通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:
+    def handle_cal_org_finish(self, param):
+        Info('[-------Notify Message -------] handle_cal_org_finish param {} state {}'.format(param, StateMachine.getCamStateFormatHex()))
+
+
+    # 方法名称: handle_timelapse_pic_finish
+    # 功能描述: 拍timelapse一张完成通知
+    #           
+    # 入口参数: param - 返回的结果
+    # 返回值:
+    def handle_timelapse_pic_finish(self, param):
+        Info("[-------Notify Message -------] timeplapse pic finish param {}".format(param))
+        count = param["sequence"]
+        self.send_oled_type(config.TIMELPASE_COUNT, OrderedDict({'tl_count': count}))
+        osc_state_handle.send_osc_req(
+            osc_state_handle.make_req(osc_state_handle.SET_TL_COUNT, count))
+
 
 
     # 方法名称: handle_notify_from_camera
@@ -4251,14 +3599,504 @@ class control_center:
         except Exception as e:
             Err('handle_notify_from_camera exception {}'.format(e))
         self.release_sem_camera()
+######################################### Notify End ################################
+
+    def reset_all(self):
+        Info('start reset')
+        self.reset_fifo()
+        Info('start reset2')
+        self.clear_all()
+        Info('start reset3')
+        self.send_oled_type(config.RESET_ALL)
+        Info('start reset over')
+
+    def clear_all(self):
+        self.set_cam_state(config.STATE_IDLE)
+        self.clear_url_list()
+        self.async_id_list.clear()
+        osc_state_handle.send_osc_req(
+            osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
 
 
-    #used while pro_service fifo broken
-    def send_oled_type_wrapper(self, type):
-        # Info('send_oled_type_wrapper type {}'.format(type))
-        self.acquire_sem_camera()
+    def fp_decode(self,data):
+        return base64.urlsafe_b64decode(data)
+
+    def fp_encode(self,data):
+        return base64.urlsafe_b64encode(data)
+
+    def generate_fp(self):
+        self.random_data = os.urandom(8)
+        self.finger_print = bytes_to_str(self.fp_encode(self.random_data))
+        Info('generate random data {} fp {}'.format(self.random_data, self.finger_print))
+
+
+    def get_connect(self):
+        self.aquire_connect_sem()
         try:
-            self.send_oled_type(type)
+            Info('>>---- connect state ------<<')
+            state = self.connected
         except Exception as e:
-            Err('send_oled_type_wrapper exception {} type {}'.format(e,type))
+            Err('get connect e {}'.format(e))
+        self.release_connect_sem()
+        return state
+
+
+    def set_connect(self,state):
+        self.aquire_connect_sem()
+        try:
+            self.connected = state
+        except Exception as e:
+            Err('set_connect e {}'.format(e))
+        self.release_connect_sem()
+
+
+    def get_stitch_mode(self):
+        self.aquire_connect_sem()
+        try:
+            state = self._stitchMode
+        except Exception as e:
+            Err('get_stitch_mode e {}'.format(e))
+        self.release_connect_sem()
+        return state
+
+
+    def set_stitch_mode(self, state):
+        self.aquire_connect_sem()
+        try:
+            self._stitchMode = state
+        except Exception as e:
+            Err('set_stitch_mode e {}'.format(e))
+        self.release_connect_sem()
+
+    def write_req_reset(self, req, write_fd):
+        Print('write_req_reset start req {}'.format(req))
+        content = json.dumps(req)
+        content_len = len(content)
+        content = int_to_bytes(self._write_seq_reset) + int_to_bytes(content_len) + str_to_bytes(content)
+        # content_len = len(content)
+        Print('write_req_reset seq: {}'.format(self._write_seq_reset))
+        write_len = fifo_wrapper.write_fifo(write_fd, content)
+        read_seq = self._write_seq_reset
+        self._write_seq_reset += 1
+        return read_seq
+
+    def check_fp(self, fp):
+        ret = False
+        if fp is not None:
+            random = self.fp_decode(fp)
+            if self.random_data == random or fp == 'test':
+                ret = True
+            else:
+                Err('fp mismatch : req {} mine {}'.format(random,self.random_data ))
+
+        return ret
+
+    #reset INS_FIFO_TO_SERVER and INS_FIFO_TO_CLIENT
+    def reset_fifo(self):
+        Info('reset_fifo a')
+        self.close_read()
+        Info('reset_fifo b')
+        self.close_write()
+        Info('reset_fifo c')
+        self._write_seq = 0
+        # self.set_stitch_mode(False)
+        #self.clear_url_list()
+        self._stitchMode = False
+
+    def check_state_power_offing(self):
+        if self.get_cam_state() & config.STATE_POWER_OFF == config.STATE_POWER_OFF:
+            return True
+        else:
+            return False
+
+    def osc_path_execute(self,path,fp):
+        try:
+            if self.get_connect():
+                # Info('osc_path_execute path {}'.format(path))
+                if self.check_fp(fp):
+                    ret = self.osc_path_func[path]()
+                else:
+                    Err('error fingerprint fp {} path {}'.format(fp, path))
+                    ret = cmd_exception(
+                        error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
+            elif self.get_stitch_mode():
+                Info('stich get osc path {}'.format(path))
+                ret = self.osc_stitch_path_func[path]()
+            else:
+                Err('camera not connected path {}'.format(path))
+                ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
+        except Exception as e:
+            Err('osc_path_execute Exception is {} path {}'.format(e,path))
+            ret = cmd_exception(error_dic('osc_path_execute', str(e)), path)
+        return ret
+
+    def start_camera_cmd_func(self, name, req, from_ui = False):
+        Info('start_camera_cmd_func name {}'.format(name))
+        self.acquire_sem_camera()
+        Info('start_camera_cmd_func name2 {}'.format(name))
+        try:
+            # Info('start_camera_cmd_func name {}'.format(name))
+            ret = self.camera_cmd_func[name](req)
+            # Info('2start_camera_cmd_func name {}'.format(name))
+        except AssertionError as e:
+            Err('start_camera_cmd_func AssertionError e {}'.format(str(e)))
+            ret = cmd_exception(error_dic('start_camera_cmd_func AssertionError', str(e)), req)
+        except Exception as e:
+            Err('start_camera_cmd_func exception {}'.format(e))
+            ret = cmd_exception(e,name)
         self.release_sem_camera()
+
+        Info('start_camera_cmd_func name3 {}'.format(name))
+        return ret
+
+    def com_cmd_func(self, req):
+        Info('>>>> comon request {}'.format(req))
+        self.acquire_sem_camera()
+        info = self.write_and_read(req)
+        self.release_sem_camera()
+        return info
+
+
+    def start_non_camera_cmd_func(self, name, req, form_ui = False):
+        try:
+            ret = self.non_camera_cmd_func[name](req)
+        except AssertionError as e:
+            Err('start_non_camera_cmd_func AssertionError e {}'.format(str(e)))
+            ret = cmd_exception(error_dic('start_non_camera_cmd_func AssertionError', str(e)), name)
+        except Exception as e:
+            Err('start_non_camera_cmd_func exception {} req {}'.format(e,req))
+            ret = cmd_exception(e,req)
+        return ret
+
+
+    def osc_cmd_execute(self, fp, req):
+        try:
+            name = req[_name]
+            Info('osc_cmd_execute req name {} self.get_connect() {}'.format(name, self.get_connect()))
+            if name == config._CONNECT:
+                if self.get_connect():
+                    ret = cmd_exception(error_dic('connect error', 'already connected by another'),name)
+                elif self.get_stitch_mode():
+                    ret = cmd_exception(error_dic('connect error', 'camera is stitch mode'), name)
+                else:
+                    ret = self.camera_connect(req)
+            else:
+                if self.get_connect():
+                    if self.check_fp(fp):
+                        if name == config.CAMERA_RESET:
+                            ret = self.camera_reset(req)
+                        elif name in self.non_camera_cmd_func:
+                            ret = self.start_non_camera_cmd_func(name, req)    
+                        elif name in self.camera_cmd_func:
+                            ret = self.start_camera_cmd_func(name, req)
+                        else:
+                            ret = self.com_cmd_func(req)
+                            
+                    else:
+                        Err('error fingerprint fp {} req {}'.format(fp, req))
+                        if fp is None:
+                            fp = 'none'
+                        ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])),req)
+                else:
+                    Err('camera not connected req {}'.format(req))
+                    ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), req)
+        except Exception as e:
+            Err('osc_cmd_exectue exception e {} req {}'.format(e,req))
+            ret = cmd_exception(str(e),name)
+        # Info('2osc_cmd_execute req {} self.get_connect() {}'.format(req, self.get_connect()))
+        return ret
+
+
+    def read_response(self, read_seq, read_fd):
+        # debug_cur_info(sys._getframe().f_lineno, sys._getframe().f_code.co_filename, sys._getframe().f_code.co_name)
+        # Print('read_response start read_fd {}'.format(read_fd))
+        res = fifo_wrapper.read_fifo(read_fd,config.HEADER_LEN,FIFO_TO)
+        if len(res) != config.HEADER_LEN:
+            Info('read response header mismatch len(res) {} config.HEADER_LEN {}'.format(len(res),config.HEADER_LEN))
+        seq = bytes_to_int(res, 0)
+
+        while read_seq != seq:
+            Err('readback seq {} but read seq {} self._read_fd {}'.format(seq, read_seq, read_fd))
+            raise SeqMismatchException('seq mismath')
+        content_len = bytes_to_int(res, config.CONTENT_LEN_OFF)
+
+        if content_len > MAX_FIFO_LEN:
+            Info('content_len too large {} '.format(content_len))
+            all_bytes=b''
+            while content_len > 0:
+                read_bytes = fifo_wrapper.read_fifo(read_fd, content_len, FIFO_TO)
+                content_len = content_len - len(read_bytes)
+                all_bytes = all_bytes + read_bytes
+                Info('read len {} len all_bytes {} content_len {}'.format(len(read_bytes),len(all_bytes),content_len))
+
+            res1 = bytes_to_str(all_bytes)
+            Info('after multi read len res1 {} content_len {}'.format(len(res1),content_len))
+        else:
+            while content_len > 0:
+                res1 = bytes_to_str(fifo_wrapper.read_fifo(read_fd, content_len,FIFO_TO))
+                Info('content_len {}  len res {}'.format(content_len, len(res1)))
+                content_len = content_len - len(res1)
+
+        # assert_match(len(res1), content_len)
+       # Print('read response: {} content len {}'.format(res1, content_len))
+        return jsonstr_to_dic(res1)
+
+
+    # 方法名称: write_req
+    # 方法功能: 写请求
+    # 入口参数: req - 请求（字典）
+    #           write_fd - 发送请求的文件句柄
+    # 返回值：读的sequence值
+    def write_req(self, req, write_fd):
+        content = json.dumps(req)
+        content_len = len(content)
+        
+        #Print('write_req {}'.format(req))
+        if content_len > (MAX_FIFO_LEN - config.HEADER_LEN):
+            header = int_to_bytes(self._write_seq) + int_to_bytes(content_len)
+            write_len = fifo_wrapper.write_fifo(write_fd, header)
+            Info('content_len {} h len {} write_len {} '.format(content_len,len(header),write_len))
+            write_total = 0
+            while content_len > 0:
+                Info('content offset {}'.format(write_total))
+                write_len = fifo_wrapper.write_fifo(write_fd, str_to_bytes(content[write_total:]))
+                write_total = write_total + write_len
+                Info(' write_len {} write_total {}'.format(write_len,write_total))
+                content_len = content_len - write_len
+            Info('after write content_len {}'.format(content_len))
+        else:
+            content = int_to_bytes(self._write_seq) + int_to_bytes(content_len) + str_to_bytes(content)
+            write_len = fifo_wrapper.write_fifo(write_fd, content)
+
+        # Print('write seq: {}'.format(self._write_seq))
+        read_seq = self._write_seq
+        self._write_seq += 1
+        return read_seq
+
+
+    # 暂时添加同步锁操作
+    def write_and_read(self, req, from_oled = False):
+        self.syncWriteReadSem.acquire()
+        try:
+            name = req[_name]
+            Info('----------> sync write_and_read req {}'.format(req))
+
+            # 1.将请求发送给camerad
+            read_seq = self.write_req(req, self.get_write_fd())
+            
+            # 2.读取camerad的响应
+            ret = self.read_response(read_seq, self.get_read_fd())
+
+            # 如果camerad成功处理: "state":"done"
+            if ret[_state] == config.DONE:
+                #some cmd doesn't need done operationc
+                if check_dic_key_exist(self.camera_cmd_done, name):
+                    #send err is False, so rec or live is sent from http controller -- old
+                    # add old = from_oled to judge whether http req from controlled or oled 171204
+                    if name in (config._START_LIVE, config._START_RECORD, config._CALIBTRATE_BLC):
+                        if check_dic_key_exist(ret, config.RESULTS):
+                            self.camera_cmd_done[name](ret[config.RESULTS], req, oled = from_oled)
+                        else:
+                            self.camera_cmd_done[name](None, req, oled = from_oled)
+                    else:
+                        if check_dic_key_exist(ret, config.RESULTS):
+                            self.camera_cmd_done[name](ret[config.RESULTS])
+                        else:
+                            self.camera_cmd_done[name]()
+
+                # 请求不是来自UI并且请求为异步请求
+                if from_oled is False and name in self.async_cmd:
+                    # 将请求加入异步请求处理队列中
+                    self.add_async_cmd_id(name, ret['sequence'])
+            else:
+                cmd_fail(name)
+                if check_dic_key_exist(self.camera_cmd_fail, name):
+                    err_code = self.get_err_code(ret)
+                    Err('name {} err_code {}'.format(name,err_code))
+                    self.camera_cmd_fail[name](err_code)
+                    
+            # write_and_read - 返回的是字符串
+            ret = dict_to_jsonstr(ret)
+        except FIFOSelectException as e:
+            Err('FIFOSelectException name {} e {}'.format(req[_name], str(e)))
+            ret = cmd_exception(error_dic('FIFOSelectException', str(e)), req)
+            self.reset_all()
+        except FIFOReadTOException as e:
+            Err('FIFOReadTOException name {} e {}'.format(req[_name], str(e)))
+            # ret = cmd_exception(error_dic('FIFOReadTOException', str(e)), req)
+            ret = self.send_reset_camerad()
+        except WriteFIFOException as e:
+            Err('WriteFIFIOException name {} e {}'.format(req[_name], str(e)))
+            ret = cmd_exception(error_dic('WriteFIFOException', str(e)), req)
+            self.reset_all()
+        except ReadFIFOException as e:
+            Err('ReadFIFIOException name {} e {}'.format(name, str(e)))
+            ret = cmd_exception(error_dic('ReadFIFIOException', str(e)), req)
+            self.reset_all()
+        except SeqMismatchException as e:
+            Err('SeqMismatchException name {} e {}'.format(name, str(e)))
+            ret = cmd_exception(error_dic('SeqMismatchException', str(e)),req)
+            self.reset_all()
+        except BrokenPipeError as e:
+            Err('BrokenPipeError name {} e {}'.format(name, str(e)))
+            ret = cmd_exception(error_dic('BrokenPipeError', str(e)),req)
+            self.reset_all()
+        except OSError as e:
+            Err('IOError e {}'.format(str(e)))
+            ret = cmd_exception(error_dic('IOError', str(e)), req)
+            self.reset_all()
+        except AssertionError as e:
+            Err('AssertionError e {}'.format(str(e)))
+            ret = cmd_exception(error_dic('AssertionError', str(e)), req)
+        except Exception as e:
+            Err('unknown write_and_read e {}'.format(str(e)))
+            ret = cmd_exception(error_dic('write_and_read', str(e)), req)
+            self.reset_all()
+
+        self.syncWriteReadSem.release()
+        return ret
+
+
+    #send req to pro service
+    def send_req(self, req):
+        try:
+            self._fifo_write_handle.send_req(req)
+        except Exception as e:
+            Err('send req exception {}'.format(e))
+
+    def get_write_req(self, msg_what, args):
+        req = OrderedDict()
+        req['msg_what'] = msg_what
+        req['args'] = args
+        return req
+
+    def send_oled_type_err(self,type,code = -1):
+        Info("send_oled_type_err type is {} code {}".format(type,code))
+        err_dict = OrderedDict({'type':type,'err_code':code})
+        self.send_req(self.get_write_req(config.OLED_DISP_TYPE_ERR, err_dict))
+
+    # def send_oled_type(self,type,content = None,req = None):
+    def send_oled_type(self, type, req = None):
+        req_dict = OrderedDict({'type': type})
+        Info("send_oled_type type is {}".format(type))
+        if req is not None:
+            Info('send_oled_type req {}'.format(req))
+            if check_dic_key_exist(req,'content'):
+                req_dict['content'] = req['content']
+                if check_dic_key_exist(req,'proExtra'):
+                    req_dict['proExtra'] = req['proExtra']
+            elif check_dic_key_exist(req, _name):
+                if check_dic_key_exist(self.req_action, req[_name]):
+                    Info('self.req_action[req[_name]] is {}'.format(self.req_action[req[_name]]))
+                    req_dict['req'] = OrderedDict({'action':self.req_action[req[_name]],'param':req[_param]})
+            elif check_dic_key_exist(req, 'tl_count'):
+                req_dict['tl_count'] = req['tl_count']
+            elif check_dic_key_exist(req, 'sys_setting'):
+                req_dict['sys_setting'] = req['sys_setting']
+            elif check_dic_key_exist(req, 'stitch_progress'):
+                req_dict['stitch_progress'] = req['stitch_progress']
+            else:
+                Info('nothing found')
+        self.send_req(self.get_write_req(config.OLED_DISP_TYPE, req_dict))
+
+    def init_fifo_monitor_camera_active(self):
+        # Info('init_fifo_monitor_camera_active start')
+        self._monitor_cam_active_handle = monitor_camera_active_handle(self)
+        self._monitor_cam_active_handle.start()
+
+    def stop_monitor_camera_active(self):
+        if self._monitor_cam_active_handle is not None:
+            self._monitor_cam_active_handle.stop()
+
+    def init_fifo_read_write(self):
+        self._fifo_read = monitor_fifo_read(self)
+        self._fifo_write_handle = mointor_fifo_write_handle()
+        self._fifo_read.start()
+        self._fifo_write_handle.start()
+        # Print('init fifo rw')
+
+    def stop_fifo_read(self):
+        if self._fifo_read is not None:
+            self._fifo_read.stop()
+            self._fifo_read.join()
+
+    def stop_fifo_write(self):
+        if self._fifo_write_handle is not None:
+            self._fifo_write_handle.stop()
+            # self._fifo_write_handle.join()
+
+    def init_fifo(self):
+        if file_exist(config.INS_FIFO_TO_SERVER) is False:
+            os.mkfifo(config.INS_FIFO_TO_SERVER)
+        if file_exist(config.INS_FIFO_TO_CLIENT) is False:
+            os.mkfifo(config.INS_FIFO_TO_CLIENT)
+        if file_exist(config.INS_FIFO_RESET_FROM) is False:
+            os.mkfifo(config.INS_FIFO_RESET_FROM)
+        if file_exist(config.INS_FIFO_RESET_TO) is False:
+            os.mkfifo(config.INS_FIFO_RESET_TO)
+
+    def close_read_reset(self):
+        Info('close_read_reset control self._read_fd {}'.format(self._reset_read_fd))
+        if self._reset_read_fd != -1:
+            #flush all the buffer in fifo while close
+            fifo_wrapper.close_fifo(self._reset_read_fd)
+            self._reset_read_fd = -1
+        Info('close_read_reset control {} over'.format(self._reset_read_fd))
+
+    def close_write_reset(self):
+        Info('close_write_reset {} start'.format(self._reset_write_fd))
+        if self._reset_write_fd != -1:
+            Info('_reset_write_fd {}'.format(self._reset_write_fd))
+            fifo_wrapper.close_fifo(self._reset_write_fd)
+            self._reset_write_fd = -1
+        Info('close_write_reset {} over'.format(self._reset_write_fd))
+
+
+    def close_read(self):
+        if self._read_fd != -1:
+            #flush all the buffer in fifo while close
+            # Info('close_read control self._read_fd {}'.format(self._read_fd))
+            fifo_wrapper.close_fifo(self._read_fd)
+            self._read_fd = -1
+            # Info('close_read control {} over'.format(self._read_fd))
+
+    def close_write(self):
+        if self._write_fd != -1:
+            # Info('close_write control self._write_fd {}'.format(self._write_fd))
+            fifo_wrapper.close_fifo(self._write_fd)
+            self._write_fd = -1
+            # Info('close_write control self._write_fd {} over'.format(self._write_fd))
+
+    # @lazy_property
+    def get_write_fd(self):
+        if self._write_fd == -1:
+            # Print('0get control write fd {}'.format(self._write_fd))
+            self._write_fd = fifo_wrapper.open_write_fifo(config.INS_FIFO_TO_SERVER)
+        # Print('get control write fd {}'.format(self._write_fd))
+        return self._write_fd
+
+    # @lazy_property
+    def get_read_fd(self):
+        if self._read_fd == -1:
+            # Info('0get control self._read_fd is {}'.format(self._read_fd))
+            self._read_fd = fifo_wrapper.open_read_fifo(config.INS_FIFO_TO_CLIENT)
+        # Info('get control self._read_fd is {}'.format(self._read_fd))
+        return self._read_fd
+
+    def get_reset_read_fd(self):
+        if self._reset_read_fd == -1:
+            Info('0get self._reset_read_fd is {}'.format(self._reset_read_fd))
+            self._reset_read_fd = fifo_wrapper.open_read_fifo(config.INS_FIFO_RESET_FROM)
+
+        Info('get  self._reset_read_fd is {}'.format(self._reset_read_fd))
+        return self._reset_read_fd
+
+    def get_reset_write_fd(self):
+        if self._reset_write_fd == -1:
+            Info('0get self._reset_write_fd is {}'.format(self._reset_write_fd))
+            self._reset_write_fd = fifo_wrapper.open_write_fifo(config.INS_FIFO_RESET_TO)
+        Info('get  self._reset_write_fd is {}'.format(self._reset_write_fd))
+        return self._reset_write_fd
+
+
+

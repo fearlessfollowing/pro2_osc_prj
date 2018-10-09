@@ -88,14 +88,14 @@ class StateMachine:
             return False
 
     @classmethod
-    def check_in_live(cls):
+    def checkInLive(cls):
         if (StateMachine.getCamState() & config.STATE_LIVE == config.STATE_LIVE):
             return True
         else:
             return False
 
     @classmethod
-    def check_in_live_connecting(cls):
+    def checkInLiveConnecting(cls):
         if StateMachine.getCamState() & config.STATE_LIVE_CONNECTING == config.STATE_LIVE_CONNECTING:
             return True
         else:
@@ -151,7 +151,7 @@ class StateMachine:
 
 
     @classmethod
-    def check_allow_live(cls):
+    def checkAllowLive(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
@@ -209,3 +209,31 @@ class StateMachine:
             return True
         else:
             return False   
+
+    @classmethod 
+    def checkAllowMagmeter(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
+            return True
+        else:
+            return False   
+
+    @classmethod 
+    def checkAllowBpc(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
+            return True
+        else:
+            return False
+
+    @classmethod 
+    def checkAllowBlc(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
+            return True
+        else:
+            return False
+
+    @classmethod 
+    def checkAllowNoise(self):
+        if StateMachine.getCamState() == config.STATE_IDLE:
+            return True
+        else:
+            return False
