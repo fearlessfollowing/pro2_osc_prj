@@ -3964,8 +3964,11 @@ void MenuUI::dispBottomLeftSpace()
                         char disp[32];
                         vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
                         dispStr((const u8 *)disp, 37, 24);
-                        clearArea(78, 48, 50, 16);
                     }                      
+                    
+                    /* 不存片的情况,右下角不需要显示任何东西 */
+                    clearArea(78, 48, 50, 16);
+
                 }
                 break;
             }
