@@ -637,7 +637,14 @@ private:
 
 /***************************************** 状态管理(10.08) ***************************************************/
     bool    checkStateEqual(uint64_t state);
+    bool    checkStateEqual(uint64_t serverState, uint64_t checkState);
+
     bool    checkServerStateIn(uint64_t state);
+    bool    checkServerStateIn(uint64_t serverState, uint64_t checkState);
+
+    bool    checkInLive(uint64_t serverState);
+    bool    checkInLive();
+
     bool    checkServerStateInPreview();
     bool    addState(uint64_t state);
     uint64_t getServerState();
@@ -989,7 +996,7 @@ private:
 	/*
 	 * 存储管理器
 	 */
-    bool    asyncQueryTfCardState();
+
 
     /* 发送TF状态变化消息 */
     void    handleTfStateChanged(std::vector<sp<Volume>>& mTfChangeList);

@@ -484,3 +484,26 @@ Pro2的六个模组是通过2个USB2.0的HUB挂载在TX2的USB BUS-1上，在给
 
 1.新增8GB的交换内存（/swap/sfile）
 2.直播的已录
+
+
+日期：2018年10月9日
+1.修改init.rc 
+更名python代码的文件夹名为web_server(服务名称更改为web_server)，pro2_service在web_server启动后再启动
+
+# pro_service service for ui and key
+# level: main
+service pro2_service /usr/local/bin/pro2_service
+        class third
+        critical
+
+on property:sys.web_status=true
+        start pro2_service
+
+2.在web_server重启的时候，必须重启pro2_service(pro2_service依赖web_server)
+# web_osc service for http request
+# lelvel: main
+service web_server /usr/local/bin/python3.6 /usr/local/bin/web_server
+        class main
+        critical
+        onrestart restart pro2_service
+

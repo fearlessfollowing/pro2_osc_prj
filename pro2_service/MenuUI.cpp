@@ -898,7 +898,6 @@ void MenuUI::disp_msg_box(int type)
     if (cur_menu != MENU_DISP_MSG_BOX) {
         //force light back to front or off 170731
         if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && check_state_equal(STATE_IDLE))) {
-            //force set front light
             if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
                 setLightDirect(front_light);
             } else {
@@ -2106,10 +2105,12 @@ void MenuUI::dispSysInfo()
 bool MenuUI::checkServerAllowTakePic()
 {
     bool bRet = false;
-    if (checkServerStateInPreview() || checkStateEqual(STATE_IDLE)) {
+    uint64_t serverState = getServerState();
+
+    if (checkStateEqual(serverState, STATE_PREVIEW) || checkStateEqual(serverState, STATE_IDLE)) {
         bRet = true;
     } else {
-        Log.e(TAG, " checkServerAllowTakePic error state 0x%x ", getServerState());
+        Log.e(TAG, "---> checkServerAllowTakePic error state 0x%x ", serverState);
     }
     return bRet;
 }
@@ -2214,12 +2215,13 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
     struct stPicVideoCfg* pAebPicVidCfg = NULL;
     struct stSetItem* pAebSetItem = NULL;
     VolumeManager* vm = VolumeManager::Instance();
+    uint64_t serverState = getServerState();
 
     switch (option) {
 
         case ACTION_PIC: {	/* 拍照动作： 因为有倒计时,倒计时完成需要检查存储设备还是否存在 */
 
-            Log.d(TAG, ">>>>>>>>>>>>>>>>> sendRpc +++ ACTION_PIC");
+            Log.d(TAG, "=------------->> sendRpc +++ ACTION_PIC");
             Json::Value* pTakePicJson = NULL;
 
             /* customer和非customer */
@@ -2298,9 +2300,9 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             /* 
              * 处于录像或正在停止录像状态 
              */
-            if (checkServerStateIn(STATE_RECORD) && (!checkServerStateIn(STATE_STOP_RECORDING))) {
+            if (checkServerStateIn(serverState, STATE_RECORD) && (!checkServerStateIn(serverState, STATE_STOP_RECORDING))) {
                 oled_disp_type(STOP_RECING);
-            } else if (checkServerStateInPreview()) {
+            } else if (checkServerStateIn(serverState, STATE_PREVIEW)) {
 
                 if (checkStorageSatisfy(option)) {  /* 存储条件必须满足 */
 
@@ -2406,17 +2408,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             break;
         }
 			
-
-        case ACTION_PREVIEW: {
-            if (check_state_preview() || check_state_equal(STATE_IDLE)) {
-                bAllow = true;
-            } else {
-                bAllow = false;
-            }
-            break;
-        }
-
-
         case ACTION_CALIBRATION: {	/* 拼接校正 */
             if ((mCamState & STATE_CALIBRATING) != STATE_CALIBRATING) {
                 setGyroCalcDelay(5);
@@ -2579,6 +2570,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 
 
 	if (bAllow) {
+        Log.d(TAG, "[%s: %d] -------------> sendRpc use fifo thread, ACTION: %d", __FILE__, __LINE__, option);
         msg->set<int>("what", OLED_KEY);
         msg->set<int>("action", option);
         msg->post();
@@ -2871,7 +2863,7 @@ void MenuUI::set_back_menu(int item, int menu)
             cur_menu = MENU_TOP;
             menu = MENU_TOP;
         } else {
-            Log.e(TAG,"back menu is -1 cur_menu %d\n",cur_menu);
+            Log.e(TAG, "back menu is -1 cur_menu %d", cur_menu);
 
             #ifdef ENABLE_ABORT
 			#else
@@ -2880,21 +2872,20 @@ void MenuUI::set_back_menu(int item, int menu)
         }
     }
 
-//    Log.d(TAG, " set back menu item %d menu %d", item, menu);
     if (item > MENU_TOP && (item < MENU_MAX)) {
         {
             if (MENU_SYS_ERR == menu || menu == MENU_DISP_MSG_BOX || menu == MENU_LOW_BAT || menu == MENU_LIVE_REC_TIME) {
                  menu = get_back_menu(menu);
             }
         }
-//        Log.d(TAG, "2 set back menu item %d menu %d", item, menu);
+
         if (item == menu) {
-            Log.e(TAG,"same (%d %d)",item,menu);
+            Log.e(TAG, "same (%d %d)", item, menu);
             menu = get_back_menu(menu);
         }
-//        Log.d(TAG, "3 set back menu item %d menu %d", item, menu);
+
         if (item != menu)  {
-            Log.d(TAG,"set back (%d %d)",item,menu);
+            Log.d(TAG, "set back (%d %d)", item, menu);
             mMenuInfos[item].back_menu = menu;
         }
     } else {
@@ -2952,8 +2943,6 @@ void MenuUI::procBackKeyEvent()
     } else {
 		        
         switch (tmpState) {
-
-            //force back directly while state idle 17.06.08 STATE_IDLE
             case STATE_IDLE: {
                 set_cur_menu_from_exit();
                 break;
@@ -3026,27 +3015,27 @@ void MenuUI::procBackKeyEvent()
                     default:
                         Log.d(TAG, "[%s: %d] strange enter (%s 0x%x)", __FILE__, __LINE__, getMenuName(cur_menu), getServerState());
 
-                        if (check_live()) {
+                        if (checkInLive(tmpState)) {
                             if (cur_menu != MENU_LIVE_INFO) {
                                 setCurMenu(MENU_LIVE_INFO);
                             }
-                        } else if (check_state_in(STATE_RECORD)) {
+                        } else if (checkServerStateIn(tmpState, STATE_RECORD)) {
                             if (cur_menu != MENU_VIDEO_INFO) {
                                 setCurMenu(MENU_VIDEO_INFO);
                             }
-                        } else if (check_state_in(STATE_CALIBRATING)) {
+                        } else if (checkServerStateIn(tmpState, STATE_CALIBRATING)) {
                             if (cur_menu != MENU_CALIBRATION) {
                                 setCurMenu(MENU_CALIBRATION);
                             }
-                        } else if (check_state_in(STATE_SPEED_TEST)) {
+                        } else if (checkServerStateIn(tmpState, STATE_SPEED_TEST)) {
                             if (cur_menu != MENU_SPEED_TEST) {
                                 setCurMenu(MENU_SPEED_TEST);
                             }
-                        } else if (check_state_in(STATE_START_GYRO)) {
+                        } else if (checkServerStateIn(tmpState, STATE_START_GYRO)) {
                             if (cur_menu != MENU_GYRO_START) {
                                 setCurMenu(MENU_GYRO_START);
                             }
-                        } else if (check_state_in(STATE_NOISE_SAMPLE)) {
+                        } else if (checkServerStateIn(tmpState, STATE_NOISE_SAMPLE)) {
                             if (cur_menu != MENU_NOSIE_SAMPLE) {
                                 setCurMenu(MENU_NOSIE_SAMPLE);
                             }
@@ -3460,8 +3449,6 @@ void MenuUI::add_qr_res(int type, Json::Value& actionJson, int control_act)
      * 拍照过程：1.发送拍照的参数，保存在mControlPicJsonCmd
      *          2.发送一个CAPTURE的type
      */
-    // asyncQueryTfCardState();
-    // msg_util::sleep_ms(50);
 
     switch (control_act) {
         case ACTION_PIC: {   /* 客户端发起的拍照,录像，直播 CAPTURE */
@@ -3729,7 +3716,7 @@ void MenuUI::calcRemainSpace(bool bUseCached)
             mCanTakePicNum = vm->calcTakepicLefNum(mControlPicJsonCmd, false);
         } else {    /* 本地的拍照 - 非Customer模式 */
 
-            Log.d(TAG, "[%s: %d] >>>>>>>> Native control can take picture  num", __FILE__, __LINE__);
+            Log.d(TAG, "[%s: %d] >>>>>>>> Native control can take picture num", __FILE__, __LINE__);
 
             int item = getMenuSelectIndex(MENU_PIC_SET_DEF);
             int iRawVal = mProCfg->get_val(KEY_RAW);
@@ -3861,11 +3848,6 @@ void MenuUI::convStorageSize2Str(int iUnit, u64 size, char* pStore, int iLen)
     }
 }
 
-
-
-
-
-
 /*
  * dispBottomLeftSpace - 显示底部剩余空间
  * 如果本地设备或者小卡不存在，直接显示None
@@ -3874,14 +3856,14 @@ void MenuUI::dispBottomLeftSpace()
 {
     char disk_info[16] = {0};
     VolumeManager* vm = VolumeManager::Instance();
-
+    uint64_t serverState = getServerState();
 
 #ifdef ENABLE_DEBUG_MODE
-    Log.d(TAG, "[%s: %d] Current Menu[%s], cam state [0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), getServerState());
+    // Log.d(TAG, "[%s: %d] Current Menu[%s], cam state [0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), getServerState());
 #endif
 
-    if (checkServerStateIn(STATE_START_PREVIEWING) ||  
-        (checkServerStateIn(STATE_QUERY_STORAGE) && 
+    if (checkServerStateIn(serverState, STATE_START_PREVIEWING) ||  
+        (checkServerStateIn(serverState, STATE_QUERY_STORAGE) && 
             (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF || cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_VIDEO_SET_DEF
              || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_LIVE_SET_DEF)))  { 
         Log.d(TAG, "[%s: %d] Start Preview state or Query Tf Card Info, Clear this area ....", __FILE__, __LINE__);
@@ -3919,7 +3901,7 @@ void MenuUI::dispBottomLeftSpace()
 
                 if (false == mTakeVideInTimelapseMode) {
                     if (takeVideoIsAgeingMode()) {
-                        if (checkServerStateIn(STATE_RECORD)) {
+                        if (checkServerStateIn(serverState, STATE_RECORD)) {
                             char disp[32];
                             vm->convSec2TimeStr(vm->getRecSec(), disp, sizeof(disp));
                             dispStr((const u8 *)disp, 37, 24);
@@ -3929,7 +3911,7 @@ void MenuUI::dispBottomLeftSpace()
                     } else {
                         if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
                             
-                            if (checkServerStateIn(STATE_RECORD)) {
+                            if (checkServerStateIn(serverState, STATE_RECORD)) {
                                 char disp[32];
                                 vm->convSec2TimeStr(vm->getRecSec(), disp, sizeof(disp));
                                 dispStr((const u8 *)disp, 37, 24);
@@ -3959,7 +3941,7 @@ void MenuUI::dispBottomLeftSpace()
                      */
                     if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
                         
-                        if (checkServerStateIn(STATE_LIVE)) {
+                        if (checkServerStateIn(serverState, STATE_LIVE)) {
                             char disp[32];
                             vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
                             dispStr((const u8 *)disp, 37, 24);
@@ -3976,7 +3958,7 @@ void MenuUI::dispBottomLeftSpace()
                         dispIconByType(ICON_LIVE_INFO_NONE_7848_50X16);     
                     }
                 } else {    /* 只显示已经直播的时间 */
-                    if (checkServerStateIn(STATE_LIVE)) {   /* 直播状态: 更新已经直播的时间 */
+                    if (checkServerStateIn(serverState, STATE_LIVE)) {   /* 直播状态: 更新已经直播的时间 */
                         char disp[32];
                         vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
                         dispStr((const u8 *)disp, 37, 24);
@@ -5208,8 +5190,11 @@ void MenuUI::showSpaceQueryTfCallback()
 *************************************************************************/
 void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 {
+
+    uint64_t serverState = getServerState();
+
 	Log.d(TAG, "enterMenu is [%s], Server State [0x%x], update all [%s]", 
-                        getMenuName(cur_menu), getServerState(), (bUpdateAllMenuUI == true) ? "true": "false");
+                        getMenuName(cur_menu), serverState, (bUpdateAllMenuUI == true) ? "true": "false");
     
     ICON_INFO* pNvIconInfo = NULL;
     VolumeManager* vm = VolumeManager::Instance();
@@ -5228,30 +5213,30 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 clearArea(0, 16);
             }
 
-            dispIconByType(ICON_CAMERA_ICON_0_16_20_32);		/* 显示左侧'拍照'图标 */
+            dispIconByType(ICON_CAMERA_ICON_0_16_20_32);		    /* 显示左侧'拍照'图标 */
 
-            if (checkServerStateIn(STATE_START_PREVIEWING)) {
-                dispBottomInfo(false, false);                   /* 正常显示底部规格,不更新剩余空间 */
+            if (checkServerStateIn(serverState, STATE_START_PREVIEWING)) {
+                dispBottomInfo(false, false);                       /* 正常显示底部规格,不更新剩余空间 */
             } else {
-                dispBottomInfo(false, true);                    /* 正常显示底部规格,更新剩余空间 */                
+                dispBottomInfo(false, true);                        /* 正常显示底部规格,更新剩余空间 */                
             }
 
-            if (checkServerStateInPreview()) {	/* 启动预览成功,显示"Ready" */
+            if (checkServerStateIn(serverState, STATE_PREVIEW)) {	/* 启动预览成功,显示"Ready" */
                 dispReady();
-            } else if (checkStateEqual(STATE_START_PREVIEWING) || checkStateEqual(STATE_STOP_PREVIEWING)) {
+            } else if (checkStateEqual(serverState, STATE_START_PREVIEWING) || checkStateEqual(serverState, STATE_STOP_PREVIEWING)) {
                 dispWaiting();				    /* 正在启动,显示"..." */
-            } else if (checkServerStateIn(STATE_TAKE_CAPTURE_IN_PROCESS)) {	/* 正在拍照 */
+            } else if (checkServerStateIn(serverState, STATE_TAKE_CAPTURE_IN_PROCESS)) {	/* 正在拍照 */
                 if (mTakePicDelay == 0) {       /* 倒计时为0,显示"shooting" */
                     dispShooting();
                 } else {                        /* 清除就绪图标,等待下一次更新消息 */
                     clearReady();
                 }
-            } else if (checkServerStateIn(STATE_PIC_STITCHING)) {	/* 如果正在拼接,显示"processing" */
+            } else if (checkServerStateIn(serverState, STATE_PIC_STITCHING)) {	/* 如果正在拼接,显示"processing" */
                 dispProcessing();
             } else {
 
-                Log.d(TAG, "pic menu error state 0x%x", getServerState());
-                if (checkStateEqual(STATE_IDLE)) {
+                Log.d(TAG, "[%s: %d] ---> pic menu error state 0x%x", __FILE__, __LINE__, serverState);
+                if (checkStateEqual(serverState, STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5285,18 +5270,20 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
                 dispIconByType(ICON_VIDEO_ICON_0_16_20_32);
                 
-                if (checkServerStateIn(STATE_START_PREVIEWING)) {
+                if (checkServerStateIn(serverState, STATE_START_PREVIEWING)) {
                     dispBottomInfo(false, false);           /* 正常显示底部规格,不更新剩余空间 */
                 } else {
                     dispBottomInfo(false, true);           /* 正常显示底部规格,不更新剩余空间 */                
                 }
             }
 
-            if (checkServerStateInPreview()) {    /* 此时处于预览状态,显示就绪 */
+            if (checkServerStateIn(serverState, STATE_PREVIEW)) {    /* 此时处于预览状态,显示就绪 */
                 dispReady();  /* 有存储条件显示就绪,否则返回NO_SD_CARD */
-            } else if (checkServerStateIn(STATE_START_PREVIEWING) || checkServerStateIn(STATE_STOP_PREVIEWING) || checkServerStateIn(STATE_START_RECORDING)) {
+            } else if (checkServerStateIn(serverState, STATE_START_PREVIEWING) || 
+                        checkServerStateIn(serverState, STATE_STOP_PREVIEWING) || 
+                        checkServerStateIn(serverState, STATE_START_RECORDING)) {
                 dispWaiting();
-            } else if (checkServerStateIn(STATE_RECORD)) {
+            } else if (checkServerStateIn(serverState, STATE_RECORD)) {
                 #if 0
                 Log.d(TAG, "do nothing in rec cam state 0x%x", getServerState());
                 if (tl_count != -1) {
@@ -5304,8 +5291,8 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 }
                 #endif
             } else {
-                Log.d(TAG, "vid menu error state 0x%x menu %d", getServerState(), cur_menu);
-                if (checkStateEqual(STATE_IDLE)) {
+                Log.d(TAG, "vid menu error state 0x%x menu %d", serverState, cur_menu);
+                if (checkStateEqual(serverState, STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5322,8 +5309,8 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
             dispIconByType(ICON_LIVE_ICON_0_16_20_32);
 
-            if (!checkServerStateIn(STATE_LIVE_CONNECTING)) {
-                if ( checkServerStateIn(STATE_LIVE) && (vm->getLiveRecSec() > 0) ) {    /* 已经处于直播状态 */
+            if (!checkServerStateIn(serverState, STATE_LIVE_CONNECTING)) {
+                if ( checkServerStateIn(serverState, STATE_LIVE) && (vm->getLiveRecSec() > 0) ) {    /* 已经处于直播状态 */
                     updateBottomMode(false);
                     dispBottomLeftSpace();
                     Log.d(TAG, "[%s: %d] enter MENU_LIVE_INFO is resume live", __FILE__, __LINE__);
@@ -5332,17 +5319,19 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
                 }
             } 
             
-            if (checkServerStateInPreview()) {
+            if (checkServerStateIn(serverState, STATE_PREVIEW)) {
                 dispLiveReady();
-            } else if (checkServerStateIn(STATE_START_PREVIEWING) || checkServerStateIn(STATE_STOP_PREVIEWING) || checkServerStateIn(STATE_START_LIVING)) {
+            } else if (checkServerStateIn(serverState, STATE_START_PREVIEWING) || 
+                        checkServerStateIn(serverState, STATE_STOP_PREVIEWING) || 
+                        checkServerStateIn(serverState, STATE_START_LIVING)) {
                 dispWaiting();
-            } else if (checkServerStateIn(STATE_LIVE)) {
-                Log.d(TAG, "do nothing in live cam state 0x%x", getServerState());
-            } else if (checkServerStateIn(STATE_LIVE_CONNECTING)) {
+            } else if (checkServerStateIn(serverState, STATE_LIVE)) {
+                Log.d(TAG, "do nothing in live cam state 0x%x", serverState);
+            } else if (checkServerStateIn(serverState, STATE_LIVE_CONNECTING)) {
                 dispConnecting();
             } else {
-                Log.d(TAG, "live menu error state 0x%x", getServerState());
-                if (checkStateEqual(STATE_IDLE)) {
+                Log.d(TAG, "live menu error state 0x%x", serverState);
+                if (checkStateEqual(serverState, STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5473,13 +5462,12 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 
         case MENU_QR_SCAN: {
             clearArea();
-//          reset_last_info();
-            if(check_state_in(STATE_START_QRING) || check_state_in(STATE_STOP_QRING)) {
+            if(checkServerStateIn(serverState, STATE_START_QRING) || checkServerStateIn(serverState, STATE_STOP_QRING)) {
                 dispWaiting();
-            } else if (check_state_in(STATE_START_QR)) {
+            } else if (checkServerStateIn(serverState, STATE_START_QR)) {
                 dispIconByType(ICON_QR_SCAN128_64);
             } else {
-                if (check_state_equal(STATE_IDLE)) {
+                if (checkStateEqual(serverState, STATE_IDLE)) {
                     procBackKeyEvent();
                 }
             }
@@ -5533,7 +5521,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
     #endif
 
         case MENU_GYRO_START: {
-            if (check_state_equal(STATE_START_GYRO)) {
+            if (checkStateEqual(serverState, STATE_START_GYRO)) {
                 dispIconByType(ICON_GYRO_CALIBRATING128_48);
             } else {
                 dispIconByType(ICON_HORIZONTALLY01128_48);
@@ -5610,7 +5598,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
 #endif
 
         case MENU_CALC_BLC:
-        case MENU_CALC_BPC: {   /* 设置菜单 */
+        case MENU_CALC_BPC: {   /* BLC, BPC校正时需要清屏(关屏)) */
             clearArea();
             break;
         }
@@ -5937,8 +5925,8 @@ bool MenuUI::checkIsTakeTimelpaseInCustomer()
         picJsonCmd = (pTmpCfg->jsonCmd).get();
 
         if (picJsonCmd) {
-            cmd = writer.write(*picJsonCmd);
-            Log.d(TAG, "[%s: %d] take picture cmd: %s", __FILE__, __LINE__, cmd.c_str());
+            // cmd = writer.write(*picJsonCmd);
+            // Log.d(TAG, "[%s: %d] take picture cmd: %s", __FILE__, __LINE__, cmd.c_str());
             
             if ( (*picJsonCmd)["parameters"].isMember("timelapse")) {
                 if ((*picJsonCmd)["parameters"]["timelapse"]["enable"].asBool() == true) {
@@ -5968,7 +5956,8 @@ bool MenuUI::checkIsTakeTimelpaseInCustomer()
 void MenuUI::procPowerKeyEvent()
 {
 	Log.d(TAG, "[%s: %d] procPowerKeyEvent Menu(%s) select %d\n", __FILE__, __LINE__, getMenuName(cur_menu), getCurMenuCurSelectIndex());
-    
+    uint64_t serverState = getServerState();
+
     ProtoManager* pm = ProtoManager::Instance();
     int iIndex = 0;
 
@@ -5980,7 +5969,7 @@ void MenuUI::procPowerKeyEvent()
                 case MAINMENU_PIC: {	            /* 选择的是"拍照"项 */
                     if (pm->sendStartPreview()) {   /* 调用协议管理器启动预览：如果调用成功Server此时将处于STATE_START_PREVIEW状态 */
                         mWhoReqEnterPrew = UI_REQ_PREVIEW;
-                        setCurMenu(MENU_PIC_INFO);	            /* 设置并显示当前菜单 */
+                        setCurMenu(MENU_PIC_INFO);  /* 设置并显示当前菜单 */
                     } else {
                         Log.e(TAG, "[%s: %d] Select takepic, Request start preview Failed.", __FILE__, __LINE__);
                     }
@@ -6052,6 +6041,7 @@ void MenuUI::procPowerKeyEvent()
 
 
         case MENU_PIC_INFO: {		/* 拍照子菜单 */
+
 
             /*
              * 1.检查是常规拍照还是拍timelapse
@@ -6429,24 +6419,25 @@ void MenuUI::procUpKeyEvent()
 *************************************************************************/
 void MenuUI::procDownKeyEvent()
 {
+    uint64_t serverState = getServerState();
     switch (cur_menu) { /* 对于MENU_PIC_INFO/MENU_VIDEO_INFO/MENU_LIVE_INFO第一次按下将进入XXX_XXX_SET_DEF菜单 */
     
         case MENU_PIC_INFO: {
-	        if (checkServerStateInPreview()) {
+	        if (checkServerStateIn(serverState, STATE_PREVIEW)) {
 		        setCurMenu(MENU_PIC_SET_DEF);
 	        }
 	        break;
         }
 		
         case MENU_VIDEO_INFO: {
-            if (checkServerStateInPreview()) {
+            if (checkServerStateIn(serverState, STATE_PREVIEW)) {
                 setCurMenu(MENU_VIDEO_SET_DEF);
             }
             break;
         }
 		
         case MENU_LIVE_INFO: {
-            if (checkServerStateInPreview()) {
+            if (checkServerStateIn(serverState, STATE_PREVIEW)) {
                 setCurMenu(MENU_LIVE_SET_DEF);
             }
             break;
@@ -6462,9 +6453,10 @@ void MenuUI::procDownKeyEvent()
 
 void MenuUI::exit_sys_err()
 {
-    if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && check_state_equal(STATE_IDLE))) {
+    uint64_t serverState = getServerState();
+    if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && checkStateEqual(serverState, STATE_IDLE))) {
 
-        Log.d(TAG, "exit_sys_err ( %d 0x%x )", cur_menu, getServerState());
+        Log.d(TAG, "exit_sys_err ( %d 0x%x )", cur_menu, serverState);
 
         if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
             setLightDirect(front_light);
@@ -6564,10 +6556,18 @@ bool MenuUI::checkStateEqual(uint64_t state)
         Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
         bResult = (serverState == state) ? true : false;
     } else {
-        Log.e(TAG, "[%s: %d] checkServerStateInPreview -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+        Log.e(TAG, "[%s: %d] checkStateEqual -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
     }
     return bResult;
 }
+
+bool MenuUI::checkStateEqual(uint64_t serverState, uint64_t checkState) 
+{
+    bool bResult;
+    bResult = (serverState == checkState) ? true : false;
+    return bResult;
+}
+
 
 bool MenuUI::checkServerStateIn(uint64_t state)
 {
@@ -6577,12 +6577,22 @@ bool MenuUI::checkServerStateIn(uint64_t state)
     ProtoManager* pm = ProtoManager::Instance();
     if (pm->getServerState(&serverState)) {
         Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
-        bResult = ( (serverState & state) == state) ? true : false;
+        bResult = ((serverState & state) == state) ? true : false;
     } else {
-        Log.e(TAG, "[%s: %d] checkServerStateInPreview -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+        Log.e(TAG, "[%s: %d] checkServerStateIn -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
     }
     return bResult;    
 }
+
+bool MenuUI::checkServerStateIn(uint64_t serverState, uint64_t checkState)
+{
+    bool bRet = false;
+    if ((serverState & checkState) == checkState) {
+        bRet = true;
+    }
+    return bRet;   
+}
+
 
 /*
  * 请求设置某个状态位
@@ -6608,12 +6618,12 @@ bool MenuUI::checkServerStateInPreview()
 
 uint64_t MenuUI::getServerState()
 {
-    uint64_t serverState;
+    uint64_t serverState = STATE_IDLE;
     ProtoManager* pm = ProtoManager::Instance();
     if (pm->getServerState(&serverState)) {
         Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
     } else {
-        Log.e(TAG, "[%s: %d] checkServerStateInPreview -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+        Log.e(TAG, "[%s: %d] getServerState -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
     }
     return serverState;    
 }
@@ -6643,6 +6653,26 @@ bool MenuUI::check_live()
     return (check_state_in(STATE_LIVE) || check_state_in(STATE_LIVE_CONNECTING));
 }
 
+bool MenuUI::checkInLive()
+{
+    uint64_t serverState;
+    bool bResult = false;
+    
+    ProtoManager* pm = ProtoManager::Instance();
+    if (pm->getServerState(&serverState)) {
+        Log.d(TAG, "[%s: %d] Server State: 0x%x", __FILE__, __LINE__, serverState);
+        bResult = ((serverState & STATE_LIVE) == STATE_LIVE || (serverState & STATE_LIVE_CONNECTING) == STATE_LIVE_CONNECTING) ? true : false;
+    } else {
+        Log.e(TAG, "[%s: %d] checkServerStateIn -> Get Server State Failed, please check reason!", __FILE__, __LINE__);
+    }
+    return bResult;      
+}
+
+
+bool MenuUI::checkInLive(uint64_t serverState)
+{
+    return (checkServerStateIn(serverState, STATE_LIVE) || checkServerStateIn(serverState, STATE_LIVE_CONNECTING));
+}
 
 /*
  * http的web端，只有查询状态的权力
@@ -6968,9 +6998,8 @@ void MenuUI::disp_err_code(int code, int back_menu)
      * 313 - 卡速不足（或者拔卡）
      */
     if (code == 311 || code == 313 || code == 432  || code == 434) {  /* 小卡满,查询一下剩余空间  STATE_IDLE */
-        Log.d(TAG, "[%s: %d] Card is Full", __FILE__, __LINE__);     
-        asyncQueryTfCardState();
-        msg_util::sleep_ms(50);
+        Log.d(TAG, "[%s: %d] Card is Full", __FILE__, __LINE__);    
+        syncQueryTfCard(); 
     }
 
     for (u32 i = 0; i < sizeof(mErrDetails) / sizeof(mErrDetails[0]); i++) {
@@ -7021,7 +7050,7 @@ void MenuUI::disp_err_code(int code, int back_menu)
 
 void MenuUI::disp_err_str(int type)
 {
-    for (u32 i = 0; i < sizeof(mSysErr)/sizeof(mSysErr[0]); i++) {
+    for (u32 i = 0; i < sizeof(mSysErr) / sizeof(mSysErr[0]); i++) {
         if (type == mSysErr[i].type) {
             dispStr((const u8 *) mSysErr[i].code, 64, 16);
             break;
@@ -7032,27 +7061,23 @@ void MenuUI::disp_err_str(int type)
 
 void MenuUI::disp_sys_err(int type, int back_menu)
 {
-    Log.d(TAG, "disp_sys_err cur menu %d"
+    uint64_t serverState = getServerState();
+
+    Log.d(TAG, "---> disp_sys_err cur menu %d"
                   " state 0x%x back_menu %d type %d",
           cur_menu,
-          getServerState(),
+          serverState,
           back_menu,
           type);
 	
-    //met error at the
-    if (cur_menu == -1 && checkServerStateIn(STATE_IDLE)) {
-        Log.e(TAG, " met error at the beginning");
+    if (cur_menu == -1 && checkServerStateIn(serverState, STATE_IDLE)) {
+        Log.e(TAG, " ---> met error at the beginning");
     }
 	
     if (cur_menu != MENU_SYS_ERR) {
         setCurMenu(MENU_SYS_ERR, back_menu);
     }
 	
-    /* 如果是模组上电错误(可能是个别模组没起来)，调用关电 */
-    if (type == 460) {
-        system("power_manager power_off");
-    }
-
     disp_err_str(type);
 }
 
@@ -7104,6 +7129,7 @@ bool MenuUI::checkServerIsBusy()
             break;
         }
     }
+    Log.d(TAG, "[%s: %d] Server Busy state[%s]", __FILE__, __LINE__, (bRet == true) ? "true": "false");
     return bRet;
 }
 
@@ -7140,34 +7166,36 @@ void MenuUI::setAllLightOnOffForce(int iOnOff)
 int MenuUI::get_error_back_menu(int force_menu)
 {
     int back_menu = MENU_TOP;
+    uint64_t serverState = getServerState();
 
-    if (check_state_equal(STATE_IDLE)) {
+    if (checkStateEqual(serverState, STATE_IDLE)) {
         back_menu = MENU_TOP;
-    } else if (check_state_in(STATE_NOISE_SAMPLE)) {
+    } else if (checkServerStateIn(serverState, STATE_NOISE_SAMPLE)) {
         back_menu = MENU_NOSIE_SAMPLE;
-    } else if (check_state_in(STATE_SPEED_TEST)) {
+    } else if (checkServerStateIn(serverState, STATE_SPEED_TEST)) {
         back_menu = MENU_SPEED_TEST;
-    } else if (check_state_in(STATE_START_GYRO)) {
+    } else if (checkServerStateIn(serverState, STATE_START_GYRO)) {
         back_menu = MENU_GYRO_START;
-    } else if(check_state_in(STATE_START_QR) || check_state_in(STATE_START_QRING) ||
-             check_state_in(STATE_STOP_QRING)) {
+    } else if (checkServerStateIn(serverState, STATE_START_QR) || 
+                checkServerStateIn(serverState, STATE_START_QRING) ||
+                checkServerStateIn(serverState, STATE_STOP_QRING)) {
         back_menu = MENU_QR_SCAN;
-    } else if (check_state_in(STATE_RECORD) || 
-		check_state_in(STATE_START_RECORDING) ||
-		check_state_in(STATE_STOP_RECORDING)) {
+    } else if (checkServerStateIn(STATE_RECORD) || 
+		        checkServerStateIn(serverState, STATE_START_RECORDING) ||
+		        checkServerStateIn(serverState, STATE_STOP_RECORDING)) {
         back_menu = MENU_VIDEO_INFO;
-    } else if (check_state_in(STATE_LIVE) || 
-		check_state_in(STATE_START_LIVING) || 
-		check_state_in(STATE_STOP_LIVING) || 
-		check_state_in(STATE_LIVE_CONNECTING)) {
+    } else if (checkServerStateIn(serverState, STATE_LIVE) || 
+		        checkServerStateIn(serverState, STATE_START_LIVING) || 
+		        checkServerStateIn(serverState, STATE_STOP_LIVING) || 
+		        checkServerStateIn(serverState, STATE_LIVE_CONNECTING)) {
         back_menu = MENU_LIVE_INFO;
-    } else if (check_state_in(STATE_CALIBRATING)) {
+    } else if (checkServerStateIn(serverState, STATE_CALIBRATING)) {
         back_menu = MENU_CALIBRATION;
-    } else if (check_state_in(STATE_PIC_STITCHING) || 
-			check_state_in(STATE_TAKE_CAPTURE_IN_PROCESS) || 
-			check_state_in(STATE_PREVIEW) || 
-			check_state_in(STATE_START_PREVIEWING) || 
-			check_state_in(STATE_STOP_PREVIEWING)) {
+    } else if (checkServerStateIn(serverState, STATE_PIC_STITCHING) || 
+			    checkServerStateIn(STATE_TAKE_CAPTURE_IN_PROCESS) || 
+			    checkServerStateIn(serverState, STATE_PREVIEW) || 
+			    checkServerStateIn(serverState, STATE_START_PREVIEWING) || 
+			    checkServerStateIn(serverState, STATE_STOP_PREVIEWING)) {
         if (force_menu != -1) {
             back_menu = force_menu;
         } else {
@@ -7175,7 +7203,7 @@ int MenuUI::get_error_back_menu(int force_menu)
         }
     }
 			
-    Log.d(TAG, "get_error_back_menu state 0x%x back_menu %d", getServerState(), back_menu);
+    Log.d(TAG, "[%s: %d] get_error_back_menu state 0x%x back_menu %d", __FILE__, __LINE__, serverState, back_menu);
     return back_menu;
 }
 
@@ -7311,22 +7339,6 @@ void MenuUI::set_led_power(unsigned int on)
     }
 }
 
-
-
-bool MenuUI::asyncQueryTfCardState()
-{
-    // Log.d(TAG, "[%s: %d] Save Current Menu[%s]", __FILE__, __LINE__, getMenuName(cur_menu));
-
-    mSysncQueryTfReq = false;
-    mAsyncQueryTfReq = true;
-
-    add_state(STATE_QUERY_STORAGE);     /* 进入查询容量状态 */
-
-    /* 发送通知,等待camerad的 */
-    sendRpc(ACTION_QUERY_STORAGE);
-    return true;
-}
-
 /*
  * 同步查询 
  * 查询成功会在协议层将TF卡信息更新到VolumeManager中
@@ -7433,13 +7445,12 @@ int MenuUI::getTakepicCustomerDelay()
 //all disp is at bottom
 int MenuUI::oled_disp_type(int type)
 {
-    Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, getMenuName(cur_menu), getServerState());
+    uint64_t serverState = getServerState();
+    Log.d(TAG, "oled_disp_type (%d %s 0x%x)\n", type, getMenuName(cur_menu), serverState);
+    
     VolumeManager* vm = VolumeManager::Instance();
 
-    rm_state(STATE_FORMAT_OVER);
-
     switch (type) {
-
         case START_AGEING_FAIL: {
             minus_cam_state(STATE_RECORD);
             break;
@@ -7449,16 +7460,15 @@ int MenuUI::oled_disp_type(int type)
 		 * 启动老化 - 需要传递(本次老化的时间)
 		 */
         case START_AGEING: {
-            if (check_state_equal(STATE_IDLE)) {
-                setCurMenu(MENU_AGEING);
-            }
+            setCurMenu(MENU_AGEING);
             break;
         }
 			
         case START_RECING: {
-            add_state(STATE_START_RECORDING);
+            Log.d(TAG, "[%s: %d] Start Recording ...", __FILE__, __LINE__);
             break;
         }
+
 
 		/*
 		 * 启动录像成功 - 需要判断是UI的启动的还是客户端启动的
@@ -7471,35 +7481,22 @@ int MenuUI::oled_disp_type(int type)
 
             if (takeVideoIsAgeingMode()) {  /* 老化模式 */
                 set_update_mid();                    
-                add_state(STATE_RECORD);                /* 添加正在录像状态(去除正在启动录像状态) */
+                // add_state(STATE_RECORD);                /* 添加正在录像状态(去除正在启动录像状态) */
                 setCurMenu(MENU_VIDEO_INFO);
             } else {    /* 如果是客户端直接启动的录像,应该加上预览状态 */
             
-                if (!check_state_in(STATE_RECORD)) {    /* 处于非录像状态 */
-                    
-                    u64 uState = STATE_RECORD;
-
-                    if (check_rec_tl()) {               /* 如果是timelapse拍摄,将tl_count设置为0 */
-                        tl_count = 0;                   /* 计算出当前可拍timelapse的数目 */
-                    } else {                            /* 非timelapse录像 */
-                        vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */
-                        set_update_mid();
-
-                        /*
-                         * 如果是客户端启动的录像需加上预览
-                         */
-                        if (mClientTakeVideoUpdate == true) {
-                            uState |= STATE_PREVIEW;
-                        }
-                    }
-                    
-                    add_state(uState);            /* 添加正在录像状态(去除正在启动录像状态) */
-                    setCurMenu(MENU_VIDEO_INFO);
-                    Log.d(TAG, "[%s: %d] Enter Start Record Success, Current Menu[%s], state[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), getServerState());
-
-                } else {
-                    Log.e(TAG, "START_REC_SUC error state 0x%x", getServerState());
+                if (check_rec_tl()) {               /* 如果是timelapse拍摄,将tl_count设置为0 */
+                    tl_count = 0;                   /* 计算出当前可拍timelapse的数目 */
+                } else {                            /* 非timelapse录像 */
+                    vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */
+                    set_update_mid();
                 }
+
+                if (cur_menu != MENU_VIDEO_INFO) {  /* 客户端直接启动的录像，可能屏幕此时不处于MENU_VIDEO_INFO菜单 */
+                    setCurMenu(MENU_VIDEO_INFO);
+                }               
+                Log.d(TAG, "[%s: %d] Enter Start Record Success, Current Menu[%s], state[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), serverState);
+
             }
             break;
         }
@@ -7565,69 +7562,60 @@ int MenuUI::oled_disp_type(int type)
 		 */
         case STOP_REC_SUC: {
 
-            if (check_state_in(STATE_RECORD)) {
-                
-                minus_cam_state(STATE_RECORD | STATE_STOP_RECORDING);
+            if (mClientTakeVideoUpdate == true) {
+                mClientTakeVideoUpdate = false;
+            }
 
-                if (mClientTakeVideoUpdate == true) {
-                    mClientTakeVideoUpdate = false;
+            Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
+            mTakeVideInTimelapseMode = false;
+
+            //fix select for changed by controller or timelapse
+            if (cur_menu == MENU_VIDEO_INFO)  {
+
+                /* 发送查询容量命令 */
+                syncQueryTfCard();
+                vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */
+
+                /* tl_count > 0 表示是在拍timelapse，为了最大程度兼容以前的命令(以前是在录像模式下拍timelpase) 
+                    * 通过tl_count的值来区分是普通的录像还是拍timelapse STATE_IDLE
+                    * 如果是拍timelapse，结束录像时，重新进入拍照菜单（与客户端对应） - 2018年8月7日
+                    */
+                if (tl_count > 0) {
+                    setCurMenu(MENU_PIC_INFO);     /* timelapse拍摄完成后进入拍照页面 */
+                    updateBottomSpace(true, false);
+
+                    vm->clearTakeTimelapseCnt();
+
+                    ProtoManager* pm = ProtoManager::Instance();
+                    pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+
+                } else {    /* 正常的录像结束 */
+                    dispBottomInfo(false, true);     
                 }
+            } else {
+                Log.e(TAG, "error cur_menu %d ", cur_menu);
+            }
 
-                Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
-                mTakeVideInTimelapseMode = false;
+            tl_count = -1;
 
-                //fix select for changed by controller or timelapse
-                if (cur_menu == MENU_VIDEO_INFO)  {
-
-                    /* 发送查询容量命令 */
-                    asyncQueryTfCardState();
-                    msg_util::sleep_ms(150);
-                    vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */
-
-                    /* tl_count > 0 表示是在拍timelapse，为了最大程度兼容以前的命令(以前是在录像模式下拍timelpase) 
-                     * 通过tl_count的值来区分是普通的录像还是拍timelapse STATE_IDLE
-                     * 如果是拍timelapse，结束录像时，重新进入拍照菜单（与客户端对应） - 2018年8月7日
-                     */
-                    if (tl_count > 0) {
-                        setCurMenu(MENU_PIC_INFO);     /* timelapse拍摄完成后进入拍照页面 */
-                        updateBottomSpace(true, false);
-
-                        vm->clearTakeTimelapseCnt();
-
-                        ProtoManager* pm = ProtoManager::Instance();
-                        pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
-
-                    } else {    /* 正常的录像结束 */
-                        dispBottomInfo(false, true);     
-                    }
-
-                } else {
-                    Log.e(TAG, "error cur_menu %d ", cur_menu);
-                }
-
-                tl_count = -1;
-
-				/* 添加用于老化测试： 灯全绿 */
-                if (takeVideoIsAgeingMode()) {
-    				setLightDirect(FRONT_GREEN | BACK_GREEN);
-                }
+            /* 添加用于老化测试： 灯全绿 */
+            if (takeVideoIsAgeingMode()) {
+                setLightDirect(FRONT_GREEN | BACK_GREEN);
             }
             break;
         }
 			
         case STOP_REC_FAIL: {
             ProtoManager* pm = ProtoManager::Instance();
-            if (check_state_in(STATE_RECORD)) {
-                tl_count = -1;
-                vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */                
-                vm->clearTakeTimelapseCnt();
+            tl_count = -1;
+            vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */                
+            vm->clearTakeTimelapseCnt();
 
-                pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
+            pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
 
 
-                rm_state(STATE_STOP_RECORDING | STATE_RECORD);
-                disp_sys_err(type);
-            }
+            rm_state(STATE_STOP_RECORDING | STATE_RECORD);
+            disp_sys_err(type);
 
             Log.d(TAG, "[%s: %d] Exit Client Timelapse Mode now ...", __FILE__, __LINE__);
             mTakeVideInTimelapseMode = false;
@@ -7642,6 +7630,7 @@ int MenuUI::oled_disp_type(int type)
 
 /************************************ 拍照相关 START **********************************************/	
         case CAPTURE: {     /* 检查是拍照还是拍timelapse */
+
             ProtoManager* pm = ProtoManager::Instance();
 
             if (checkServerAllowTakePic()) {
@@ -7781,28 +7770,21 @@ int MenuUI::oled_disp_type(int type)
         }
 		
         case STOP_LIVE_SUC: {
+            vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
+            syncQueryTfCard();
 
-            if (check_live()) {
+            if (mClientTakeLiveUpdate == true) {
+                mClientTakeLiveUpdate = false;
+                mControlLiveJsonCmd.clear();
 
-                minus_cam_state(STATE_LIVE|STATE_STOP_LIVING|STATE_LIVE_CONNECTING);
-                vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
-
-                asyncQueryTfCardState();
-                msg_util::sleep_ms(50);
-
-                if (mClientTakeLiveUpdate == true) {
-                    mClientTakeLiveUpdate = false;
-                    mControlLiveJsonCmd.clear();
-
-                    if (cur_menu == MENU_LIVE_INFO) {
-                        // disp_cam_param(0);
-                    } else {
-                        Log.e(TAG, "error capture　suc cur_menu %d ", cur_menu);
-                    }
+                if (cur_menu == MENU_LIVE_INFO) {
+                    // disp_cam_param(0);
+                } else {
+                    Log.e(TAG, "error capture　suc cur_menu %d ", cur_menu);
                 }
-
-                dispBottomInfo(false, false); 
             }
+
+            dispBottomInfo(false, false); 
             vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
             break;
         }
@@ -7810,9 +7792,7 @@ int MenuUI::oled_disp_type(int type)
         case STOP_LIVE_FAIL: {
             mClientTakeLiveUpdate = false;
             mControlLiveJsonCmd.clear();
-            rm_state(STATE_STOP_LIVING | STATE_LIVE | STATE_LIVE_CONNECTING);
-            asyncQueryTfCardState();
-            msg_util::sleep_ms(50);
+            syncQueryTfCard();
             disp_sys_err(type);
             vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
             break;
@@ -7822,7 +7802,11 @@ int MenuUI::oled_disp_type(int type)
 /************************************ 直播相关 END **********************************************/
 			
         case PIC_ORG_FINISH: {  /* 此时Server处于Stitching状态 */
-            setCurMenu(MENU_PIC_INFO);
+            if (cur_menu == MENU_PIC_INFO) {
+                dispProcessing();
+            } else {
+                Log.e(TAG, "[%s: %d] Error PIC_ORG_FINISH notify, but UI not MENU_PIC_INFO", __FILE__, __LINE__);
+            }
             break;
         }
 			
@@ -7872,10 +7856,9 @@ int MenuUI::oled_disp_type(int type)
 
             ProtoManager* pm = ProtoManager::Instance();
 
-            Log.d(TAG, ">>>>>>>>>>>>>>>  PREVIEW SUCCESS");                  
+            Log.d(TAG, "---------> PREVIEW SUCCESS");                  
 
-            Log.d(TAG, "[%s: %d] Current Menu[%s] and State[0x%x]", __FILE__, __LINE__, getMenuName(cur_menu), getServerState());
-
+   
             if (mWhoReqEnterPrew == APP_REQ_PREVIEW) {
                 setCurMenu(MENU_PIC_INFO);
             } else {
@@ -7887,35 +7870,10 @@ int MenuUI::oled_disp_type(int type)
             /* 同步方式查询TF卡信息,然后更新底部空间 */
             syncQueryTfCard();
             dispReady();
+
             updateBottomSpace(true, false); 
             break;
         }
-
-
-    #if 0
-        /* 查询TF Card状态有两种情况: 预览和IDLE状态 
-         * 修改：2018年8月13日
-         */
-        case START_QUERY_STORAGE_SUC:
-        case START_QUERY_STORAGE_FAIL: {  /* 查询TF卡状态成功 */
-            if (check_state_in(STATE_START_PREVIEWING) || check_state_in(STATE_PREVIEW)) {  /* 表示是预览后的查询 */
-
-                Log.d(TAG, "[%s: %d] Preview Success START_QUERY_STORAGE_SUC, current cam state: 0x%x", __FILE__, __LINE__, getServerState());
-                add_state(STATE_PREVIEW);   /* 添加STATE_PREVIEW，将在屏幕中间显示"No SD Card"或"Need mSD Card"或"Ready"字样 */
-
-                /* 更新底部的空间: 以更新的数据重新计算 */
-                updateBottomSpace(true, false); 
-            } else if (check_state_in(STATE_PREVIEW)) {
-
-                add_state(STATE_PREVIEW);   /* 添加STATE_PREVIEW，将在屏幕中间显示"No SD Card"或"Need mSD Card"或"Ready"字样 */
-
-                /* 其他情况下查询TF卡的状态 */
-                Log.d(TAG, "[%s: %d] Other START_QUERY_STORAGE_SUC, current cam state: 0x%x", __FILE__, __LINE__, getServerState());
-                updateBottomSpace(true, false); 
-            }
-            break;  
-        }
-    #endif
 			
         case START_PREVIEW_FAIL: {	/* 启动预览失败 */
             Log.d(TAG, "[%s: %d] START_PREVIEW_FAIL cur_menu [%s]", __FILE__, __LINE__, getMenuName(cur_menu));
@@ -7934,8 +7892,8 @@ int MenuUI::oled_disp_type(int type)
             break;
         }
 			
-        case STOP_PREVIEW_FAIL:	{	/* 停止预览失败 */
-            Log.d(TAG, "STOP_PREVIEW_FAIL fail cur_menu %d %d", cur_menu, getServerState());
+        case STOP_PREVIEW_FAIL:	{	    /* 停止预览失败 */
+            Log.d(TAG, "STOP_PREVIEW_FAIL fail cur_menu %d %d", cur_menu, serverState);
             disp_sys_err(type);
             break;
         }
@@ -8179,7 +8137,7 @@ int MenuUI::oled_disp_type(int type)
             Log.d(TAG, "[%s: %d]>>>>>>>>>> tl_count %d", __FILE__, __LINE__, tl_count);
 
             if (!check_state_in(STATE_RECORD)) {
-                Log.e(TAG," TIMELPASE_COUNT Server State 0x%x", getServerState());
+                Log.e(TAG," TIMELPASE_COUNT Server State 0x%x", serverState);
             } else {
 
                 disp_tl_count(tl_count);    /* 显示timelpase拍摄值以及剩余可拍的张数 */
@@ -8231,7 +8189,6 @@ int MenuUI::oled_disp_type(int type)
             } else {
                 setLightDirect(BACK_RED|FRONT_RED);
             }
-            mControlAct = nullptr;
             break;
 
         case START_LOW_BAT_FAIL:
@@ -8242,7 +8199,6 @@ int MenuUI::oled_disp_type(int type)
             } else {
                 setLightDirect(BACK_RED|FRONT_RED);
             }
-            mControlAct = nullptr;
             break;
 
         case START_NOISE_SUC:
@@ -8288,21 +8244,7 @@ int MenuUI::oled_disp_type(int type)
 
         /* 此时已经设置好状态,不需要再做状态检查 */
         case ENTER_UDISK_MODE: {    
-            #if 0
-            if (!checkServerStateIn(STATE_UDISK)) {
-                Log.d(TAG, "[%s: %d] ------------>> Enter Udisk Mode ....", __FILE__, __LINE__);
-                if (addState(STATE_UDISK)) {
-                    setCurMenu(MENU_UDISK_MODE);
-                } else {
-                    Log.e(TAG, "[%s: %d] Request Server Add STATE_UDISK failed.", __FILE__, __LINE__);
-                }
-            } else {
-                Log.e(TAG, "[%s: %d] Enter Udisk Mode failed [%s], already in U-disk mode now.", __FILE__, __LINE__, getMenuName(cur_menu));                
-            }
-            #else
             setCurMenu(MENU_UDISK_MODE);
-            #endif
-
             break;
         }
 
@@ -9239,8 +9181,7 @@ void MenuUI::handleTfStateChanged(vector<sp<Volume>>& mTfChangeList)
 
         /* 有TF卡插入并且录像,直播模式下需要重新查询小卡状态 */
         if ((iAction == VOLUME_ACTION_ADD) && (cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_VIDEO_SET_DEF || cur_menu == MENU_LIVE_SET_DEF )) { /* 有卡插入 */
-            asyncQueryTfCardState();
-            msg_util::sleep_ms(50);
+            syncQueryTfCard();
         }
 
         /* 显示消息框:  STATE_IDLE
@@ -9584,11 +9525,12 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
 void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 {
 	bSendUpdate = false;
+    uint64_t serverState = getServerState();
 
 	unique_lock<mutex> lock(mutexState);
 	switch (menu) {
 		case MENU_PIC_INFO: {
-			if (checkServerStateIn(STATE_TAKE_CAPTURE_IN_PROCESS)) {
+			if (checkServerStateIn(serverState, STATE_TAKE_CAPTURE_IN_PROCESS)) {
 	
 				if (mTakePicDelay == 0) {
 
@@ -9614,10 +9556,10 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 				}
                 mTakePicDelay--;
 
-			} else if (checkServerStateIn(STATE_PIC_STITCHING)) {
+			} else if (checkServerStateIn(serverState, STATE_PIC_STITCHING)) {
 				send_update_light(menu, state, INTERVAL_5HZ, true);
 			} else {
-				Log.d(TAG, "update pic light error state 0x%x", getServerState());
+				Log.d(TAG, "update pic light error state 0x%x", serverState);
 				setLight();
 			}
 			break;
@@ -9625,8 +9567,7 @@ void MenuUI::handleDispLightMsg(int menu, int state, int interval)
 
 					
 		case MENU_CALIBRATION: {
-						
-			if ((mCamState & STATE_CALIBRATING) == STATE_CALIBRATING) {
+            if (checkServerStateIn(serverState, STATE_CALIBRATING)) {
 				if (mGyroCalcDelay < 0) {
 					send_update_light(menu, state, INTERVAL_5HZ, true);
 					if (mGyroCalcDelay == -1) {
@@ -10170,7 +10111,6 @@ void MenuUI::dispLeftNum(const char* pBuf)
     int iLen = strlen(pBuf);
     int iStartPos = 78;         /* 默认的显示的横坐标为78 */
 
-    Log.d(TAG, "[%s: %d] Left Num str len = %d", __FILE__, __LINE__, iLen);
     switch (iLen) {
         case 1:
             iStartPos = 122;
@@ -10268,7 +10208,7 @@ void MenuUI::dispEnterUdiskFailed()
 
 bool MenuUI::checkisLiveRecord()
 {
-    if (check_live()) {
+    if (checkInLive()) {
         int iRet = -1;
         int item = getMenuSelectIndex(MENU_LIVE_SET_DEF);
         PicVideoCfg* pTmpCfg = mLiveAllItemsList.at(item);       

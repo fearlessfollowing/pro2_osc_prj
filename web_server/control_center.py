@@ -442,8 +442,9 @@ class control_center:
             config._LIVE_FINISH:            self.handle_live_finsh,
             config._LIVE_REC_FINISH:        self.handle_live_rec_finish,
 
-            # 拍照完成通知
+            # Origin拍摄完成
             config._PIC_ORG_FINISH:         self.handle_pic_org_finish,
+
             config._CAL_ORG_FINISH:         self.handle_cal_org_finish,
             config._TIMELAPSE_PIC_FINISH:   self.handle_timelapse_pic_finish,
             config._NOISE_FINISH:           self.handle_noise_finish,
@@ -2307,7 +2308,8 @@ class control_center:
                 StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
         try:
             if StateMachine.checkAllowTakePic():
-                if  req is None:
+                StateMachine.addCamState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+                if req is None:
                     res = self.take_pic(self.get_req(name, self.get_pic_param()),True)
                 else:
                     Info('oled req {}'.format(req))
@@ -3266,14 +3268,11 @@ class control_center:
             osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HAND_SAVE_PATH,content))
         except Exception as e:
             Err('start_change_save_path exception {}'.format(str(e)))
-        # Info('start_change_save_path new')
 
 
     def handle_oled_key(self, content):
-        Info('+++++++++++++++ handle_oled_key start')
         self.acquire_sem_camera()
         try:
-            # Info('handle_oled_key start2 content {}'.format(content))
             action = content['action']
             Info('handle_oled_key action {}'.format(action))
             
@@ -3285,17 +3284,16 @@ class control_center:
                     res = self.oled_func[action]()
             else:
                 Err('bad oled action {}'.format(action))
-            # Info('handle oled key func {} res {}'.format(action, res))
         except Exception as e:
             Err('handle_oled_key exception {}'.format(e))
         self.release_sem_camera()
-        Info('+++++++++++++++++++++ handle_oled_key over')
+
 
 
 ######################################### Notify Start ################################
 
     #same func as reset
-    def state_notify(self,state_str):
+    def state_notify(self, state_str):
         Info('state_notify info {}'.format(state_str))
         self.clear_all()
         self.send_oled_type_err(config.START_FORCE_IDLE, self.get_err_code(state_str))
@@ -3318,14 +3316,18 @@ class control_center:
             self.send_oled_type_err(config.STOP_REC_FAIL, self.get_err_code(param))
 
     # 方法名称: pic_notify
-    # 功能描述: 处理拍照完成通知(可能是正常停止成功;也可能发生错误被迫停止)
+    # 功能描述: 处理拍照完成通知(可能是正常停止成功;也可能发生错误被迫停止,如果有拼接,拼接已经完成)
     #           
     # 入口参数: param - 返回的结果
     # 返回值: 
     def pic_notify(self, param):
         Info('[-------Notify Message -------] pic_notify param {}'.format(param))
-        StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
-        StateMachine.rmServerState(config.STATE_PIC_STITCHING)
+        if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
+            StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+
+        if StateMachine.checkStateIn(config.STATE_PIC_STITCHING):
+            StateMachine.rmServerState(config.STATE_PIC_STITCHING)
+
         if param[_state] == config.DONE:
             self.send_oled_type(config.CAPTURE_SUC)
         else:
@@ -3484,6 +3486,7 @@ class control_center:
         # 将更新的信息发给UI(2018年8月7日)
         self.send_req(self.get_write_req(config.UI_NOTIFY_TF_CHANGED, param))
 
+
     # 方法名称: stitch_notify
     # 功能描述: 拼接进度变化通知
     #           
@@ -3539,7 +3542,7 @@ class control_center:
 
 
     # 方法名称: handle_pic_org_finish
-    # 功能描述: 拍照完成
+    # 功能描述: 拍照完成(原片拍完)
     #           
     # 入口参数: param - 返回的结果
     # 返回值:
@@ -3547,10 +3550,9 @@ class control_center:
         Info('[-------Notify Message -------] take pic finish notify param {} state {}'.format(param, StateMachine.getCamStateFormatHex()))
         if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
             StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
-            StateMachine.addServerState(config.STATE_PIC_STITCHING)
-            self.send_oled_type(config.PIC_ORG_FINISH)
-        else:
-            Info('--> pic org finish err state {}'.format(StateMachine.getCamStateFormatHex()))
+
+        StateMachine.addServerState(config.STATE_PIC_STITCHING)
+        self.send_oled_type(config.PIC_ORG_FINISH)
 
 
     # 方法名称: handle_timelapse_pic_finish

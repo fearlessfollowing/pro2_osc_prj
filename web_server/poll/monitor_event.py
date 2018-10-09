@@ -320,33 +320,22 @@ class monitor_fifo_read(threading.Thread):
 
         while self._exit is False:
             try:
-                # Info('monitor_fifo_read pro open ')
                 self.get_read_fd()
 
-                # Info('monitor_fifo_read pro read ')
                 header = self.start_read(HEAD_LEN)
 
-                # Print(' read monitor header {} {} {}'.format(len(header), HEAD_LEN, header))
-                # assert_match(len(header),HEAD_LEN)
-
-                # Info('debug headers :')
-                # i = 0
-                # while i < HEAD_LEN:
-                #     Info("{} ".format(header[i]))
-                #     i += 1
                 event = bytes_to_int(header, 0)
-                Print('monitor_fifo_read event {}'.format(event))
+                # Print('monitor_fifo_read event {}'.format(event))
                 content_len = bytes_to_int(header, CON_LEN_OFF)
 
                 Info('content_len is {}'.format(content_len))
                 if content_len > 0:
                     read_content = self.start_read(content_len)
 
-                    Print('monitor fifo read_content is {} content_len {}'.format(read_content, content_len))
+                    # Print('monitor fifo read_content is {} content_len {}'.format(read_content, content_len))
                     content = bytes_to_str(read_content)
                     
-                    Print('len(content) {} content_len {} '.format(len(content),content_len))
-                    #assert_match(len(content), content_len)
+                    # Print('len(content) {} content_len {} '.format(len(content),content_len))
 
                     Print('read monitor content len {} content {}'.format(content_len,content))
                     self.func[event](jsonstr_to_dic(content))
