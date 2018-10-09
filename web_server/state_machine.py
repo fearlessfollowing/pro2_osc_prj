@@ -112,7 +112,7 @@ class StateMachine:
 
     @classmethod
     def checkAllowTakeVideo(cls):
-        Info('-------> checkAllowTakePic, cam state {}'.format(StateMachine.getCamState()))
+        Info('-------> checkAllowTakeVideo, cam state {}'.format(StateMachine.getCamState()))
         if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
             return True
         else:
@@ -234,6 +234,13 @@ class StateMachine:
     @classmethod 
     def checkAllowNoise(self):
         if StateMachine.getCamState() == config.STATE_IDLE:
+            return True
+        else:
+            return False
+
+    @classmethod 
+    def checkAllowSpeedTest(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False

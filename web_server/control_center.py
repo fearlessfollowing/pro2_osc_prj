@@ -113,6 +113,8 @@ class control_center:
         self._list_progress = False   
         self._list_file_seq = -1  
         self._client_take_pic = False   
+        self._client_take_live = False
+
         # self.delete_lists
 
         # 
@@ -217,20 +219,31 @@ class control_center:
             config._STOP_PREVIEW:           self.camera_stop_preview_done,
 
             config._START_RECORD:           self.camera_rec_done,
+
             config._STOP_RECORD:            self.camera_rec_stop_done,
+            
             config._START_LIVE:             self.camera_live_done,
+            
             config._STOP_LIVE:              self.camera_stop_live_done,
 
             config._TAKE_PICTURE:           self.camera_take_pic_done,
 
             config._CALIBRATION:            self.camera_start_calibration_done,
+            
             config._QUERY_STATE:            self.camera_query_state_done,
+            
             config._START_QR:               self.camera_start_qr_done,
+            
             config._STOP_QR:                self.camera_stop_qr_done,
+            
             # config._LOW_BAT:              self.camera_low_bat_done,
+            
             config._LOW_BAT_PROTECT:        self.camera_low_protect_done,
+            
             config._POWER_OFF:              self.camera_power_off_done,
+            
             config._SPEED_TEST:             self.camera_speed_test_done,
+            
             config._START_GYRO:             self.camera_gyro_done,
 
             config._START_NOISE:            self.camera_noise_done,
@@ -277,8 +290,11 @@ class control_center:
             config._STOP_PREVIEW:           self.camera_preview_stop_fail,
 
             config._START_RECORD:           self.camera_rec_fail,
+
             config._STOP_RECORD:            self.camera_rec_stop_fail,
+            
             config._START_LIVE:             self.camera_live_fail,
+            
             config._STOP_LIVE:              self.camera_stop_live_fail,
 
             config._TAKE_PICTURE:           self.camera_take_pic_fail,
@@ -429,17 +445,27 @@ class control_center:
 
         self.state_notify_func = OrderedDict({
             config._STATE_NOTIFY:           self.state_notify,
+
+
             config._RECORD_FINISH:          self.rec_notify,
+            
             config._PIC_NOTIFY:             self.pic_notify,
+            
             config._RESET_NOTIFY:           self.reset_notify,
+            
             config._QR_NOTIFY:              self.qr_notify,
             config._CALIBRATION_NOTIFY:     self.calibration_notify,
             config._PREVIEW_FINISH:         self.preview_finish_notify,
             config._LIVE_STATUS:            self.live_stats_notify,
             config._NET_LINK_STATUS:        self.net_link_state_notify,
             config._GYRO_CALIBRATION:       self.gyro_calibration_finish_notify,
+
+            # 测速完成通知
             config._SPEED_TEST_NOTIFY:      self.storage_speed_test_finish_notify,
+
+            # 非存片模式的直播
             config._LIVE_FINISH:            self.handle_live_finsh,
+            
             config._LIVE_REC_FINISH:        self.handle_live_rec_finish,
 
             # Origin拍摄完成
@@ -450,9 +476,12 @@ class control_center:
             config._NOISE_FINISH:           self.handle_noise_finish,
             config._GPS_NOTIFY:             self.gps_notify,
             config._STITCH_NOTIFY:          self.stitch_notify,
+
             # config._BLC_FINISH:             self.calibration_blc_notify,
             config._SND_NOTIFY:             self.snd_notify,
+            
             config._BLC_FINISH:             self.calibration_blc_notify,
+            
             config._BPC_FINISH:             self.calibration_bpc_notify,
             
             #通知TF卡状态的变化
@@ -674,6 +703,7 @@ class control_center:
         self.init_thread()
 
         self.poll_timer = RepeatedTimer(POLL_TO, self.poll_timeout, "poll_state")
+
         # Print('self poll timer id {}'.format(id(self.poll_timer)))
         self.connect_sem = Semaphore()
         self.sem_camera = Semaphore()
@@ -685,13 +715,13 @@ class control_center:
         self.syncWriteReadSem = Semaphore()
 
         self.url_list = {config.PREVIEW_URL: None, config.RECORD_URL: None, config.LIVE_URL: None}
+
         osc_state_handle.start()
         #keep in the end of init 0616 for recing msg from pro_service after fifo create
         self.init_fifo_read_write()
         self.init_fifo_monitor_camera_active()
+
         os.system("setprop sys.web_status true")
-
-
 
     def send_sync_init(self,req):
         Info('send sync init req {}'.format(req))
@@ -1294,6 +1324,7 @@ class control_center:
         if res is not None and check_dic_key_exist(res, config.RECORD_URL):
             self.set_rec_url(res[config.RECORD_URL])
 
+
     def camera_rec_fail(self, err = -1):
         if StateMachine.checkStateIn(config.STATE_START_RECORDING):
             StateMachine.rmServerState(config.STATE_START_RECORDING)
@@ -1304,28 +1335,35 @@ class control_center:
         self.send_oled_type_err(config.START_REC_FAIL, err)
 
 
-
+    # camera_rec_stop_done
+    # 录像停止成功(camerad接收到,去掉录像状态)
     def camera_rec_stop_done(self, req = None):
-        # self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD)
-        # self.send_oled_type(config.STOP_REC_SUC)
-        Info('camera_rec_stop_done ')
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+        Info('---> camera_rec_stop_done')
 
 
+    # camera_rec_stop_fail
+    # 录像停止失败(还处于录像状态???)
     def camera_rec_stop_fail(self, err = -1):
-        Info('error enter re stop fail err {}'.format(err))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD)
+        Err('---> Record Stop failed {}'.format(err))
+        if StateMachine.checkStateIn(config.STATE_STOP_RECORDING):
+            StateMachine.rmServerState(config.STATE_STOP_RECORDING)
         self.send_oled_type_err(config.STOP_REC_FAIL, err)
+
 
     def stop_rec(self,req,from_oled = False):
         read_info = self.write_and_read(req, from_oled)
         return read_info
 
+
     def camera_rec_stop(self, req, from_ui = False):
         if StateMachine.checkInRecord():
             read_info = self.stop_rec(req)
         else:
-            read_info =  cmd_error_state(req[_name],self.get_cam_state())
+            read_info =  cmd_error_state(req[_name], self.get_cam_state())
         return read_info
+
 
     def get_offset(self, req, from_ui = False):
         read_info = self.write_and_read(req)
@@ -1403,14 +1441,18 @@ class control_center:
         Info('check_live_save req {} res {}'.format(req,res))
         return res
 
-    #add oled = False to judge whether send req to oled
+    # camera_live_done
+    # 启动直播成功
     def camera_live_done(self, res = None, req = None, oled = False):
-        self.set_cam_state(self.get_cam_state() | config.STATE_LIVE)
+        self._client_take_live = False        
+        if StateMachine.checkStateIn(config.STATE_START_LIVING):
+            StateMachine.rmServerState(config.STATE_START_LIVING)
+
+        StateMachine.addCamState(config.STATE_LIVE)
+
         if req is not None:
-            # Info('live done param {}'.format(req))
             if self.check_live_save(req) is True:
-                self.set_cam_state(self.get_cam_state() | config.STATE_RECORD)
-            Info('self.get_cam_state() is {}'.format(self.get_cam_state()))
+                StateMachine.addCamState(config.STATE_RECORD)
             if oled:
                 self.send_oled_type(config.START_LIVE_SUC)
             else:
@@ -1425,16 +1467,18 @@ class control_center:
                 self.set_live_url(res[config.LIVE_URL])
 
     def camera_live_fail(self, err = -1):
+        self._client_take_live = False
         StateMachine.rmServerState(config.STATE_START_LIVING)
         self.send_oled_type_err(config.START_LIVE_FAIL, err)
 
-    def start_live(self,req, from_oled = False):
-        read_info = self.write_and_read(req,from_oled)
+    def start_live(self, req, from_oled = False):
+        read_info = self.write_and_read(req, from_oled)
         return read_info
 
     def camera_live(self, req, from_ui = False):
         if StateMachine.checkAllowLive():
             StateMachine.addCamState(config.STATE_START_LIVING)
+            self._client_take_live = True
             read_info = self.start_live(req)
         elif StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
             res = OrderedDict({config.LIVE_URL: self.get_live_url()})
@@ -1448,61 +1492,38 @@ class control_center:
         return json.dumps(ret)
 
 
-    def camera_stop_live_done(self,req = None):
-        # self.set_cam_state(self.get_cam_state() & ~config.STATE_LIVE)
-        # self.send_oled_type(config.STOP_LIVE_SUC)
-        # self.set_live_url(None)
-        Info('do nothing while stop live done')
+    # 停止直播命令发送成功
+    # 去掉直播状态,添加STATE_STOP_LIVING状态
+    # 如果有录像状态,也去掉录像状态
+    def camera_stop_live_done(self, req = None):
+        Info('------> camera_stop_live_done')
+        StateMachine.addCamState(config.STATE_STOP_LIVING)
 
+        if StateMachine.checkStateIn(config.STATE_LIVE):
+            StateMachine.rmServerState(config.STATE_LIVE)
 
-    def camera_stop_live_fail(self,err = -1):
-        Info('error enter live fail err {}'.format(err))
+        if StateMachine.checkStateIn(config.STATE_LIVE_CONNECTING):
+            StateMachine.rmServerState(config.STATE_LIVE_CONNECTING)
+
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
+    def camera_stop_live_fail(self, err = -1):
+        Info('---> camera_stop_live_fail {}'.format(err))
         self.set_cam_state(self.get_cam_state() & (~(config.STATE_LIVE | config.STATE_RECORD)))
-        self.send_oled_type_err(config.STOP_LIVE_FAIL,err)
+        self.send_oled_type_err(config.STOP_LIVE_FAIL, err)
 
 
     def stop_live(self,req,from_oled = False):
         read_info = self.write_and_read(req,from_oled)
-        # if read_info[_state] == config.DONE:
-        #     self.set_cam_state(self.get_cam_state() & ~config.STATE_LIVE)
-        #     self.send_oled_type(config.STOP_LIVE_SUC)
-        #     cmd_suc(config._STOP_LIVE)
-        #     self.set_live_url(None)
-        # else:
-        #     if from_oled:
-        #         self.send_oled_type(config.STOP_LIVE_FAIL)
         return read_info
 
     def camera_stop_live(self, req, from_ui = False):
         if StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
             read_info = self.stop_live(req)
         else:
-            read_info =  cmd_error_state(req[_name],self.get_cam_state())
+            read_info =  cmd_error_state(req[_name], StateMachine.getCamStateFormatHex())
         return read_info
-
-    def clear_url_list(self):
-        # Info('clear url list')
-        self.url_list = {config.PREVIEW_URL: None, config.RECORD_URL: None, config.LIVE_URL: None}
-
-    def get_preview_url(self):
-        # Info('getPreview url {}'.format(self.url_list[config.PREVIEW_URL]))
-        return self.url_list[config.PREVIEW_URL]
-
-    def set_preview_url(self, url):
-        # Info('setPreview url {}'.format(url))
-        self.url_list[config.PREVIEW_URL] = url
-
-    def set_rec_url(self, url):
-        self.url_list[config.RECORD_URL] = url
-
-    def get_rec_url(self):
-        return self.url_list[config.RECORD_URL]
-
-    def set_live_url(self, url):
-        self.url_list[config.LIVE_URL] = url
-
-    def get_live_url(self):
-        return self.url_list[config.LIVE_URL]
 
 
     # 方法名称: camera_preview_fail
@@ -1970,7 +1991,7 @@ class control_center:
     # 入口参数: req - 请求参数
     # 返回值: 
     def cameraUiUpdateRecLeftSec(self, req):
-        Info('---------> cameraUiUpddateRecLeftSec: {}'.format(req))
+        # Info('---------> cameraUiUpddateRecLeftSec: {}'.format(req))
         osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.UPDATE_REC_LEFT_SEC, req[_param]))
         res = OrderedDict()
         res[_name] = req[_name]
@@ -2136,7 +2157,9 @@ class control_center:
     def ui_cmd_execute(self, req):
         try:
             name = req[_name]
-            Info('ui_cmd_execute req is {}'.format(req))
+
+            # Info('ui_cmd_execute req is {}'.format(req))
+            
             if name in self.ui_cmd_func:
                 ret = self.ui_cmd_func[name](req) 
             else:
@@ -2146,6 +2169,27 @@ class control_center:
             ret = cmd_exception(str(e), name)
         return ret
 
+
+    def clear_url_list(self):
+        self.url_list = {config.PREVIEW_URL: None, config.RECORD_URL: None, config.LIVE_URL: None}
+
+    def get_preview_url(self):
+        return self.url_list[config.PREVIEW_URL]
+
+    def set_preview_url(self, url):
+        self.url_list[config.PREVIEW_URL] = url
+
+    def set_rec_url(self, url):
+        self.url_list[config.RECORD_URL] = url
+
+    def get_rec_url(self):
+        return self.url_list[config.RECORD_URL]
+
+    def set_live_url(self, url):
+        self.url_list[config.LIVE_URL] = url
+
+    def get_live_url(self):
+        return self.url_list[config.LIVE_URL]
 
     # Command Input
     # {
@@ -2430,14 +2474,21 @@ class control_center:
         auto_connect = OrderedDict({})
         auto_connect['enable'] = True
         auto_connect['interval'] = 1000
-        auto_connect['count'] = -1#forever
+        auto_connect['count'] = -1  #forever
         return auto_connect
 
-    def camera_oled_live(self,action_info = None):
+    def camera_oled_live(self, action_info = None):
         name = config._START_LIVE
-        Info('camera_oled_live start')
+        Info('----> camera_oled_live start')
         try:
-            if self.checkAllowLive():
+            if self._client_take_live == False:
+                if StateMachine.checkStateIn(config.STATE_START_LIVING):
+                    StateMachine.rmServerState(config.STATE_START_LIVING)
+
+            # 允许启动直播
+            if StateMachine.checkAllowLive():
+
+                StateMachine.addCamState(config.STATE_START_LIVING)
                 if action_info is None:
                     Info('camera_oled_live action none')
                     res = self.start_live(self.get_req(name, self.get_live_param()), True)
@@ -2446,28 +2497,26 @@ class control_center:
                         action_info[config.AUD] = self.get_audio()
                     else:
                         Info('live oled audio exist {}'.format(action_info[config.AUD]))
+
                     if check_dic_key_exist(action_info, config.LIVE_AUTO_CONNECT) is False:
                         action_info[config.LIVE_AUTO_CONNECT] = self.get_auto_connect_param()
                     else:
                         Info('live auto connect exist {}'.format(action_info[config.LIVE_AUTO_CONNECT]))
-                    # if check_dic_key_exist(action_info,config.STICH) and action_info[config.STICH][config.MODE] in ['3d','3d_top_left']:
-                    #     action_info[KEY_STABLIZATION] = False
-                    # else:
-                    #     action_info[KEY_STABLIZATION] = True
                     res = self.start_live(action_info, True)
-                    #res = self.start_live(self.get_req(name,action_info), True)
-
             elif StateMachine.checkInLive() or StateMachine.checkInLiveConnecting():
                 name = config._STOP_LIVE
-                res = self.stop_live(self.get_req(name),True)
+                res = self.stop_live(self.get_req(name), True)
             else:
+                if StateMachine.checkStateIn(config.STATE_START_LIVING):
+                    StateMachine.rmServerState(config.STATE_START_LIVING)
                 self.send_oled_type(config.START_LIVE_FAIL)
-                res = self.cmd_error_state(name,self.get_cam_state())
-            Info('live res {}'.format(res))
+                res = cmd_error_state(name, self.get_cam_state())
+                Info('---> live res {}'.format(res))
         except Exception as e:
             Err('camera_oled_live e {}'.format(e))
-            res = cmd_exception(e,name)
+            res = cmd_exception(e, name)
         return res
+
 
     def get_live_org_req(self):
         dict = OrderedDict()
@@ -2595,40 +2644,7 @@ class control_center:
             Err('camera_oled_sync_state e {}'.format(e))
         return cmd_done(ACTION_REQ_SYNC)
 
-    # def get_hdmi_param(self, mode=config.MODE_3D):
-    #     br = 25000
-    #     param = OrderedDict()
-    #     if mode == config.MODE_3D:
-    #         param[config.ORG] = self.get_origin(mime='h264', w=2160, h=1620, framerate=25, bitrate=br)
-    #     else:
-    #         param[config.ORG] = self.get_origin(mime='h264', w=2560, h=1440, framerate=30, bitrate=br)
-    #
-    #     param[config.AUD] = self.get_audio()
-    #     return param
-
-    # def camera_oled_hdmi(self,mode = config.MODE_3D):
-    #     name = config._SET_HDMI_ON
-    #     try:
-    #         if self.get_cam_state() == config.STATE_IDLE:
-    #             res = self.hdmi_on(self.get_req(name,self.get_hdmi_param(mode)), True)
-    #         elif self.get_cam_state() == config.STATE_HDMI:
-    #             name = config._SET_HDMI_OFF
-    #             res = self.hdmi_off(self.get_req(name), True)
-    #         else:
-    #             self.send_oled_type(config.START_HDMI_FAIL)
-    #             res = cmd_error_state(name, self.get_cam_state())
-    #     except Exception as e:
-    #         Err('camera_oled_dhmi e {}'.format(e))
-    #         res = cmd_exception(e,name)
-    #     return res
-
     def check_allow_calibration(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
-
-    def check_allow_speed_test(self):
         if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
@@ -3206,12 +3222,11 @@ class control_center:
 
     def camera_speed_test_fail(self, err = -1):
         Info('speed test fail')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_SPEED_TEST)
+        StateMachine.rmServerState(config.STATE_SPEED_TEST)
         self.send_oled_type_err(config.SPEED_TEST_FAIL, err)
 
     def camera_speed_test_done(self, req = None):
         Info('speed test done')
-        # self.send_oled_type(config.SPEED_TEST_SUC)
 
 
     # 方法名称: start_speed_test
@@ -3222,15 +3237,15 @@ class control_center:
     # {"name":"camera._storageSpeedTest", "parameters":{"path":}}
     def start_speed_test(self, req, from_oled = False):
         # 允许卡速测试
-        if self.check_allow_speed_test():
-            self.set_cam_state(self.get_cam_state() | config.STATE_SPEED_TEST)
-            
+        if StateMachine.checkAllowSpeedTest():
+            StateMachine.addCamState(config.STATE_SPEED_TEST)
+
             # 测试命令来自客户端，让UI显示响应的状态
             if from_oled is False:
                 self.send_oled_type(config.SPEED_START)
             
             self.test_path = req[_param]['path']
-            Info('self.test_path {}'.format(self.test_path))
+            # Info('self.test_path {}'.format(self.test_path))
             read_info = self.write_and_read(req, from_oled)
         else:
             if from_oled:
@@ -3246,7 +3261,6 @@ class control_center:
     # 返回值: 测试结果
     # 
     def camera_start_speed_test(self, req, from_ui = False):
-        Info('speed test req {}'.format(req))
         return self.start_speed_test(req)
 
 
@@ -3254,7 +3268,7 @@ class control_center:
         name = config._SPEED_TEST
         Info("oled camera_oled_speed_test param {}".format(param))
         try:
-            res = self.start_speed_test(self.get_req(name,param), True)
+            res = self.start_speed_test(self.get_req(name, param), True)
         except Exception as e:
             Err('camera_oled_speed_test e {}'.format(e))
             res = cmd_exception(e, name)
@@ -3308,12 +3322,18 @@ class control_center:
         Info('[-------Notify Message -------] rec_notify param {}'.format(param))
         osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
         
-        # 清除服务器的录像状态
-        StateMachine.rmServerState(config.STATE_RECORD)
+        # 清除服务器的录像状态清除服务器的录像状态
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
+        if StateMachine.checkStateIn(config.STATE_STOP_RECORDING):
+            StateMachine.rmServerState(config.STATE_STOP_RECORDING)
+
         if param[_state] == config.DONE:
             self.send_oled_type(config.STOP_REC_SUC)
         else:
             self.send_oled_type_err(config.STOP_REC_FAIL, self.get_err_code(param))
+
 
     # 方法名称: pic_notify
     # 功能描述: 处理拍照完成通知(可能是正常停止成功;也可能发生错误被迫停止,如果有拼接,拼接已经完成)
@@ -3398,6 +3418,7 @@ class control_center:
         else:
             self.send_oled_type(config.STOP_PREVIEW_FAIL)
 
+
     # 方法名称: live_stats_notify
     # 功能描述: 直播状态通知
     #           
@@ -3408,24 +3429,29 @@ class control_center:
         # if param is not None:
         #     Info('live_stats_notify param {}'.format(param))
 
+
     # 方法名称: net_link_state_notify
     # 功能描述: 网络状态变化通知
     #           
     # 入口参数: param - 返回的结果
     # 返回值: 
+    # 1.直播的过程中,setprop ctl.stop crtmpserver进入STATE_LIVE_CONNECTING状态
     def net_link_state_notify(self, param):
         Info('[-------Notify Message -------] net_link_state_notify param {}'.format(param))
         net_state = param['state']
-        if StateMachine.checkInLive():
+        if StateMachine.checkInLive():  
             if net_state == 'connecting':
                 StateMachine.rmServerState(config.STATE_LIVE)
                 StateMachine.addCamState(config.STATE_LIVE_CONNECTING)
                 self.send_oled_type(config.START_LIVE_CONNECTING)
+        
+        # 系统正处于直播连接状态 -> 转为重新连接上的状态
         elif StateMachine.checkInLiveConnecting():
             if net_state == 'connected':
                 StateMachine.rmServerState(config.STATE_LIVE_CONNECTING)
                 StateMachine.addCamState(config.STATE_LIVE)
                 self.send_oled_type(config.START_LIVE_SUC)
+
 
     # 方法名称: gyro_calibration_finish_notify
     # 功能描述: 陀螺仪校正结束通知
@@ -3505,31 +3531,46 @@ class control_center:
     # 返回值:     
     def storage_speed_test_finish_notify(self, param):
         Info('[-------Notify Message -------] storage_speed_test_finish_notify param {}'.format(param))
-        StateMachine.rmServerState(config.STATE_SPEED_TEST) 
+        
+        if StateMachine.checkStateIn(config.STATE_SPEED_TEST):
+            StateMachine.rmServerState(config.STATE_SPEED_TEST) 
+
         # 将测试结果区更新心跳包  
         osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_DEV_SPEED_SUC, param['results']))
+        
         # 将测试结果发送给UI线程，让其本地保存一份各张卡的测试结果  
         self.send_req(self.get_write_req(config.UI_NOTIFY_SPEED_TEST_RESULT, param['results']))        
         self.test_path = None
 
 
     # 方法名称: handle_live_finsh
-    # 功能描述: 直播结束通知
+    # 功能描述: 直播结束通知(不存片)
     #           
     # 入口参数: param - 返回的结果
     # 返回值:
     def handle_live_finsh(self, param):
-        Info('[-------Notify Message -------] handle_live finish param {}'.format(param))
-        StateMachine.rmServerState(config.STATE_LIVE) 
-        StateMachine.rmServerState(config.STATE_LIVE_CONNECTING) 
-        StateMachine.rmServerState(config.STATE_RECORD) 
+        Info('[-------Notify Message -------] handle_live_finsh param {}'.format(param))
+        if StateMachine.checkStateIn(config.STATE_LIVE):
+            StateMachine.rmServerState(config.STATE_LIVE) 
+
+        if StateMachine.checkStateIn(config.STATE_LIVE_CONNECTING):        
+            StateMachine.rmServerState(config.STATE_LIVE_CONNECTING) 
+
+        if StateMachine.checkStateIn(config.STATE_STOP_LIVING):        
+            StateMachine.rmServerState(config.STATE_STOP_LIVING) 
+
+
+        if StateMachine.checkStateIn(config.STATE_RECORD):        
+            StateMachine.rmServerState(config.STATE_RECORD) 
+
         if param[_state] == config.DONE:
             self.send_oled_type(config.STOP_LIVE_SUC)
         else:
             self.send_oled_type_err(config.STOP_LIVE_FAIL, self.get_err_code(param))
         self.set_live_url(None)
 
-    def handle_live_rec_finish(self,param):
+
+    def handle_live_rec_finish(self, param):
         Info('start handle live rec finish param {}'.format(param))
         self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD )
         Info('2start handle live rec finish param {}'.format(param))
@@ -3583,7 +3624,7 @@ class control_center:
     # 参数: content - 传递的参数
     # 返回值: 无
     def handle_notify_from_camera(self, content):
-        Info('handle notify content {}'.format(content))
+        # Info('handle notify content {}'.format(content))
         self.acquire_sem_camera()
         try:
             name = content[_name]
@@ -3635,7 +3676,6 @@ class control_center:
     def get_connect(self):
         self.aquire_connect_sem()
         try:
-            Info('>>---- connect state ------<<')
             state = self.connected
         except Exception as e:
             Err('get connect e {}'.format(e))

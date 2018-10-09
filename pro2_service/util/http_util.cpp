@@ -2358,7 +2358,7 @@ void mg_mgr_init_opt(struct mg_mgr *m, void *user_data, struct mg_mgr_init_opts 
 
     m->user_data = user_data;
 
-    INFO("--> MG_NET_IF %d mg_num_ifaces %d", MG_NET_IF, mg_num_ifaces);
+    // INFO("--> MG_NET_IF %d mg_num_ifaces %d", MG_NET_IF, mg_num_ifaces);
 
 #ifdef _WIN32
     {
@@ -2403,7 +2403,7 @@ void mg_mgr_init_opt(struct mg_mgr *m, void *user_data, struct mg_mgr_init_opts 
         }
     }
 
-    INFO("---> init mgr(%p) ok", m);
+    // INFO("---> init mgr(%p) ok", m);
 }
 
 #if MG_ENABLE_JAVASCRIPT

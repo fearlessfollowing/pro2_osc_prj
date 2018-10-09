@@ -503,7 +503,9 @@ on property:sys.web_status=true
 # web_osc service for http request
 # lelvel: main
 service web_server /usr/local/bin/python3.6 /usr/local/bin/web_server
-        class main
-        critical
-        onrestart restart pro2_service
+    class main
+    critical
+    onrestart restart pro2_service
+
+3.日志文件大小支持动态检测
 

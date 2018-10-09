@@ -2887,14 +2887,14 @@ void VolumeManager::updateVolumeSpace(Volume* pVol)
             
             u32 uBlockSize = diskInfo.f_bsize / 1024;
 
-            Log.d(TAG, "[%s: %d] stat fs path: %s", __FILE__, __LINE__, pVol->pMountPath);
+            // Log.d(TAG, "[%s: %d] stat fs path: %s", __FILE__, __LINE__, pVol->pMountPath);
 
-            Log.d(TAG, "[%s: %d] statfs block size: %d KB", __FILE__, __LINE__, uBlockSize);
-            Log.d(TAG, "[%s: %d] statfs total block: %d ", __FILE__, __LINE__, diskInfo.f_blocks);
-            Log.d(TAG, "[%s: %d] statfs free block: %d ", __FILE__, __LINE__, diskInfo.f_bfree);
+            // Log.d(TAG, "[%s: %d] statfs block size: %d KB", __FILE__, __LINE__, uBlockSize);
+            // Log.d(TAG, "[%s: %d] statfs total block: %d ", __FILE__, __LINE__, diskInfo.f_blocks);
+            // Log.d(TAG, "[%s: %d] statfs free block: %d ", __FILE__, __LINE__, diskInfo.f_bfree);
 
-            Log.d(TAG, "[%s: %d] statfs Tatol size = %u MB", __FILE__, __LINE__, (diskInfo.f_blocks * uBlockSize) / 1024);
-            Log.d(TAG, "[%s: %d] state Avail size = %u MB", __FILE__, __LINE__, (diskInfo.f_bfree * uBlockSize) / 1024);
+            // Log.d(TAG, "[%s: %d] statfs Tatol size = %u MB", __FILE__, __LINE__, (diskInfo.f_blocks * uBlockSize) / 1024);
+            // Log.d(TAG, "[%s: %d] state Avail size = %u MB", __FILE__, __LINE__, (diskInfo.f_bfree * uBlockSize) / 1024);
 
             pVol->uTotal = (uBlockSize * diskInfo.f_blocks) / 1024;
             

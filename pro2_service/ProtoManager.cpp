@@ -119,9 +119,9 @@ int ProtoManager::sendHttpSyncReq(const std::string &url, Json::Value* pJsonRes,
                                                         url.c_str(), pExtraHeaders, pPostData);
 	mg_set_protocol_http_websocket(connection);
 
-	Log.d(TAG, "Send http request URL: %s", url.c_str());
-	Log.d(TAG, "Extra Headers: %s", pExtraHeaders);
-	Log.d(TAG, "Post data: %s", pPostData);
+	// Log.d(TAG, "Send http request URL: %s", url.c_str());
+	// Log.d(TAG, "Extra Headers: %s", pExtraHeaders);
+	// Log.d(TAG, "Post data: %s", pPostData);
 
     setSyncReqExitFlag(false);
 
@@ -153,7 +153,7 @@ void ProtoManager::onSyncHttpEvent(mg_connection *conn, int iEventType, void *pE
         }
 	
         case MG_EV_HTTP_REPLY: {
-		    Log.d(TAG, "Got reply:\n%.*s\n", (int)hm->body.len, hm->body.p);
+		    // Log.d(TAG, "Got reply:\n%.*s\n", (int)hm->body.len, hm->body.p);
             if (mSaveSyncReqRes) {
                 Json::Reader reader;
                 if (!reader.parse(std::string(hm->body.p, hm->body.len), (*mSaveSyncReqRes), false)) {
@@ -223,13 +223,13 @@ bool ProtoManager::getServerState(uint64_t* saveState)
             /* 解析响应值来判断是否允许 */
             writer->write(jsonRes, &osOutput);
             resultStr = osOutput.str();
-            Log.d(TAG, "getServerState -> request Result: %s", resultStr.c_str());
+            // Log.d(TAG, "getServerState -> request Result: %s", resultStr.c_str());
 
             if (jsonRes.isMember(_state)) {
                 if (jsonRes[_state] == _done) {
                     *saveState = jsonRes["value"].asUInt64();
                     bRet = true;
-                    Log.d(TAG, "[%s: %d] Get Server State: 0x%x", __FILE__, __LINE__, *saveState);
+                    // Log.d(TAG, "[%s: %d] Get Server State: 0x%x", __FILE__, __LINE__, *saveState);
                 }
             } else {
                 bRet = false;

@@ -164,17 +164,14 @@ def flask_osc_cmd_execute():
 # @add_header
 def flask_ui_cmd_execute():
     try:
-        Info('---------------- UI Request Entry ---------------')
+        # Info('---------------- UI Request Entry ---------------')
         # h = request.headers
         # content_type = h.get('Content-Type')
-
-        Info('request is  {}'.format(request))
-
+        # Info('request is  {}'.format(request))
         data = None
         data = request.get_json()
 
-        Info('get data {}'.format(data))
-
+        # Info('get data {}'.format(data))
         ret = app_controller.ui_cmd_execute(data)
     except Exception as err:
         ret = cmd_exception(error_dic('flask_osc_cmd_execute', str(err)))

@@ -129,7 +129,7 @@ int __arlog_log_vprint(int prio, const char *tag, const char *fmt, va_list ap)
         pthread_rwlock_wrlock(&gLock);
         init_logfile_if_need();
         pthread_rwlock_unlock(&gLock);
-
+        
         pthread_rwlock_rdlock(&gLock);
     }
 

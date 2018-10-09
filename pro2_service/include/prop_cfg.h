@@ -108,6 +108,8 @@
 
 #define PROP_UPDATE_IMAG_DST_PATH   "sys.img_dst_path"
 
+#define PROP_SERVER_STATE           "sys.server_state"
+
 #define PROP_MAX_DISK_SLOT_NUM	    10
 
 

@@ -96,7 +96,7 @@ def get_local_storage_info(path, dev_type, dev_name, unit='M'):
     else:
         info['test'] = False
 
-    Print('internal info {}'.format(info))
+    # Print('internal info {}'.format(info))
     return info
 
 
@@ -120,7 +120,7 @@ def get_tf_storage_info(path, dev_type, dev_name, index, total, free, speed_test
     else:
         info['test']  = True          # 没有进行速度测试，默认
 
-    Print('external info {}'.format(info))
+    # Print('external info {}'.format(info))
     return info
 
 
@@ -200,7 +200,7 @@ class osc_state(threading.Thread):
                 self.release_sem()
 
     def update_timelapse_left(self, param):
-        Info('>>> set timelapse left sec {}'.format(param))
+        # Info('>>> set timelapse left sec {}'.format(param))
         self._time_lapse_left = param['tl_left']
 
 
@@ -223,7 +223,7 @@ class osc_state(threading.Thread):
     # 返回值: 无
     # {'rec_left': 3999, 'live_rec_left': 0}
     def set_rec_left_sec(self, param):
-        Info('>>> set rec left sec {}'.format(param))
+        # Info('>>> set rec left sec {}'.format(param))
         self._rec_left = param['rec_left_sec']
         self._live_rec_left = param['live_rec_left_sec']
         self._rec_sec = param['rec_sec']
@@ -235,7 +235,7 @@ class osc_state(threading.Thread):
     # 参数: params - 有变化的卡的信息(dict类型)
     # 返回值: 无
     def change_tf_info(self, params):
-        Info('tf card change info: {}'.format(params))
+        # Info('tf card change info: {}'.format(params))
         print(type(params))
         print(len(params))
         

@@ -35,6 +35,7 @@ NEW_LOG_LIMIT = 1024 * 1024 * 30
 class L():
     #default logger tag to g
     def __init__(self, logger_name,loglevel = D):
+        
      '''
         指定保存日志的文件路径，日志级别，以及调用文件
         将日志存入到指定的文件中
@@ -89,17 +90,10 @@ def Warn(*args):
 def Err(*args):
     log_wrapper.error(*args)
 
-# def check_space_full():
-#     vfs = get_vfs(config.LOG_ROOT)
-#     if vfs is not None:
-#         free = vfs.f_bsize * vfs.f_bfree /(1024 *1024)
-#         if free < LIMIT_SIZE:
-#             return True
-#     return False
-
 class class_log_timer:
+
     @classmethod
-    def file_exist(cls,name):
+    def file_exist(cls, name):
         return os.path.exists(name)
 
     @classmethod
@@ -130,9 +124,10 @@ class class_log_timer:
                 os.remove(cls.log_file_name)
                 os.mknod(cls.log_file_name)
         else:
-            # Info('create log file {}'.format(cls.log_file_name))
             os.mknod(cls.log_file_name)
+
         cls.L_obj.add_file_handler(cls.log_file_name)
+        
         # cls.timer = RepeatedTimer(LOG_TIMER_TO, cls.timeout_func, "log_timer", oneshot=False)
         # cls.start_timer()
 

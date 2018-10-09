@@ -1081,24 +1081,24 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
 
             switch (what) {
 
-			/* UI -> FIFO -> OSC */
-			case MSG_UI_KEY: {	/* 来自UI线程的Key */
-				handleUiNotify(msg);
-				break;
-			}
+                /* UI -> FIFO -> OSC */
+                case MSG_UI_KEY: {	/* 来自UI线程的Key */
+                    handleUiNotify(msg);
+                    break;
+                }
 
 
-            case MSG_SAVE_PATH_CHANGE: {    /* 来自VolumeManager */
-                handleSavePathChanged(msg);                
-                break;
-            }
+                case MSG_SAVE_PATH_CHANGE: {    /* 来自VolumeManager */
+                    handleSavePathChanged(msg);                
+                    break;
+                }
 
-            case MSG_UPDATE_CURRENT_SAVE_LIST: {
-                handleUpdateDevList(msg);
-                break;
-            }
+                case MSG_UPDATE_CURRENT_SAVE_LIST: {
+                    handleUpdateDevList(msg);
+                    break;
+                }
 
-			SWITCH_DEF_ERROR(what)
+                SWITCH_DEF_ERROR(what)
 		    }
         }
     }
