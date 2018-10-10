@@ -587,8 +587,6 @@ private:
     void    format(const char *src,const char *path,int trim_err_icon,int err_icon,int suc_icon);
     int     exec_sh_new(const char *buf);
 
-
-
     void    disp_ageing();
 
     int     oled_disp_err(sp<struct _err_type_info_> &mErr);
@@ -631,7 +629,6 @@ private:
     void    play_sound(u32 type);
     void    send_update_light(int menu, int state,int interval,bool bLight = false,int sound_id = -1);
     void    write_p(int p, int val);
-    void    stop_update_bottom_thread();
     void    stop_bat_thread();
 
 
@@ -644,6 +641,11 @@ private:
 
     bool    checkInLive(uint64_t serverState);
     bool    checkInLive();
+
+    bool    checkAllowStartLive(uint64_t serverState);
+    bool    checkAllowStopLive(uint64_t serverState);
+
+    bool    checkAllowStitchCalc(uint64_t serverState);
 
     bool    checkServerAlloSpeedTest(uint64_t serverState);
 
@@ -677,7 +679,6 @@ private:
 
 	void    disp_cam_param(int higlight);
 
-    bool    check_save_path_usb();
     int     get_dev_type_index(char *dev_type);
 
     void    get_save_path_remain();
@@ -721,6 +722,7 @@ private:
     void    writeJson2File(int iAction, const char* filePath, Json::Value& jsonRoot);
 
     int     check_live_save(Json::Value* liveJson);
+
     bool    sendRpc(int option, int cmd = -1, Json::Value* pNodeArg = NULL);
 
     bool    checkisLiveRecord();
@@ -945,9 +947,6 @@ private:
 	 */
 	void    sendWifiConfig(sp<WifiConfig> &mConfig);
 	void    handleorSetWifiConfig(sp<WifiConfig> &mConfig);
-
-
-	void    handleGyroCalcEvent();
 
 	/*
 	 * 消息处理

@@ -207,14 +207,46 @@ SYS_SETTING_PATH = INSTA360_PRO2_CFG_BASE + "user_cfg"
 #
 
 # 获取/设置Camera Server状态
+# 请求查询Camera的状态
 _GET_SET_CAM_STATE          = 'camera._getSetCamState'
+# 请求Server进入U盘模式
 _REQ_ENTER_UDISK_MOD        = 'camera._change_udisk_mode'
+# 更新拍timelapse的剩余值
 _UPDAT_TIMELAPSE_LEFT       = 'camera._update_tl_left_count'
+# 请求同步状态
 _REQ_SYNC_INFO              = 'camera._request_sync'
+# 请求格式化TF卡
 _REQ_FORMART_TFCARD         = 'camera._formatCameraMoudle'
+# 请求更新录像,直播的时间
 _REQ_UPDATE_REC_LIVE_INFO   = 'camera._update_rec_live_info'
+# 请求启动预览
+_REQ_START_PREVIEW          = 'camera._startPreview'
+# 请求停止预览
+_REQ_STOP_PREVIEW           = 'camera._stopPreview'
+# 查询TF卡状态
+_REQ_QUERY_TF_CARD          = 'camera._queryStorage'
+# 查询GPS状态
+_REQ_QUERY_GPS_STATE        = 'camera._queryGpsStatus'
+# 设置Customer
 _REQ_SET_CUSTOM_PARAM       = 'camera._setCustomerParam'
+# 测速请求
 _REQ_SPEED_TEST             = 'camera._speedtest'
+#请求拍照
+_REQ_TAKE_PIC               = 'camera._takePicture'
+# 请求录像
+_REQ_TAKE_VIDEO             = 'camera._startRecording'
+#停止录像
+_REQ_STOP_VIDEO             = 'camera._stopRecording'
+
+# 请求启动直播
+_REQ_START_LIVE             = 'camera._startLive'
+
+# 请求停止直播
+_REQ_STOP_LIVE              = 'camera._stopLive'
+
+# 请求拼接校准
+_REQ_STITCH_CALC            = 'camera._calibration'
+
 
 """camera_state"""
 STATE_IDLE                      = 0x00

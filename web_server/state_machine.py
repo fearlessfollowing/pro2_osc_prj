@@ -158,6 +158,16 @@ class StateMachine:
             return False
 
     @classmethod
+    def checkAllowStopLive(cls):
+        if StateMachine.checkInLive() and StateMachine.checkStateIn(config.STATE_STOP_LIVING) == False:
+            return True
+        else:
+            if StateMachine.checkStateIn(config.STATE_LIVE_CONNECTING):
+                return True
+            else:
+                return False
+
+    @classmethod
     def checkAllowListFile(cls):
         Info('>>>> check_allow_list_file, cam state {}'.format(StateMachine.getCamState()))
         if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
@@ -240,6 +250,13 @@ class StateMachine:
 
     @classmethod 
     def checkAllowSpeedTest(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
+            return True
+        else:
+            return False
+
+    @classmethod 
+    def checkAllowCalibration(self):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:

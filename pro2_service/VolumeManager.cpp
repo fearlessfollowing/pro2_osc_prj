@@ -2571,8 +2571,6 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
 }
 
 
-
-
 int VolumeManager::calcTakepicLefNum(Json::Value& jsonCmd, bool bUseCached)
 {
     int iUnitSize = 25;     /* 默认为20MB */

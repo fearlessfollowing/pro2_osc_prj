@@ -51,6 +51,7 @@
 #define _rec_sec            "rec_sec"
 #define _live_rec_sec       "live_rec_sec"
 #define _path               "path"
+#define _delay              "delay"
 
 #define _origin             "origin"
 #define _stitch             "stiching"
@@ -100,33 +101,6 @@ public:
 
     static ProtoManager*            Instance();                         /* 状态机实例 */
 
-
-#if 0
-
-    /* 请求拍照 */
-    bool            sendTakePicReq(Json::Value& takePicReq);
-
-    /* 请求录像 */
-    bool            sendTakeVideoReq(Json::Value& takeVideoReq);
-
-    /* 停止录像 */
-    bool            sendStopVideoReq(Json::Value& stopVideoReq);
-
-    /* 请求直播 */
-    bool            sendStartLiveReq(Json::Value& startLiveReq);
-
-    /* 停止直播 */
-    bool            sendStopLiveReq(Json::Value& startLiveReq);
-
-    /* 拼接校准 */
-    bool            sendStichCalcReq(Json::Value& stitchCalcReq);
-
-    /* 查询小卡容量：同步返回(预览状态下大概需要40ms) */
-    bool            sendUpdateRecLeftTimeReq(Json::Value& updateRecLeftReq);
-
-
-#endif
-
     /* 获取服务器的状态 */
     bool            getServerState(uint64_t* saveState);
 
@@ -169,17 +143,34 @@ public:
     /* 启动测速 */
     bool            sendSpeedTestReq(const char* path);
 
+    /* 请求拍照 */
+    bool            sendTakePicReq(Json::Value& takePicReq);
+
+    /* 请求录像 */
+    bool            sendTakeVideoReq(Json::Value& takeVideoReq);
+
+    /* 停止录像 */
+    bool            sendStopVideoReq();
+
+    /* 请求直播 */
+    bool            sendStartLiveReq(Json::Value& startLiveReq);
+
+    /* 停止直播 */
+    bool            sendStopLiveReq();
+
+    /* 拼接校准 */
+    bool            sendStichCalcReq();
+
+
 #if 0
     /* 启动陀螺仪校正 */
     bool            sendGyroCalcReq(Json::Value& gyroCalcReq);
-
 
     /* 更新存储路径： */
     bool            sendSavePathChangeReq(Json::Value& savePathChangeReq);
 
     /* 发送存储设备列表 */
     bool            sendStorageListReq(Json::Value& storageListReq);
-
 
     /* 白平衡校正 */
     bool            sendWbCalcReq(Json::Value& wbCalcReq);

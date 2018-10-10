@@ -60,6 +60,8 @@
 #define REQ_SET_CUSTOMER_PARAM      "camera._setCustomerParam"
 #define REQ_SPEED_TEST              "camera._speedtest"
 
+#define REQ_STITCH_CALC             "camera._calibration"
+
 
 /*********************************************************************************************
  *  外部函数
@@ -704,6 +706,144 @@ bool ProtoManager::sendSpeedTestReq(const char* path)
     return bRet;       
 }
 
+bool ProtoManager::sendTakePicReq(Json::Value& takePicReq)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+	writer->write(takePicReq, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendTakePicReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendTakePicReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;   
+}
+
+
+bool ProtoManager::sendTakeVideoReq(Json::Value& takeVideoReq)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+	writer->write(takeVideoReq, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendTakeVideoReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendTakeVideoReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;      
+}
+
+
+bool ProtoManager::sendStopVideoReq()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name] = REQ_STOP_REC;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStopVideoReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStopVideoReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;     
+}
+
 /*
  * 检查是否允许进入U盘模式(同步请求)
  */
@@ -716,6 +856,149 @@ bool ProtoManager::sendSpeedTestReq(const char* path)
 }
 #endif
 
+
+bool ProtoManager::sendStartLiveReq(Json::Value& takeLiveReq)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+	writer->write(takeLiveReq, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendTakeLiveReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendTakeLiveReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;      
+}
+
+
+bool ProtoManager::sendStopLiveReq()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name] = REQ_STOP_LIVE;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStopLiveReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStopLiveReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;     
+}
+
+
+bool ProtoManager::sendStichCalcReq()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value param;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_delay] = 5;      /* 默认为5秒 */
+    root[_name] = REQ_STITCH_CALC;
+    root[_param] = param;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStichCalcReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStichCalcReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;      
+}
 
 
 bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
@@ -932,8 +1215,6 @@ bool ProtoManager::sendStateSyncReq(REQ_SYNC* pReqSyncInfo)
     }
     return bRet;
 }
-
-
 
 
 int ProtoManager::sendQueryGpsState()

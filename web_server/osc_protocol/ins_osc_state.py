@@ -135,7 +135,6 @@ def get_dev_info_detail(dev_list):
             dev_info.append(info)
     except Exception as e:
         Info('get_dev_info_detail exception {}'.format(str(e)))
-    # Info('2type {} count {} dev_list {}'.format(type(dev_list), len(dev_list), dev_list))
     return dev_info
 
 
@@ -200,15 +199,13 @@ class osc_state(threading.Thread):
                 self.release_sem()
 
     def update_timelapse_left(self, param):
-        # Info('>>> set timelapse left sec {}'.format(param))
         self._time_lapse_left = param['tl_left']
 
 
     def set_tf_info(self, dev_infos):
-        #Info('tf card info: {}'.format(dev_infos))
         self._tf_info = dev_infos['module']
-        for dev_info in self._tf_info:
-            Info('tfcard dev info {}'.format(dev_info))
+        # for dev_info in self._tf_info:
+        #     Info('tfcard dev info {}'.format(dev_info))
 
     # 将所有TF卡的速度测试标志设置为False
     def clear_tf_speed_flag(self):
@@ -223,7 +220,6 @@ class osc_state(threading.Thread):
     # 返回值: 无
     # {'rec_left': 3999, 'live_rec_left': 0}
     def set_rec_left_sec(self, param):
-        # Info('>>> set rec left sec {}'.format(param))
         self._rec_left = param['rec_left_sec']
         self._live_rec_left = param['live_rec_left_sec']
         self._rec_sec = param['rec_sec']
