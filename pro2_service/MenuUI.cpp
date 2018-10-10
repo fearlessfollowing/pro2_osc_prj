@@ -2538,17 +2538,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             break;
         }
 
-        case ACTION_POWER_OFF: {
-            if (!check_state_in(STATE_POWER_OFF)) {
-                add_state(STATE_POWER_OFF);
-                clearArea();
-                setLightDirect(LIGHT_OFF);
-                msg->set<int>("cmd", cmd);
-            } else {
-                bAllow = false;
-            }
-            break;
-        }
 
         case ACTION_CUSTOM_PARAM: {
             if (pNodeArg) {
@@ -2559,9 +2548,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             }
 			break;
         }
-            
-        case ACTION_SET_STICH:
-            break;
 			
 		case ACTION_AWB: {		
 			setLightDirect(FRONT_GREEN);
@@ -3931,7 +3917,9 @@ void MenuUI::dispBottomLeftSpace()
 
                 Log.d(TAG, "[%s: %d] --------------- dispBottomLeftSpace", __FILE__, __LINE__);
 
-                /* 如果不是直播存片，不需要显示任何东西 */
+                /* 如果不是直播存片，不需要显示任何东西 
+                 * TRY:也可以改为判断Server是否含STATE_RECORD状态
+                 */
                 if (checkisLiveRecord()) {
 
                     Log.d(TAG, "[%s: %d] --------------- checkisLiveRecord is true", __FILE__, __LINE__);
@@ -3958,6 +3946,7 @@ void MenuUI::dispBottomLeftSpace()
                         dispIconByType(ICON_LIVE_INFO_NONE_7848_50X16);     
                     }
                 } else {    /* 只显示已经直播的时间 */
+
                     Log.d(TAG, "[%s: %d] --------------- checkisLiveRecord is false", __FILE__, __LINE__);
 
                     if (checkServerStateIn(serverState, STATE_LIVE)) {   /* 直播状态: 更新已经直播的时间 */
@@ -6143,7 +6132,7 @@ void MenuUI::procPowerKeyEvent()
 			
         case MENU_SPEED_TEST: 
         case MENU_SET_TEST_SPEED: {
-            if (!checkServerStateIn(serverState, STATE_SPEED_TEST)) {
+            if (!checkServerAlloSpeedTest(serverState)) {
                 if (mSpeedTestUpdateFlag == false) {
                     Log.d(TAG, "[%s: %d] Enter MENU_SPEED_TEST Speed Testing ", __FILE__, __LINE__);
 
@@ -6160,7 +6149,7 @@ void MenuUI::procPowerKeyEvent()
                     procBackKeyEvent();
                 }
             } else {
-                Log.d(TAG, "[%s: %d] System is Speed Testing, You can't Send Again", __FILE__, __LINE__);
+                Log.d(TAG, "[%s: %d] Server Not Allow Speed test Operation", __FILE__, __LINE__);
             }
             break;
         }
@@ -6596,6 +6585,15 @@ bool MenuUI::checkServerStateIn(uint64_t serverState, uint64_t checkState)
     return bRet;   
 }
 
+
+bool MenuUI::checkServerAlloSpeedTest(uint64_t serverState)
+{
+    if (serverState == STATE_IDLE || serverState == STATE_PREVIEW) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 /*
  * 请求设置某个状态位
@@ -8479,31 +8477,6 @@ bool MenuUI::check_rec_tl()
         tl_count = -1;
     }
     return ret;
-}
-
-
-
-/*************************************************************************
-** 方法名称: sys_reboot
-** 方法功能: 关机或重启系统
-** 入口参数: cmd - 命令值
-** 返回值: 无 
-** 调 用: handleLongKeyMsg
-**
-*************************************************************************/
-void MenuUI::sys_reboot(int cmd)
-{
-    switch (cmd) {
-        case REBOOT_NORMAL:
-            sendRpc(ACTION_POWER_OFF, cmd);
-            break;
-		
-        case REBOOT_SHUTDOWN:
-            sendRpc(ACTION_POWER_OFF, cmd);
-            break;
-		
-        SWITCH_DEF_ERROR(cmd)
-    }
 }
 
 

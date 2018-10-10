@@ -645,6 +645,8 @@ private:
     bool    checkInLive(uint64_t serverState);
     bool    checkInLive();
 
+    bool    checkServerAlloSpeedTest(uint64_t serverState);
+
     bool    checkServerStateInPreview();
     bool    addState(uint64_t state);
     uint64_t getServerState();

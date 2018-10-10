@@ -50,6 +50,7 @@
 #define _live_rec_left_sec  "live_rec_left_sec"
 #define _rec_sec            "rec_sec"
 #define _live_rec_sec       "live_rec_sec"
+#define _path               "path"
 
 #define _origin             "origin"
 #define _stitch             "stiching"
@@ -117,17 +118,13 @@ public:
     /* 停止直播 */
     bool            sendStopLiveReq(Json::Value& startLiveReq);
 
-    /* 设置模板参数 */
-    bool            sendSetCustomLensReq(Json::Value& customLensReq);
-
     /* 拼接校准 */
     bool            sendStichCalcReq(Json::Value& stitchCalcReq);
 
     /* 查询小卡容量：同步返回(预览状态下大概需要40ms) */
     bool            sendUpdateRecLeftTimeReq(Json::Value& updateRecLeftReq);
 
-    /* 启动测速 */
-    bool            sendSpeedTestReq(Json::Value& speedTestReq);
+
 #endif
 
     /* 获取服务器的状态 */
@@ -166,7 +163,11 @@ public:
     /* 查询小卡的容量信息 */
     bool            sendQueryTfCard();
 
+    /* 设置模板参数 */
+    bool            sendSetCustomLensReq(Json::Value& customParam);
 
+    /* 启动测速 */
+    bool            sendSpeedTestReq(const char* path);
 
 #if 0
     /* 启动陀螺仪校正 */

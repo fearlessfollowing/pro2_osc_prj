@@ -361,6 +361,12 @@ class control_center:
             # 查询GPS状态
             config._REQ_QUERY_GPS_STATE:        self.cameraUiqueryGpsState,
 
+            # 设置Customer
+            config._REQ_SET_CUSTOM_PARAM:       self.cameraUiSetCustomerParam,
+
+            # 测速请求
+            config._REQ_SPEED_TEST:             self.cameraUiSpeedTest,
+
             # 请求拍照
 
             # 请求录像
@@ -2081,6 +2087,40 @@ class control_center:
         return read_info        
 
 
+    # 方法名称: cameraUiSetCustomerParam
+    # 功能描述: 请求服务器设置Customer参数
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    def cameraUiSetCustomerParam(self, req):
+        Info('----------> cameraUiSetCustomerParam Req: {}'.format(req))        
+        if check_dic_key_exist(req, 'audio_gain'):
+            param = OrderedDict({'property':'audio_gain', 'value':req['audio_gain']})
+            read_info = self.camera_oled_set_option(param)
+        if check_dic_key_exist(req, 'len_param'):
+            read_info = self.set_len_param(req['len_param'])
+        if check_dic_key_exist(req, 'gamma_param'):
+            Info('gamma_param {}'.format(req['gamma_param']))
+            param = OrderedDict({'data': req['gamma_param']})
+            read_info = self.camera_update_gamma_curve(self.get_req(config._UPDATE_GAMMA_CURVE, param))
+        return read_info
+
+
+    # 方法名称: cameraUiSpeedTest
+    # 功能描述: 测速
+    # 入口参数: req - 请求参数
+    # 返回值: 
+    # 注: 
+    def cameraUiSpeedTest(self, req):
+        Info('----------> cameraUiSpeedTest Req: {}'.format(req))        
+        name = config._SPEED_TEST
+        try:
+            res = self.start_speed_test(self.get_req(name, param), True)
+        except Exception as e:
+            Err('cameraUiSpeedTest e {}'.format(e))
+            res = cmd_exception(e, name)
+        return res
+
+
     # 方法名称: cameraUiQueryTfcard
     # 功能描述: 查询TF卡状态信息
     # 入口参数: req - 请求参数
@@ -2576,11 +2616,14 @@ class control_center:
 
     def camera_oled_custom_param(self, req):
         Info("oled custom req {}".format(req))
+
         if check_dic_key_exist(req, 'audio_gain'):
             param = OrderedDict({'property':'audio_gain', 'value':req['audio_gain']})
             self.camera_oled_set_option(param)
+
         if check_dic_key_exist(req, 'len_param'):
             self.set_len_param(req['len_param'])
+
         if check_dic_key_exist(req, 'gamma_param'):
             Info('gamma_param {}'.format(req['gamma_param']))
             param = OrderedDict({'data': req['gamma_param']})
@@ -3245,9 +3288,9 @@ class control_center:
                 self.send_oled_type(config.SPEED_START)
             
             self.test_path = req[_param]['path']
-            # Info('self.test_path {}'.format(self.test_path))
             read_info = self.write_and_read(req, from_oled)
         else:
+            # 如果不允许,不让UI显示SPEED_TEST_FAIL，而是返回请求错误
             if from_oled:
                 Err('rec http req before oled speed test')
                 self.send_oled_type(config.SPEED_TEST_FAIL)
