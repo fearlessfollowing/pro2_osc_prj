@@ -327,7 +327,7 @@ int InputManager::longPressMonitorLoop()
 
         TEMP_FAILURE_RETRY(read(mLongPressMonitorPipe[0], &c, 1));	
         if (c == CtrlPipe_Wakeup) {
-            Log.d(TAG, "[%s: %d] Startup Long press Monitor now ...", __FILE__, __LINE__);
+            // Log.d(TAG, "[%s: %d] Startup Long press Monitor now ...", __FILE__, __LINE__);
         } else if (c == CtrlPipe_Shutdown) {
             Log.d(TAG, "[%s: %d] Long press Monitor quit now ... ", __FILE__, __LINE__);
             break;
@@ -366,7 +366,7 @@ int InputManager::longPressMonitorLoop()
                 char c = CtrlPipe_Cancel;
                 TEMP_FAILURE_RETRY(read(mLongPressMonitorPipe[0], &c, 1));	
                 if (c == CtrlPipe_Cancel) {
-                    Log.d(TAG, "[%s: %d] Startup Long press Canceled ...", __FILE__, __LINE__);
+                    // Log.d(TAG, "[%s: %d] Startup Long press Canceled ...", __FILE__, __LINE__);
                 } else if (c == CtrlPipe_Shutdown) {
                     Log.d(TAG, "[%s: %d] Long press Monitor quit now ... ", __FILE__, __LINE__);
                     break;

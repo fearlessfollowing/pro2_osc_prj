@@ -313,23 +313,20 @@ class osc_state(threading.Thread):
         try:
             # TODO: 访问_tf_info全局变量需要加锁访问
             # 更新大卡的测试结果
-            Print('ins_osc_state: set_dev_speed_test_suc ret {}'.format(param))
+            # Print('ins_osc_state: set_dev_speed_test_suc ret {}'.format(param))
 
             test_extern_list = param['module']
             for _test_dev in test_extern_list:
-                Info('++++++++++++++++++++++++++')
                 for tmp_dev in self._tf_info:
-                    Info('>>>>>>>>>>>>>>>>>>>>>')
                     if _test_dev['index'] == tmp_dev['index']:
                         if _test_dev['result'] == True:
                             tmp_dev['pro_suc'] = 1
                         else:
                             tmp_dev['pro_suc'] = 0
-                        Print('test now value: {}'.format(tmp_dev['pro_suc']))
+                        # Print('test now value: {}'.format(tmp_dev['pro_suc']))
 
         except Exception as e:
             Err('set_dev_speed_test_suc exception {}'.format(e))
-
 
     def handle_save_path_change(self,content):
         self.set_save_path(content)

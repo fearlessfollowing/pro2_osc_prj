@@ -58,7 +58,7 @@
 
 #define REQ_GET_SET_CAM_STATE       "camera._getSetCamState"
 #define REQ_SET_CUSTOMER_PARAM      "camera._setCustomerParam"
-#define REQ_SPEED_TEST              "camera._speedtest"
+#define REQ_SPEED_TEST              "camera._storageSpeedTest"
 
 #define REQ_STITCH_CALC             "camera._calibration"
 

@@ -167,9 +167,6 @@ class monitor_fifo_write(threading.Thread):
 
     def run(self):
         self.func = OrderedDict({
-            # config.OLED_DISP_STR:             self.handle_disp_oled_str,
-            # config.OLED_DISP_EXT:             self.handle_disp_oled_ext,
-            # config.OLED_KEY_RES:              self.handle_oled_key_res,
             config.OLED_DISP_TYPE_ERR:          self.handle_disp_oled_type_err,
             config.OLED_DISP_TYPE:              self.handle_disp_oled_type,
             config.OLED_SET_SN:                 self.handle_set_sn,
@@ -213,8 +210,6 @@ class monitor_fifo_write(threading.Thread):
         self._exit = True
 
 
-
-
 #
 # 监听来自pro_servcie的消息
 #
@@ -243,16 +238,9 @@ class monitor_fifo_read(threading.Thread):
     def start_read(self,len):
         return fifo_wrapper.read_fifo(self.read_fd,len)
 
-    # def handle_usb_event(self,content):
-    #     Print('handler usb content {}'.format(content))
-    #     osc_state.handle_usb_action(content)
 
     def handle_battery_event(self,content):
         osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_BAT,content))
-
-    # def handle_net_change_event(self,content):
-        # Print('handler net content {}'.format(content))
-        #osc_state.handle_net_change(content)
 
     # handle_oled_key
     # 处理来自UI的事件

@@ -73,6 +73,13 @@ class StateMachine:
             return False
 
     @classmethod
+    def checkServerStateEqualPreview(cls):
+        if StateMachine.getCamState() == config.STATE_PREVIEW:
+            return True
+        else:
+            return False
+
+    @classmethod
     def check_in_test_speed(cls):
         if StateMachine.getCamState() & config.STATE_SPEED_TEST == config.STATE_SPEED_TEST:
             return True

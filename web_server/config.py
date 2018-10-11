@@ -230,7 +230,7 @@ _REQ_QUERY_GPS_STATE        = 'camera._queryGpsStatus'
 # 设置Customer
 _REQ_SET_CUSTOM_PARAM       = 'camera._setCustomerParam'
 # 测速请求
-_REQ_SPEED_TEST             = 'camera._speedtest'
+_REQ_SPEED_TEST             = 'camera._storageSpeedTest'
 #请求拍照
 _REQ_TAKE_PIC               = 'camera._takePicture'
 # 请求录像

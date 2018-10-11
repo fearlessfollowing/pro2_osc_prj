@@ -642,6 +642,10 @@ private:
     bool    checkInLive(uint64_t serverState);
     bool    checkInLive();
 
+    bool    checkAllowStartRecord(uint64_t serverState);
+    bool    checkAllowStopRecord(uint64_t serverState);
+
+
     bool    checkAllowStartLive(uint64_t serverState);
     bool    checkAllowStopLive(uint64_t serverState);
 
@@ -768,7 +772,7 @@ private:
     /** 显示字符串 */
     void    dispStr(const u8 *str, const u8 x, const u8 y, bool high = 0,int width = 0);
     
-
+    void    dispAgingStr();
 
     /*
      * 显示指定索引值对应的图标(需要被丢弃，在以后的版本)
@@ -1041,6 +1045,7 @@ private:
     Json::Value                 mControlVideoJsonCmd;         /* 客户端请求的拍照JsonCmd */
     bool                        mClientTakeVideoUpdate;
 
+    bool                        mAgingMode;
 
     Json::Value                 mControlLiveJsonCmd;         /* 客户端请求的拍照JsonCmd */
     bool                        mClientTakeLiveUpdate;

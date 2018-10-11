@@ -1959,7 +1959,6 @@ void VolumeManager::sendAsyncQueryTfCardInfo(int iAction)
 }
 
 
-
 void VolumeManager::sendCurrentSaveListNotify()
 {
     vector<Volume*>& curDevList = getCurSavepathList();
@@ -2147,6 +2146,7 @@ bool VolumeManager::checkAllTfCardExist()
         }
     }
 
+    Log.d(TAG, "[%s: %d] ---------> iExitNum = %d, mModuleVolNum = %d", __FILE__, __LINE__, iExitNum, mModuleVolNum);
     if (iExitNum >= mModuleVolNum) {
         return true;
     } else {
@@ -2449,13 +2449,13 @@ u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode)
     u32 uLocalRecSec = ~0L;
     u32 uRemoteRecSec = ~0L;
 
-    int iOriginBitRate = 0;
-    int iStitchBitRate = 0;
+    float iOriginBitRate = 0;
+    float iStitchBitRate = 0;
 
-    int iSubBitRate = (5 * 1024 * 6);          /* 字码流有6路 */
-    int iPrevieBitRate = 3 * 1024;             /* 预览流1路 */
+    float iSubBitRate = (5 * 1024 * 6 * 1.0f);          /* 字码流有6路 */
+    float iPrevieBitRate = 3 * 1024 * 1.0f;             /* 预览流1路 */
 
-    int iNativeTotoalBitRate = 0;
+    float iNativeTotoalBitRate = 0.0f;
 
     bool bSaveOrigin = false;
     bool bHaveStitch = false;
@@ -2477,12 +2477,12 @@ u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode)
 
         /* 计算出小卡能录制的秒数 */
         if (bSaveOrigin) {  /* 小卡 */
-            iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-            iOriginBitRate = iOriginBitRate / (1024 * 8);
+            int iTmpOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+            iOriginBitRate = iTmpOriginBitRate / (1024 * 8 * 1.0f);
 
-            uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+            uRemoteRecSec = (u32) (calcRemoteRemainSpace(false) / iOriginBitRate);
 
-            Log.d(TAG, "[%s: %d] ---------------- Origin bitrate(%d MB/s), Video Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
+            Log.d(TAG, "[%s: %d] ---------------- Origin bitrate(%f MB/s), Video Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
         }
 
         /* 计算出大卡能录制的秒数 */
@@ -2493,11 +2493,11 @@ u32 VolumeManager::calcTakeRecLefSec(Json::Value& jsonCmd, bool bFactoryMode)
 
         iNativeTotoalBitRate += iSubBitRate;
         iNativeTotoalBitRate += iPrevieBitRate;
-        iNativeTotoalBitRate = iNativeTotoalBitRate / (1024 * 8);
+        iNativeTotoalBitRate = iNativeTotoalBitRate / (1024 * 8 * 1.0f);
 
-        uLocalRecSec = getLocalVolLeftSize(false) / iNativeTotoalBitRate;
+        uLocalRecSec = (u32) (getLocalVolLeftSize(false) / iNativeTotoalBitRate);
 
-        Log.d(TAG, "[%s: %d] --------------- Logcal bitrate = %d MB/s, Left sec: %lu", __FILE__, __LINE__, iNativeTotoalBitRate, uLocalRecSec);
+        Log.d(TAG, "[%s: %d] --------------- Logcal bitrate = %f MB/s, Left sec: %lu", __FILE__, __LINE__, iNativeTotoalBitRate, uLocalRecSec);
         return (uRemoteRecSec > uLocalRecSec) ? uLocalRecSec : uRemoteRecSec;
     }
 }
@@ -2509,8 +2509,8 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
     u32 uLocalRecSec = ~0L;
     u32 uRemoteRecSec = ~0L;
 
-    int iOriginBitRate = 0;
-    int iStitchBitRate = 0;
+    float iOriginBitRate = 0.0f;
+    float iStitchBitRate = 0.0f;
 
     /* 1.只存原片
      * 2.只存拼接
@@ -2521,12 +2521,12 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
     if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
         (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == false) ) {
 
-        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-        iOriginBitRate = iOriginBitRate / (1024 * 8);
+        int iTmpStichBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iTmpStichBitRate / (1024 * 8 * 1.0f);
 
-        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+        uRemoteRecSec = (u32) (calcRemoteRemainSpace(false) / iOriginBitRate);
 
-        Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>> Remote Origin bitrate[%d]MB/s Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
+        Log.d(TAG, "[%s: %d] >>>>>>>>>>>>>> Remote Origin bitrate[%f]MB/s Left sec %lu", __FILE__, __LINE__, iOriginBitRate, uRemoteRecSec);
         
         return uRemoteRecSec;
     }
@@ -2534,12 +2534,12 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
     /* 只存拼接 */
     if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == false) &&
         (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
+        
+        int iTmpStichBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iTmpStichBitRate / (1024 * 8 * 1.0f);
+        uLocalRecSec = (u32)(getLocalVolLeftSize(false) / iStitchBitRate);
 
-        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
-        iStitchBitRate = iStitchBitRate / (1024 * 8);
-        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
-
-        Log.d(TAG, "[%s: %d] Local Stitch bitrate[%d]MB/s Left sec %lu", __FILE__, __LINE__, iStitchBitRate, uLocalRecSec);
+        Log.d(TAG, "[%s: %d] Local Stitch bitrate[%f]MB/s Left sec %lu", __FILE__, __LINE__, iStitchBitRate, uLocalRecSec);
         return uLocalRecSec;
     }
 
@@ -2548,17 +2548,17 @@ u32 VolumeManager::calcTakeLiveRecLefSec(Json::Value& jsonCmd)
     if ( (jsonCmd["parameters"]["origin"]["saveOrigin"].asBool() == true) &&
         (jsonCmd["parameters"]["stiching"]["fileSave"].asBool() == true) ) {
         
-        iOriginBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
-        iOriginBitRate = iOriginBitRate / (1024 * 8);
-        uRemoteRecSec = calcRemoteRemainSpace(false) / iOriginBitRate;
+        int iTmpStichBitRate = jsonCmd["parameters"]["origin"]["bitrate"].asInt();
+        iOriginBitRate = iTmpStichBitRate / (1024 * 8 * 1.0f);
+        uRemoteRecSec = (u32)(calcRemoteRemainSpace(false) / iOriginBitRate);
 
-        iStitchBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
-        iStitchBitRate = iStitchBitRate / (1024 * 8);
-        uLocalRecSec = getLocalVolLeftSize(false) / iStitchBitRate;
+        int iTmpOriginBitRate = jsonCmd["parameters"]["stiching"]["bitrate"].asInt();
+        iStitchBitRate = iTmpOriginBitRate / (1024 * 8 * 1.0f);
+        uLocalRecSec = (u32)(getLocalVolLeftSize(false) / iStitchBitRate);
 
 
 
-        Log.d(TAG, "[%s: %d] Local bitrate [%d]Mb/s, Remote bitrate[%d]Mb/s", 
+        Log.d(TAG, "[%s: %d] Local bitrate [%f]Mb/s, Remote bitrate[%f]Mb/s", 
                         __FILE__, __LINE__, iStitchBitRate, iOriginBitRate);
 
         Log.d(TAG, "[%s: %d] --------------- Local Live Left sec %lu, Remote Live Left sec %lu", 

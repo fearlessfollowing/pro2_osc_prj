@@ -546,11 +546,9 @@ class control_center:
         Info('reset busy to idle')
 
 
-
-
     def start_ageing_test(self, content, time):
-        Info('start_ageing_test')
-
+        Info('[-------- start_ageing_test --------]')
+        
         Info('content is {}'.format(content))
         Info('ageing time is {}'.format(time))
         Info('start_ageing_test write_and_read ....')
@@ -566,6 +564,7 @@ class control_center:
         # 给oled_hander发送
         # self.send_oled_type(self, type, req)
         return read_info
+
 
 
     def camera_old_factory_awb(self, content):
@@ -1022,8 +1021,7 @@ class control_center:
 
 
     def camera_connect(self, req):
-        Info('a camera_connect req {}'.format(req))
-
+        Info('[------- APP Req: camera_connect ------] req: {}'.format(req))
         self.aquire_connect_sem()
         try:
             Info('b camera_connect req {}'.format(req))
@@ -1098,7 +1096,7 @@ class control_center:
 
 
     def camera_disconnect(self, req, from_ui = False):
-        Info('---> camera_disconnect req {}'.format(req))
+        Info('[------- APP Req: camera_disconnect ------] req: {}'.format(req))                
         ret = cmd_done(req[_name])
         try:
             Info('camera_disconnect Server State {}'.format(StateMachine.getCamStateFormatHex()))
@@ -1249,7 +1247,7 @@ class control_center:
 
     # req = {_name:config.SET_SYS_SETTING,_param:{"flicker":0,"speaker":0,"led_on":0,"fan_on":0,"aud_on":0,"aud_spatial":0,"set_logo":0}};
     def camera_set_sys_setting(self, req, from_ui = False):
-        Info('camera_set_sys_setting req {}'.format(req))
+        Info('[------- APP Req: camera_set_sys_setting ------] req: {}'.format(req))                
         if check_dic_key_exist(req, _param):
             self.set_sys_option(req[_param])
         else:
@@ -1299,7 +1297,7 @@ class control_center:
             return None
 
     def camera_get_sys_setting(self, req, from_ui = False):
-        Info('---> camera_get_sys_setting req {}'.format(req))
+        Info('[------- APP Req: camera_get_sys_setting ------] req: {}'.format(req))                
         ret = self.get_all_sys_cfg()
         if ret is not None:
             res = OrderedDict({_name:req[_name], _state:config.DONE})
@@ -1323,7 +1321,7 @@ class control_center:
             res = OrderedDict({config.RECORD_URL: self.get_rec_url()})
             read_info = cmd_done(req[_name], res)
         else:
-            read_info = cmd_error_state(req[_name], StateMachine.getCamStateFormatHex())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
         return read_info
 
 
@@ -1550,7 +1548,7 @@ class control_center:
             StateMachine.addCamState(config.STATE_STOP_LIVING)
             read_info = self.stop_live(req)
         else:
-            read_info =  cmd_error_state(req[_name], StateMachine.getCamStateFormatHex())
+            read_info =  cmd_error_state(req[_name], StateMachine.getCamState())
         return read_info
 
 
@@ -1616,8 +1614,8 @@ class control_center:
 
     def camera_stop_preview_done(self, req = None):
         self.set_preview_url(None)
-        StateMachine.rmServerState(config.STATE_STOP_PREVIEWING)
         StateMachine.rmServerState(config.STATE_PREVIEW)
+        StateMachine.rmServerState(config.STATE_STOP_PREVIEWING)
         self.send_oled_type(config.STOP_PREVIEW_SUC)
 
     def stop_preview(self, req, from_oled = False):
@@ -1628,11 +1626,11 @@ class control_center:
 
     def camera_stop_preview(self, req, from_ui = False):
         Info('[------- APP Req: camera_stop_preview ------] req: {}'.format(req))                
-        if StateMachine.checkInPreviewState():
+        if StateMachine.checkServerStateEqualPreview():
             StateMachine.addServerState(config.STATE_STOP_PREVIEWING)
             read_info = self.stop_preview(req) 
         else:
-            read_info = cmd_error_state(req[_name], self.get_cam_state())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
         return read_info
 
 
@@ -1949,7 +1947,7 @@ class control_center:
     # {"name": "camera._getSetCamState", "parameters": {"method":"set", "state": int}}
     # 返回值: {"name": "camera._getSetCamState", "parameters": {"state":"done/error", "error": "reason"}}
     def cameraUiGetSetCamState(self, req):
-        Info('[------- UI Req: get/set Server state ------] req: {}'.format(req))
+        # Info('[------- UI Req: get/set Server state ------] req: {}'.format(req))
         result = OrderedDict()
         result[_name] = req[_name]
         result[_state] = config.DONE
@@ -2140,7 +2138,7 @@ class control_center:
         Info('[------- UI Req: cameraUiSpeedTest ------] req: {}'.format(req))                
         name = config._SPEED_TEST
         try:
-            res = self.start_speed_test(self.get_req(name, param), True)
+            res = self.start_speed_test(req, True)
         except Exception as e:
             Err('cameraUiSpeedTest e {}'.format(e))
             res = cmd_exception(e, name)
@@ -2564,8 +2562,6 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-
-
     def get_preview_def_image_param(self):
         param = OrderedDict()
         param['sharpness'] = 4
@@ -2682,7 +2678,6 @@ class control_center:
 
             # 允许启动直播
             if StateMachine.checkAllowLive():
-
                 StateMachine.addCamState(config.STATE_START_LIVING)
                 if action_info is None:
                     Info('camera_oled_live action none')
@@ -2712,7 +2707,6 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-
     def get_live_org_req(self):
         dict = OrderedDict()
         dict[_name] = config._START_LIVE
@@ -2728,6 +2722,7 @@ class control_center:
 
         param[config.ORG]['liveUrl'] = 'rtmp://127.0.0.1/live'
         return param
+
 
     def camera_oled_live_origin(self):
         name = config._START_LIVE
@@ -2749,7 +2744,7 @@ class control_center:
         return res
 
     #  {'sharpness': 4, 'brightness': 87, 'long_shutter':1-60(s),'shutter_value': 21, 'wb': 0, 'saturation': 156, 'aaa_mode': 2, 'contrast': 143, 'ev_bias': 0, 'iso_value': 7}
-    def set_len_param(self,len_param):
+    def set_len_param(self, len_param):
         Info('set_len_param {}'.format(len_param))
         dict = OrderedDict()
         dict[_name] = config.SET_OPTIONS
@@ -2761,13 +2756,8 @@ class control_center:
 
         if len(param) > 0:
             dict[_param] = param
-            Info('dict is {}'.format(dict))
-            try:
-                res = self.camera_set_options(dict)
-                Info('set_len_param res is {}'.format(res))
-            except Exception as e:
-                Err('set_len_param e {}'.format(e))
-        Info('2set_len_param {}'.format(len_param))
+        return self.camera_set_options(dict)
+
 
     def camera_oled_custom_param(self, req):
         Info("oled custom req {}".format(req))
@@ -3463,6 +3453,7 @@ class control_center:
     # 返回值: 测试结果
     # 
     def camera_start_speed_test(self, req, from_ui = False):
+        Info('[------- APP Req: camera_start_speed_test ------] req: {}'.format(req))                
         return self.start_speed_test(req)
 
 
@@ -3470,7 +3461,7 @@ class control_center:
         name = config._SPEED_TEST
         Info("oled camera_oled_speed_test param {}".format(param))
         try:
-            res = self.start_speed_test(self.get_req(name, param), True)
+            res = self.start_speed_testreq(self.get_req(name, param), True)
         except Exception as e:
             Err('camera_oled_speed_test e {}'.format(e))
             res = cmd_exception(e, name)
@@ -3614,7 +3605,16 @@ class control_center:
     # 返回值:   
     def preview_finish_notify(self, param = None):
         Info('[-------Notify Message -------] preview_finish_notify param {}'.format(param))
-        StateMachine.rmServerState(config.STATE_PREVIEW)
+        if StateMachine.checkStateIn(config.STATE_PREVIEW):
+            StateMachine.rmServerState(config.STATE_PREVIEW)
+
+        if StateMachine.checkStateIn(config.STATE_STOP_PREVIEWING):
+            StateMachine.rmServerState(config.STATE_STOP_PREVIEWING)
+
+        # 录像时关闭某个模组,会发464错误,此时发现camerad没有发录像结束的通知
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
         if param is not None:
             self.send_oled_type_err(config.STOP_PREVIEW_FAIL, self.get_err_code(param))
         else:
