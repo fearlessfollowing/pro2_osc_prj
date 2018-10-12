@@ -16,6 +16,7 @@
 ** V1.0			Skymixos		2018-08-04		创建文件，添加注释
 ** V2.0         skymixos        2018-09-05      存储事件直接通过传输层发送，去掉从UI层发送
 ** V3.0         SKymixos        2018-09-22      增加切换挂载模式接口
+** V3.1         Skymixos        2018年10月12日   更新存储设备及存储设备列表的接口改为调用ProtoManager的接口
 ******************************************************************************************************/
 
 #include <stdio.h>
@@ -50,6 +51,8 @@
 #include <sys/NetlinkManager.h>
 #include <sys/VolumeManager.h> 
 #include <sys/NetlinkEvent.h>
+#include <sys/ProtoManager.h>
+
 
 #include <hw/ins_i2c.h>
 
@@ -64,7 +67,7 @@
 #include <sys/Condition.h>
 
 #include <trans/fifo.h>
-
+#include <sstream>
 
 using namespace std;
 
@@ -1916,57 +1919,47 @@ void VolumeManager::setSavepathChanged(int iAction, Volume* pVol)
 #ifdef USE_TRAN_SEND_MSG
 void VolumeManager::sendSavepathChangeNotify(const char* pSavePath)
 {
-    string savePathStr;
-    Json::FastWriter writer;
+    std::string savePathStr;
     Json::Value savePathRoot;
+    std::ostringstream osOutput; 
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    ProtoManager* pm = ProtoManager::Instance();
 
+    #if 0
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());    
     sp<ARMessage> msg = mNotify->dup();
     msg->setWhat(MSG_SAVE_PATH_CHANGE);   
 
     savePathRoot["path"] = pSavePath;    
     savePathStr = writer.write(savePathRoot);
-    snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", savePathStr.c_str());
 
+
+    snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", savePathStr.c_str());
     msg->set<sp<SAVE_PATH>>("save_path", mSavePath);
     fifo::getSysTranObj()->postTranMessage(msg);
+    #else 
+    pm->sendSavePathChangeReq(pSavePath);
+    #endif
 }
 
-#if 0
-
-void VolumeManager::asyncQueryTfCardState()
-{
-    /* 禁止输入管理器 */
-
-
-
-    /* 使能输入管理器 */
-}
-
-#endif
-
-
-/*
- * 查询TF卡的信息
- */
-void VolumeManager::sendAsyncQueryTfCardInfo(int iAction)
-{
-    sp<ARMessage> msg = mNotify->dup();
-    msg->setWhat(MenuUI::OLED_KEY);   
-    msg->set<int>("action", iAction);
-
-    fifo::getSysTranObj()->postTranMessage(msg);
-}
 
 
 void VolumeManager::sendCurrentSaveListNotify()
 {
     vector<Volume*>& curDevList = getCurSavepathList();
+    ProtoManager* pm = ProtoManager::Instance();
     Volume* tmpVol = NULL;
-    string devListStr;
-    Json::FastWriter writer;
+
     Json::Value curDevListRoot;
     Json::Value jarray;
+    std::ostringstream osOutput;    
+    std::string devListStr = "";
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
 
     for (u32 i = 0; i < curDevList.size(); i++) {
 	    Json::Value	tmpNode;        
@@ -1978,13 +1971,13 @@ void VolumeManager::sendCurrentSaveListNotify()
     }
 
     curDevListRoot["dev_list"] = jarray;
-    devListStr = writer.write(curDevListRoot);
+
+	writer->write(curDevListRoot, &osOutput);
+    devListStr = osOutput.str();    
 
     Log.d(TAG, "[%s: %d] Current Save List: %s", __FILE__, __LINE__, devListStr.c_str());
     
-    if (devListStr.c_str()) {
-
-    }
+    #if 0
     sp<ARMessage> msg = mNotify->dup();
     sp<SAVE_PATH> mSavePath = sp<SAVE_PATH>(new SAVE_PATH());
 
@@ -1992,6 +1985,9 @@ void VolumeManager::sendCurrentSaveListNotify()
     snprintf(mSavePath->path, sizeof(mSavePath->path), "%s", devListStr.c_str());
     msg->set<sp<SAVE_PATH>>("dev_list", mSavePath);
     fifo::getSysTranObj()->postTranMessage(msg);
+    #else 
+    pm->sendStorageListReq(devListStr.c_str());
+    #endif
 }
 
 #endif

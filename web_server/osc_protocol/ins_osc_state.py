@@ -125,13 +125,11 @@ def get_tf_storage_info(path, dev_type, dev_name, index, total, free, speed_test
 
 
 def get_dev_info_detail(dev_list):
-    # Info('type {} count {} dev_list {}'.format(type(dev_list),len(dev_list),dev_list))
     dev_info = []
     try:
         for dev in dev_list:
             Info('dev is {}'.format(dev))
             info = get_local_storage_info(dev['path'], dev_type = dev['dev_type'], dev_name = dev['name'])
-
             dev_info.append(info)
     except Exception as e:
         Info('get_dev_info_detail exception {}'.format(str(e)))
@@ -268,6 +266,9 @@ class osc_state(threading.Thread):
 
 
     def set_save_path(self, content):
+               
+        Info('----- set_save_path: {}'.format(content))
+
         try:
             self.poll_info[EXTERNAL_DEV]['save_path'] = content['path']
         except Exception as e:
@@ -275,13 +276,11 @@ class osc_state(threading.Thread):
         # Print('set_save_path info {}'.format(content))
 
     # 设置电池信息
-    def set_battery_info(self,info):
+    def set_battery_info(self, info):
         try:
-            # Info('set battery info {}'.format(info))
             self.poll_info[BATTERY] = info
         except Exception as e:
             Err('set_battery_info exception {}'.format(e))
-        # Print('set set_battery_info info {}'.format(self.poll_info))
 
 
     # 方法名称: handle_dev_notify_acttion
@@ -290,24 +289,14 @@ class osc_state(threading.Thread):
     # 返回值: 无
     def handle_dev_notify_action(self, content = None):
         dev_list = []
-        if content is not None:
+        dev_info = []
+        # Info('----- handle_dev_notify_action: {}'.format(content))
+
+        if content['dev_list'] is not None:
             dev_list = content['dev_list']
-            # Info('2rec dev_list info {}'.format(dev_list))
-        dev_info = get_dev_info_detail(dev_list)
+            dev_info = get_dev_info_detail(dev_list)
         self.set_external_info(dev_info)
 
-
-    # def set_dev_speed_test_suc(self, path):
-    #     try:
-    #         #for dev in self.poll_info[EXTERNAL_DEV][EXTERNAL_ENTRIES]:
-    #         for dev in self._local_dev:                
-    #             if dev['path'] ==  path:
-    #                 dev['test'] = True
-    #                 break
-    #         else:
-    #             Info('not found speed test path {}'.format(path))
-    #     except Exception as e:
-    #         Err('set_dev_speed_test_suc exception {}'.format(e))
 
     def set_dev_speed_test_suc(self, param):
         try:
@@ -323,12 +312,12 @@ class osc_state(threading.Thread):
                             tmp_dev['pro_suc'] = 1
                         else:
                             tmp_dev['pro_suc'] = 0
-                        # Print('test now value: {}'.format(tmp_dev['pro_suc']))
 
         except Exception as e:
             Err('set_dev_speed_test_suc exception {}'.format(e))
 
-    def handle_save_path_change(self,content):
+
+    def handle_save_path_change(self, content):
         self.set_save_path(content)
 
     def handle_battery(self,content):

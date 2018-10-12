@@ -238,9 +238,8 @@ class monitor_fifo_read(threading.Thread):
     def start_read(self,len):
         return fifo_wrapper.read_fifo(self.read_fd,len)
 
-
     def handle_battery_event(self,content):
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_BAT,content))
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_BAT, content))
 
     # handle_oled_key
     # 处理来自UI的事件
@@ -250,7 +249,7 @@ class monitor_fifo_read(threading.Thread):
         Print('handle oled content {}'.format(content))
         self.control_obj.handle_oled_key(content)
 
-    def handle_dev_notify(self,content = None):
+    def handle_dev_notify(self, content = None):
         if content is not None:
             # Print('handler dev notify content {} dev_list {}'.format(content,content['dev_list']))
             osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_DEV_NOTIFY, content))
@@ -298,10 +297,10 @@ class monitor_fifo_read(threading.Thread):
             EVENT_BATTERY:          self.handle_battery_event,
             # EVENT_NET_CHANGE:     self.handle_net_change_event,
             EVENT_OLED_KEY:         self.handle_oled_key,
-            EVENT_DEV_NOTIFY:       self.handle_dev_notify,
-            EVENT_SAVE_PATH:        self.handle_save_path,
-            EVENT_AGEING_TEST:      self.handle_ageing_test,
-            EVENT_QUERY_STORAGE:    self.handle_query_storage,
+            # EVENT_DEV_NOTIFY:       self.handle_dev_notify,
+            # EVENT_SAVE_PATH:        self.handle_save_path,
+            # EVENT_AGEING_TEST:      self.handle_ageing_test,
+            # EVENT_QUERY_STORAGE:    self.handle_query_storage,
             EVENT_QUERY_LEFT:       self.handle_query_left,
         })
         
@@ -325,7 +324,7 @@ class monitor_fifo_read(threading.Thread):
                     
                     # Print('len(content) {} content_len {} '.format(len(content),content_len))
 
-                    Print('read monitor content len {} content {}'.format(content_len,content))
+                    Print('read monitor content len {} content {}'.format(content_len, content))
                     self.func[event](jsonstr_to_dic(content))
                 else:
                     self.func[event]()

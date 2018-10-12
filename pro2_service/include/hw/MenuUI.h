@@ -695,9 +695,8 @@ private:
     void    send_read_bat();
 
     void    send_update_mid_msg(int interval = 1000);
-    void    set_update_mid();
+    void    set_update_mid(int interval = 1000);
 
-    void    disp_mid();
     void    flick_light();
     void    flick_low_bat_lig();
 

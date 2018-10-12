@@ -81,17 +81,11 @@ ACTION_AGEING = 20
 ACTION_AWB = 21
 ACTION_SET_STICH = 50
 
-ACTION_QUERY_STORAGE = 200
-
 #格式化TF卡（2018年8月10日）
 ACTION_FORMAT_TFCARD = 201
 
 # 退出U盘模式
 ACTION_QUIT_UDISK_MODE = 202
-
-
-# 修改Web Controller的状态
-ACTION_SET_CONTROL_STATE = 208
 
 
 ORG_OVER = 'originOver'
@@ -385,6 +379,15 @@ class control_center:
         
             # 拼接校正
             config._REQ_STITCH_CALC:            self.cameraUiStitchCalc,
+
+            # 存储路径改变
+            config._REQ_SAVEPATH_CHANGE:        self.cameraUiSavepathChange,
+
+            # 更新存储设备列表
+            config._REQ_UPDATE_STORAGE_LIST:    self.cameraUiUpdateStorageList,
+
+            # 更新电池信息
+            config._REQ_UPDATE_BATTERY_IFNO:    self.cameraUiUpdateBatteryInfo,
         })
 
 
@@ -454,8 +457,6 @@ class control_center:
                 ACTION_NOISE:               self.camera_oled_noise,
 
                 ACTION_LIVE_ORIGIN:         self.camera_oled_live_origin,
-
-                ACTION_CUSTOM_PARAM:        self.camera_oled_custom_param,
 
                 ACTION_AWB:                 self.camera_old_factory_awb,
             }
@@ -549,10 +550,6 @@ class control_center:
     def start_ageing_test(self, content, time):
         Info('[-------- start_ageing_test --------]')
         
-        Info('content is {}'.format(content))
-        Info('ageing time is {}'.format(time))
-        Info('start_ageing_test write_and_read ....')
-
         # 给oled_handler发送老化消息
         self.send_oled_type(config.START_AGEING)
 
@@ -561,10 +558,7 @@ class control_center:
 
         Info('start_ageing_test result {}'.format(read_info))
 
-        # 给oled_hander发送
-        # self.send_oled_type(self, type, req)
         return read_info
-
 
 
     def camera_old_factory_awb(self, content):
@@ -743,8 +737,6 @@ class control_center:
         #keep in the end of init 0616 for recing msg from pro_service after fifo create
         self.init_fifo_read_write()
         self.init_fifo_monitor_camera_active()
-
-        os.system("setprop sys.web_status true")
 
     def send_sync_init(self,req):
         Info('send sync init req {}'.format(req))
@@ -1316,6 +1308,7 @@ class control_center:
         Info('[------- APP Req: camera_rec ------] req: {}'.format(req))                
 
         if StateMachine.checkAllowTakeVideo():
+            StateMachine.addCamState(config.STATE_START_RECORDING)
             read_info = self.start_rec(req)
         elif StateMachine.checkInRecord():
             res = OrderedDict({config.RECORD_URL: self.get_rec_url()})
@@ -1327,11 +1320,11 @@ class control_center:
 
     def camera_rec_done(self, res = None, req = None, oled = False):
         Info('rec done param {}'.format(req))
-        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
-            StateMachine.rmServerState(config.STATE_START_RECORDING)
 
         # 进入录像状态
         StateMachine.addServerState(config.STATE_RECORD)
+        if StateMachine.checkStateIn(config.STATE_START_RECORDING):
+            StateMachine.rmServerState(config.STATE_START_RECORDING)
 
         if req is not None:
             if oled:
@@ -2103,7 +2096,6 @@ class control_center:
     def cameraUiqueryGpsState(self, req):
         Info('[------- UI Req: cameraUiqueryGpsState ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
-        Info('----> query return is {}'.format(read_info))
         return read_info        
 
 
@@ -2270,6 +2262,56 @@ class control_center:
     def cameraUiStitchCalc(self, req):
         Info('[------- UI Req: cameraUiStitchCalc ------] req: {}'.format(req))                
         return self.start_calibration(req, True)
+
+
+    def cameraUiSavepathChange(self, req):
+        Info('[------- UI Req: cameraUiSavepathChange ------] req: {}'.format(req)) 
+        
+        read_info = self.start_change_save_path(req[_param])
+
+        factory_path = req[_param]['path'] + '/factory.json'
+
+        Info('----> root path {}'.format(factory_path))
+        
+        if os.path.exists(factory_path):
+            Print('----> Factory.json exist')
+            file_object = open(factory_path)
+            file_context = file_object.read()
+            file_object.close()
+
+            file_json = json.loads(file_context)            
+            Print('file content: {}'.format(file_json))
+            age_time = file_json['parameters']['duration']    # 得到老化的时间
+            
+            # 避免多次插入而报错413
+            if StateMachine.checkStateIn(config.STATE_RECORD) == False:
+                self.start_ageing_test(file_json, age_time)
+
+        return read_info
+
+
+    def cameraUiUpdateStorageList(self, req):
+        Info('[------- UI Req: cameraUiUpdateStorageList ------] req: {}'.format(req))                
+        res = OrderedDict()
+        res[_name] = req[_name]
+        res[_state] = config.DONE   
+
+        dev_list = jsonstr_to_dic(req[_param])
+
+        if dev_list is not None:
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_DEV_NOTIFY, dev_list))
+        else:
+            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_DEV_NOTIFY))
+        return json.dumps(res) 
+
+
+    def cameraUiUpdateBatteryInfo(self, req):
+        # Info('[------- UI Req: cameraUiUpdateBatteryInfo ------] req: {}'.format(req))                
+        res = OrderedDict()
+        res[_name] = req[_name]
+        res[_state] = config.DONE   
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_BAT, req[_param]))
+        return json.dumps(res) 
 
 
     # 方法名称: cameraUiQueryTfcard
@@ -2758,21 +2800,6 @@ class control_center:
             dict[_param] = param
         return self.camera_set_options(dict)
 
-
-    def camera_oled_custom_param(self, req):
-        Info("oled custom req {}".format(req))
-
-        if check_dic_key_exist(req, 'audio_gain'):
-            param = OrderedDict({'property':'audio_gain', 'value':req['audio_gain']})
-            self.camera_oled_set_option(param)
-
-        if check_dic_key_exist(req, 'len_param'):
-            self.set_len_param(req['len_param'])
-
-        if check_dic_key_exist(req, 'gamma_param'):
-            Info('gamma_param {}'.format(req['gamma_param']))
-            param = OrderedDict({'data': req['gamma_param']})
-            self.camera_update_gamma_curve(self.get_req(config._UPDATE_GAMMA_CURVE, param))
 
 
     def camera_oled_err(self, name, err_des):
@@ -3380,7 +3407,6 @@ class control_center:
         return res
 
 
-
     def start_aging(self, req, from_oled = False):
         Info("oled camera_oled_aging st {}".format(self.get_cam_state()))
         if self.check_allow_aging():
@@ -3469,12 +3495,9 @@ class control_center:
 
 
     def start_change_save_path(self, content):
-        # Info('start_change_save_path')
-        try:
-            self.start_camera_cmd_func(config._SET_STORAGE_PATH, self.get_req(config._SET_STORAGE_PATH,content))
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HAND_SAVE_PATH,content))
-        except Exception as e:
-            Err('start_change_save_path exception {}'.format(str(e)))
+        Info('[------ UI Req: start_change_save_path -----] req: {}'.format(content))
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HAND_SAVE_PATH, content))
+        return self.start_camera_cmd_func(config._SET_STORAGE_PATH, self.get_req(config._SET_STORAGE_PATH, content))
 
 
     def handle_oled_key(self, content):

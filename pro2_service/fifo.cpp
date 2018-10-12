@@ -428,178 +428,6 @@ const char *getActionName(int iAction)
     * }
     */	
 
-#if 0
-void fifo::handleUiTakePicReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
-{
-    Log.d(TAG, ">>>> ACTION_PIC: mime index = %d", mActInfo->stOrgInfo.mime);
-
-    cJSON *org = cJSON_CreateObject();
-
-    cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
-    #if 0
-    cJSON_AddNumberToObject(param, "delay", mActInfo->delay);
-    #else 
-    cJSON_AddNumberToObject(param, "delay", 0);
-    #endif
-
-    if (mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count > 0) {
-        cJSON *burst = cJSON_CreateObject();
-        cJSON_AddTrueToObject(burst,"enable");
-        cJSON_AddNumberToObject(burst, "count", mActInfo->stOrgInfo.stOrgAct.mOrgP.burst_count);
-        cJSON_AddItemToObject(param, "burst",burst);
-
-    } else if (mActInfo->stOrgInfo.stOrgAct.mOrgP.hdr_count > 0) {
-        cJSON *hdr = cJSON_CreateObject();
-        cJSON_AddTrueToObject(hdr,"enable");
-        cJSON_AddNumberToObject(hdr, "count", mActInfo->stOrgInfo.stOrgAct.mOrgP.hdr_count);
-        cJSON_AddNumberToObject(hdr, "min_ev", mActInfo->stOrgInfo.stOrgAct.mOrgP.min_ev);
-        cJSON_AddNumberToObject(hdr, "max_ev", mActInfo->stOrgInfo.stOrgAct.mOrgP.max_ev);
-        cJSON_AddItemToObject(param, "hdr", hdr);
-    }
-
-    if (mActInfo->stOrgInfo.save_org == SAVE_OFF) {
-        cJSON_AddFalseToObject(org, "saveOrigin");
-    } else {
-        cJSON_AddTrueToObject(org, "saveOrigin");
-    }
-    
-    cJSON_AddNumberToObject(org, "width", mActInfo->stOrgInfo.w);
-    cJSON_AddNumberToObject(org, "height", mActInfo->stOrgInfo.h);
-
-    /*
-        * 2018年5月17日：添加录像到各张子卡
-        */
-    cJSON_AddNumberToObject(org, "storage_loc", mActInfo->stOrgInfo.locMode);
-
-    
-    /* {"paramters": {"origin":{}} */
-    cJSON_AddItemToObject(param, "origin", org);
-
-    Log.d(TAG, " mActInfo->stStiInfo.stich_mode %d", mActInfo->stStiInfo.stich_mode);
-
-    if (mActInfo->stStiInfo.stich_mode != STITCH_OFF) {
-        cJSON *sti = cJSON_CreateObject();
-        cJSON_AddStringToObject(sti, "mode", act_mode[mActInfo->mode]);
-        cJSON_AddNumberToObject(sti, "height", mActInfo->stStiInfo.h);
-        cJSON_AddNumberToObject(sti, "width", mActInfo->stStiInfo.w);
-        Log.d(TAG, "sti mode %d", mActInfo->stStiInfo.stich_mode);
-        if (STITCH_CUBE == mActInfo->stStiInfo.stich_mode) {
-            cJSON_AddStringToObject(sti, "map", "cube");
-        }
-
-        cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
-        if (STITCH_OPTICAL_FLOW == mActInfo->stStiInfo.stich_mode) {
-            cJSON_AddStringToObject(sti, "algorithm", "opticalFlow");
-        }
-        cJSON_AddItemToObject(param, "stiching", sti);
-    } else {
-        Log.w(TAG, "sti off");        
-    }
-
-    if (mActInfo->stAudInfo.sample_rate != 0) {
-        //"mime":string,"sampleFormat":string,"channelLayout":string,samplerate:int,bitrate:int}
-        cJSON *aud = cJSON_CreateObject();
-        cJSON_AddNumberToObject(aud, "bitrate", mActInfo->stAudInfo.br);
-        cJSON_AddNumberToObject(aud, "samplerate", mActInfo->stAudInfo.sample_rate);
-        cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-        cJSON_AddStringToObject(aud, "sampleFormat", mActInfo->stAudInfo.sample_fmt);
-        cJSON_AddStringToObject(aud, "channelLayout", mActInfo->stAudInfo.ch_layout);
-        cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-        cJSON_AddItemToObject(param, "audio", aud);
-    } else {
-        Log.w(TAG, "aud s 0");
-    }
-
-    cJSON_AddItemToObject(root, "parameters", param);
-
-}
-
-
-
-void fifo::handleUiTakeVidReq(sp<ACTION_INFO>& mActInfo, cJSON* root, cJSON *param)
-{
-    cJSON *org = cJSON_CreateObject();
-    cJSON_AddStringToObject(org, "mime", all_mime[mActInfo->stOrgInfo.mime]);
-    cJSON_AddNumberToObject(org, "framerate", (all_frs[mActInfo->stOrgInfo.stOrgAct.mOrgV.org_fr]));
-    cJSON_AddNumberToObject(org, "bitrate", mActInfo->stOrgInfo.stOrgAct.mOrgV.org_br * 1000);
-    Log.d(TAG,"vid mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int %d",mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-    if (mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int != 0) {
-        cJSON *tim_lap = cJSON_CreateObject();
-        cJSON_AddTrueToObject(tim_lap, "enable");
-        cJSON_AddNumberToObject(tim_lap, "interval",
-                                mActInfo->stOrgInfo.stOrgAct.mOrgV.tim_lap_int);
-        cJSON_AddItemToObject(param, "timelapse", tim_lap);
-    }
-    
-    if (mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode == 1) {
-        cJSON_AddNumberToObject(org, "logMode", mActInfo->stOrgInfo.stOrgAct.mOrgV.logMode);
-    }
-
-    if (mActInfo->stOrgInfo.save_org == SAVE_OFF) {
-        cJSON_AddFalseToObject(org, "saveOrigin");
-    } else {
-        cJSON_AddTrueToObject(org, "saveOrigin");
-    }
-    
-    cJSON_AddNumberToObject(org, "width", mActInfo->stOrgInfo.w);
-    cJSON_AddNumberToObject(org, "height", mActInfo->stOrgInfo.h);
-
-
-    cJSON_AddNumberToObject(org, "storage_loc", mActInfo->stOrgInfo.locMode);
-
-
-    /* {"paramters": {"origin":{}} */
-    cJSON_AddItemToObject(param, "origin", org);
-
-    Log.d(TAG, " mActInfo->stStiInfo.stich_mode %d", mActInfo->stStiInfo.stich_mode);
-
-    if (mActInfo->stStiInfo.stich_mode != STITCH_OFF) {
-        cJSON *sti = cJSON_CreateObject();
-        cJSON_AddStringToObject(sti, "mode", act_mode[mActInfo->mode]);
-        cJSON_AddNumberToObject(sti, "height", mActInfo->stStiInfo.h);
-        cJSON_AddNumberToObject(sti, "width", mActInfo->stStiInfo.w);
-        Log.d(TAG, "sti mode %d", mActInfo->stStiInfo.stich_mode);
-        if (STITCH_CUBE == mActInfo->stStiInfo.stich_mode) {
-            cJSON_AddStringToObject(sti, "map", "cube");
-        }						
-
-        Log.d(TAG, "mActInfo->stStiInfo.stStiAct.mStiV.sti_fr is %d",
-                mActInfo->stStiInfo.stStiAct.mStiV.sti_fr);
-        
-        cJSON_AddNumberToObject(sti, "framerate",
-                                (all_frs[mActInfo->stStiInfo.stStiAct.mStiV.sti_fr]));
-        cJSON_AddNumberToObject(sti, "bitrate", mActInfo->stStiInfo.stStiAct.mStiV.sti_br * 1000);
-        cJSON_AddStringToObject(sti, "mime", all_mime[mActInfo->stStiInfo.mime]);
-
-        cJSON_AddItemToObject(param, "stiching", sti);
-    } else {
-        Log.w(TAG, "sti off");
-    }   
-
-
-    if (mActInfo->stAudInfo.sample_rate != 0) {
-        //"mime":string,"sampleFormat":string,"channelLayout":string,samplerate:int,bitrate:int}
-        cJSON *aud = cJSON_CreateObject();
-        cJSON_AddNumberToObject(aud, "bitrate", mActInfo->stAudInfo.br);
-        cJSON_AddNumberToObject(aud, "samplerate", mActInfo->stAudInfo.sample_rate);
-        cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-        cJSON_AddStringToObject(aud, "sampleFormat", mActInfo->stAudInfo.sample_fmt);
-        cJSON_AddStringToObject(aud, "channelLayout", mActInfo->stAudInfo.ch_layout);
-        cJSON_AddStringToObject(aud, "mime", mActInfo->stAudInfo.mime);
-        cJSON_AddItemToObject(param, "audio", aud);
-    } else {
-        Log.w(TAG,"aud s 0");
-    }
-
-    /* {"action":ACTION_XX, "parameters": {}} */
-    cJSON_AddItemToObject(root, "parameters", param);
-
-}
-
-
-#endif
-
-
 void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 {
     int iIndex = -1;
@@ -611,77 +439,12 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 
     switch (action) {
         
-        case ACTION_PIC: {
-            Json::Value* pTakePicJson;
-            CHECK_EQ(msg->find<Json::Value*>("take_pic", &pTakePicJson), true);
-
-            rootNode["action"] = ACTION_PIC;
-            rootNode["parameters"] = *pTakePicJson;
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "------ Action Pic: %s", sendDataStr.c_str());
-            break;
-        }
-
-
-        case ACTION_VIDEO: {
-            Json::Value* pTakeVideoJson = NULL;
-            CHECK_EQ(msg->find<Json::Value*>("take_video", &pTakeVideoJson), true);
-
-            rootNode["action"] = ACTION_VIDEO;
-            if (pTakeVideoJson) {
-                rootNode["parameters"] = *pTakeVideoJson;
-            }
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "----- Action Video: %s", sendDataStr.c_str());
-
-            break;
-        }
-
-        case ACTION_LIVE: {
-            Json::Value* pTakeLiveJson = NULL;
-            CHECK_EQ(msg->find<Json::Value*>("take_live", &pTakeLiveJson), true);
-
-            rootNode["action"] = ACTION_LIVE;
-            if (pTakeLiveJson) {
-                rootNode["parameters"] = *pTakeLiveJson;
-            }
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "------ Action Live: %s", sendDataStr.c_str());
-            break;
-        }
-
-
-        /* 设置模板参数:
-         * {"action": 18, "parameters":{"audio_gain":XX, "len_param": {}, "gamma_param": "XXXX"}}
-         */
-
-        case ACTION_CUSTOM_PARAM: {
-            Json::Value* pSetCustomerArg;
-            Json::Value root;
-            CHECK_EQ(msg->find<Json::Value*>("set_customer_param", &pSetCustomerArg), true);
-
-            rootNode["action"] = ACTION_CUSTOM_PARAM;
-            rootNode["parameters"] = (*pSetCustomerArg)["parameters"]["properties"];
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Set customer param: %s", sendDataStr.c_str());
-            break;
-        }
-        
         case ACTION_LIVE_ORIGIN: {
             rootNode["action"] = ACTION_LIVE_ORIGIN;
             sendDataStr = writer.write(rootNode);
 		    Log.d(TAG, "Action Live origin: %s", sendDataStr.c_str());
             break;
         }
-						
-        case ACTION_CALIBRATION: {
-            rootNode["action"] = ACTION_CALIBRATION;
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Calibration: %s", sendDataStr.c_str());
-            break;
-        }
-
       
         /* {"action": ACTION_LOW_BAT} */
         case ACTION_LOW_BAT: {
@@ -701,21 +464,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         case ACTION_LOW_PROTECT:
             break;
         #endif
-					
-        /* {"action": ACTION_SPEED_TEST, "paramters":{"path":"/media/nvidia/xxxx"}} ACTION_SPEED_TEST*/
-        case ACTION_SPEED_TEST: {
-            const char *path;
-            CHECK_EQ(msg->find<const char *>("path", &path), true);
-
-            paramNode["path"] = path;
-            rootNode["action"] = ACTION_SPEED_TEST;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Speed test: %s", sendDataStr.c_str());
-            break;
-        }
-
 
         /* {"action": ACTION_NOISE} */
         case ACTION_PREVIEW:
@@ -723,7 +471,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         case ACTION_GYRO:
         case ACTION_AGEING:
 
-        case ACTION_QUERY_STORAGE: 
         case ACTION_SET_STICH: 
         case ACTION_POWER_OFF: {
             rootNode["action"] = action;
@@ -741,51 +488,6 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
 		    Log.d(TAG, "Action AWB: %s", sendDataStr.c_str());
             break;
         }
-
-        case ACTION_UPDATE_REC_LEFT_SEC: {
-            u64 recLefSecs;
-            u64 liveRecLeftSecs;
-            u64 recSecs;
-            u64 liveSecs;
-
-            CHECK_EQ(msg->find<u64>("rec_left_sec", &recLefSecs), true);
-            CHECK_EQ(msg->find<u64>("live_rec_left_sec", &liveRecLeftSecs), true);
-            CHECK_EQ(msg->find<u64>("rec_sec", &recSecs), true);
-            CHECK_EQ(msg->find<u64>("live_rec_sec", &liveSecs), true);
-
-
-            paramNode["rec_left_sec"]       = (u32)recLefSecs;
-            paramNode["live_rec_left_sec"]  = (u32)liveRecLeftSecs;
-            paramNode["rec_sec"]            = (u32)recSecs;
-            paramNode["live_rec_sec"]       = (u32)liveSecs;
-
-            rootNode["action"] = ACTION_UPDATE_REC_LEFT_SEC;
-            rootNode["parameters"] = paramNode;
-
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action ACTION_UPDATE_REC_LEFT_SEC: %s", sendDataStr.c_str());
-
-            break;
-        }
-
-
-        case ACTION_SET_CONTROL_STATE: {
-
-            u32 iState;
-            int iAction;
-            
-            CHECK_EQ(msg->find<u32>("state", &iState), true);
-            CHECK_EQ(msg->find<int>("action", &iAction), true);
-
-            paramNode["action"] = iAction;            
-            paramNode["state"] = iState;            
-            rootNode["action"] = ACTION_SET_CONTROL_STATE;
-            rootNode["parameters"] = paramNode;  
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action ACTION_SET_CONTROL_STATE: %s", sendDataStr.c_str());                      
-            break;
-        }
-
 
         case ACTION_SET_OPTION: {
             int type;
@@ -978,32 +680,6 @@ void fifo::handleUiNotify(const sp<ARMessage> &msg)
             break;
         }
 			
-		
-		/* 
-		 * msg.what = UPDATE_BAT
-		 * msg.bat_info = sp<BAT_INFO>
-		 * {"battery_level": 100, "battery_charge": 0/1, "int_tmp": 20, "tmp":20}
-		 */
-        case MenuUI::UPDATE_BAT: {		/* 电池状态更新 */
-            sp<BAT_INFO> mBatInfo;
-            Json::FastWriter writer;
-            string sendDataStr;
-
-            CHECK_EQ(msg->find<sp<BAT_INFO>>("bat_info", &mBatInfo), true);
-
-            Json::Value rootNode;
-            rootNode["battery_level"]   = mBatInfo->battery_level;
-            rootNode["battery_charge"]  = (mBatInfo->bCharge == true) ? 1: 0;            
-            rootNode["int_tmp"]         =  mBatInfo->int_tmp;
-            rootNode["tmp"]             =  mBatInfo->tmp;            
-
-            sendDataStr = writer.write(rootNode);
-
-            Log.d(TAG, "-------- FIFO RECV UPDATE_BAT");
-            write_fifo(EVENT_BATTERY, sendDataStr.c_str());
-			break;
-        }
-
         default:
             break;
     }
@@ -1084,17 +760,6 @@ void fifo::handleMessage(const sp<ARMessage> &msg)
                 /* UI -> FIFO -> OSC */
                 case MSG_UI_KEY: {	/* 来自UI线程的Key */
                     handleUiNotify(msg);
-                    break;
-                }
-
-
-                case MSG_SAVE_PATH_CHANGE: {    /* 来自VolumeManager */
-                    handleSavePathChanged(msg);                
-                    break;
-                }
-
-                case MSG_UPDATE_CURRENT_SAVE_LIST: {
-                    handleUpdateDevList(msg);
                     break;
                 }
 

@@ -180,9 +180,7 @@ def flask_ui_cmd_execute():
 
 
 
-
-
-@app.route(config.PATH_CMD_STITCH,methods=['GET', 'POST'])
+@app.route(config.PATH_CMD_STITCH, methods=['GET', 'POST'])
 # @add_header
 def flask_osc_cmd_stitch():
     try:
@@ -325,85 +323,17 @@ def download(filename):
 #     print('efg')
 #     return 'suc1'
 
-# @app.errorhandler(404)
-# def page_not_found(error):
-#     pass
-#
-# def login_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         if g.user is None:
-#             return redirect(url_for('login', next=request.url))
-#         return f(*args, **kwargs)
-#     return decorated_function
-
-# def index():
-#     return 'index'
-
 # app.add_url_rule('/', 'index', index)
 # app.view_functions['index'] = index
 
-# with app.app_request_context():
-#     url_for('.index')
-#     Print('app cxt')
-#     Print(flask.current_app)
-#     Print('app cxt 2')
 
-# ADMINS = ['yourname@example.com']
-# if not app.debug:
-#     import logging
-#     from logging.handlers import SMTPHandler
-#     mail_handler = SMTPHandler('127.0.0.1',
-#                                'server-error@example.com',
-#                                ADMINS, 'YourApplication Failed')
-#     mail_handler.setLevel(logging.ERROR)
-#     app.logger.addHandler(mail_handler)
-
-# def log_request(sender, **extra):
-#     print('log_request a')
-#     sender.logger.debug('Request context is set up')
-#     return 'ok'
-
-# from flask import request_started
-# request_started.connect(log_request, app)
-
-# def native_init():
-#     pass
-#
-# def timer_init():
-#     start_poll()
 def main():
-    """main function"""
-    # import config
-    # logging.config.fileConfig('logconfig.ini')
-    # logging.basicConfig(
-    #     filename='app.log',
-    #     level=logging.DEBUG,
-    #     format='%(levelname)s:%(asctime)s:%(message)s')
-    #app_controller.osc_set_all_options()
-    # import pdb
-    # pdb.set_trace()
-    # import gc
-    # gc.set_debug(gc.DEBUG_LEAK)
-    # native_init()
-    # osc_state.set_poll_info_internal()
-    # if platform.machine() != 'x86_64':
-    # start_monitor()
-    # app.run(host='0.0.0.0', port=20000, debug=True,use_reloader = True)
-
-    # if platform.machine() == 'x86_64' or config.HTTP_ASYNC:
-    #     from gevent import monkey
-    #     from gevent.pywsgi import WSGIServer
-    #     # 在玩websockets，可以无视之哈，有空贴下flask websockets实现哈
-    #     from geventwebsocket.handler import WebSocketHandler
-    #     # 　gevent的猴子魔法
-    #     monkey.patch_all()
-    #     http_server = WSGIServer(('', 20000), app, handler_class=WebSocketHandler)
-    #     http_server.serve_forever()
-    # else:
-    # Print('app controller obj init {}'.format(id(app_controller)))
     ins_version.get_version()
-    app.run(host='0.0.0.0', port=20000, debug=True, use_reloader=config.USER_RELOAD, threaded=config.HTTP_ASYNC)
 
+    # 设置该属性后,才启动UI进程
+    os.system("setprop sys.web_status true")
+
+    app.run(host='0.0.0.0', port=20000, debug=True, use_reloader=config.USER_RELOAD, threaded=config.HTTP_ASYNC)
+    
 if __name__ == '__main__':
     main()

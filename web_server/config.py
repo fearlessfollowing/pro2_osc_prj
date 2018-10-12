@@ -247,6 +247,15 @@ _REQ_STOP_LIVE              = 'camera._stopLive'
 # 请求拼接校准
 _REQ_STITCH_CALC            = 'camera._calibration'
 
+# 存储路径改变
+_REQ_SAVEPATH_CHANGE        = 'camera._changeStoragePath'
+
+# 更新存储设备列表
+_REQ_UPDATE_STORAGE_LIST    = 'camera._updateStorageList'
+
+# 更新电池信息
+_REQ_UPDATE_BATTERY_IFNO    = 'camera._updateBatteryInfo'
+
 
 """camera_state"""
 STATE_IDLE                      = 0x00

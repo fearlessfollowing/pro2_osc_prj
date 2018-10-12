@@ -62,6 +62,9 @@
 
 #define REQ_STITCH_CALC             "camera._calibration"
 
+#define REQ_CHANGE_SAVEPATH         "camera._changeStoragePath"
+#define REQ_UPDATE_DEV_LIST         "camera._updateStorageList"
+#define REQ_UPDATE_BAT_INFO         "camera._updateBatteryInfo"
 
 /*********************************************************************************************
  *  外部函数
@@ -202,8 +205,6 @@ bool ProtoManager::getServerState(uint64_t* saveState)
     Json::Value jsonRes;   
     Json::Value root;
     Json::Value param;
-
-    uint64_t state;
 
     std::ostringstream osInput;
     std::ostringstream osOutput;  
@@ -505,9 +506,6 @@ bool ProtoManager::parseQueryTfcardResult(Json::Value& jsonData)
     Log.d(TAG, "[%s:%d] ---> parseQueryTfcardResult", __FILE__, __LINE__);
 
     bool bResult = false;
-    char cStoragePath[64] = {0};
-    int iModuleArray = 0;
-    
     mStorageList.clear();
 
     if (jsonData.isMember("state") && jsonData.isMember("results")) {
@@ -1000,6 +998,160 @@ bool ProtoManager::sendStichCalcReq()
     return bRet;      
 }
 
+/*
+ * 更新当前的存储设备
+ */
+bool ProtoManager::sendSavePathChangeReq(const char* savePath)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value param;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_path]    = savePath;      
+    root[_name]     = REQ_CHANGE_SAVEPATH;
+    root[_param]    = param;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendSavePathChangeReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendSavePathChangeReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet; 
+}
+
+bool ProtoManager::sendStorageListReq(const char* devList)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name]         = REQ_UPDATE_DEV_LIST;
+    root[_param]        = devList;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStorageListReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStorageListReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;     
+}
+
+
+bool ProtoManager::sendUpdateBatteryInfo(BAT_INFO* pBatInfo)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+    Json::Value param;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param["battery_level"]  = pBatInfo->battery_level;
+    param["battery_charge"] = (pBatInfo->bCharge == true) ? 1: 0;
+    param["int_tmp"]        =  pBatInfo->int_tmp;
+    param["tmp"]            =  pBatInfo->tmp;  
+
+    root[_name]         = REQ_UPDATE_BAT_INFO;
+    root[_param]        = param;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendUpdateBatteryInfo -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendUpdateBatteryInfo -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;     
+}
+
+#if 0
+{'battery_charge': 0, 'battery_level': 100, 'int_tmp': 0.0, 'tmp': 0.0}
+#endif
 
 bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
 {

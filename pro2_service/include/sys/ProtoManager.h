@@ -51,6 +51,7 @@
 #define _rec_sec            "rec_sec"
 #define _live_rec_sec       "live_rec_sec"
 #define _path               "path"
+#define _dev_list           "dev_list"
 #define _delay              "delay"
 
 #define _origin             "origin"
@@ -161,16 +162,25 @@ public:
     /* 拼接校准 */
     bool            sendStichCalcReq();
 
+    /* 更新存储路径： */
+    bool            sendSavePathChangeReq(const char* savePath);
+
+    /* 发送存储设备列表 
+     * TODO:以后实现
+     */
+    // bool            sendStorageListReq(Json::Value& storageListReq);
+
+    bool            sendStorageListReq(const char* devList);
+
+    /*
+     * 更新电池电量信息
+     */
+    bool            sendUpdateBatteryInfo(BAT_INFO* pBatInfo);
+
 
 #if 0
     /* 启动陀螺仪校正 */
     bool            sendGyroCalcReq(Json::Value& gyroCalcReq);
-
-    /* 更新存储路径： */
-    bool            sendSavePathChangeReq(Json::Value& savePathChangeReq);
-
-    /* 发送存储设备列表 */
-    bool            sendStorageListReq(Json::Value& storageListReq);
 
     /* 白平衡校正 */
     bool            sendWbCalcReq(Json::Value& wbCalcReq);

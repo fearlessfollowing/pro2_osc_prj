@@ -506,8 +506,6 @@ public:
 
     void        clearTakeTimelapseCnt();
 
-    void        sendAsyncQueryTfCardInfo(int iAction);
-
     void        repairVolume(Volume* pVol);
     /*
      * 转换秒数为'00:00:00'格式字符串
