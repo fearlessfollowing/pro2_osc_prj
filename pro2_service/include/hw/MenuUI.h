@@ -700,8 +700,6 @@ private:
     void    set_update_mid(int interval = 1000);
 
     void    flick_light();
-    void    flick_low_bat_lig();
-
 
     void    add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
 

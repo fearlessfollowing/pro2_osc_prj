@@ -438,14 +438,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
     Json::Value paramNode;
 
     switch (action) {
-        
-        case ACTION_LIVE_ORIGIN: {
-            rootNode["action"] = ACTION_LIVE_ORIGIN;
-            sendDataStr = writer.write(rootNode);
-		    Log.d(TAG, "Action Live origin: %s", sendDataStr.c_str());
-            break;
-        }
-      
+          
         /* {"action": ACTION_LOW_BAT} */
         case ACTION_LOW_BAT: {
             CHECK_EQ(msg->find<int>("cmd", &reboot_cmd), true);
@@ -469,9 +462,7 @@ void fifo::handleUiKeyReq(int action, const sp<ARMessage>& msg)
         case ACTION_PREVIEW:
         case ACTION_NOISE: 
         case ACTION_GYRO:
-        case ACTION_AGEING:
 
-        case ACTION_SET_STICH: 
         case ACTION_POWER_OFF: {
             rootNode["action"] = action;
             sendDataStr = writer.write(rootNode);

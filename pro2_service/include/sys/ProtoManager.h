@@ -183,6 +183,8 @@ public:
     /* 启动陀螺仪校正 */
     bool            sendGyroCalcReq();
 
+    /* 低电请求 */
+    bool            sendLowPowerReq();
 
 #if 0
 

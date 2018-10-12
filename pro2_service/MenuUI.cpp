@@ -2410,14 +2410,21 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             }
             break;
         }
-#endif
+
 			
         case ACTION_LOW_BAT: {
             Log.d(TAG, "[%s: %d] Battery is Low, Send Command[%d] to Camerad", __FILE__, __LINE__, cmd);
             msg->set<int>("cmd", cmd);
             break;
         }
-		
+
+		case ACTION_AWB: {		
+			setLightDirect(FRONT_GREEN);
+			break;		
+        }
+
+#endif		
+
         case ACTION_GYRO: {
             if (checkServerInIdle(serverState)) {
                 oled_disp_type(START_GYRO);
@@ -2433,6 +2440,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             return true;
         }
 
+        #if 0
         case ACTION_SET_OPTION: {
             msg->set<int>("type", cmd);
             switch (cmd) {
@@ -2484,13 +2492,133 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             #endif
                 SWITCH_DEF_ERROR(cmd);
             }
+            #else 
+        case ACTION_SET_OPTION: {
+
+            switch (cmd) {
+
+                case OPTION_FLICKER: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "flicker";
+                    param["value"] = mProCfg->get_val(KEY_PAL_NTSC);
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param;
+
+                    return pm->sendSetOptionsReq(root);
+                }
+
+                case OPTION_LOG_MODE: {
+                    Json::Value root;
+                    Json::Value param;
+                    Json::Value valNode;
+
+                    valNode["mode"] = 1;
+                    valNode["effect"] = 0;
+                    param["property"] = "logMode";
+                    param["value"] = valNode;
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param;
+
+                    return pm->sendSetOptionsReq(root);
+
+                }
+
+
+                case OPTION_SET_FAN: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "fanless";
+                    param["value"] = (mProCfg->get_val(KEY_FAN) == 1) ? 0 : 1;
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param;
+
+                    return pm->sendSetOptionsReq(root);                    
+                }
+
+                case OPTION_SET_AUD: {
+
+                    Json::Value root;
+                    Json::Value param;
+                    int iAudioVal = 0;
+
+                    if (mProCfg->get_val(KEY_AUD_ON) == 1) {
+                        if (mProCfg->get_val(KEY_AUD_SPATIAL) == 1) {
+                            iAudioVal = 2;
+                        } else {
+                            iAudioVal = 1;
+                        }
+                    } else {
+                        iAudioVal = 0;
+                    }
+
+                    param["property"] = "panoAudio";
+                    param["value"] = iAudioVal;
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param;
+
+                    return pm->sendSetOptionsReq(root); 
+                }
+
+                case OPTION_GYRO_ON: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "stabilization_cfg";
+                    param["value"] = mProCfg->get_val(KEY_GYRO_ON);
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param; 
+
+                    return pm->sendSetOptionsReq(root);     
+                }
+
+                case OPTION_SET_LOGO: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "logo";
+                    param["value"] = mProCfg->get_val(KEY_SET_LOGO);
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param; 
+                    return pm->sendSetOptionsReq(root);                       
+                }
+
+
+                case OPTION_SET_VID_SEG: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "video_fragment";
+                    param["value"] = mProCfg->get_val(KEY_VID_SEG);
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param; 
+                    return pm->sendSetOptionsReq(root);                        
+                }
+
+
+            #ifdef ENABLE_SET_AUDIO_GAIN    
+             case OPTION_SET_AUD_GAIN: {
+                    Json::Value root;
+                    Json::Value param;
+
+                    param["property"] = "audio_gain";
+                    param["value"] = pstProp->audio_gain;
+                    root["name"] = "camera._setOptions";
+                    root["parameters"] = param; 
+                    return pm->sendSetOptionsReq(root);
+            }
+            #endif
+                SWITCH_DEF_ERROR(cmd);
+            }
+
+
+            #endif
             break;
         }
 
-		case ACTION_AWB: {		
-			setLightDirect(FRONT_GREEN);
-			break;		
-        }	
+	
 
         SWITCH_DEF_ERROR(option)
     }
@@ -7242,7 +7370,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 break;
 				
             case STOP_PREVIEW_FAIL:
-                back_menu = get_error_back_menu();//MENU_TOP;
+                back_menu = get_error_back_menu();                  // MENU_TOP;
                 break;
 				
             case STOP_REC_FAIL: {    /* 停止录像失败 */
@@ -8090,8 +8218,6 @@ int MenuUI::oled_disp_type(int type)
         }
 
         case START_LOW_BAT_SUC:
-            INFO_MENU_STATE(cur_menu,mCamState)
-            mCamState = STATE_IDLE;
             if (MENU_LOW_BAT != cur_menu) {
                 setCurMenu(MENU_LOW_BAT);
             } else {
@@ -8100,8 +8226,6 @@ int MenuUI::oled_disp_type(int type)
             break;
 
         case START_LOW_BAT_FAIL:
-            mCamState = STATE_IDLE;
-            INFO_MENU_STATE(cur_menu,mCamState)
             if (MENU_LOW_BAT != cur_menu) {
                 setCurMenu(MENU_LOW_BAT);
             } else {
@@ -8303,18 +8427,6 @@ void MenuUI::flick_light()
     }
 }
 
-void MenuUI::flick_low_bat_lig()
-{
-//    if(last_back_light != BACK_RED)
-//    {
-//        mOLEDLight->setLight_val(BACK_RED|FRONT_RED);
-//    }
-//    else
-//    {
-//        mOLEDLight->setLight_val(LIGHT_OFF);
-//    }
-}
-
 
 bool MenuUI::is_bat_low()
 {
@@ -8328,7 +8440,12 @@ bool MenuUI::is_bat_low()
 
 void MenuUI::func_low_bat()
 {
+    #if 0
     sendRpc(ACTION_LOW_BAT, REBOOT_SHUTDOWN);
+    #else 
+    ProtoManager* pm = ProtoManager::Instance();
+    pm->sendLowPowerReq();
+    #endif
 }
 
 void MenuUI::setLightDirect(u8 val)

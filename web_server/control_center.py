@@ -394,6 +394,12 @@ class control_center:
 
             # 请求陀螺仪校正
             config._REQ_START_GYRO:             self.cameraUiGyroCalc,
+
+            # 低电请求
+            config._REQ_POWER_OFF:              self.cameraUiLowPower,
+
+            # 设置Options
+            config._REQ_SET_OPTIONS:            self.cameraUiSetOptions,
         })
 
 
@@ -615,10 +621,9 @@ class control_center:
     def get_err_code(self, content):
         err_code = -1
         if content is not None:
-            if check_dic_key_exist(content,"error"):
-                if check_dic_key_exist(content['error'],'code'):
+            if check_dic_key_exist(content, "error"):
+                if check_dic_key_exist(content['error'], 'code'):
                     err_code = content['error']['code']
-
         return err_code
 
 
@@ -2327,6 +2332,17 @@ class control_center:
         return self.start_gyro(self.get_req(name), True)
 
 
+    def cameraUiLowPower(self, req):
+        Info('[------- UI Req: cameraUiLowPower ------] req: {}'.format(req))
+        name = config._POWER_OFF
+        return self.start_power_off(self.get_req(name))
+
+
+    def cameraUiSetOptions(self, req):
+        Info('[------- UI Req: cameraUiSetOptions ------] req: {}'.format(req))      
+        return self.camera_set_options(req)
+
+
     # 方法名称: cameraUiQueryTfcard
     # 功能描述: 查询TF卡状态信息
     # 入口参数: req - 请求参数
@@ -3298,13 +3314,12 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-    def camera_power_off_done(self,req = None):
+    def camera_power_off_done(self, req = None):
         Info("power off done do nothing")
         self.set_cam_state(config.STATE_IDLE)
         self.send_oled_type(config.START_LOW_BAT_SUC)
-        # self.send_start_power_off()
 
-    def camera_power_off_fail(self,err = -1):
+    def camera_power_off_fail(self, err = -1):
         Info("power off fail  err {}".format(err))
         self.set_cam_state(config.STATE_IDLE)
         self.send_oled_type(config.START_LOW_BAT_FAIL)

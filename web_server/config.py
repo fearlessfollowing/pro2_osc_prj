@@ -262,6 +262,13 @@ _REQ_START_NOISE            = 'camera._startCaptureAudio'
 # 请求陀螺仪校正
 _REQ_START_GYRO             = 'camera._gyroCalibration'
 
+# 低电请求
+_REQ_POWER_OFF              = 'camera._powerOff'
+
+# 设置Options   
+_REQ_SET_OPTIONS            = 'camera._setOptions'
+
+
 """camera_state"""
 STATE_IDLE                      = 0x00
 STATE_RECORD                    = 0x01
