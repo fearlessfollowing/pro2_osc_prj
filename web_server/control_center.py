@@ -2765,7 +2765,6 @@ class control_center:
         param[config.ORG]['liveUrl'] = 'rtmp://127.0.0.1/live'
         return param
 
-
     def camera_oled_live_origin(self):
         name = config._START_LIVE
         Info('camera_oled_live_origin start')
@@ -2784,6 +2783,7 @@ class control_center:
             Err('camera_oled_live_origin e {}'.format(e))
             res = cmd_exception(e, name)
         return res
+
 
     #  {'sharpness': 4, 'brightness': 87, 'long_shutter':1-60(s),'shutter_value': 21, 'wb': 0, 'saturation': 156, 'aaa_mode': 2, 'contrast': 143, 'ev_bias': 0, 'iso_value': 7}
     def set_len_param(self, len_param):
@@ -3268,14 +3268,13 @@ class control_center:
         return res
 
     def start_power_off(self, req):
-        #sync camera backto normal state
         self.set_stitch_mode(False)
         self.set_cam_state(self.get_cam_state() | config.STATE_POWER_OFF)
         read_info = self.write_and_read(req, True)
         return read_info
 
+
     def camera_oled_low_bat(self):
-        #force low bat as power off
         name = config._POWER_OFF
         Info("oled camera_low_bat")
         try:
@@ -3284,6 +3283,7 @@ class control_center:
             Err('camera_low_bat e {}'.format(e)                                                                                                                                                                                                             )
             res = cmd_exception(e, name)
         return res
+
 
     def camera_low_protect_fail(self, err = -1):
         Info('camera_low_protect_fail')
@@ -3317,7 +3317,6 @@ class control_center:
         Info("power off fail  err {}".format(err))
         self.set_cam_state(config.STATE_IDLE)
         self.send_oled_type(config.START_LOW_BAT_FAIL)
-        # self.send_start_power_off()
 
     def camera_oled_power_off(self):
         name = config._POWER_OFF
@@ -4237,7 +4236,7 @@ class control_center:
         req['args'] = args
         return req
 
-    def send_oled_type_err(self,type,code = -1):
+    def send_oled_type_err(self, type, code = -1):
         Info("send_oled_type_err type is {} code {}".format(type,code))
         err_dict = OrderedDict({'type':type,'err_code':code})
         self.send_req(self.get_write_req(config.OLED_DISP_TYPE_ERR, err_dict))

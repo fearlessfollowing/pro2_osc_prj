@@ -3670,7 +3670,6 @@ void MenuUI::calcRemainSpace(bool bUseCached)
                         ProtoManager* pm = ProtoManager::Instance();
                         pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
                     } else {
-                        // Log.d(TAG, "[%s: %d] Use VolumeManager calc take pic num", __FILE__, __LINE__);
                         mCanTakePicNum = vm->calcTakepicLefNum( *(pPicVidCfg->jsonCmd.get()), false);
                     }
                 }
@@ -6984,24 +6983,6 @@ void MenuUI::disp_err_code(int code, int back_menu)
         Log.d(TAG, "[%s: %d] Exit Timelapse Mode now...", __FILE__, __LINE__);
     }
 
-    if (mClientTakeVideoUpdate == true) {
-        Log.d(TAG, "[%s: %d] Client Control TakeVideo Abort, for Error[%d]", __FILE__, __LINE__, code);
-        mClientTakeVideoUpdate = false;
-        mControlVideoJsonCmd.clear();
-    }
-
-    if (mClientTakeLiveUpdate == true) {
-        Log.d(TAG, "[%s: %d] Client Control TakeLive Abort, for Error[%d]", __FILE__, __LINE__, code);
-        mClientTakeLiveUpdate = false;
-        mControlLiveJsonCmd.clear();
-    }
-
-    if (mClientTakePicUpdate == true) {
-        Log.d(TAG, "[%s: %d] Client Control TakePicture Abort, for Error[%d]", __FILE__, __LINE__, code);
-        mClientTakePicUpdate = false;
-        mControlPicJsonCmd.clear();
-    } 
-
     /*
      * 313 - 卡速不足（或者拔卡）
      */
@@ -7035,18 +7016,12 @@ void MenuUI::disp_err_code(int code, int back_menu)
         Log.d(TAG, "disp err code %s\n", err_code);
     }
 	
-
     reset_last_info();
 
     //force cur menu sys_err
     setLightDirect(BACK_RED|FRONT_RED);
     cur_menu = MENU_SYS_ERR;
     bDispTop = false;
-
-    Log.d(TAG,"disp_err_code code %d "
-                  "back_menu %d cur_menu %d "
-                  "bFound %d Server State 0x%x",
-          code, back_menu, cur_menu, bFound, serverState);
 }
 
 
@@ -7218,11 +7193,25 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
     /* STATE_IDLE */
     Log.d(TAG, "oled_disp_err type %d err_code %d cur_menu %d Server State 0x%x", type, err_code, cur_menu, getServerState());
 
-    if (err_code == -460) { /* 模组打开失败 */
-        system("power_manager power_off");  /* 关闭模组，已免下次打开失败 */
+    if (mClientTakeVideoUpdate == true) {
+        Log.d(TAG, "[%s: %d] Client Control TakeVideo Abort", __FILE__, __LINE__);
+        mClientTakeVideoUpdate = false;
+        mControlVideoJsonCmd.clear();
     }
 
-	//original error handle
+    if (mClientTakeLiveUpdate == true) {
+        Log.d(TAG, "[%s: %d] Client Control TakeLive Abort", __FILE__, __LINE__);
+        mClientTakeLiveUpdate = false;
+        mControlLiveJsonCmd.clear();
+    }
+
+    if (mClientTakePicUpdate == true) {
+        Log.d(TAG, "[%s: %d] Client Control TakePicture Abort", __FILE__, __LINE__);
+        mClientTakePicUpdate = false;
+        mControlPicJsonCmd.clear();
+    } 
+
+
     if (err_code == -1) {
         oled_disp_type(type);
     } else { // new error_code
@@ -7234,7 +7223,6 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
         err_code = abs(err_code);
         switch (type) {
             case START_PREVIEW_FAIL:
-                rm_state(STATE_START_PREVIEWING);
                 back_menu = get_error_back_menu();
                 break;
 			
@@ -7283,9 +7271,11 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 back_menu = get_error_back_menu();//MENU_TOP;
                 break;
 				
-            case STOP_REC_FAIL:     /* 停止录像失败 */
+            case STOP_REC_FAIL: {    /* 停止录像失败 */
+                oled_disp_type(type);
                 back_menu = get_error_back_menu(MENU_VIDEO_INFO);   //MENU_VIDEO_INFO;
                 break;
+            }
 				
             case STOP_LIVE_FAIL: {
                 back_menu = get_error_back_menu(MENU_LIVE_INFO);    //MENU_LIVE_INFO;
@@ -7585,6 +7575,7 @@ int MenuUI::oled_disp_type(int type)
         case STOP_REC_FAIL: {
 
             ProtoManager* pm = ProtoManager::Instance();
+
             tl_count = -1;
             vm->incOrClearRecSec(true);     /* 重置已经录像的时间为0 */                
             vm->clearTakeTimelapseCnt();
@@ -7602,8 +7593,6 @@ int MenuUI::oled_disp_type(int type)
             if (mClientTakeVideoUpdate == true) {
                 mClientTakeVideoUpdate = false;
             }
-
-            disp_sys_err(type);
 
             Log.d(TAG, "[%s: %d] STOP_REC_FAIL ...", __FILE__, __LINE__);
             break;

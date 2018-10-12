@@ -238,8 +238,6 @@ class monitor_fifo_read(threading.Thread):
     def start_read(self,len):
         return fifo_wrapper.read_fifo(self.read_fd,len)
 
-    def handle_battery_event(self,content):
-        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_BAT, content))
 
     # handle_oled_key
     # 处理来自UI的事件
@@ -248,38 +246,6 @@ class monitor_fifo_read(threading.Thread):
     def handle_oled_key(self, content):
         Print('handle oled content {}'.format(content))
         self.control_obj.handle_oled_key(content)
-
-    def handle_dev_notify(self, content = None):
-        if content is not None:
-            # Print('handler dev notify content {} dev_list {}'.format(content,content['dev_list']))
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_DEV_NOTIFY, content))
-        else:
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.HANDLE_DEV_NOTIFY))
-
-    def handle_save_path(self, content):
-        Print('handle_save_path content {}'.format(content))
-        self.control_obj.start_change_save_path(content)
-
-        # 检查路径文件上是否有factory.json文件
-        # 如果文件存在,将解析该文件(提取老化的时长)
-        # 给camerad发送录像请求, 通知oled_hander进入老化模式
-        # content['path']
-        #Print('path {}'.format(content['path']));
-        if os.path.exists(content['path'] + '/factory.json'):
-            Print('new path is exist')
-            file_object = open(content['path'] + '/factory.json')
-            file_context = file_object.read()
-            file_object.close()
-
-            # 将内容发送给Camerad
-            # 给oled_hander发送ageing消息,进入老化界面
-            file_json = json.loads(file_context)
-            
-            Print('file content: {}'.format(file_json))
-            age_time = file_json['parameters']['duration']    # 得到老化的时间
-            self.control_obj.start_ageing_test(file_json, age_time)
-        else:
-            Print('new storage path is not exist')
         
     def handle_ageing_test(self, content):
         self.control_obj.start_ageing_test(content)
@@ -294,11 +260,9 @@ class monitor_fifo_read(threading.Thread):
     def run(self):
         self.func = OrderedDict({
             # EVENT_USB:            self.handle_usb_event,
-            EVENT_BATTERY:          self.handle_battery_event,
             # EVENT_NET_CHANGE:     self.handle_net_change_event,
             EVENT_OLED_KEY:         self.handle_oled_key,
             # EVENT_DEV_NOTIFY:       self.handle_dev_notify,
-            # EVENT_SAVE_PATH:        self.handle_save_path,
             # EVENT_AGEING_TEST:      self.handle_ageing_test,
             # EVENT_QUERY_STORAGE:    self.handle_query_storage,
             EVENT_QUERY_LEFT:       self.handle_query_left,
