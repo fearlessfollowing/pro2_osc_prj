@@ -1982,9 +1982,11 @@ void MenuUI::set_cur_menu_from_exit()
 {
     int old_menu = cur_menu;
     int new_menu = get_back_menu(cur_menu);
+    
     CHECK_NE(cur_menu, new_menu);
 	
     Log.d(TAG, "cur_menu is %d new_menu %d", cur_menu, new_menu);
+    
     if (new_menu == -1 && cur_menu == MENU_TOP) {
         Log.e(TAG,"set_cur_menu_from_exit met error ");
         new_menu = MENU_TOP;
@@ -2392,7 +2394,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 oled_disp_type(START_CALIBRATIONING);
                 pm->sendStichCalcReq();
             } else {
-                Log.e(TAG, "[ %s: %d] ---> calibration happen mCamState 0x%x", serverState);
+                Log.e(TAG, "[ %s: %d] ---> calibration happen mCamState 0x%x", __FILE__, __LINE__, serverState);
             }			
             return true;
         }
@@ -2417,31 +2419,18 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
         }
 		
         case ACTION_GYRO: {
-            if (check_state_in(STATE_IDLE)) {
+            if (checkServerInIdle(serverState)) {
                 oled_disp_type(START_GYRO);
-            } else  {
-                bAllow = false;
             }
-            break;
+            return true;
         }
 
         case ACTION_NOISE: {
-            if (check_state_in(STATE_IDLE)) {
-                oled_disp_type(START_NOISE);
-            } else {
-                bAllow = false;
+            if (checkServerInIdle(serverState)) {
+                setCurMenu(MENU_NOSIE_SAMPLE);
+                pm->sendStartNoiseSample();
             }
-            break;
-        }
-
-        case ACTION_AGEING: {
-            if (check_state_in(STATE_IDLE)) {
-                oled_disp_type(START_RECING);
-                setCurMenu(MENU_AGEING);
-            } else {
-                bAllow = false;
-            }
-            break;
+            return true;
         }
 
         case ACTION_SET_OPTION: {
@@ -3055,7 +3044,7 @@ void MenuUI::updateInnerSetPage(vector<struct stSetItem*>& setItemList, bool bUp
     int iLastSelectIndex = getMenuLastSelectIndex(cur_menu);
     int iCurSelectedIndex = getMenuSelectIndex(cur_menu);
 	
-    Log.d(TAG, "[%s:%d] Last Selected index[%d], Current Index[%d]", __FILE__, __LINE__, iLastSelectIndex, iCurSelectedIndex);
+    // Log.d(TAG, "[%s:%d] Last Selected index[%d], Current Index[%d]", __FILE__, __LINE__, iLastSelectIndex, iCurSelectedIndex);
     
     pTmpLastSetItem = setItemList.at(iLastSelectIndex);
     pTmpCurSetItem = setItemList.at(iCurSelectedIndex);
@@ -3799,13 +3788,8 @@ void MenuUI::dispBottomLeftSpace()
     VolumeManager* vm = VolumeManager::Instance();
     uint64_t serverState = getServerState();
 
-    Log.d(TAG, "[%s: %d] -------> dispBottomLeftSpace current menu[%s]", __FILE__, __LINE__, getMenuName(cur_menu));
-
-    if (checkServerStateIn(serverState, STATE_START_PREVIEWING) /* ||  
-        (checkServerStateIn(serverState, STATE_QUERY_STORAGE) && 
-            (cur_menu == MENU_PIC_INFO || cur_menu == MENU_PIC_SET_DEF || cur_menu == MENU_VIDEO_INFO || cur_menu == MENU_VIDEO_SET_DEF
-             || cur_menu == MENU_LIVE_INFO || cur_menu == MENU_LIVE_SET_DEF)) */ )  { 
-        Log.d(TAG, "[%s: %d] Start Preview state or Query Tf Card Info, Clear this area ....", __FILE__, __LINE__);
+    if (checkServerStateIn(serverState, STATE_START_PREVIEWING))  { 
+        Log.d(TAG, "[%s: %d] Start Preview state, Clear this area ....", __FILE__, __LINE__);
         clearArea(78, 48);
     } else {
         switch (cur_menu) {
@@ -3850,8 +3834,6 @@ void MenuUI::dispBottomLeftSpace()
                     } else {
 
                         if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {   /* 正常的录像,必须要所有的卡存在方可 */
-
-                            Log.d(TAG, "[%s: %d] ---------> dispBottomLeftSpace MENU_VIDEO_INFO, all Card exist", __FILE__, __LINE__);    
                             if (checkServerStateIn(serverState, STATE_RECORD)) {
                                 char disp[32];
                                 vm->convSec2TimeStr(vm->getRecSec(), disp, sizeof(disp));
@@ -3875,14 +3857,11 @@ void MenuUI::dispBottomLeftSpace()
             case MENU_LIVE_INFO:
             case MENU_LIVE_SET_DEF: {
 
-                Log.d(TAG, "[%s: %d] --------------- dispBottomLeftSpace", __FILE__, __LINE__);
-
                 /* 如果不是直播存片，不需要显示任何东西 
                  * TRY:也可以改为判断Server是否含STATE_RECORD状态
                  */
                 if (checkisLiveRecord()) {
 
-                    Log.d(TAG, "[%s: %d] --------------- checkisLiveRecord is true", __FILE__, __LINE__);
 
                     /* 需要存片的情况下,检查卡是否存在
                      * 卡不足显示"None";卡足够显示剩余可录时长
@@ -3894,8 +3873,6 @@ void MenuUI::dispBottomLeftSpace()
                             vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
                             dispStr((const u8 *)disp, 37, 24);
                         }  
-
-                        Log.d(TAG, "[%s: %d] ----> update Live left time [%d]s", __FILE__, __LINE__, vm->getLiveRecLeftSec());                            
                         
                         /* 显示剩余时间 */
                         vm->convSec2TimeStr(vm->getLiveRecLeftSec(), disk_info, sizeof(disk_info));                            
@@ -3907,8 +3884,6 @@ void MenuUI::dispBottomLeftSpace()
                     }
                 } else {    /* 只显示已经直播的时间 */
 
-                    Log.d(TAG, "[%s: %d] --------------- checkisLiveRecord is false", __FILE__, __LINE__);
-
                     if (checkServerStateIn(serverState, STATE_LIVE)) {   /* 直播状态: 更新已经直播的时间 */
                         char disp[32];
                         vm->convSec2TimeStr(vm->getLiveRecSec(), disp, sizeof(disp));
@@ -3917,7 +3892,6 @@ void MenuUI::dispBottomLeftSpace()
                     
                     /* 不存片的情况,右下角不需要显示任何东西 */
                     clearArea(78, 48, 50, 16);
-
                 }
                 break;
             }
@@ -5363,7 +5337,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             dispShowStoragePage(gStorageInfoItems);            
 
             im->setEnableReport(true);
-
             break;
         }
 
@@ -5808,7 +5781,7 @@ void MenuUI::procSetMenuKeyEvent()
             dispSetItem(pCurItem, true);    
             //sendRpc(ACTION_SET_OPTION, OPTION_SET_AUD);
 
-        } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_GYRO_CALC)) { /* TODO */
+        } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_GYRO_CALC)) { /* 陀螺仪校准 */
             setCurMenu(MENU_GYRO_START);
         } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_FAN)) {
             iVal = ((~iVal) & 0x00000001);
@@ -5821,7 +5794,7 @@ void MenuUI::procSetMenuKeyEvent()
             }
             sendRpc(ACTION_SET_OPTION, OPTION_SET_FAN);
 
-        } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_NOISESAM)) {
+        } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_NOISESAM)) {     /* 噪声采样 */            
             sendRpc(ACTION_NOISE);
 
         } else if (!strcmp(pCurItem->pItemName, SET_ITEM_NAME_BOOTMLOGO)) {
@@ -6071,11 +6044,6 @@ void MenuUI::procPowerKeyEvent()
             break;
         }
 
-
-    //    case MENU_CALIBRATION_SETTING:
-    //        power_menu_cal_setting();
-    //        break;
-
         case MENU_PIC_SET_DEF:
         case MENU_VIDEO_SET_DEF:
         case MENU_LIVE_SET_DEF: {
@@ -6083,11 +6051,16 @@ void MenuUI::procPowerKeyEvent()
             break;
         }
 
+        /* 按下确认键,来启动陀螺仪校准 */
         case MENU_GYRO_START: {
-            if (check_state_equal(STATE_IDLE)) {
-                sendRpc(ACTION_GYRO);
+            if (checkServerInIdle(serverState)) {
+                if (pm->sendGyroCalcReq()) {
+                    dispIconByType(ICON_GYRO_CALIBRATING128_48);
+                } else {
+                    Log.e(TAG, "[%s: %d] Request Server Gyro Calc Failed", __FILE__, __LINE__);
+                }
             } else {
-                Log.d(TAG, "gyro start Server State 0x%x", getServerState());
+                Log.d(TAG, "gyro start Server State 0x%x", serverState);
             }
             break;
         }
@@ -6100,7 +6073,6 @@ void MenuUI::procPowerKeyEvent()
         case MENU_SET_TEST_SPEED: {
 
             if (checkServerAlloSpeedTest(serverState)) {
-                ProtoManager* pm = ProtoManager::Instance();
                 VolumeManager* vm = VolumeManager::Instance();
 
                 if (mSpeedTestUpdateFlag == false) {
@@ -6126,23 +6098,23 @@ void MenuUI::procPowerKeyEvent()
 
 			
         case MENU_RESET_INDICATION: {
-            if (check_state_equal(STATE_IDLE)) {
+            if (checkServerInIdle(serverState)) {
                 restore_all();
             } else {
-                Log.e(TAG, "menu reset indication Server State 0x%x", getServerState());
+                Log.e(TAG, "menu reset indication Server State 0x%x", serverState);
             }
             break;
         }
 
 
-        case MENU_FORMAT_INDICATION: {   /* 进入真正的格式化 */
-            if (check_state_equal(STATE_IDLE)) {
-                startFormatDevice();    /* 进行设备格式化 */
-            } else if (check_state_equal(STATE_FORMAT_OVER)) {
+        case MENU_FORMAT_INDICATION: {      /* 进入真正的格式化 */
+            if (checkServerInIdle(serverState)) {
+                startFormatDevice();        /* 进行设备格式化 */
+            } else if (checkServerStateIn(STATE_FORMAT_OVER)) {
                 rm_state(STATE_FORMAT_OVER);
                 set_cur_menu_from_exit();
             } else {
-                Log.w(TAG, "Formatting state 0x%x", getServerState());
+                Log.w(TAG, "Formatting state 0x%x", serverState);
             }
             break;
         }
@@ -6623,7 +6595,10 @@ bool MenuUI::checkServerStateInPreview()
     return checkStateEqual(STATE_PREVIEW);
 }
 
-
+bool MenuUI::checkServerInIdle(uint64_t serverState)
+{
+    return (serverState == STATE_IDLE) ? true: false;
+}
 
 uint64_t MenuUI::getServerState()
 {
@@ -6870,7 +6845,6 @@ void MenuUI::add_state(u64 state)
             break;
         }
 			
-        // SWITCH_DEF_ERROR(state)
     }
 	
 }
@@ -7273,12 +7247,12 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
 				
             case STOP_REC_FAIL: {    /* 停止录像失败 */
                 oled_disp_type(type);
-                back_menu = get_error_back_menu(MENU_VIDEO_INFO);   //MENU_VIDEO_INFO;
+                back_menu = get_error_back_menu(MENU_VIDEO_INFO);   // MENU_VIDEO_INFO;
                 break;
             }
 				
             case STOP_LIVE_FAIL: {
-                back_menu = get_error_back_menu(MENU_LIVE_INFO);    //MENU_LIVE_INFO;
+                back_menu = get_error_back_menu(MENU_LIVE_INFO);    // MENU_LIVE_INFO;
                 break;
             }
 				
@@ -7298,7 +7272,7 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
 			
             default:
                 Log.d(TAG, "bad type %d code %d", type, err_code);
-                err_code =-1;
+                err_code = -1;
                 break;
         }
 		
@@ -7478,17 +7452,11 @@ int MenuUI::oled_disp_type(int type)
 
 		/* 
 		 * 启动测试速度 - 该命令来自客户端
-         * UI需要做的事情：
-         * 1.显示正在进行设备速度测试
-         * 2.
+         * 此时服务器已经处于STATE_SPEED_TEST状态,UI只需要进入对应的菜单即可
 		 */
         case SPEED_START: {
-            if (!check_state_in(STATE_SPEED_TEST)) {
-                mWhoReqSpeedTest = APP_REQ_TESTSPEED;
-                add_state(STATE_SPEED_TEST);
-            } else {
-                Log.e(TAG, "speed test happened already");
-            }
+            mWhoReqSpeedTest = APP_REQ_TESTSPEED;
+            setCurMenu(MENU_SPEED_TEST);
             break;
         }
 
@@ -7727,7 +7695,6 @@ int MenuUI::oled_disp_type(int type)
             if (mClientTakeLiveUpdate == true) {
                 mClientTakeLiveUpdate = false;
             }
-            rm_state(STATE_START_LIVING);
             disp_sys_err(type);
             break;
         }
@@ -7823,20 +7790,16 @@ int MenuUI::oled_disp_type(int type)
 
             Log.d(TAG, "---------> PREVIEW SUCCESS");                  
 
+            /* 同步方式查询TF卡信息,然后更新底部空间 */
+            syncQueryTfCard();
    
             if (mWhoReqEnterPrew == APP_REQ_PREVIEW) {
                 setCurMenu(MENU_PIC_INFO);
             } else {
                 mWhoReqEnterPrew = APP_REQ_PREVIEW;
+                dispReady();
+                updateBottomSpace(true, false); 
             }
-
-            Log.d(TAG, "[%s: %d] -----> Sync Query Remote TF Card State!!!", __FILE__, __LINE__);
-
-            /* 同步方式查询TF卡信息,然后更新底部空间 */
-            syncQueryTfCard();
-            dispReady();
-
-            updateBottomSpace(true, false); 
             break;
         }
 			
@@ -8108,29 +8071,23 @@ int MenuUI::oled_disp_type(int type)
             break;
         }
 
-        case START_GYRO:
-            if (!check_state_in(STATE_START_GYRO)) {
-                add_state(STATE_START_GYRO);
-            }
+        /* 1.客户端发起的陀螺仪校正,此时服务器已经处于STATE_START_GYRO状态
+         *
+         */
+        case START_GYRO: {
+            setCurMenu(MENU_GYRO_START);
             break;
+        }
 
-        case START_GYRO_SUC:
-            if (check_state_in(STATE_START_GYRO)) {
-                minus_cam_state(STATE_START_GYRO);
-            }
+        case START_GYRO_SUC: {
+            set_cur_menu_from_exit();
             break;
+        }
 
-        case START_GYRO_FAIL:
-            rm_state(STATE_START_GYRO);
-            disp_sys_err(type,get_back_menu(cur_menu));
+        case START_GYRO_FAIL: {
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
-
-        case START_NOISE:
-            if (!check_state_in(STATE_NOISE_SAMPLE)) {
-                setCurMenu(MENU_NOSIE_SAMPLE);
-                add_state(STATE_NOISE_SAMPLE);
-            }
-            break;
+        }
 
         case START_LOW_BAT_SUC:
             INFO_MENU_STATE(cur_menu,mCamState)
@@ -8152,29 +8109,27 @@ int MenuUI::oled_disp_type(int type)
             }
             break;
 
-        case START_NOISE_SUC:
-            if (check_state_in(STATE_NOISE_SAMPLE)) {
-                minus_cam_state(STATE_NOISE_SAMPLE);
-            }
-            break;
 
-        case START_NOISE_FAIL:
-            rm_state(STATE_NOISE_SAMPLE);
+        case START_NOISE: {
+            setCurMenu(MENU_NOSIE_SAMPLE);
+            break;
+        }
+
+        case START_NOISE_SUC: {
+            set_cur_menu_from_exit();
+            break;
+        }
+
+        case START_NOISE_FAIL: {
             disp_sys_err(type, get_back_menu(MENU_NOSIE_SAMPLE));
             break;
+        }
+
 
         case START_BLC: {
             Log.d(TAG, "[%s: %d] Enter BLC Calc now ...", __FILE__, __LINE__);
             setAllLightOnOffForce(0);
             setCurMenu(MENU_CALC_BLC);
-            break;
-        }
-
-
-        case START_BPC: {
-            Log.d(TAG, "[%s: %d] Enter BPC Calc now ...", __FILE__, __LINE__);
-            setAllLightOnOffForce(0);
-            setCurMenu(MENU_CALC_BPC);
             break;
         }
 
@@ -8184,6 +8139,14 @@ int MenuUI::oled_disp_type(int type)
             procBackKeyEvent();
             break;
         }
+
+        case START_BPC: {
+            Log.d(TAG, "[%s: %d] Enter BPC Calc now ...", __FILE__, __LINE__);
+            setAllLightOnOffForce(0);
+            setCurMenu(MENU_CALC_BPC);
+            break;
+        }
+
 
         case STOP_BPC: {
             Log.d(TAG, "[%s: %d] Exit BPC Calc now ...", __FILE__, __LINE__);
@@ -8562,7 +8525,9 @@ void MenuUI::exitAll()
 
 void MenuUI::handleDispTypeMsg(sp<DISP_TYPE>& disp_type)
 {
+    uint64_t serverState = getServerState();
 	switch (cur_menu) {
+
 		case MENU_DISP_MSG_BOX:
 		case MENU_SPEED_TEST: {
 			procBackKeyEvent();
@@ -8574,23 +8539,20 @@ void MenuUI::handleDispTypeMsg(sp<DISP_TYPE>& disp_type)
                 || START_LOW_BAT_FAIL == disp_type->type 
                 || disp_type->type == RESET_ALL 
                 || disp_type->type == START_FORCE_IDLE)) {
-		        Log.d(TAG, "MENU_LOW_BAT not allow (0x%x %d)", getServerState(), disp_type->type);
+		        Log.d(TAG, "MENU_LOW_BAT not allow (0x%x %d)", serverState, disp_type->type);
 		    return;
 		    }
 		
 		default: {
 			// get http req before getting low bat protect in flask 170922
 			if (check_state_in(STATE_LOW_BAT)) {				
-				Log.d(TAG, "STATE_LOW_BAT not allow (0x%u %d)", getServerState(), disp_type->type);
+				Log.d(TAG, "STATE_LOW_BAT not allow (0x%u %d)", serverState, disp_type->type);
 			} else if (disp_type->type != RESET_ALL) {
 				exit_sys_err();
 			}
 			break;
         }
 	}
-
-    Log.d(TAG, "[%s: %d] >>>>>>>> handleDispTypeMsg", __FILE__, __LINE__);
-
 
     /* 处理来自Web控制器的请求或Qr扫描结果 */
 	if (disp_type->qr_type != -1) {
@@ -8608,11 +8570,12 @@ void MenuUI::handleDispTypeMsg(sp<DISP_TYPE>& disp_type)
 		disp_stitch_progress(disp_type->mStichProgress);
     #endif
 
-	} else {
-		Log.d(TAG, "nothing");
-	}
+	} 
 
-	oled_disp_type(disp_type->type);
+
+    Log.d(TAG, "[%s: %d] --> handleDispTypeMsg, disp type(%s)", __FILE__, __LINE__, getDispType(disp_type->type));
+	
+    oled_disp_type(disp_type->type);
 }
 
 
@@ -10299,3 +10262,111 @@ void MenuUI::disp_low_bat()
     dispStr((const u8 *)"Low Battery ", 32, 32);
     setLightDirect(BACK_RED|FRONT_RED);
 }
+
+
+const char* MenuUI::getDispType(int iType)
+{
+#define DISPLAY_TYPE(n) case n: return #n    
+    switch (iType) {
+        DISPLAY_TYPE(START_RECING);
+        DISPLAY_TYPE(START_REC_SUC);
+        DISPLAY_TYPE(START_REC_FAIL);
+        DISPLAY_TYPE(STOP_RECING);
+        DISPLAY_TYPE(STOP_REC_SUC);
+
+        DISPLAY_TYPE(STOP_REC_FAIL);
+        DISPLAY_TYPE(CAPTURE);
+        DISPLAY_TYPE(CAPTURE_SUC);
+        DISPLAY_TYPE(CAPTURE_FAIL);
+        DISPLAY_TYPE(COMPOSE_PIC);
+
+        DISPLAY_TYPE(COMPOSE_PIC_FAIL);
+        DISPLAY_TYPE(COMPOSE_PIC_SUC);
+        DISPLAY_TYPE(COMPOSE_VIDEO);
+        DISPLAY_TYPE(COMPOSE_VIDEO_FAIL);
+        DISPLAY_TYPE(COMPOSE_VIDEO_SUC);
+
+        DISPLAY_TYPE(STRAT_LIVING);
+        DISPLAY_TYPE(START_LIVE_SUC);
+        DISPLAY_TYPE(START_LIVE_FAIL);
+        DISPLAY_TYPE(STOP_LIVING);
+        DISPLAY_TYPE(STOP_LIVE_SUC);
+
+
+        DISPLAY_TYPE(STOP_LIVE_FAIL);
+        DISPLAY_TYPE(PIC_ORG_FINISH);
+        DISPLAY_TYPE(START_LIVE_CONNECTING);
+        DISPLAY_TYPE(START_CALIBRATIONING);
+        DISPLAY_TYPE(CALIBRATION_SUC);
+
+        DISPLAY_TYPE(CALIBRATION_FAIL);
+        DISPLAY_TYPE(START_PREVIEWING);
+        DISPLAY_TYPE(START_PREVIEW_SUC);
+        DISPLAY_TYPE(START_PREVIEW_FAIL);
+        DISPLAY_TYPE(STOP_PREVIEWING);
+
+        DISPLAY_TYPE(STOP_PREVIEW_SUC);
+        DISPLAY_TYPE(STOP_PREVIEW_FAIL);
+        DISPLAY_TYPE(START_QRING);
+        DISPLAY_TYPE(START_QR_SUC);
+        DISPLAY_TYPE(START_QR_FAIL);
+
+        DISPLAY_TYPE(STOP_QRING);
+        DISPLAY_TYPE(STOP_QR_SUC);
+        DISPLAY_TYPE(STOP_QR_FAIL);
+        DISPLAY_TYPE(QR_FINISH_CORRECT);
+        DISPLAY_TYPE(QR_FINISH_ERROR);
+
+        DISPLAY_TYPE(CAPTURE_ORG_SUC);
+        DISPLAY_TYPE(CALIBRATION_ORG_SUC);
+        DISPLAY_TYPE(SET_CUS_PARAM);
+        DISPLAY_TYPE(QR_FINISH_UNRECOGNIZE);
+        DISPLAY_TYPE(TIMELPASE_COUNT);
+
+        DISPLAY_TYPE(START_NOISE_SUC);
+        DISPLAY_TYPE(START_NOISE_FAIL);
+        DISPLAY_TYPE(START_NOISE);
+        DISPLAY_TYPE(START_LOW_BAT_SUC);
+        DISPLAY_TYPE(START_LOW_BAT_FAIL);
+
+        DISPLAY_TYPE(LIVE_REC_OVER);
+        DISPLAY_TYPE(SET_SYS_SETTING);
+        DISPLAY_TYPE(STITCH_PROGRESS);
+        DISPLAY_TYPE(START_BLC);
+        DISPLAY_TYPE(STOP_BLC);
+
+        DISPLAY_TYPE(START_GYRO);
+        DISPLAY_TYPE(START_GYRO_SUC);
+        DISPLAY_TYPE(START_GYRO_FAIL);
+        DISPLAY_TYPE(SPEED_TEST_SUC);
+        DISPLAY_TYPE(SPEED_TEST_FAIL);
+
+        DISPLAY_TYPE(SPEED_START);
+        DISPLAY_TYPE(SYNC_REC_AND_PREVIEW);
+        DISPLAY_TYPE(SYNC_PIC_CAPTURE_AND_PREVIEW);
+        DISPLAY_TYPE(SYNC_PIC_STITCH_AND_PREVIEW);
+        DISPLAY_TYPE(SYNC_LIVE_AND_PREVIEW);
+
+        DISPLAY_TYPE(SYNC_LIVE_CONNECT_AND_PREVIEW);
+        DISPLAY_TYPE(START_STA_WIFI_FAIL);
+        DISPLAY_TYPE(STOP_STA_WIFI_FAIL);
+        DISPLAY_TYPE(START_AP_WIFI_FAIL);
+        DISPLAY_TYPE(STOP_AP_WIFI_FAIL);
+
+        DISPLAY_TYPE(START_QUERY_STORAGE);
+        DISPLAY_TYPE(START_QUERY_STORAGE_SUC);
+        DISPLAY_TYPE(START_QUERY_STORAGE_FAIL);
+        DISPLAY_TYPE(START_BPC);
+        DISPLAY_TYPE(STOP_BPC);
+
+        DISPLAY_TYPE(ENTER_UDISK_MODE);
+        DISPLAY_TYPE(EXIT_UDISK_MODE);
+        DISPLAY_TYPE(EXIT_UDISK_DONE);
+        DISPLAY_TYPE(RESET_ALL_CFG);
+        DISPLAY_TYPE(MAX_TYPE);
+
+    default: 
+        return "Display Type";
+    }    
+}
+

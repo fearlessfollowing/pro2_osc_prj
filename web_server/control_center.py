@@ -388,6 +388,12 @@ class control_center:
 
             # 更新电池信息
             config._REQ_UPDATE_BATTERY_IFNO:    self.cameraUiUpdateBatteryInfo,
+
+            # 请求噪声采样
+            config._REQ_START_NOISE:            self.cameraUiNoiseSample,
+
+            # 请求陀螺仪校正
+            config._REQ_START_GYRO:             self.cameraUiGyroCalc,
         })
 
 
@@ -448,13 +454,9 @@ class control_center:
 
                 ACTION_POWER_OFF:           self.camera_oled_power_off,
 
-                ACTION_GYRO:                self.camera_oled_gyro,
-
-                ACTION_AGEING:              self.camera_oled_aging,
+                # ACTION_GYRO:                self.camera_oled_gyro,
 
                 # ACTION_LOW_PROTECT:       self.camera_low_protect,
-
-                ACTION_NOISE:               self.camera_oled_noise,
 
                 ACTION_LIVE_ORIGIN:         self.camera_oled_live_origin,
 
@@ -2314,6 +2316,17 @@ class control_center:
         return json.dumps(res) 
 
 
+    def cameraUiNoiseSample(self, req):
+        Info('[------- UI Req: cameraUiNoiseSample ------] req: {}'.format(req))                
+        name = config._START_NOISE
+        return self.start_noise(self.get_req(name), True)
+
+    def cameraUiGyroCalc(self, req):
+        Info('[------- UI Req: cameraUiGyroCalc ------] req: {}'.format(req))                
+        name = config._START_GYRO
+        return self.start_gyro(self.get_req(name), True)
+
+
     # 方法名称: cameraUiQueryTfcard
     # 功能描述: 查询TF卡状态信息
     # 入口参数: req - 请求参数
@@ -2341,17 +2354,7 @@ class control_center:
         StateMachine.rmServerState(config.STATE_QUERY_STORAGE)
         return read_info
 
-    # 当相机处于预览或空闲状态时都可以查询卡的状态，查询的结果用来更新osc状态机器  
-    # 方法名称: checkAllowEnterFormatState
-    # 功能描述: 检查是否允许进入格式化卡状态
-    # 入口参数: 无
-    # 返回值: 允许进入返回True;否则返回False  
-    def checkAllowEnterFormatState(self):
-        Info('--------> checkAllowEnterFormatState, cam state {}'.format(self.get_cam_state()))
-        if (self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW)):
-            return True
-        else:
-            return False
+
 
 
     # 方法名称: cameraUiFormatTfCard
@@ -2366,8 +2369,8 @@ class control_center:
         #   1.1 如果允许,将服务器的状态设置为格式化状态
         #       发送请求格式化请求给camerad,等待返回
         #   1.2 如果不允许,直接返回客户端状态不允许的结果
-        if self.checkAllowEnterFormatState():
-            self.set_cam_state(self.get_cam_state() | config.STATE_TF_FORMATING)
+        if StateMachine.checkAllowEnterFormatState():
+            StateMachine.addCamState(config.STATE_TF_FORMATING)
             Info('-------> enter format tfcard now ...') 
             read_info = self.write_and_read(req)
             ret = json.loads(read_info)
@@ -2376,7 +2379,7 @@ class control_center:
                 osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.TF_FORMAT_CLEAR_SPEED))
     
             Info('--------> format result is {}'.format(read_info))
-            self.set_cam_state(self.get_cam_state() & ~config.STATE_TF_FORMATING)
+            StateMachine.rmServerState(config.STATE_TF_FORMATING)
             return read_info
         else:
             res = OrderedDict()
@@ -2530,7 +2533,7 @@ class control_center:
     def set_save_org(self,state):
         self.bSaveOrgEnable = state
 
-    def get_req(self,name,param = None):
+    def get_req(self, name, param = None):
         dict = OrderedDict()
         dict[_name] = name
         if param is not None:
@@ -2858,18 +2861,6 @@ class control_center:
         except Exception as e:
             Err('camera_oled_sync_state e {}'.format(e))
         return cmd_done(ACTION_REQ_SYNC)
-
-    def check_allow_gyro_calibration(self):
-        if self.get_cam_state() in (config.STATE_IDLE, config.STATE_PREVIEW):
-            return True
-        else:
-            return False
-
-    def check_allow_aging(self):
-        if self.get_cam_state()  == config.STATE_IDLE:
-            return True
-        else:
-            return False
 
     def camera_start_calibration_done(self, req = None):
         self._client_stitch_calc = False
@@ -3332,18 +3323,18 @@ class control_center:
         Info("gyro done")
 
     def camera_gyro_fail(self, err = -1):
-        Info('error enter gyro fail')
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_START_GYRO)
-        self.send_oled_type_err(config.START_GYRO_FAIL,err)
+        Info('--> camera_gyro_fail')
+        StateMachine.rmServerState(config.STATE_START_GYRO)
+        self.send_oled_type_err(config.START_GYRO_FAIL, err)
 
-    def start_gyro(self,req,from_oled = False):
-        if self.check_allow_gyro_calibration():
+    def start_gyro(self, req, from_oled = False):
+        if StateMachine.checkAllowGyroCal():
+            StateMachine.addCamState(config.STATE_START_GYRO)
             if from_oled is False:
                 self.send_oled_type(config.START_GYRO)
-            self.set_cam_state(self.get_cam_state() | config.STATE_START_GYRO)
             read_info = self.write_and_read(req, True)
         else:
-            read_info = cmd_error_state(req[_name], self.get_cam_state())
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
             if from_oled:
                 self.send_oled_type(config.START_GYRO_FAIL)
         return read_info
@@ -3362,26 +3353,16 @@ class control_center:
             res = cmd_exception(e, name)
         return res
 
-    #
-    # 
-    def handle_noise_finish(self, param):
-        Info('---> nosie_finish_notify param {}'.format(param))
-        if param[_state] == config.DONE:
-            self.send_oled_type(config.START_NOISE_SUC)
-        else:
-            self.send_oled_type_err(config.START_NOISE_FAIL, self.get_err_code(param))
-        StateMachine.rmServerState(config.STATE_NOISE_SAMPLE)
-
 
     def camera_noise_fail(self, err = -1):
-        Err('noise fail')
+        Err('---> camera_noise_fail')
         StateMachine.rmServerState(config.STATE_NOISE_SAMPLE)
         self.send_oled_type(config.START_NOISE_FAIL)
 
     def camera_noise_done(self, req = None):
         Info("noise done")
 
-    def start_noise(self,req,from_oled = False):
+    def start_noise(self, req, from_oled = False):
         Info("---> start_noise st {}".format(StateMachine.getCamStateFormatHex()))
         if StateMachine.checkAllowNoise():
             StateMachine.addCamState(config.STATE_NOISE_SAMPLE)
@@ -3395,48 +3376,6 @@ class control_center:
         return read_info
 
 
-    def camera_oled_noise(self):
-        name = config._START_NOISE
-
-        try:
-            res = self.start_noise(self.get_req(name), True)
-        except Exception as e:
-            Err('camera_power_off e {}'.format(e))
-            res = cmd_exception(e, name)
-        return res
-
-
-    def start_aging(self, req, from_oled = False):
-        Info("oled camera_oled_aging st {}".format(self.get_cam_state()))
-        if self.check_allow_aging():
-            if from_oled is False:
-                self.send_oled_type(config.START_AGEING)
-            read_info = self.write_and_read(req, True)
-        else:
-            read_info = cmd_error_state(req[_name], self.get_cam_state())
-            if from_oled:
-                self.send_oled_type(config.START_AGEING_FAIL)
-        return read_info
-
-
-    def get_aging_param(self):
-        param = OrderedDict()
-        param['duration'] = 3600
-        param['saveFile'] = False
-        param[config.ORG] = self.get_origin(mime='h264', w=1920, h=1440, framerate=24, bitrate=25000)
-        param[config.STICH] = self.get_stich(mime='h264', w=3840, h=3840, framerate=24, bitrate= 50000,mode = '3d')
-        Info('aging param {}'.format(param))
-        return param
-
-    def camera_oled_aging(self):
-        name = config._START_RECORD
-        try:
-            res = self.start_aging(self.get_req(name,self.get_aging_param()),True)
-        except Exception as e:
-            Err('camera_power_off e {}'.format(e))
-            res = cmd_exception(e, name)
-        return res
-
     def camera_speed_test_fail(self, err = -1):
         Info('speed test fail')
         StateMachine.rmServerState(config.STATE_SPEED_TEST)
@@ -3444,7 +3383,6 @@ class control_center:
 
     def camera_speed_test_done(self, req = None):
         Info('speed test done')
-
 
     # 方法名称: start_speed_test
     # 功能: 启动速度测试
@@ -3548,6 +3486,15 @@ class control_center:
             self.send_oled_type(config.STOP_REC_SUC)
         else:
             self.send_oled_type_err(config.STOP_REC_FAIL, self.get_err_code(param))
+
+
+    def handle_noise_finish(self, param):
+        Info('[-------Notify Message -------] handle_noise_finish param {}'.format(param))
+        StateMachine.rmServerState(config.STATE_NOISE_SAMPLE)
+        if param[_state] == config.DONE:
+            self.send_oled_type(config.START_NOISE_SUC)
+        else:
+            self.send_oled_type_err(config.START_NOISE_FAIL, self.get_err_code(param))
 
 
     # 方法名称: pic_notify

@@ -65,6 +65,8 @@
 #define REQ_CHANGE_SAVEPATH         "camera._changeStoragePath"
 #define REQ_UPDATE_DEV_LIST         "camera._updateStorageList"
 #define REQ_UPDATE_BAT_INFO         "camera._updateBatteryInfo"
+#define REQ_NOISE_SAMPLE            "camera._startCaptureAudio"
+#define REQ_GYRO_CALC               "camera._gyroCalibration"
 
 /*********************************************************************************************
  *  外部函数
@@ -1149,9 +1151,97 @@ bool ProtoManager::sendUpdateBatteryInfo(BAT_INFO* pBatInfo)
     return bRet;     
 }
 
-#if 0
-{'battery_charge': 0, 'battery_level': 100, 'int_tmp': 0.0, 'tmp': 0.0}
-#endif
+
+bool ProtoManager::sendStartNoiseSample()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name] = REQ_NOISE_SAMPLE;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendStartNoiseSample -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendStartNoiseSample -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;     
+}
+
+
+bool ProtoManager::sendGyroCalcReq()
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value root;
+    Json::Value jsonRes;   
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name] = REQ_GYRO_CALC;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "sendGyroCalcReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] sendGyroCalcReq -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;      
+}
 
 bool ProtoManager::sendSwitchUdiskModeReq(bool bEnterExitFlag)
 {

@@ -177,10 +177,14 @@ public:
      */
     bool            sendUpdateBatteryInfo(BAT_INFO* pBatInfo);
 
+    /* 噪声采样 */
+    bool            sendStartNoiseSample();
+
+    /* 启动陀螺仪校正 */
+    bool            sendGyroCalcReq();
+
 
 #if 0
-    /* 启动陀螺仪校正 */
-    bool            sendGyroCalcReq(Json::Value& gyroCalcReq);
 
     /* 白平衡校正 */
     bool            sendWbCalcReq(Json::Value& wbCalcReq);

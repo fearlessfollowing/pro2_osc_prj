@@ -256,6 +256,11 @@ _REQ_UPDATE_STORAGE_LIST    = 'camera._updateStorageList'
 # 更新电池信息
 _REQ_UPDATE_BATTERY_IFNO    = 'camera._updateBatteryInfo'
 
+# 请求噪声采样
+_REQ_START_NOISE            = 'camera._startCaptureAudio'
+
+# 请求陀螺仪校正
+_REQ_START_GYRO             = 'camera._gyroCalibration'
 
 """camera_state"""
 STATE_IDLE                      = 0x00

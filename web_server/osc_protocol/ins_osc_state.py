@@ -228,16 +228,13 @@ class osc_state(threading.Thread):
     # 功能: 处理TF卡状态变化
     # 参数: params - 有变化的卡的信息(dict类型)
     # 返回值: 无
-    def change_tf_info(self, params):
-        # Info('tf card change info: {}'.format(params))
-        print(type(params))
-        print(len(params))
-        
+    def change_tf_info(self, params):        
         for tmp_dev in self._tf_info:
             if tmp_dev['index'] == params['index']:
                 tmp_dev['storage_total'] = params['storage_total']
                 tmp_dev['storage_left'] = params['storage_left']
-                tmp_dev['pro_suc'] = params['pro_suc']
+                if check_dic_key_exist(params, 'pro_suc'):
+                    tmp_dev['pro_suc'] = params['pro_suc']
         
         #for debug_dev in self._tf_info:
             #Info('tf info {}'.format(debug_dev))

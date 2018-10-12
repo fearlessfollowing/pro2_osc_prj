@@ -2142,7 +2142,6 @@ bool VolumeManager::checkAllTfCardExist()
         }
     }
 
-    Log.d(TAG, "[%s: %d] ---------> iExitNum = %d, mModuleVolNum = %d", __FILE__, __LINE__, iExitNum, mModuleVolNum);
     if (iExitNum >= mModuleVolNum) {
         return true;
     } else {

@@ -268,3 +268,24 @@ class StateMachine:
             return True
         else:
             return False
+
+    @classmethod 
+    def checkAllowGyroCal(self):
+        if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
+            return True
+        else:
+            return False            
+
+
+    # 当相机处于预览或空闲状态时都可以查询卡的状态，查询的结果用来更新osc状态机器  
+    # 方法名称: checkAllowEnterFormatState
+    # 功能描述: 检查是否允许进入格式化卡状态
+    # 入口参数: 无
+    # 返回值: 允许进入返回True;否则返回False  
+    classmethod
+    def checkAllowEnterFormatState(self):
+        Info('--------> checkAllowEnterFormatState, cam state {}'.format(StateMachine.getCamStateFormatHex()))
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
+            return True
+        else:
+            return False

@@ -653,6 +653,8 @@ private:
 
     bool    checkServerAlloSpeedTest(uint64_t serverState);
 
+    bool    checkServerInIdle(uint64_t serverState);
+
     bool    checkServerStateInPreview();
     bool    addState(uint64_t state);
     uint64_t getServerState();
@@ -792,6 +794,8 @@ private:
     void    dispLeftNum(const char* pBuf);
 
     void    dispFontByLoc(struct stPicVideoCfg* pCfg, bool bLight);
+
+    const char* getDispType(int iType);
 
 
     /*
