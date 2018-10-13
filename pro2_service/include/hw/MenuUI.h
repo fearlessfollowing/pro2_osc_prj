@@ -76,6 +76,8 @@ typedef enum _type_ {
 
     STITCH_PROGRESS,
 
+    RESTART_LIVE_SUC = 58,
+
     START_BLC = 70,             // 启动BLC
     STOP_BLC,                   // 停止BLC校正
 
@@ -212,6 +214,7 @@ enum {
     STATE_BLC_CALIBRATE             = 0x10000000ULL,   /* BLC校正状态 */
 	STATE_BPC_CALIBRATE             = 0x20000000ULL,   /* BPC校正状态 */
     STATE_MAGMETER_CALIBRATE        = 0x40000000ULL,   /* 磁力计校正状态 */
+    STATE_TF_FORMATING              = 0x80000000ULL,
 
     STATE_DELETE_FILE               = 0x100000000ULL,  /* 删除文件状态 */
 };
@@ -450,8 +453,6 @@ enum {
     GPS_STATE_MAX,
 };
 
-
-
 struct _icon_info_;
 struct _lr_menu_;
 struct _r_menu_;
@@ -657,6 +658,8 @@ private:
 
     bool    checkServerStateInPreview();
     bool    addState(uint64_t state);
+    bool    rmState(uint64_t state);
+
     uint64_t getServerState();
 
 
@@ -701,17 +704,15 @@ private:
 
     void    flick_light();
 
-    void    add_qr_res(int type,sp<struct _action_info_> &mAdd,int control_act = -1);
+    void    add_qr_res(int type, Json::Value& actionJson, int control_act, uint64_t serverState);
 
     void    disp_stitch_progress(sp<struct _stich_progress_> &mProgress);
+    
     void    disp_qr_res(bool high = true);
 
-    // action from controller
-//    void disp_control_def(int save_org,int rts,int hdmi);
     void    reset_last_info();
     bool    is_bat_low();
     bool    is_bat_charge();
-
 
     void    func_low_bat();
 
@@ -738,7 +739,6 @@ private:
  * 初始化类
  ******************************************************************************************************/
     void    initUiMsgHandler(); 
-
 
     void    handleGpsState();
     void    drawGpsState();
@@ -839,8 +839,6 @@ private:
 
 	void    setGyroCalcDelay(int iDelay);
 	
-	// void set_disp_control(bool state);
-
     bool    switchEtherIpMode(int iMode);
 
     void    update_menu_disp(const ICON_INFO *icon_light,const ICON_INFO *icon_normal = nullptr);
@@ -1089,9 +1087,7 @@ private:
     bool                        bDispTop = false;
     int                         last_down_key = 0;
     int                         tl_count = -1;
-    // int                         aging_times = 0;
     int                         bat_jump_times = 0;
-    int64                       last_key_ts = 0;
 	
 	sp<NetManager>              mNetManager;            /* 网络管理器对象强指针 */
 
@@ -1147,8 +1143,6 @@ private:
     u64                         mLocalRecLiveLeftTime;                          /* 本地存储设备,录像,直播的剩余时间 */
 
     std::vector<Volume*>        mShowStorageList;                               /* 用于Storage列表中显示的存储设备列表 */
-
-	bool	                    bFirstDev = true;
     
     bool                        mNeedSendAction = true;                         /* 是否需要发真实的请求给Camerad */
     bool                        mCalibrateSrc;
@@ -1163,7 +1157,8 @@ private:
     int                         mWhoReqEnterPrew = APP_REQ_PREVIEW;             /* 请求进入预览的对象: 0 - 表示是客户端; 1 - 表示是按键 */   
     int                         mWhoReqStartRec  = APP_REQ_STARTREC;            /* 默认是APP启动录像，如果是UI启动录像，会设置该标志 */
 
-
+    bool                        mFormartState  = false;                        /* 是否处在格式化中 */
+  
     /*
      * GPS状态(0: 无设备; 1: 无效定位; 2:)
      */

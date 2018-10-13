@@ -311,6 +311,61 @@ bool ProtoManager::setServerState(uint64_t saveState)
     return bRet;
 }
 
+bool ProtoManager::rmServerState(uint64_t saveState)
+{
+    int iResult = -1;
+    bool bRet = false;
+    
+    Json::Value jsonRes;   
+    Json::Value root;
+    Json::Value param;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;    
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    param[_method] = "clear";      /* 设置服务器的状态 */
+    param[_state] = saveState;
+
+    root[_name] = REQ_GET_SET_CAM_STATE;
+    root[_param] = param;
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    Log.d(TAG, "[%s: %d] Clear state: 0x%x", __FILE__, __LINE__, saveState);
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            /* 解析响应值来判断是否允许 */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            Log.d(TAG, "rmServerState -> request Result: %s", resultStr.c_str());
+
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+
+        default: {  /* 通信错误 */
+            Log.e(TAG, "[%s: %d] rmServerState -> Maybe Transfer Error", __FILE__, __LINE__);
+            bRet = false;
+        }
+    }
+    return bRet;
+}
+
 
 /* sendStartPreview
  * @param 
@@ -1298,8 +1353,8 @@ bool ProtoManager::sendSetOptionsReq(Json::Value& optionsReq)
     int iResult = -1;
     bool bRet = false;
 
-
     Json::Value jsonRes;   
+    Json::Value root;
 
     std::ostringstream osInput;
     std::ostringstream osOutput;

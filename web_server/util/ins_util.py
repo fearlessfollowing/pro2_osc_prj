@@ -42,7 +42,7 @@ def cmd_fail(name):
 def cmd_mismatch(c0, c1):
     Err('cmd mismatch {0} message {1}'.format(c0,c1))
 
-def cmd_error_state(name,state):
+def cmd_error_state(name, state):
     err = ''
     if state == config.STATE_IDLE:
         err += 'idle '
@@ -50,7 +50,7 @@ def cmd_error_state(name,state):
         if state &config.STATE_COMPOSE_IN_PROCESS == config.STATE_COMPOSE_IN_PROCESS:
             err += 'compose '
         if state &config.STATE_TAKE_CAPTURE_IN_PROCESS == config.STATE_TAKE_CAPTURE_IN_PROCESS:
-            err += 'pic '
+            err += 'pic_capture_in_process '
         if state & config.STATE_PIC_STITCHING == config.STATE_PIC_STITCHING:
             err += 'pic_stiching '
         if state &config.STATE_RECORD == config.STATE_RECORD:
@@ -58,7 +58,52 @@ def cmd_error_state(name,state):
         if state & config.STATE_PREVIEW == config.STATE_PREVIEW:
             err += 'preview '
         if state & config.STATE_LIVE == config.STATE_LIVE or state & config.STATE_LIVE_CONNECTING == config.STATE_LIVE_CONNECTING:
-            err +='live'
+            err +=' live '
+        if state & config.STATE_START_RECORDING == config.STATE_START_RECORDING:
+            err += ' start recording '
+        if state & config.STATE_STOP_RECORDING == config.STATE_STOP_RECORDING:
+            err += ' stop recording '
+        if state & config.STATE_START_LIVING == config.STATE_START_LIVING:
+            err += ' start living '
+        if state & config.STATE_STOP_LIVING == config.STATE_STOP_LIVING:
+            err += ' stop living '
+        if state & config.STATE_QUERY_STORAGE == config.STATE_QUERY_STORAGE:
+            err += ' query storage '
+        if state & config.STATE_UDISK == config.STATE_UDISK:
+            err += ' udisk '
+        if state & config.STATE_CALIBRATING == config.STATE_CALIBRATING:
+            err += ' calibrating '
+        if state & config.STATE_START_PREVIEWING == config.STATE_START_PREVIEWING:
+            err += ' start previewing '
+        if state & config.STATE_STOP_PREVIEWING == config.STATE_STOP_PREVIEWING:
+            err += ' stop previewing '
+        if state & config.STATE_START_QR == config.STATE_START_QR:
+            err += ' start_qr '
+        if state & config.STATE_RESTORE_ALL == config.STATE_RESTORE_ALL:
+            err += ' restora_all '
+        if state & config.STATE_STOP_QRING == config.STATE_STOP_QRING:
+            err += ' stop qring '
+        if state & config.STATE_START_QRING == config.STATE_START_QRING:
+            err += ' start qring '
+        if state & config.STATE_LOW_BAT == config.STATE_LOW_BAT:
+            err += ' low bat '
+        if state & config.STATE_POWER_OFF == config.STATE_POWER_OFF:
+            err += ' power off '
+        if state & config.STATE_SPEED_TEST == config.STATE_SPEED_TEST:
+            err += ' speed test '
+        if state & config.STATE_START_GYRO == config.STATE_START_GYRO:
+            err += ' start gyro '
+        if state & config.STATE_NOISE_SAMPLE == config.STATE_NOISE_SAMPLE:
+            err += ' noise sample '
+        if state & config.STATE_FORMATING == config.STATE_FORMATING:
+            err += ' formating '
+        if state & config.STATE_BLC_CALIBRATE == config.STATE_BLC_CALIBRATE:
+            err += ' blc calibrate '
+        if state & config.STATE_BPC_CALIBRATE == config.STATE_BPC_CALIBRATE:
+            err += ' bpc calibrate '
+        if state & config.STATE_DELETE_FILE == config.STATE_DELETE_FILE:
+            err += ' delete file '
+
 
     if err is '':
         err = str(state)

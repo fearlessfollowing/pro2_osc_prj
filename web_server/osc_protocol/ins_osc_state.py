@@ -128,7 +128,6 @@ def get_dev_info_detail(dev_list):
     dev_info = []
     try:
         for dev in dev_list:
-            Info('dev is {}'.format(dev))
             info = get_local_storage_info(dev['path'], dev_type = dev['dev_type'], dev_name = dev['name'])
             dev_info.append(info)
     except Exception as e:

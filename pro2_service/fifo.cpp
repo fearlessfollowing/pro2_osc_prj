@@ -1742,11 +1742,9 @@ void fifo::handleQueryLeftInfo(Json::Value& queryJson)
 
 void fifo::parseAndDispatchRecMsg(int iMsgType, Json::Value& jsonData)
 {
-    Json::FastWriter writer;
-    string data = writer.write(jsonData);
-
-    Log.d(TAG, "[%s: %d] =============>> Recv Message type[%s], data[%s]", __FILE__, __LINE__,
-                getRecvMsgName(iMsgType), data.c_str());
+    // Json::FastWriter writer;
+    // string data = writer.write(jsonData);
+    // Log.d(TAG, "[%s: %d] =============>> Recv Message type[%s], data[%s]", __FILE__, __LINE__, getRecvMsgName(iMsgType), data.c_str());
 
     switch (iMsgType) {
         case CMD_OLED_DISP_TYPE: {	/* 通信UI线程显示指定UI */

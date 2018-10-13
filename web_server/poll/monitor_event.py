@@ -92,19 +92,16 @@ class monitor_fifo_write(threading.Thread):
     def start_write(self,cmd,req):
         if platform.machine() != 'x86_64' or file_exist('/sdcard/http_local_monitor') is False:
             content = json.dumps(req)
-            Info('start_write conent {}'.format(content))
+            # Info('start_write conent {}'.format(content))
             contet_len = len(content)
             bytes_cmd = int_to_bytes(cmd)
             bytes_content_len = int_to_bytes(contet_len)
             bytes_content = str_to_bytes(content)
 
-            # Print('write {} {} {}'.format(bytes_cmd,bytes_content_len,bytes_content))
             content = join_byte_list((bytes_cmd, bytes_content_len,bytes_content))
             # contet_len = len(content)
             
             write_len = fifo_wrapper.write_fifo(self._write_fd,content)
-            # Print('fifo monitor write req:{} content len {} write len {}'.format(content, contet_len, write_len))
-            # assert_match(write_len, contet_len)
         else:
             Info('x86 rec req {}'.format(req))
 

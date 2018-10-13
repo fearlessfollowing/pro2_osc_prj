@@ -1859,35 +1859,6 @@ class control_center:
 
         return read_info
 
-    # Command Input(API level 2)
-    # {
-    #     "parameters": {
-    #         "fileUrls": [
-    #             "url1",
-    #             "url2",
-    #             "url3",
-    #             ...
-    #             "urln"
-    #         ]
-    #     }
-    # }
-    # Command Output(API level 2)
-    # {
-    #     "results": {
-    #         "fileUrls": [
-    #             "urln"
-    #         ]
-    #     }
-    # }
-    # Command Output(Err)(API level 2)
-    # {
-    #     "error": {
-    #         "code": "invalidParameterValue",
-    #         "message": "Parameter url3 doesn't exist."
-    #     }
-    # }
-
-
 
     # def camera_delete(self, req, from_ui = False):
     #     dest = req[_param]['fileUrls']  # dest为删除列表
@@ -1914,7 +1885,7 @@ class control_center:
         if StateMachine.checkAllowDelete():
             
             # 设置正在删除文件状态
-            # self.set_cam_state(self.get_cam_state() | config.STATE_DELETE_FILE)
+            StateMachine.addCamState(config.STATE_DELETE_FILE)
 
             remote_del_lists = []
             self.delete_lists = req[_param]['fileUrls']  # dest为删除列表
@@ -1957,6 +1928,10 @@ class control_center:
         elif req[_param]['method'] == 'set':
             Info('-----------> add state {}'.format(hex(req[_param][_state])))
             StateMachine.addCamState(req[_param][_state])
+            Info('---> current server state {}'.format(StateMachine.getCamStateFormatHex()))
+        elif req[_param]['method'] == 'clear':
+            Info('-----------> rm state {}'.format(hex(req[_param][_state])))
+            StateMachine.rmServerState(req[_param][_state])
             Info('---> current server state {}'.format(StateMachine.getCamStateFormatHex()))
 
         read_info = json.dumps(result)
@@ -2386,16 +2361,19 @@ class control_center:
         #       发送请求格式化请求给camerad,等待返回
         #   1.2 如果不允许,直接返回客户端状态不允许的结果
         if StateMachine.checkAllowEnterFormatState():
-            StateMachine.addCamState(config.STATE_TF_FORMATING)
+            StateMachine.addCamState(config.STATE_FORMATING)
             Info('-------> enter format tfcard now ...') 
             read_info = self.write_and_read(req)
             ret = json.loads(read_info)
+
             # 格式化成功的话，更新心跳包中各个卡的test字段
             if ret['state'] == config.DONE:
                 osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.TF_FORMAT_CLEAR_SPEED))
     
             Info('--------> format result is {}'.format(read_info))
-            StateMachine.rmServerState(config.STATE_TF_FORMATING)
+            
+            # 格式化完成后，用UI负责清除STATE_FORMATING状态
+            # StateMachine.rmServerState(config.STATE_FORMATING)
             return read_info
         else:
             res = OrderedDict()
@@ -3394,10 +3372,11 @@ class control_center:
     def camera_speed_test_fail(self, err = -1):
         Info('speed test fail')
         StateMachine.rmServerState(config.STATE_SPEED_TEST)
-        self.send_oled_type_err(config.SPEED_TEST_FAIL, err)
+        # self.send_oled_type_err(config.SPEED_TEST_FAIL, err)
 
     def camera_speed_test_done(self, req = None):
         Info('speed test done')
+
 
     # 方法名称: start_speed_test
     # 功能: 启动速度测试
@@ -3417,11 +3396,7 @@ class control_center:
             self.test_path = req[_param]['path']
             read_info = self.write_and_read(req, from_oled)
         else:
-            # 如果不允许,不让UI显示SPEED_TEST_FAIL，而是返回请求错误
-            if from_oled:
-                Err('rec http req before oled speed test')
-                self.send_oled_type(config.SPEED_TEST_FAIL)
-
+            read_info = cmd_error_state(req[_name], StateMachine.getCamState())
         return read_info
 
 
@@ -3636,7 +3611,7 @@ class control_center:
             if net_state == 'connected':
                 StateMachine.rmServerState(config.STATE_LIVE_CONNECTING)
                 StateMachine.addCamState(config.STATE_LIVE)
-                self.send_oled_type(config.START_LIVE_SUC)
+                self.send_oled_type(config.RESTART_LIVE_SUC)
 
 
     # 方法名称: gyro_calibration_finish_notify
@@ -4062,11 +4037,9 @@ class control_center:
         else:
             while content_len > 0:
                 res1 = bytes_to_str(fifo_wrapper.read_fifo(read_fd, content_len,FIFO_TO))
-                Info('content_len {}  len res {}'.format(content_len, len(res1)))
+                # Info('content_len {}  len res {}'.format(content_len, len(res1)))
                 content_len = content_len - len(res1)
 
-        # assert_match(len(res1), content_len)
-       # Print('read response: {} content len {}'.format(res1, content_len))
         return jsonstr_to_dic(res1)
 
 

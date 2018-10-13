@@ -70,6 +70,8 @@
 
 #define PROP_PREVIEW_MODE           "sys.preview_mode"
 
+#define PROP_SPEED_TEST_COMP_FLAG   "sys.speed_test_comp_flag"
+
 /*
  * 启动动画属性
  */

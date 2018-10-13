@@ -108,6 +108,9 @@ public:
     /* 设置服务器的状态 */
     bool            setServerState(uint64_t saveState);
 
+    /* 清除服务器的状态 */
+    bool            rmServerState(uint64_t saveState);
+
     /* 启动预览 */
     bool            sendStartPreview();
 

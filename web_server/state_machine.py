@@ -51,6 +51,7 @@ class StateMachine:
     def addCamState(cls, state):
         StateMachine.setCamState(StateMachine.getCamState() | state)
 
+
     @classmethod
     def checkStateIn(cls, state):
         if (StateMachine.getCamState() & state) == state:
@@ -138,7 +139,7 @@ class StateMachine:
     def checkAllowPreview(cls):
         if (StateMachine.getCamState() & config.STATE_PREVIEW) != config.STATE_PREVIEW:
             Info('-------> checkAllowPreview: current cam state {}'.format(StateMachine.getCamStateFormatHex()))
-            allow_state = [config.STATE_IDLE, config.STATE_RECORD, config.STATE_LIVE, config.STATE_LIVE_CONNECTING]
+            allow_state = [config.STATE_IDLE, config.STATE_QUERY_STORAGE, config.STATE_RECORD, config.STATE_LIVE, config.STATE_SPEED_TEST, config.STATE_LIVE_CONNECTING, config.STATE_START_LIVING, config.STATE_STOP_RECORDING, config.STATE_START_RECORDING]
             for st in allow_state:
                 if StateMachine.getCamState() == st:                    
                     return True
@@ -213,64 +214,63 @@ class StateMachine:
     # 返回值: 允许返回True;否则返回False
     # 只有已经在Udisk模式才能退出Udisk模式
     @classmethod    
-    def checkAllowExitUdiskMode(self):
+    def checkAllowExitUdiskMode(cls):
         if StateMachine.getCamState() == config.STATE_UDISK:
             return True
         else:
             return False   
 
-# check_allow_delete
     @classmethod 
-    def checkAllowDelete(self):
+    def checkAllowDelete(cls):
         if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
             return True
         else:
             return False   
 
     @classmethod 
-    def checkAllowMagmeter(self):
+    def checkAllowMagmeter(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False   
 
     @classmethod 
-    def checkAllowBpc(self):
+    def checkAllowBpc(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False
 
     @classmethod 
-    def checkAllowBlc(self):
+    def checkAllowBlc(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False
 
     @classmethod 
-    def checkAllowNoise(self):
+    def checkAllowNoise(cls):
         if StateMachine.getCamState() == config.STATE_IDLE:
             return True
         else:
             return False
 
     @classmethod 
-    def checkAllowSpeedTest(self):
+    def checkAllowSpeedTest(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False
 
     @classmethod 
-    def checkAllowCalibration(self):
+    def checkAllowCalibration(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
             return False
 
     @classmethod 
-    def checkAllowGyroCal(self):
+    def checkAllowGyroCal(cls):
         if StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW):
             return True
         else:
@@ -282,10 +282,10 @@ class StateMachine:
     # 功能描述: 检查是否允许进入格式化卡状态
     # 入口参数: 无
     # 返回值: 允许进入返回True;否则返回False  
-    classmethod
-    def checkAllowEnterFormatState(self):
+    @classmethod
+    def checkAllowEnterFormatState(cls):
         Info('--------> checkAllowEnterFormatState, cam state {}'.format(StateMachine.getCamStateFormatHex()))
-        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW, config.STATE_FORMATING)):
             return True
         else:
             return False
