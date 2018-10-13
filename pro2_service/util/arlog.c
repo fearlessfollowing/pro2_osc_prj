@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+
 static pthread_rwlock_t gLock = PTHREAD_RWLOCK_INITIALIZER;
 static bool gInited = false;
 static bool gSendToLogcat = false;
@@ -29,11 +30,11 @@ static int gOriginStderrFd = -1;
 
 static void init_logfile_if_need()
 {
-    if(!gSendToFile)
+    if (!gSendToFile)
         return;
-    if(gLogFileFd >= 0)
+    if (gLogFileFd >= 0)
         return;
-    if(gLogFileInitErr != 0 && gLogFileInitErr != EPERM)
+    if (gLogFileInitErr != 0 && gLogFileInitErr != EPERM)
         return;
 
     bool truncate = false;
@@ -102,6 +103,7 @@ void arlog_configure(bool sendToLogcat, bool sendToFile, const char *logFilePath
             setbuf(stderr, NULL);
             dup2(gLogFileFd, fileno(stdout));
             dup2(gLogFileFd, fileno(stderr));
+
         } else {
             __android_log_print(ANDROID_LOG_ERROR, "Insta360", "arlog can't redirect stdout and stderr\n");
         }
