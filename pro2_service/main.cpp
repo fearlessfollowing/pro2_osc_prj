@@ -38,6 +38,7 @@
 
 #include <hw/MenuUI.h>
 #include <sys/MidProto.h>
+#include <prop_cfg.h>
 
 #undef      TAG
 #define     TAG "pro2_service"
@@ -60,7 +61,8 @@ int main(int argc ,char *argv[])
 	
     signal(SIGPIPE, pipe_signal_handler);
 
-    arlog_configure(true, true, PRO2_SERVICE_LOG_PATH, false);
+    // arlog_configure(true, true, PRO2_SERVICE_LOG_PATH, false);
+    logWrapperInit("p_log", 0, 0);
 
     iRet = __system_properties_init();	/* 属性区域初始化 */
     if (iRet) {
@@ -70,29 +72,29 @@ int main(int argc ,char *argv[])
 
     property_set(PROP_PRO2_VER, PRO2_VER);
 
-
     Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
 
 #if 1
     init_fifo();
     start_all();
+
 #else 
     MidProtoManager* pm = MidProtoManager::Instance();
     sp<MenuUI> mu = (sp<MenuUI>)(new MenuUI());
-
     if (pm) {
         pm->setRecvUi(mu);
         pm->start();
     }
-
     if (mu) {
         mu->start();
     }
-
 #endif
+
     while (1) {
-        msg_util::sleep_ms(5 * 1000);
+        msg_util::sleep_ms(5*1000);
     }
 
     Log.d(TAG, "main pro over");
+    
+    logWrapperDeInit();
 }

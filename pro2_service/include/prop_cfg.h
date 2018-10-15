@@ -72,6 +72,9 @@
 
 #define PROP_SPEED_TEST_COMP_FLAG   "sys.speed_test_comp_flag"
 
+#define PROP_LOG_FILE_PATH_BASE         "sys.log_path"
+#define DEFAULT_LOG_FILE_PATH_BASE      "/home/nvidia/insta360/log"
+
 /*
  * 启动动画属性
  */

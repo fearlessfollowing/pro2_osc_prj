@@ -1,7 +1,8 @@
 #ifndef _ST_LOG_H
 #define _ST_LOG_H
-class STLog
-{
+
+class STLog {
+    
 public:
     void v(const char *tag, const char *format, ...);
     void d(const char *tag, const char *format, ...);
@@ -13,4 +14,5 @@ public:
 extern STLog Log;
 
 #define STLOG_DEFAULT_TAG "Insta360"
-#endif
+
+#endif  /* _ST_LOG_H */
