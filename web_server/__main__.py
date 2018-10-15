@@ -2,7 +2,6 @@
 # all the imports
 import os
 import platform
-# import sqlite3
 import control_center
 import json
 import time
@@ -13,8 +12,10 @@ from functools import wraps
 from collections import OrderedDict
 from werkzeug.utils import secure_filename
 import config
+
+# from util.log_util import *
 from util.ins_util import *
-from util.log_util import *
+from util.ins_log_util import *
 from util.version_util import *
 from util.signal_util import *
 

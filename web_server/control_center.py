@@ -20,20 +20,20 @@ from collections import OrderedDict
 from osc_protocol.ins_osc_info import osc_info
 from osc_protocol.ins_osc_state import osc_state_handle
 from osc_protocol.ins_check_update import osc_check_update
-# from osc_protocol.ins_osc_option import osc_option
 
 from util.ins_util import *
 from util.fifo_util import *
-#from util import ins_switch, time_util
 import config
 from util.str_util import *
-from util.log_util import *
+
+# from util.log_util import *
+
+from util.ins_log_util import *
 from util.timer_util import *
 from util.time_util import *
 from util.time_zones import *
 from util.version_util import *
 from flask import send_file
-# from poll.poll_func import *
 from poll.monitor_event import monitor_fifo_read,mointor_fifo_write_handle,monitor_camera_active_handle
 
 from thread_utils import *
@@ -1091,9 +1091,6 @@ class control_center:
             self.release_connect_sem()
             return cmd_exception(error_dic('camera_connect', str(e)), req)
 
-        # Info("connect at time {}".format(get_local_date_time()))
-
-
     def camera_disconnect(self, req, from_ui = False):
         Info('[------- APP Req: camera_disconnect ------] req: {}'.format(req))                
         ret = cmd_done(req[_name])
@@ -1126,6 +1123,7 @@ class control_center:
         # self._id += 1
         # Info('append id {} len {} self._id_list {}'.format(id_dict, len(self._id_list),self._id_list))
 
+
     # add_async_finish
     # 添加异步结束的结果
     # 对于新版的测速, camerad不再返回'results'相关信息，需要手动填写
@@ -1151,17 +1149,19 @@ class control_center:
         self.send_set_sn(req[_param])
         return cmd_done(req[_name])
 
+
     def start_shell(self, req, from_ui = False):
         ret = -1
         if check_dic_key_exist(req,_param):
-            if check_dic_key_exist(req[_param],'cmd'):
+            if check_dic_key_exist(req[_param], 'cmd'):
                 ret = sys_cmd(req[_param]['cmd'])
         if ret == 0:
             ret = cmd_done(req[_name])
         else:
-            ret = cmd_error(req[_name],'start shell','exec fail')
+            ret = cmd_error(req[_name], 'start shell', 'exec fail')
         Info('start_shell {} ret {}'.format(req,ret))
         return ret
+
 
     def set_custom(self, req, from_ui = False):
         Info('set custom req {}'.format(req))
@@ -1187,13 +1187,11 @@ class control_center:
     def set_sys_option(self,param):
         Info("param is {}".format(param))
         
-        # reset_all表示恢复出厂设置，只能在IDLE状态下进行
-        # TODO:
         if check_dic_key_exist(param, 'reset_all'):
             self.reset_user_cfg()
             self.send_oled_type(config.RESET_ALL_CFG)
         else:
-            if check_dic_key_exist(param,'flicker'):
+            if check_dic_key_exist(param, 'flicker'):
                 p = OrderedDict({'property': 'flicker', 'value': param['flicker']})
                 self.camera_oled_set_option(p)
 
@@ -1245,13 +1243,17 @@ class control_center:
 
 
     # req = {_name:config.SET_SYS_SETTING,_param:{"flicker":0,"speaker":0,"led_on":0,"fan_on":0,"aud_on":0,"aud_spatial":0,"set_logo":0}};
+    # 注: 设置系统设置,只能在IDLE或PREVIEW状态下才可以进行
     def camera_set_sys_setting(self, req, from_ui = False):
-        Info('[------- APP Req: camera_set_sys_setting ------] req: {}'.format(req))                
-        if check_dic_key_exist(req, _param):
-            self.set_sys_option(req[_param])
+        Info('[------- APP Req: camera_set_sys_setting ------] req: {}'.format(req))
+        if StateMachine.checkAllowSetSysConfig():           
+            if check_dic_key_exist(req, _param):
+                self.set_sys_option(req[_param])
+                return cmd_done(req[_name])
+            else:
+                return cmd_error(req[_name],'camera_set_sys_setting','param not exist')
         else:
-            Info('set camera_set_sys_setting no _param')
-        return cmd_done(req[_name])
+            return cmd_error(req[_name],'camera_set_sys_setting','state not allow')
 
 
     #{"flicker": 0, "speaker": 0, "light_on": 0, "fan_on": 0, "aud_on": 0, "aud_spatial": 0, "set_logo": 0,"gyro_on":0}};
@@ -3254,7 +3256,7 @@ class control_center:
 
     def start_power_off(self, req):
         self.set_stitch_mode(False)
-        self.set_cam_state(self.get_cam_state() | config.STATE_POWER_OFF)
+        StateMachine.addCamState(config.STATE_POWER_OFF)
         read_info = self.write_and_read(req, True)
         return read_info
 

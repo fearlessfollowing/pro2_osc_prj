@@ -4,7 +4,8 @@ import threading
 import queue
 import json
 from util.str_util import *
-from util.log_util import *
+# from util.log_util import *
+from util.ins_log_util import *
 from util.ins_util import *
 from util.fifo_util import *
 from util import time_util

@@ -1,5 +1,6 @@
 import signal
-from util.log_util import *
+# from util.log_util import *
+from util.ins_log_util import *
 
 def handler(pid,signum, frame):
     Err('Signal handler called with signal pid {} signum {}'.format(pid,signum))

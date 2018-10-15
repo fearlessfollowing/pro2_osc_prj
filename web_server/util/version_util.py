@@ -1,5 +1,7 @@
-from util.log_util import *
-VERSION = 'V1.0.1_2018.09.29'
+# from util.log_util import *
+from util.ins_log_util import *
+
+VERSION = '-------------- V1.0.2_2018.10.15 -----------------'
 
 class ins_version:
     @classmethod

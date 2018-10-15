@@ -12,10 +12,12 @@ import queue
 from collections import OrderedDict
 from util.ins_util import *
 import config
-from util.log_util import *
+# from util.log_util import *
+from util.ins_log_util import *
 from util.time_util import *
 from threading import Semaphore
 from osc_protocol.ins_osc_state import osc_state_handle
+
 
 # 状态机器类
 # 用于查询Server的当前状态及允许的操作
@@ -286,6 +288,15 @@ class StateMachine:
     def checkAllowEnterFormatState(cls):
         Info('--------> checkAllowEnterFormatState, cam state {}'.format(StateMachine.getCamStateFormatHex()))
         if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW, config.STATE_FORMATING)):
+            return True
+        else:
+            return False
+
+
+    @classmethod
+    def checkAllowSetSysConfig(cls):
+        Info('--------> checkAllowEnterFormatState, cam state {}'.format(StateMachine.getCamStateFormatHex()))
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
             return True
         else:
             return False

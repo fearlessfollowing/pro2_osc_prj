@@ -9776,12 +9776,14 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
                 break;
             }
 
+            #if 0
             case UI_MSG_TF_FORMAT_RES: {
                 vector<sp<Volume>> mTfFormatList;
                 CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfFormatList), true);
                 // handleTfFormated(mTfFormatList);       
                 break;         
             }
+            #endif
 
 
             case UI_MSG_SPEEDTEST_RESULT: {

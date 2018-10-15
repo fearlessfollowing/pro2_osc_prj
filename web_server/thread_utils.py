@@ -12,7 +12,8 @@ import base64
 import sys
 import platform
 from util.str_util import *
-from util.log_util import *
+# from util.log_util import *
+from util.ins_log_util import *
 
 class ListFileThread(Thread):
     def __init__(self, name, controller, path):

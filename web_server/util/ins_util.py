@@ -3,8 +3,9 @@ import os
 from collections import OrderedDict
 import config
 from random import Random
-from util.log_util import *
-from util.str_util import join_str_list,bytes_to_str
+# from util.log_util import *
+from util.ins_log_util import *
+from util.str_util import join_str_list, bytes_to_str
 from util import time_util
 from flask import jsonify
 
