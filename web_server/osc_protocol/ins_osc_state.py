@@ -24,9 +24,6 @@ REC_INFO = '_rec_sec'
 LIVE_REC_INFO = '_live_rec_sec'
 TL_REC_INFO = '_tl_left'
 
-# PIC_RES = '_picRes'
-# REC_RES = '_recRes'
-# NET = '_net'
 
 INTERVAL = 10000
 
@@ -41,8 +38,6 @@ sem_vfs = Semaphore()
 
 # 获取文件
 def get_vfs(name):
-    
-    # Print('get_vfs {}'.format(name))
     vfs = None
     sem_vfs.acquire()
 
@@ -95,8 +90,6 @@ def get_local_storage_info(path, dev_type, dev_name, unit='M'):
         info['test'] = True
     else:
         info['test'] = False
-
-    # Print('internal info {}'.format(info))
     return info
 
 
@@ -207,7 +200,6 @@ class osc_state(threading.Thread):
     # 将所有TF卡的速度测试标志设置为False
     def clear_tf_speed_flag(self):
         for dev_info in self._tf_info:
-            Info('tfcard dev info {}'.format(dev_info))
             dev_info['pro_suc'] = 0
 
 
@@ -235,19 +227,14 @@ class osc_state(threading.Thread):
                 if check_dic_key_exist(params, 'pro_suc'):
                     tmp_dev['pro_suc'] = params['pro_suc']
         
-        #for debug_dev in self._tf_info:
-            #Info('tf info {}'.format(debug_dev))
-
 
     def clear_tf_info(self):
-        #Info('>>>> Query tf storage failed, clear tf info in osc_state....')
         self._tf_info.clear()
 
-    # vendor specifix: _usb_in -- usb inserted;_sd_in --sdcard inserted
+    # vendor specifix: _usb_in -- usb inserted; _sd_in --sdcard inserted
     def get_osc_state(self, bStitch):
         state = OrderedDict()
         state['state'] = self.get_poll_info(bStitch)
-        # print(' osc_state is ', osc_state)
         return dict_to_jsonstr(state)
 
 

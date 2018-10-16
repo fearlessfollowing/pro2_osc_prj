@@ -1,20 +1,35 @@
-import json
-import commandUtility
-import findOptions
-import changeOptions
+# -*- coding: UTF-8 -*-
+# 文件名：  commands.py 
+# 版本：    V1.0.1
+# 修改记录：
+# 日期              修改人                  版本            备注
+# 2018年10月16日    Skymixos                V1.0.3          增加注释
+#
+
 import os
+import json
+import config
 import requests
+import findOptions
+import commandUtility
+import changeOptions
 from shutil import rmtree
 
-with open('currentOptions.json') as optionsFile:
+
+with open(config.CURRENT_OPTIONS) as optionsFile:    
     currentOptions = json.load(optionsFile)
 
 
+# 
+# 拍照,使用8K的模板参数
+#
 def takePicture(c):
-    takePictureJson = __loadJsonFile('takePictureTemplate.json')
-    currentOptions = __loadJsonFile('currentOptions.json')
-    pictureMap = __loadJsonFile('pictureFormatMap.json')
-    if currentOptions["exposureProgram"] in [1, 2] and currentOptions["captureMode"] in ["image"]:
+
+    takePictureJson = __loadJsonFile(config.TAKEPIC_TEMPLATE)
+    currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
+
+    pictureMap = __loadJsonFile(config.PIC_FORMAT_MAP_TMPLATE)    
+    if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
         fileFormat = currentOptions["fileFormat"]
         if fileFormat["type"] == "jpeg":
             takePictureJson["parameters"]["stiching"]["mime"] = fileFormat["type"]
@@ -22,6 +37,7 @@ def takePicture(c):
             takePictureJson["parameters"]["stiching"]["height"] = fileFormat["height"]
         else:
             del takePictureJson["parameters"]["stiching"]
+
         takePictureJson["parameters"]["origin"]["mime"] = pictureMap["type"][str(fileFormat["type"])]
         takePictureJson["parameters"]["origin"]["width"] = pictureMap["width"][str(fileFormat["width"])]
         takePictureJson["parameters"]["origin"]["height"] = pictureMap["height"][str(fileFormat["height"])]
@@ -35,8 +51,10 @@ def takePicture(c):
             takePictureJson["parameters"]["hdr"]["max_ev"] = max_ev
         else:
             del takePictureJson["parameters"]["hdr"]
+        
         takePictureJson["parameters"]["delay"] = currentOptions["exposureDelay"]
         takePictureJson["stabilization"] = currentOptions["imageStabilization"]
+
         print(takePictureJson)
         # exposureOptions = __setExposure(currentOptions)
         # requests = (__genOptionsBody(exposureOptions))
@@ -58,13 +76,12 @@ def takePicture(c):
 
 
 def processPicture(c, cParams):
-    responseValues = ("camera.processPicture", "error",
-                      commandUtility.buildError('disabledCommand', 'Not supported'))
+    responseValues = ("camera.processPicture", "error", commandUtility.buildError('disabledCommand', 'Not supported'))
     return commandUtility.buildResponse(responseValues)
 
 
 def startCapture(c):
-    currentOptions = __loadJsonFile('currentOptions.json')
+    currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
 
     if currentOptions["captureMode"] not in ["interval", "video"]:
         errorValue = commandUtility.buildError('disabledCommand', 'video/interval recording not supported in this mode')
@@ -101,6 +118,7 @@ def startCapture(c):
         if currentOptions["captureNumber"] > 0:
             captureTime = currentOptions["captureInterval"]*(currentOptions["captureNumber"]) + 1
             startCaptureJson["parameters"]["duration"] = captureTime
+    
     print(startCaptureJson)
     # request = (__genOptionsBody(exposureOptions))
     # request.append(json.dumps(startCaptureJson))
@@ -127,7 +145,7 @@ def startCapture(c):
 
 
 def stopCapture(c):
-    currentOptions = __loadJsonFile('currentOptions.json')
+    currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)    
     if currentOptions["captureMode"] in ["video", "interval"]:
         body = json.dumps({"name": "camera._stopRecording"})
         response = c.command(body)
@@ -311,7 +329,7 @@ def setOptions(c, cParams):
         responseValues = ("camera.setOptions", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
 
-    currentOptions = __loadJsonFile('currentOptions.json')
+    currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
 
     errorMsg = "Invalid option/option value"
 
@@ -405,40 +423,60 @@ def setOptions(c, cParams):
                 errorValues = ("camera.setOptions", "error",
                                commandUtility.buildError('invalidParameterValue', errorMsg))
                 return commandUtility.buildResponse(errorValues)
-    with open('currentOptions.json', 'w') as newOptions:
+
+    with open(config.CURRENT_OPTIONS, 'w') as newOptions:
         json.dump(currentOptions, newOptions)
+
     return ''
 
 
+#
+# getOptions
+# {
+#   "parameters": {
+#       "optionNames":[]
+#   }
+# }
+
 def getOptions(c, cParams):
     errorValues = None
+
+    # 1.加载请求的"parameters"字段
     try:
         optionNames = cParams["optionNames"]
     except KeyError:
-        errorValues = commandUtility.buildError('missingParameter',
-                                                'Missing input parameter')
+        errorValues = commandUtility.buildError('missingParameter', 'Missing input parameter')
+    
     if len(cParams.keys()) > 2:
-        errorValues = commandUtility.buildError('invalidParameterName',
-                                                'invalid param name')
+        errorValues = commandUtility.buildError('invalidParameterName', 'invalid param name')
+    
     if errorValues is not None:
         responseValues = ("camera.getOptions", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
 
-    currentOptions = __loadJsonFile('currentOptions.json')
+    # 2.读取系统的Options模板Json文件
+    currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
+    print(currentOptions.keys())
+
     responseDict = {}
+
     for option in optionNames:
+        print('--------------------------------------\n')
+        print(option)
+
+        # 请求的optionName不在系统的支持列表中
         if option not in list(currentOptions.keys()):
             responseValues = ("camera.getOptions", "error",
-                              commandUtility.buildError('invalidParameterValue',
-                                                        'Option does not exist'))
+                              commandUtility.buildError('invalidParameterValue', 'Option does not exist'))
             response = commandUtility.buildResponse(responseValues)
             return response
+        
         try:
             responseDict[option] = getattr(findOptions, option)(c)
+            # responseDict[option] = getattr(currentOptions, option)
+
             if responseDict[option] == "error":
-                responseValues = ("camera.getOptions", "error",
-                                  commandUtility.buildError('invalidParameterValue',
-                                                            'Invalid option value'))
+                responseValues = ("camera.getOptions", "error", commandUtility.buildError('invalidParameterValue', 'Invalid option value'))
                 response = commandUtility.buildResponse(responseValues)
                 return response
         except AttributeError:
@@ -449,8 +487,7 @@ def getOptions(c, cParams):
 
 
 def reset(c):
-    return commandUtility.commandBoilerplate("camera._reset",
-                                             "camera.reset")
+    return commandUtility.commandBoilerplate("camera._reset", "camera.reset")
 
 
 def switchWifi(c, cParams):

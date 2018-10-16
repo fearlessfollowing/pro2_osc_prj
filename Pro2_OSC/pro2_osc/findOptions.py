@@ -1,5 +1,7 @@
-import json
+
 import os
+import json
+
 
 queryStateBody = json.dumps({'name': 'camera._queryState'})
 
@@ -46,7 +48,7 @@ def videoGPS(c):
 
 
 def __updateOptions(options):
-    with open('currentOptions.json', 'w') as newOptions:
+    with open(config.CURRENT_OPTIONS, 'w') as newOptions:
         json.dump(options, newOptions)
 
 
@@ -56,6 +58,6 @@ def __getNativeCommand(c, param, bodyJson):
 
 
 def __loadCurrentOptions():
-    with open("currentOptions.json") as optionsFile:
+    with open(config.CURRENT_OPTIONS) as optionsFile:
         currentOptions = json.load(optionsFile)
     return currentOptions

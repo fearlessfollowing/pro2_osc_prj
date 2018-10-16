@@ -806,6 +806,7 @@ class control_center:
         self.start_poll_timer()
         return ret_state
 
+
     def get_osc_stich_state(self):
         return osc_state_handle.get_osc_state(self.get_stitch_mode())
 

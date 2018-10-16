@@ -18,7 +18,6 @@ from util.ins_util import *
 from util.ins_log_util import *
 from util.version_util import *
 from util.signal_util import *
-
 from flask._compat import string_types
 
 import logging
@@ -55,30 +54,6 @@ app.config.update(
 app_controller = control_center.control_center()
 # AutoIndex(app, browse_root=config.BROWER_ROOT)
 
-# def add_response_headers(headers={}):
-#     """This decorator adds the headers passed in to the response"""
-#     def decorator(f):
-#         @wraps(f)
-#         def decorated_function(*args, **kwargs):
-#             resp = make_response(f(*args, **kwargs))
-#             h = resp.headers
-#             for header, value in headers.items():
-#                 h[header] = value
-#             return resp
-#
-#         return decorated_function
-#
-#     return decorator
-#
-# def add_header(f):
-#     @wraps(f)
-#     # @add_response_headers({'Content-Type': 'application/json; charset=utf-8'})
-#     # @add_response_headers({'X-Content-Type-Options': 'nosniff'})
-#     @add_response_headers({'Connection': 'close'})
-#     def decorated_function(*args, **kwargs):
-#         return f(*args, **kwargs)
-#
-#     return decorated_function
 
 #only post support
 # @app.route('/upload',methods=['POST'])
@@ -123,7 +98,7 @@ def flask_osc_path_execute(path):
         #     data = request.get_json()
         #     Info('osc path data {}'.format(data))
 
-        if check_dic_key_exist(h,config.FINGERPRINT):
+        if check_dic_key_exist(h, config.FINGERPRINT):
             fp = h[config.FINGERPRINT]
         # Print('1path is {} {}'.format(path,fp))
         ret = app_controller.osc_path_execute(join_str_list(('/osc/',path)), fp)
@@ -132,7 +107,7 @@ def flask_osc_path_execute(path):
         ret = cmd_exception(error_dic('flask_osc_path_execute', str(err)))
     return ret
 
-@app.route(config.PATH_CMD_EXECUTE,methods=['GET', 'POST'])
+@app.route(config.PATH_CMD_EXECUTE, methods=['GET', 'POST'])
 # @add_header
 def flask_osc_cmd_execute():
     try:

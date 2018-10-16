@@ -1,12 +1,22 @@
+# -*- coding: UTF-8 -*-
+# 文件名：  __main__.py 
+# 版本：    V1.0.1
+# 修改记录：
+# 日期              修改人                  版本            备注
+# 2018年10月16日    Skymixos                V1.0.3          增加注释
+#
+
+import os
+import json
+import time
+import config
 import commands
 import requests
 import cameraConnect
 import commandUtility
-import json
-import os
 from shutil import copyfile
-import time
 from flask import Flask, make_response, request, abort, redirect, Response
+
 
 app = Flask(__name__)
 c = cameraConnect.connector()
@@ -15,10 +25,14 @@ connectResponse = c.connect()
 # print(connectResponse)
 startTime = time.time()
 
+# 读取osc_info.json的内容，报错在全局变量
+with open(config.OSC_INFO_TEMPLATE) as oscInfoFile:
+    oscInfoResponse = json.load(oscInfoFile)
+
 
 @app.before_first_request
 def setup():
-    copyfile('defaultOptions.json', 'currentOptions.json')
+    copyfile(config.DEFAULT_OPTIONS, config.CURRENT_OPTIONS)
 
 
 @app.route('/osc/commands/<option>', methods=['POST'])
@@ -99,6 +113,7 @@ def getResponse(option):
                 response = getattr(commands, name)(c, commandParams)
             else:
                 response = getattr(commands, name)(c)
+
             if name == "getLivePreview" and "error" not in response:
                 time.sleep(3)
                 # Testing two methodologies, below:
@@ -108,21 +123,21 @@ def getResponse(option):
                 # or below
                 # return redirect(response, 302)
         except AttributeError:
-            errorValue = commandUtility.buildError('unknownCommand',
-                                                   'command not found')
+            errorValue = commandUtility.buildError('unknownCommand', 'command not found')
             responseValues = (bodyJson['name'], "error", errorValue)
             response = commandUtility.buildResponse(responseValues)
         except TypeError:
-            errorValue = commandUtility.buildError('invalidParameterName',
-                                                   'invalid param name')
+            errorValue = commandUtility.buildError('invalidParameterName', 'invalid param name')
             responseValues = (name, "error", errorValue)
             response = commandUtility.buildResponse(responseValues)
 
     else:
         abort(404)
+
     finalResponse = make_response(response)
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
     finalResponse.headers['X-Content-Type-Options'] = "nosniff"
+    
     print("RESPONSE: ", response)
     if response == '':
         return finalResponse, 204
@@ -131,20 +146,57 @@ def getResponse(option):
     return finalResponse
 
 
+# 
+# /osc/info API返回有关支持的相机和功能的基本信息
+# 输入: 无
+# 输出:
+#   manufacturer - string(相机制造商)
+#   model - string(相机型号)
+#   serialNumber - string(序列号)
+#   firmwareVersion - string(当前固件版本)
+#   supportUrl - string(相机支持网页的URL)
+#   gps - bool(相机GPS)
+#   gyro - 陀螺仪(bool)
+#   uptime - 相机启动后的秒数(int)
+#   api - 支持的API列表(字符串数组)
+#   endpoints - {httpPort, httpUpdatesPort, httpsPort, httpsUpdatesPort}
+#   apiLevel - [1], [2], [1,2]
+#   _vendorSpecific
+#
 @app.route('/osc/info', methods=['GET'])
 def getInfo():
     print("\nREQUEST: /osc/info")
-    with open('info.json') as infoFile:
-        response = json.load(infoFile)
-    response["serialNumber"] = connectResponse["results"]["sys_info"]["sn"]
-    response["firmwareVersion"] = connectResponse["results"]["sys_info"]["r_v"]
-    response["uptime"] = int(time.time()-startTime)
-    print("RESPONSE: ", response)
-    response = make_response(json.dumps(response))
+
+    oscInfoResponse["serialNumber"] = connectResponse["results"]["sys_info"]["sn"]
+    oscInfoResponse["firmwareVersion"] = connectResponse["results"]["sys_info"]["r_v"]
+    oscInfoResponse["uptime"] = int(time.time() - startTime)
+
+    with open(config.UP_TIME_PATH) as upTimeFile:
+        startUptimeLine = upTimeFile.readline()
+        upTimes = startUptimeLine.split(" ")
+        upTime = float(upTimes[0])
+        oscInfoResponse["uptime"] = int(upTime)
+
+    print("RESPONSE: ", oscInfoResponse)
+
+    response = make_response(json.dumps(oscInfoResponse))
     response.headers['Content-Type'] = "application/json;charset=utf-8"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
 
 
+
+# 
+# /osc/state API返回相机的state属性
+# 输入: 无
+# 输出:
+#   fingerprint - string(当前相机状态的指纹)
+#   state - json对象(相机型号)
+#   {
+#       batterLevel - float(电池电量)
+#       storageUri  - string(区分不通存储的唯一标识)
+#   }
+#
 @app.route('/osc/state', methods=['POST'])
 def getState():
     print("\nREQUEST: /osc/state")
@@ -153,12 +205,19 @@ def getState():
     except KeyError:
         fingerprint = 'test'
     state = {"batteryLevel": 1.0, "storageUri": c.getStoragePath()}
+
     print("state object: ", state)
     response = {"fingerprint": fingerprint, "state": state}
+
+    # print("cam state packet:", c.getCamState())
+    print(c.getCamOscState().json())
+
     print("RESPONSE: ", response)
     finalResponse = make_response(json.dumps(response))
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
+    finalResponse.headers['X-Content-Type-Options'] = 'nosniff'    
     return finalResponse
+
 
 
 # @app.route('/osc/checkForUpdates', methods=['POST'])

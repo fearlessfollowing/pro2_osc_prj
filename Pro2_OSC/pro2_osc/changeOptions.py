@@ -1,11 +1,21 @@
+# -*- coding: UTF-8 -*-
+# 文件名：  changeOptions.py 
+# 版本：    V1.0.1
+# 修改记录：
+# 日期              修改人                  版本            备注
+# 2018年10月16日    Skymixos                V1.0.3          增加注释
+#
+
+import re
 import json
+import config
 import commandUtility
 from subprocess import run, CompletedProcess
-import re
 
-with open('exposureMapping.json') as exposureFile:
+with open(config.EXPOSURE_MAP_TEMPLATE) as exposureFile:    
     exposureMap = json.load(exposureFile)
-with open('_setOptionsTemplate.json') as optionsFile:
+
+with open(config.SET_OPTION_TMPLATE) as optionsFile:
     _setOptionsJson = json.load(optionsFile)
 
 

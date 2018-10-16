@@ -186,6 +186,7 @@ void logWrapperInit(const char* pLogFilePrefix, int iMaxLogSize, int iMaxLogCoun
         logSetSeqID(&gLogWrapper);
     }
 
+    #if 0
     logGetFSize(&gLogWrapper);  /* 初始化当前日志文件的大小: 如果不存在设置的值为0 */
 
     if (gLogWrapper.mCurLogFileSize >= gLogWrapper.mMaxLogFileSize) {
@@ -198,6 +199,9 @@ void logWrapperInit(const char* pLogFilePrefix, int iMaxLogSize, int iMaxLogCoun
     } else {
         gLogWrapper.mCurLogFileHandle = fopen(acPath, "r+");
     }
+    #else 
+    logChangeFile(&gLogWrapper);
+    #endif
 
     gLogWrapper.mInitDone = true;
 }
@@ -243,6 +247,7 @@ int logVPrint(int prio, const char *tag, const char *fmt, va_list ap)
         logbuf[len + 1] = '\0';
         if (gLogWrapper.mCurLogFileHandle) {
             fprintf(gLogWrapper.mCurLogFileHandle, "%s", logbuf);
+            fflush(gLogWrapper.mCurLogFileHandle);
             gLogWrapper.mCurLogFileSize += (len + 1);
         }
     }

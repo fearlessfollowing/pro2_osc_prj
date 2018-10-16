@@ -27,55 +27,56 @@
       "width": 8192,
       "height": 4096
     },
-    "fileFormatSupport":
-    [
-      {
-        "type":"jpeg",
-        "width": 8192,
-        "height": 4096
-      },
-      {
-        "type":"dng",
-        "width": 8192,
-        "height": 4096
-      },
-      {
-        "type":"mp4",
-        "width": 7680,
-        "height": 3840,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 5120,
-        "height": 2560,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 6400,
-        "height": 3200,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 4320,
-        "height": 2160,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 3840,
-        "height": 1920,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 3840,
-        "height": 1920,
-        "framerate": 120
-      }
+
+    "fileFormatSupport": [
+        {
+            "type":"jpeg",
+            "width": 8192,
+            "height": 4096
+        },
+        {
+            "type":"dng",
+            "width": 8192,
+            "height": 4096
+        },
+        {
+            "type":"mp4",
+            "width": 7680,
+            "height": 3840,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 5120,
+            "height": 2560,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 6400,
+            "height": 3200,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 4320,
+            "height": 2160,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 3840,
+            "height": 1920,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 3840,
+            "height": 1920,
+            "framerate": 120
+        }
     ],
+    
     "exposureDelay":0,
     "exposureDelaySupport":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60],
     "sleepDelay":0,

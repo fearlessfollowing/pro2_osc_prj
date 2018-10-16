@@ -16,6 +16,7 @@
 ** V3.1         skymixos        2018年08月31日          将存储相关的成员放入卷管理子系统中统一管理，删除
 **                                                      dev_manager.cpp
 ** V3.2         skymixos        2018年09月20日          UI进入需要长时间操作时，禁止InputManager的上报功能
+** V3.3         skymixos        2018年10月16日          修改WIFI的SSID符合OSC标准
 ******************************************************************************************************/
 #include <future>
 #include <vector>
@@ -74,12 +75,10 @@ using namespace std;
 
 #define ENABLE_SOUND
 
-#define SN_LEN          (14)
-
-#define BAT_LOW_VAL     (5)
-
-#define MAX_ADB_TIMES   (5)
-#define LONG_PRESS_MSEC (2000)
+#define SN_LEN              (14)
+#define BAT_LOW_VAL         (5)
+#define MAX_ADB_TIMES       (5)
+#define LONG_PRESS_MSEC     (2000)
 
 #define OPEN_BAT_LOW
 
@@ -542,7 +541,7 @@ void MenuUI::init()
 
     Log.d(TAG, "Create System NetManager Object...");
 
-    #ifdef ENABLE_PESUDO_SN
+#ifdef ENABLE_PESUDO_SN
 
 	char tmpName[32] = {0};
 	if (access(WIFI_RAND_NUM_CFG, F_OK)) {
@@ -573,7 +572,7 @@ void MenuUI::init()
 	property_set(PROP_SYS_AP_PESUDO_SN, tmpName);
 	Log.d(TAG, "get pesudo sn [%s]", property_get(PROP_SYS_AP_PESUDO_SN));
 
-    #else
+#else
 
 	char tmpName[128] = {0};
     char* pEnd = NULL;
@@ -585,25 +584,24 @@ void MenuUI::init()
 			Log.d(TAG, "get sn [%s]", tmpName);
 			
             int iLen = strlen(tmpName);
-            if (tmpName[iLen -1] == '\r' || tmpName[iLen -1] == '\n') {
-                tmpName[iLen -1] = '\0';
+            if (iLen < 6) {
+                property_set(PROP_SYS_AP_PESUDO_SN, "Tester");
+            } else {
+                if (tmpName[iLen -1] == '\r' || tmpName[iLen -1] == '\n') {
+                    tmpName[iLen -1] = '\0';
+                }
+                pEnd = &tmpName[iLen -1];
+                property_set(PROP_SYS_AP_PESUDO_SN, pEnd - 6);
             }
-            pEnd = &tmpName[iLen -1];
-
-            property_set(PROP_SYS_AP_PESUDO_SN, pEnd - 6);
-
             fclose(fp);
 		} else {
 			Log.e(TAG, "open [%s] failed", WIFI_RAND_NUM_CFG);
 			strcpy(tmpName, "Test");
 		}
-    } else {
-        Log.d(TAG, "[%s: %d] Sn file [%s] Not Exist, Use Default Subfix", __FILE__, __LINE__, SYS_SN_PATH);
+    } else {    /* SN文件不存在 */
         property_set(PROP_SYS_AP_PESUDO_SN, "Tester");
     }
-
-    #endif
-
+#endif
 
     memset(mLocalIpAddr, 0, sizeof(mLocalIpAddr));
     strcpy(mLocalIpAddr, "0.0.0.0");
@@ -643,13 +641,13 @@ void MenuUI::init()
 
 		pRandSn = property_get(PROP_SYS_AP_PESUDO_SN);
 		if (pRandSn == NULL) {
-			pRandSn = "Test";
+			pRandSn = "Tester";
 		}
 
 		sp<WifiConfig> wifiConfig = (sp<WifiConfig>)(new WifiConfig());
 
 
-		snprintf(wifiConfig->cApName, 32, "%s-%s", "Insta360-Pro2", pRandSn);
+		snprintf(wifiConfig->cApName, 32, "%s-%s.OSC", "Insta360-Pro2", pRandSn);
 		strcpy(wifiConfig->cPasswd, "none");
 		strcpy(wifiConfig->cInterface, WLAN0_NAME);
 		wifiConfig->iApMode = WIFI_HW_MODE_G;
@@ -668,8 +666,7 @@ void MenuUI::init()
 		mHaveConfigSSID = true;
 	}
 
-
-    Log.d(TAG, "Init Input Manager");
+    Log.d(TAG, "---------> Init Input Manager");
     sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
     InputManager* in = InputManager::Instance();
     in->setNotifyRecv(inputNotify);
@@ -883,6 +880,8 @@ void MenuUI::disp_top_info()
  */
 void MenuUI::disp_msg_box(int type)
 {
+    uint64_t serverState = getServerState();
+
     if (cur_menu == -1) {
         Log.e(TAG,"disp msg box before pro_service finish\n");
         return;
@@ -890,7 +889,7 @@ void MenuUI::disp_msg_box(int type)
 
     if (cur_menu != MENU_DISP_MSG_BOX) {
         //force light back to front or off 170731
-        if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && check_state_equal(STATE_IDLE))) {
+        if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && checkStateEqual(serverState, STATE_IDLE))) {
             if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
                 setLightDirect(front_light);
             } else {
@@ -2689,33 +2688,36 @@ bool MenuUI::read_sys_info(int type, const char *name)
 {
     bool ret = false;
 	
-    if (check_path_exist(name)) {
+    if (access(name, F_OK) == 0) {
         int fd = open(name, O_RDONLY);
         if (fd != -1) {
             char buf[1024];
             char *pStr;
+
             if (read_line(fd, (void *) buf, sizeof(buf)) > 0) {
                 if (strlen(buf) > 0) {
-//                    Log.d(TAG,"buf is %s name %s",buf,name);
                     pStr = strstr(buf, astSysRead[type].header);
                     if (pStr) {
                         pStr = pStr + strlen(astSysRead[type].header);
-//                        Log.d(TAG,"pStr %s",pStr);
                         switch (type) {
-                            case SYS_KEY_SN:
+                            case SYS_KEY_SN: {
                                 snprintf(mReadSys->sn, sizeof(mReadSys->sn), "%s",pStr);
                                 ret = true;
                                 break;
-                            case SYS_KEY_UUID:
+                            }
+
+                            case SYS_KEY_UUID: {
                                 snprintf(mReadSys->uuid, sizeof(mReadSys->uuid), "%s",pStr);
                                 ret = true;
                                 break;
+                            }
+
                             default:
                                 break;
                         }
                     }
                 } else {
-                    Log.d(TAG,"no buf is in %s", name);
+                    Log.d(TAG, "no buf is in %s", name);
                 }
             }
             close(fd);
@@ -9939,8 +9941,9 @@ void MenuUI::send_long_press_key(int key,int64 ts)
     sp<ARMessage> msg = obtainMessage(UI_MSG_LONG_KEY_EVENT);
     msg->set<int>("key", key);
     msg->set<int64>("ts", ts);
-    msg->postWithDelayMs(LONG_PRESS_MSEC);
+    msg->post();
 }
+
 
 void MenuUI::send_disp_ip(int ip, int net_type)
 {

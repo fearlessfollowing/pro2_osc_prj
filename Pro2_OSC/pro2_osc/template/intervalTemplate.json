@@ -1,0 +1,13 @@
+{
+    "name":"camera._startRecording",
+    "parameters": {
+        "origin": {
+            "mime": "jpeg",
+            "width": 4000,
+            "height": 3000,
+            "saveOrigin": true
+        },
+        "timelapse": {"enable": true, "interval": 2000},
+        "duration": 0
+    }
+}
