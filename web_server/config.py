@@ -268,6 +268,9 @@ _REQ_POWER_OFF              = 'camera._powerOff'
 # 设置Options   
 _REQ_SET_OPTIONS            = 'camera._setOptions'
 
+# AWB校正
+_REQ_AWB_CALC               = 'camera._calibrationAwb'
+
 
 """camera_state"""
 STATE_IDLE                      = 0x00
@@ -312,6 +315,8 @@ STATE_MAGMETER_CALIBRATE        = 0x40000000
 STATE_TF_FORMATING              = 0x80000000
 
 STATE_DELETE_FILE               = 0x100000000
+STATE_AWB_CALC                  = 0x200000000
+
 
 # Camera的工作模式：相机/U盘
 CAMERA_WORK_MODE_CAM    = 0

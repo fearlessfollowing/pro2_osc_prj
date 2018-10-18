@@ -87,7 +87,6 @@ ACTION_FORMAT_TFCARD = 201
 # 退出U盘模式
 ACTION_QUIT_UDISK_MODE = 202
 
-
 ORG_OVER = 'originOver'
 KEY_STABLIZATION='stabilization'
 
@@ -202,6 +201,9 @@ class control_center:
 
             # 列出文件的异步命令
             config._LIST_FILES:              self.cameraListFile,
+
+            # AWB校正
+            config._REQ_AWB_CALC:            self.cameraUiCalcAwb,
 
         })
 
@@ -400,6 +402,10 @@ class control_center:
 
             # 设置Options
             config._REQ_SET_OPTIONS:            self.cameraUiSetOptions,
+
+            # AWB校正
+            config._REQ_AWB_CALC:               self.cameraUiCalcAwb,
+
         })
 
 
@@ -820,8 +826,10 @@ class control_center:
         self.init_all()
 
     def camera_set_options(self, req, from_ui = False):
+        Info('[---------- APP Request: camera_set_options ----] req {}'.format(req))
         read_info = self.write_and_read(req)
         return read_info
+
 
     def camera_get_options(self, req, from_ui = False):
         read_info = self.write_and_read(req)
@@ -2319,6 +2327,26 @@ class control_center:
     def cameraUiSetOptions(self, req):
         Info('[------- UI Req: cameraUiSetOptions ------] req: {}'.format(req))      
         return self.camera_set_options(req)
+
+
+    def cameraUiCalcAwb(self, req):
+        Info('[------- UI Req: cameraUiCalcAwb ------] req: {}'.format(req))  
+        if StateMachine.checkAllowAwbCalc():
+            StateMachine.addCamState(config.STATE_AWB_CALC)
+            read_info = self.write_and_read(req)
+            Info('----- result: {}'.format(read_info))
+            StateMachine.rmServerState(config.STATE_AWB_CALC)
+            return read_info
+        else:
+            res = OrderedDict()
+            error = OrderedDict()
+            res[_name] = req[_name]
+            res[_state] = 'error'
+            error['code'] = 0xFF    # 0xFF表示状态不允许
+            error['description'] = 'Server State Not Allow'
+            res['error'] = error
+            return json.dumps(res)
+
 
 
     # 方法名称: cameraUiQueryTfcard

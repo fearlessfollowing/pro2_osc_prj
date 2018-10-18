@@ -1,6 +1,7 @@
 {
     "captureMode":"image",
     "captureModeSupport":["image", "video", "interval"],
+    
     "captureStatus":"idle",
     "captureStatusSupport":["idle", "shooting", "processing", "downloading"],
 
@@ -18,8 +19,8 @@
                            0.002, 0.0015625, 0.00125, 0.001, 0.0008, 0.000625,
                            0.0005, 0.0004, 0.0003125, 0.00025, 0.0002,
                            0.00015625, 0.000125],
-    "aperture":0,
-    "apertureSupport":[0],
+    "aperture":2.4,
+    "apertureSupport":[2.4],
 
     "whiteBalance":"auto",
     "whiteBalanceSupport":["auto", "incandescent", "daylight",
@@ -30,80 +31,79 @@
                                     2, 2.5, 3],
     "fileFormat": {
         "type":"jpeg",
-        "width": 8192,
-        "height": 4096
+        "width": 4000,
+        "height": 3000
     },
-    "fileFormatSupport":
-    [
-      {
-        "type":"jpeg",
-        "width": 8192,
-        "height": 4096
-      },
-      {
-        "type":"dng",
-        "width": 8192,
-        "height": 4096
-      },
-      {
-        "type":"mp4",
-        "width": 7680,
-        "height": 3840,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 5120,
-        "height": 2560,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 6400,
-        "height": 3200,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 4320,
-        "height": 2160,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 3840,
-        "height": 1920,
-        "framerate": 30
-      },
-      {
-        "type":"mp4",
-        "width": 3840,
-        "height": 1920,
-        "framerate": 120
-      }
+
+    "fileFormatSupport": [
+        {
+            "type":"jpeg",
+            "width": 4000,
+            "height": 3000
+        },
+        {
+            "type":"mp4",
+            "width": 7680,
+            "height": 3840,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 5120,
+            "height": 2560,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 6400,
+            "height": 3200,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 4320,
+            "height": 2160,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 3840,
+            "height": 1920,
+            "framerate": 30
+        },
+        {
+            "type":"mp4",
+            "width": 3840,
+            "height": 1920,
+            "framerate": 120
+        }
     ],
 
     "exposureDelay":0,
     "exposureDelaySupport":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60],
-    "sleepDelay":0,
-    "sleepDelaySupport":[0],
-    "offDelay":0,
-    "offDelaySupport":[0],
+    "sleepDelay":65536,
+    "sleepDelaySupport":[65536],
+    "offDelay":65536,
+    "offDelaySupport":[65536],
     "totalSpace":0,
     "remainingSpace":0,
     "remainingPictures":0,
+
     "gpsInfo":{
-      "lat": 0,
-      "lng": 0
+        "lat": 0,
+        "lng": 0
     },
-    "dateTimeZone": "2014:05:18 01:04:29+8:00 TEMP",
+
+    "dateTimeZone": "2018:10:17 16:04:29+8:00",
+    
     "hdr":"off",
     "hdrSupport":["off", "hdr"],
 
     "exposureBracket":{
-      "shots": 3,
-      "increment": 1
+        "shots": 3,
+        "increment": 1
     },
+
     "exposureBracketSupport":{
         "autoMode": false,
         "shotsSupport": [3],
@@ -120,6 +120,7 @@
     "imageStabilizationSupport":["off", "on"],
     
     "wifiPassword":88888888,
+    
     "previewFormat": {
         "width": 1920,
         "height": 960,
@@ -142,8 +143,8 @@
 
     "captureNumber":0,
     "captureNumberSupport": {
-      "minNumber": 0,
-      "maxNumber": 10
+        "minNumber": 0,
+        "maxNumber": 10
     },
 
     "remainingVideoSeconds":1200,
@@ -154,13 +155,13 @@
     "delayProcessingSupport":[false],
     
     "clientVersion":2,
-    
-    "photoStitchingSupport":["none", "ondevice"],
+
     "photoStitching":"ondevice",
+    "photoStitchingSupport":["ondevice"],
  
     "videoStitching":"ondevice",
     "videoStitchingSupport":["none", "ondevice"],
- 
-    "videoGPSSupport":["none"],
-    "videoGPS":"none"
+
+    "videoGPS":"none",    
+    "videoGPSSupport":["none"]
 }

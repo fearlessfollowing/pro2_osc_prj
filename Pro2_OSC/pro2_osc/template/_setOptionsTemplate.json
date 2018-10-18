@@ -1,8 +1,7 @@
 {
-  "name": "camera._setOptions",
-  "parameters":
-  {
-    "property":"propertyName",
-    "value":0
-  }
+    "name":"camera._setOptions",
+    "parameters":{
+        "property":"",
+        "value":0
+    }
 }

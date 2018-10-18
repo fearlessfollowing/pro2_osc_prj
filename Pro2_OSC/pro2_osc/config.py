@@ -30,4 +30,6 @@ OSC_INFO_TEMPLATE       = TEMPLATE_ARGS_PATH + '/osc_info.json'
 
 EXPOSURE_MAP_TEMPLATE   = TEMPLATE_ARGS_PATH + '/exposureMapping.json'
 
+STATUS_MAP_TEMPLATE     = TEMPLATE_ARGS_PATH + '/statusMapping.json'
+
 UP_TIME_PATH            = '/proc/uptime'

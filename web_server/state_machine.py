@@ -300,3 +300,11 @@ class StateMachine:
             return True
         else:
             return False
+
+    @classmethod
+    def checkAllowAwbCalc(cls):
+        Info('--------> checkAllowAwbCalc, cam state {}'.format(StateMachine.getCamStateFormatHex()))
+        if (StateMachine.getCamState() in (config.STATE_IDLE, config.STATE_PREVIEW)):
+            return True
+        else:
+            return False

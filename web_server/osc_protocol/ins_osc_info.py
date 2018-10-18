@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from util.log_util import *
+from util.ins_log_util import *
 from util.ins_util import dict_to_jsonstr
 from util.version_util import ins_version
 

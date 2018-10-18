@@ -12,13 +12,23 @@ import config
 import commandUtility
 from subprocess import run, CompletedProcess
 
+
+# 打开曝光参数映射表
 with open(config.EXPOSURE_MAP_TEMPLATE) as exposureFile:    
     exposureMap = json.load(exposureFile)
 
+# 
+# 打开设置Options的模板(给camerad)
+#
 with open(config.SET_OPTION_TMPLATE) as optionsFile:
     _setOptionsJson = json.load(optionsFile)
+    print(_setOptionsJson)
 
 
+#
+# captureMode - 设置Option: captureMode的值
+# 可取的值: "image", "interval", "video"
+#
 def captureMode(c, optionValue, currentOptions):
     return __basicOption("captureMode", optionValue, currentOptions)
 
@@ -35,10 +45,12 @@ def exposureProgram(c, optionValue, currentOptions):
     return inputValidity
 
 
-def iso(c, optionValue, currentOptions):  # ask what each value translates to
-    inputValidity = __exposureOption("iso", optionValue, 9, currentOptions)
+# 
+def iso(c, optionValue, currentOptions):  
+    # inputValidity = __exposureOption("iso", optionValue, 9, currentOptions)
+    inputValidity = __basicOption("iso", optionValue, currentOptions)
     if inputValidity == '':
-        exposureOption = {"iso_value": exposureMap["iso"][str(optionValue)]}
+        exposureOption = {"iso_value":exposureMap["iso"][str(optionValue)]}
         print(exposureOption)
         result = __genOptionsBody(c, exposureOption)
         print(result)
@@ -117,13 +129,16 @@ def gpsInfo(c, optionValue, currentOptions):
 
 
 def dateTimeZone(c, optionValue, currentOptions):
-    # 2017:06:16 10:38:17+08:00
     cameraState = c.command(json.dumps({"name": "camera._queryState"}))["results"]["state"]
-    if cameraState in ["idle", "preview"]:
-
+    print('----------------------print camera state')
+    print(cameraState)
+    
+    if cameraState in ['idle', "idle", "preview"]:
         d = re.match(r"(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})",
                      optionValue)
-        # MMDDhhmm[[CC]YY][.ss]
+        if d is None:
+            d = re.match(r"(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})\+(\d{1}):(\d{2})",
+                     optionValue)
         if d:
             validMonth = (1 <= int(d.group(2)) <= 12)
             validDay = (1 <= int(d.group(3)) <= 31)
@@ -137,6 +152,9 @@ def dateTimeZone(c, optionValue, currentOptions):
                 shellResponse = run(dateList)
                 print(shellResponse)
                 return ''
+        else:
+            print('parse optionValue failed...')
+
     return commandUtility.buildError('invalidParameterValue', 'unsupported param')
 
 
@@ -209,6 +227,9 @@ def videoGPS(c, optionValue, currentOptions):
     return __basicOption("videoGPS", optionValue, currentOptions)
 
 
+#
+#  __basicOption - 检查指定名称(name)的Option的值是否在支持列表中
+#
 def __basicOption(name, optionValue, currentOptions):
     if optionValue in currentOptions[name + "Support"]:
         return ''
@@ -219,6 +240,7 @@ def __basicOption(name, optionValue, currentOptions):
 def __exposureOption(name, optionValue, mode, currentOptions):
     manualList = [1]
     manualList.append(mode)
+    
     if optionValue in currentOptions[name + "Support"]:
         if (currentOptions["exposureProgram"] in manualList) and (optionValue != 0):
             return ''
@@ -239,6 +261,7 @@ def __genOptionsBody(c, exposureOptions):
     request["parameters"]["property"] = optionKey
     request["parameters"]["value"] = exposureOptions[optionKey]
     requestList = [json.dumps(request)]
+    print(requestList)
     response = c.listCommand(requestList)
     if "error" in response[0].keys():
         return commandUtility.buildError('invalidParameterValue', response[0]["error"])

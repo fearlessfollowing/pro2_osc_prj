@@ -1,6 +1,7 @@
 
 import os
 import json
+import config
 
 
 queryStateBody = json.dumps({'name': 'camera._queryState'})
@@ -31,7 +32,9 @@ def remainingPictures(c): # query state
 
 
 def gpsInfo(c):
-    return 'unsupported'
+    # return 'unsupported'
+    currentOptions = __loadCurrentOptions()
+    return currentOptions["gpsInfo"]
 
 
 def remainingVideoSeconds(c):

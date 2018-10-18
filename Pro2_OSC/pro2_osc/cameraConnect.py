@@ -19,7 +19,7 @@ class connector():
     def __init__(self):
         self.localIp = 'http://127.0.0.1:20000'
         self.serverIp = ''
-        self.defaultPath = '/mnt/sdcard/'
+        self.defaultPath = '/mnt/udisk1/'
         self.storagePath = self.defaultPath
         self.commandUrl = self.localIp + '/osc/commands/execute'
         self.stateUrl = self.localIp + '/osc/state'
@@ -31,6 +31,7 @@ class connector():
 
         with open(config.PREVIEW_TEMPLATE) as previewFile:
             self.previewBody = json.load(previewFile)
+            print(self.previewBody)
 
         self.camBackHbPacket = None
 
@@ -91,10 +92,12 @@ class connector():
     def listCommand(self, jsonList):
         # self.connect()
         response = []
-        # startPreview()
-        self.command(self.previewBody)
+        
+        self.command(json.dumps(self.previewBody))
+
         for bodyJson in jsonList:
             response.append(requests.post(self.commandUrl, data=bodyJson, headers=self.genericHeader).json())
+
         return response
 
     # def nativeCommand(self, argBody, argHeader):

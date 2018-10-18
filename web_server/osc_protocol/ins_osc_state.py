@@ -1,11 +1,11 @@
 # -*- coding:utf-8 -*-
 import os
-import threading
+import config
 import queue
+import threading
 from collections import OrderedDict
 from util.ins_util import *
-import config
-from util.log_util import *
+from util.ins_log_util import *
 from util.time_util import *
 from threading import Semaphore
 

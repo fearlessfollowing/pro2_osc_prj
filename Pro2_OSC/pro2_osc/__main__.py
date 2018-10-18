@@ -39,6 +39,7 @@ def setup():
 def getResponse(option):
     errorValues = None
     bodyJson = request.get_json()
+
     print("\nREQUEST: ", bodyJson)
     if bodyJson is None:
         response = ''
@@ -50,31 +51,30 @@ def getResponse(option):
         try:
             commandId = int(bodyJson["id"])
         except KeyError:
-            errorValues = commandUtility.buildError('missingParameter',
-                                                    "command id required")
+            errorValues = commandUtility.buildError('missingParameter', "command id required")
+        
         if len(bodyJson.keys()) > 1:
-            errorValues = commandUtility.buildError('invalidParameterName',
-                                                    "invalid param")
+            errorValues = commandUtility.buildError('invalidParameterName', "invalid param")
+        
         if errorValues is not None:
             responseValues = ("camera.status", "error", errorValues)
             response = commandUtility.buildResponse(responseValues)
             finalResponse = make_response(response)
             finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
+            finalResponse.headers['X-Content-Type-Options'] = "nosniff"
+
             return finalResponse, 400
 
-        progressRequest = json.dumps({"name": "camera._getResult",
-                                      "parameters": {"list_ids": [commandId]}})
+        progressRequest = json.dumps({"name": "camera._getResult", "parameters": {"list_ids": [commandId]}})
         response = c.command(progressRequest)
         if "error" in response.keys():
-            # errorValues = commandUtility.buildError('invalidParameterValue',
-            #                                         "command id not found")
-            # responseValues = ("status", "error", errorValues)
             responseValues = ("camera.takePicture", "inProgress", commandId, 0.5)
             response = commandUtility.buildResponse(responseValues)
         else:
             progress = response["results"]["res_array"][0]["results"]
-            with open('statusMapping.json') as statusFile:
+            with open(config.STATUS_MAP_TEMPLATE) as statusFile:
                 statusMap = json.load(statusFile)
+
             state = progress["state"]
             if state == "done":
                 resultKey = list(progress["results"].keys())[0]
@@ -82,7 +82,6 @@ def getResponse(option):
                 name = mappedList[0]
                 results = progress["results"][resultKey]
                 if name == "camera.takePicture":
-                    #finalResults = os.path.join(c.getServerIp(), results)
                     finalResults = c.getServerIp() + results + '/pano.jpg'
                 elif name == "camera.startCapture":
                     finalResults = []
@@ -98,14 +97,14 @@ def getResponse(option):
                 responseValues = (name, state, commandId, 0.1)
             if state == "error":
                 # responseValues = (name, state, commandId, 0.5)
-                error = commandUtility.buildError('disabledCommand',
-                                                  "internal camera error")
+                error = commandUtility.buildError('disabledCommand', "internal camera error")
                 responseValues = (name, state, error)
             response = commandUtility.buildResponse(responseValues)
 
     elif option == 'execute' and bodyJson is not None:
         name = bodyJson['name'].split('.')[1]
         print("COMMAND: " + name)
+        
         hasParams = "parameters" in bodyJson.keys()
         try:
             if hasParams:

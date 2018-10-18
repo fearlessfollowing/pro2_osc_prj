@@ -1,5 +1,8 @@
 {
-  "width":{"8192":4000},
-  "height":{"4096":3000},
-  "type":{"jpeg":"jpeg", "dng":"raw"}
+    "width":{"4000":7680},
+    "height":{"3000":3840},
+    "type":{
+        "jpeg":"jpeg", 
+        "dng":"raw"
+    }
 }

@@ -10,10 +10,10 @@
         "stiching": {
             "mode":"pano",
             "mime":"jpeg",
-            "width": 8192,
-            "height": 4096,
+            "width": 7680,
+            "height": 3840,
             "map":"flat",
-            "algorithm":"normal"
+            "algorithm":"opticalFlow"
         },
         "hdr": {
             "enable": false,

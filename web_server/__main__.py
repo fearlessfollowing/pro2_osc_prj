@@ -117,19 +117,16 @@ def flask_osc_cmd_execute():
         fp = None
         data = None
         if 'application/json' in content_type:
-            # Print('1data is {}'.format(data))
             data = request.get_json()
-            # Print('2data is {}'.format(data))
+            # Print('data is {}'.format(data))
 
-        # Print('2 h is {} hkeys {}'.format(h,h.keys()))
-        if check_dic_key_exist(h,config.FINGERPRINT):
+        if check_dic_key_exist(h, config.FINGERPRINT):
             fp = h[config.FINGERPRINT]
-        # Info('header {} data {} fp {} tid {}'.format(request.headers, data, fp,
-        #                                                          threading.get_ident()))
+
         ret = app_controller.osc_cmd_execute(fp, data)
     except Exception as err:
-        ret = cmd_exception(error_dic('flask_osc_cmd_execute',str(err)))
-        Err('flask_osc_cmd_execute osc command exception {} ret {}'.format(str(err),ret))
+        ret = cmd_exception(error_dic('flask_osc_cmd_execute', str(err)))
+        Err('flask_osc_cmd_execute osc command exception {} ret {}'.format(str(err), ret))
     return ret
 
 

@@ -108,6 +108,9 @@ COM_FLAGS += ' -DENABLE_FILE_CHANGE_MONITOR '
 # 使能调试hostapd
 COM_FLAGS += ' -DENABLE_DEBUG_HOSTAPD '
 
+# AWB校正
+# COM_FLAGS += ' -DENABLE_AWB_CALC '
+
 
 # 使能Show Storage页左边的导航
 #COM_FLAGS += ' -DENABLE_SHOW_SPACE_NV '

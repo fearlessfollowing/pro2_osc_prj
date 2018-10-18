@@ -22,25 +22,30 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
 
 # 
 # 拍照,使用8K的模板参数
+# 注: 拍照只能在"captureMode" = "image"模式下进行
 #
 def takePicture(c):
 
     takePictureJson = __loadJsonFile(config.TAKEPIC_TEMPLATE)
     currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
-
     pictureMap = __loadJsonFile(config.PIC_FORMAT_MAP_TMPLATE)    
-    if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
+    
+    # if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
+    if currentOptions["captureMode"] in ["image"]:
         fileFormat = currentOptions["fileFormat"]
         if fileFormat["type"] == "jpeg":
-            takePictureJson["parameters"]["stiching"]["mime"] = fileFormat["type"]
-            takePictureJson["parameters"]["stiching"]["width"] = fileFormat["width"]
-            takePictureJson["parameters"]["stiching"]["height"] = fileFormat["height"]
+            takePictureJson["parameters"]["stiching"]["mime"] = "jpeg"
+            #pictureMap["type"][str(fileFormat["type"])]
+            takePictureJson["parameters"]["stiching"]["width"] = 7680
+            #pictureMap["width"][str(fileFormat["width"])]
+            takePictureJson["parameters"]["stiching"]["height"] = 3840
+            #pictureMap["height"][str(fileFormat["height"])]
         else:
             del takePictureJson["parameters"]["stiching"]
 
-        takePictureJson["parameters"]["origin"]["mime"] = pictureMap["type"][str(fileFormat["type"])]
-        takePictureJson["parameters"]["origin"]["width"] = pictureMap["width"][str(fileFormat["width"])]
-        takePictureJson["parameters"]["origin"]["height"] = pictureMap["height"][str(fileFormat["height"])]
+        takePictureJson["parameters"]["origin"]["mime"] =  fileFormat["type"] 
+        takePictureJson["parameters"]["origin"]["width"] = fileFormat["width"] 
+        takePictureJson["parameters"]["origin"]["height"] = fileFormat["height"] 
         hdr = currentOptions["hdr"]
         if hdr == "hdr":
             exposureBracket = currentOptions["exposureBracket"]
@@ -56,12 +61,8 @@ def takePicture(c):
         takePictureJson["stabilization"] = currentOptions["imageStabilization"]
 
         print(takePictureJson)
-        # exposureOptions = __setExposure(currentOptions)
-        # requests = (__genOptionsBody(exposureOptions))
-        # requests.append(json.dumps(takePictureJson))
         request = json.dumps(takePictureJson)
 
-        # results = c.listCommand(requests)[-1]
         results = c.command(request)
         responseValues = __checkCameraError(results, "camera.takePicture")
         if responseValues is None:
@@ -70,8 +71,7 @@ def takePicture(c):
             responseValues = ("camera.takePicture", "inProgress", commandId, 0)
     else:
         print(currentOptions["captureMode"])
-        responseValues = ("camera.takePicture", "error",
-                          commandUtility.buildError('disabledCommand', 'Cannot take picture in current mode/state'))
+        responseValues = ("camera.takePicture", "error", commandUtility.buildError('disabledCommand', 'Cannot take picture in current mode/state'))
     return commandUtility.buildResponse(responseValues)
 
 
@@ -174,12 +174,11 @@ def stopCapture(c):
 def getLivePreview(c):
     cameraState = c.command(json.dumps({"name": "camera._queryState"}))["results"]["state"]
     if cameraState not in ["idle", "preview"]:
-        errorValues = commandUtility.buildError('disabledCommand',
-                                                'preview disabled in this mode')
+        errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
         responseValues = ("camera.getLivePreview", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
     else:
-        previewBody = __loadJsonFile("previewTemplate.json")
+        previewBody = __loadJsonFile(config.PREVIEW_TEMPLATE)
         previewBody["parameters"]["stiching"]["width"] = currentOptions["previewFormat"]["width"]
         previewBody["parameters"]["stiching"]["height"] = currentOptions["previewFormat"]["height"]
         previewBody["parameters"]["stiching"]["framerate"] = currentOptions["previewFormat"]["framerate"]
@@ -283,8 +282,8 @@ def delete(c, cParams):
     except KeyError:
         errorValues = commandUtility.buildError('missingParameter', 'missing param')
     if len(cParams.keys()) > 1:
-        errorValues = commandUtility.buildError('invalidParameterName',
-                                                'unrecognized parameter')
+        errorValues = commandUtility.buildError('invalidParameterName', 'unrecognized parameter')
+    
     if errorValues is not None:
         responseValues = ("camera.delete", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
@@ -297,6 +296,7 @@ def delete(c, cParams):
             urlList = __urlListHelper(c, 'VID')
         elif "image" in fileList:
             urlList = __urlListHelper(c, 'PIC')
+
     storagePath = c.getStoragePath()
     print(urlList)
     for u in urlList:
@@ -307,14 +307,32 @@ def delete(c, cParams):
         try:
             rmtree(u)
         except OSError:
-            errorValues = commandUtility.buildError("invalidParameterValue",
-                                                    u + " does not exist")
+            errorValues = commandUtility.buildError("invalidParameterValue", u + " does not exist")
             responseValues = ("camera.delete", "error", errorValues)
             return commandUtility.buildResponse(responseValues)
+
     responseValues = ("camera.delete", "done", {"fileUrls": []})
     return commandUtility.buildResponse(responseValues)
 
 
+# REQUEST:  {'name': 'camera.delete', 'parameters': {'fileUrls': ['http://192.168.43.1:8000/mnt/udisk1/PIC_20181018202304/pano.jpg']}}
+# COMMAND: delete
+# ['http://192.168.43.1:8000/mnt/udisk1/PIC_20181018202304/pano.jpg']
+# RESPONSE:  {"name": "camera.delete", "state": "error", "error": {"code": "invalidParameterValue", "message": "/mnt/udisk1/PIC_20181018202304/PIC_20181018202304 does not exist"}}
+
+
+
+# 
+# setOptions - 设置选项值
+# {
+#   "name":"camera.setOptions",
+#   "parameters": {
+#       "options": {
+#           "iso": int,
+#           "isoSupport":[200, 300]
+#       }
+#   }
+# }
 def setOptions(c, cParams):
     errorValues = None
     print(cParams)
@@ -322,9 +340,10 @@ def setOptions(c, cParams):
         options = cParams["options"]
     except KeyError:
         errorValues = commandUtility.buildError('missingParameter', 'missing param')
+    
     if len(cParams.keys()) > 1:
-        errorValues = commandUtility.buildError('invalidParameterName',
-                                                'unrecognized param(s)')
+        errorValues = commandUtility.buildError('invalidParameterName', 'unrecognized param(s)')
+    
     if errorValues is not None:
         responseValues = ("camera.setOptions", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
@@ -347,11 +366,12 @@ def setOptions(c, cParams):
                            commandUtility.buildError('invalidParameterValue', errorMsg))
             return commandUtility.buildResponse(errorValues)
         del options["exposureProgram"]
+
     if "captureMode" in options.keys():
         if options["captureMode"] in currentOptions["captureModeSupport"]:
             currentOptions["captureMode"] = options["captureMode"]
             if options["captureMode"] in ["image", "interval"]:
-                pictureDict = {"type": "jpeg", "width": 8192, "height": 4096}
+                pictureDict = {"type": "jpeg", "width": 4000, "height": 3000}
                 print("changed to jpeg")
                 if ["captureMode"] == "interval":
                     currentOptions["captureInterval"] = 2
@@ -369,8 +389,7 @@ def setOptions(c, cParams):
 
         else:
             errorMsg = 'Unsupported capture mode'
-            errorValues = ("camera.setOptions", "error",
-                           commandUtility.buildError('invalidParameterValue', errorMsg))
+            errorValues = ("camera.setOptions", "error", commandUtility.buildError('invalidParameterValue', errorMsg))
             return commandUtility.buildResponse(errorValues)
         del options["captureMode"]
 
@@ -393,8 +412,12 @@ def setOptions(c, cParams):
     exposureProgram = currentOptions["exposureProgram"]
     exposureSettings = [currentOptions["shutterSpeed"], currentOptions["iso"]]
 
+    # 采集模式为video时,文件格式却为"jpeg"或"dng" - 格式冲突
+    # 采集模式为image,interval时,文件格式却为"mp4" - 格式冲突
     formatConflict = (fileFormat["type"] in ["jpeg", "dng"] and captureMode == "video") or (fileFormat["type"] in ["mp4"] and captureMode in ["image", "interval"])
+    
     autoConflict = exposureProgram == 2 and not exposureSettings == [0, 0]
+    
     manualConflict = exposureProgram == 1 and (0 in exposureSettings)
 
     if manualConflict:
@@ -405,8 +428,7 @@ def setOptions(c, cParams):
         errorMsg = 'Cannot exposure values must be auto in auto mode'
 
     if autoConflict or manualConflict:
-        errorValues = ("camera.setOptions", "error",
-                       commandUtility.buildError('invalidParameterValue', errorMsg))
+        errorValues = ("camera.setOptions", "error", commandUtility.buildError('invalidParameterValue', errorMsg))
         return commandUtility.buildResponse(errorValues)
 
     if captureMode == 'video':
@@ -414,6 +436,7 @@ def setOptions(c, cParams):
             currentOptions['videoStitching'] = 'none'
         else:
             currentOptions['videoStitching'] = 'ondevice'
+    
     if "exposureCompensation" in options.keys() or "exposureProgram" in options.keys():
         _setOptionsBody = __genOptionsBody(__setExposure(currentOptions))
         results = c.listCommand(_setOptionsBody)
@@ -430,14 +453,10 @@ def setOptions(c, cParams):
     return ''
 
 
-#
-# getOptions
-# {
-#   "parameters": {
-#       "optionNames":[]
-#   }
-# }
 
+# 
+# 获取设置选项
+#
 def getOptions(c, cParams):
     errorValues = None
 
@@ -456,24 +475,20 @@ def getOptions(c, cParams):
 
     # 2.读取系统的Options模板Json文件
     currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
-    print(currentOptions.keys())
+    # print(currentOptions.keys())
 
     responseDict = {}
 
     for option in optionNames:
-        print('--------------------------------------\n')
-        print(option)
 
         # 请求的optionName不在系统的支持列表中
         if option not in list(currentOptions.keys()):
-            responseValues = ("camera.getOptions", "error",
-                              commandUtility.buildError('invalidParameterValue', 'Option does not exist'))
+            responseValues = ("camera.getOptions", "error", commandUtility.buildError('invalidParameterValue', 'Option does not exist'))
             response = commandUtility.buildResponse(responseValues)
             return response
         
         try:
             responseDict[option] = getattr(findOptions, option)(c)
-            # responseDict[option] = getattr(currentOptions, option)
 
             if responseDict[option] == "error":
                 responseValues = ("camera.getOptions", "error", commandUtility.buildError('invalidParameterValue', 'Invalid option value'))

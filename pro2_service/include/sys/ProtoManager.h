@@ -189,11 +189,8 @@ public:
     /* 低电请求 */
     bool            sendLowPowerReq();
 
-#if 0
-
     /* 白平衡校正 */
-    bool            sendWbCalcReq(Json::Value& wbCalcReq);
-#endif    
+    bool            sendWbCalcReq();
 
     /*------------------------------------- 设置页 -----------------------------------
      * 1.设置视频分段

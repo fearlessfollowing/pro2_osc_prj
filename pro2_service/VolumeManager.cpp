@@ -411,7 +411,6 @@ void handleDevRemove(const char* pDevNode)
             evt->setDevNodeName(pDevNode);
             
             vm->handleBlockEvent(evt);
-            
             delete evt;
         }
     }
@@ -524,8 +523,6 @@ void VolumeManager::powerOffAllModule()
 {
 	u8 module1_val = 0;
 	u8 module2_val = 0; 	
-	// u8 readVal1 = 0;
-	// u8 readVal2 = 0;
 
     mI2CLight->i2c_read(0x2, &module1_val);
 			
@@ -766,6 +763,8 @@ bool VolumeManager::enterUdiskMode()
     setVolumeManagerWorkMode(VOLUME_MANAGER_WORKMODE_UDISK);
     checkAllUdiskIdle();
 
+    system("echo out > /sys/class/gpio/gpio456/direction");
+    system("echo out > /sys/class/gpio/gpio478/direction");
     system("echo 0 > /sys/class/gpio/gpio478/value");   /* gpio456 = 1 */
     system("echo 1 > /sys/class/gpio/gpio456/value");   /* gpio478 = 1 */
 

@@ -11,6 +11,7 @@
 ** 日     期: 2016年12月1日
 ** 修改记录:
 ** V1.0			Skymixos		2018-07-15		创建文件，添加注释
+** V2.0         Skymixos        2018-10-18      增加模组上电是否成功检测
 ******************************************************************************************************/
 #include <common/include_common.h>
 #include <common/sp.h>
@@ -55,11 +56,32 @@ enum {
 #define HUB1_SYS_PATH 	"/sys/class/gpio/gpio457"
 #define HUB2_SYS_PATH 	"/sys/class/gpio/gpio461"
 
+#undef  TAG 
+#define TAG "PowerManager"
+
 static int iHubResetInterval = 150;		/* 默认HUB复位时间为500ms */
-static int iCamResetInterval = 100;		/* 模组上电的时间间隔,默认为100MS */
+static int iCamResetInterval = 50;		/* 模组上电的时间间隔,默认为100MS */
 
 static const char* pHubRestProp = NULL;
 static const char* pCamRestProp = NULL;
+
+
+static int getCamState()
+{
+    int val = -1;
+
+    FILE* fp = fopen("/sys/class/gpio/gpio478/value", "r");
+    if (fp == NULL) {
+        Log.e(TAG, "[%s: %d] Export gpio first", __FILE__, __LINE__);
+        return -1;
+    } 
+
+    val = getc(fp);
+    Log.d(TAG, "[%s: %d] Read val = %d", __FILE__, __LINE__, val);
+    fclose(fp);
+
+    return (val == 49) ? 1 : 0; 
+}
 
 
 /*
@@ -82,17 +104,28 @@ static void powerModule(int iOnOff)
 		system("jetson_clocks.sh");
 
 
+        if (access("/sys/class/gpio/gpio456/direction", F_OK) != 0) {
+            system("echo 456 > /sys/class/gpio/export");
+        }
+        system("echo in > /sys/class/gpio/gpio456/direction");
+
+        if (access("/sys/class/gpio/gpio478/direction", F_OK) != 0) {
+            system("echo 478 > /sys/class/gpio/export");
+        }
+        system("echo in > /sys/class/gpio/gpio478/direction");
+
+
+
 		/* 2.复位HUB */
 		if (access(HUB1_SYS_PATH, F_OK)) {
 			system("echo 457 > /sys/class/gpio/export");
-			fprintf(stderr, "HUB1 Reset Pin(%s) Not Export", HUB1);
+			Log.d(TAG, "HUB1 Reset Pin(%s) Not Export", HUB1);
 		}
 
 		if (access(HUB2_SYS_PATH, F_OK)) {
 			system("echo 461 > /sys/class/gpio/export");
-			fprintf(stderr, "HUB1 Reset Pin(%s) Not Export", HUB2);
+			Log.d(TAG, "HUB2 Reset Pin(%s) Not Export", HUB2);
 		}
-
 
 		pFirstPwrOn = property_get(PROP_PWR_FIRST);
 		if (pFirstPwrOn == NULL || strcmp(pFirstPwrOn, "false") == 0) {
@@ -112,11 +145,9 @@ static void powerModule(int iOnOff)
 			system("echo 0 > /sys/class/gpio/gpio461/value");
 			
 			property_set(PROP_PWR_FIRST, "true");	/* 只在开机第一次后会复位HUB,后面的操作都是在power_off后复位HUB */
+
+    		msg_util::sleep_ms(100);
 		}
-
-
-		msg_util::sleep_ms(200);
-
 
 		/* 3.模组上电 */
 		mI2CLight->i2c_read(0x2, &module1_val);
@@ -125,35 +156,107 @@ static void powerModule(int iOnOff)
 		printf("read 0x2 val = %d", module1_val);
 		printf("read 0x3 val = %d", module2_val);
 
-		/* 6号 */
-		module2_val |= (1 << 3);
-		mI2CLight->i2c_write_byte(0x3, module2_val);
-		msg_util::sleep_ms(iCamResetInterval);
 
-		/* 3号 */
-		module2_val |= (1 << 0);
-		mI2CLight->i2c_write_byte(0x3, module2_val);
-		msg_util::sleep_ms(iCamResetInterval);
+        for (int i = 0; i < 3; i++) {
 
-		/* 2号 */
-		module1_val |= (1 << 7);
-		mI2CLight->i2c_write_byte(0x2, module1_val);
-		msg_util::sleep_ms(iCamResetInterval);
+            /* 6号 */
+            module2_val |= (1 << 3);
+            mI2CLight->i2c_write_byte(0x3, module2_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module2_val &= ~(1 << 3);
+                mI2CLight->i2c_write_byte(0x3, module2_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
+
+        for (int i = 0; i < 3; i++) {
+            /* 3号 */
+            module2_val |= (1 << 0);
+            mI2CLight->i2c_write_byte(0x3, module2_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module2_val &= ~(1 << 0);
+                mI2CLight->i2c_write_byte(0x3, module2_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 3 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
+
 		
-		/* 4号 */
-		module2_val |= (1 << 1);
-		mI2CLight->i2c_write_byte(0x3, module2_val);
-		msg_util::sleep_ms(iCamResetInterval);
+        for (int i = 0; i < 3; i++) {
+            /* 2号 */
+            module1_val |= (1 << 7);
+            mI2CLight->i2c_write_byte(0x2, module1_val);
+            msg_util::sleep_ms(iCamResetInterval);
 
-		/* 1号 */
-		module1_val |= (1 << 6);
-		mI2CLight->i2c_write_byte(0x2, module1_val);
-		msg_util::sleep_ms(iCamResetInterval);
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module1_val &= ~(1 << 7);
+                mI2CLight->i2c_write_byte(0x2, module1_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 2 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
 
-		/* 5号 */
-		module2_val |= (1 << 2);
-		mI2CLight->i2c_write_byte(0x3, module2_val);
 
+        for (int i = 0; i < 3; i++) {
+            /* 4号 */
+            module2_val |= (1 << 1);
+            mI2CLight->i2c_write_byte(0x3, module2_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module2_val &= ~(1 << 1);
+                mI2CLight->i2c_write_byte(0x3, module2_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 4 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
+
+
+        for (int i = 0; i < 3; i++) {
+            /* 1号 */
+            module1_val |= (1 << 6);
+            mI2CLight->i2c_write_byte(0x2, module1_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module1_val &= ~(1 << 6);
+                mI2CLight->i2c_write_byte(0x2, module1_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 1 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
+
+
+        for (int i = 0; i < 3; i++) {
+            /* 6号 */
+            module2_val |= (1 << 2);
+            mI2CLight->i2c_write_byte(0x3, module2_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module2_val &= ~(1 << 2);
+                mI2CLight->i2c_write_byte(0x3, module2_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
 		break;
 	}
 
@@ -235,12 +338,15 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "Usage: PowerManager <power_on/power_off>\n");
 		return -1;
 	}
+    
+    logWrapperInit("pwr_log", 0, 0);
 
 	iRet = __system_properties_init();		/* 属性区域初始化 */
 	if (iRet) {
 		fprintf(stderr, "update_check service exit: __system_properties_init() faile, ret = %d", iRet);
 		return -1;
 	}
+
 
 	pHubRestProp = property_get(PROP_HUB_RESET_INTERVAL);
 	if (pHubRestProp == NULL) {
@@ -256,8 +362,7 @@ int main(int argc, char* argv[])
 
 	iCamResetInterval = atoi(pCamRestProp);
 
-	fprintf(stdout, "Hub reset interval [%d]Ms, camera reset interval [%d]Ms\n", iHubResetInterval, iCamResetInterval);
-
+    Log.d(TAG, "[%s: %d] Hub Reset interval [%d]Ms, camera reset interval [%d]Ms", __FILE__, __LINE__, iHubResetInterval, iCamResetInterval);
 
     mI2CLight = sp<ins_i2c>(new ins_i2c(0, 0x77, true));
     CHECK_NE(mI2CLight, nullptr);
@@ -268,8 +373,10 @@ int main(int argc, char* argv[])
 		powerModule(CMD_POWER_OFF);
 
 	} else {
-		fprintf(stderr, "Unkown command...\n");
+        Log.e(TAG, "[%s: %d] Unkown Command ...", __FILE__, __LINE__);
 	}
+
+    logWrapperDeInit();
 
 	return 0;
 }

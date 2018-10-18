@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 import util.ins_util
 import os,base64
-from util.log_util import *
+from util.ins_log_util import *
+
 from collections import OrderedDict
 class osc_globo:
     session_id = OrderedDict()
