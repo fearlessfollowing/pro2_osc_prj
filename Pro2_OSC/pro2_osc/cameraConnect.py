@@ -15,7 +15,6 @@ import timer_util
 from threading import Semaphore
 
 class connector():
-
     def __init__(self):
         self.localIp = 'http://127.0.0.1:20000'
         self.serverIp = ''
@@ -31,9 +30,8 @@ class connector():
 
         with open(config.PREVIEW_TEMPLATE) as previewFile:
             self.previewBody = json.load(previewFile)
-            print(self.previewBody)
-
         self.camBackHbPacket = None
+
 
     def getServerIp(self):
         try:
@@ -42,6 +40,7 @@ class connector():
             serverIp = "http://192.168.43.1:8000"
         return serverIp
 
+
     def getStoragePath(self):
         try:
             storagePath = os.path.join(self.defaultPath, os.listdir('/mnt/udisk1/')[0])
@@ -49,9 +48,11 @@ class connector():
             return None
         return storagePath
 
+
     def listUrls(self, dirUrl):
         urlList = os.listdir(dirUrl)
         return [self.getServerIp() + dirUrl + url for url in urlList]
+
 
     def connect(self):
         connectResponse = requests.post(self.commandUrl, data=self.connectBody, headers=self.contentTypeHeader).json()
@@ -71,6 +72,7 @@ class connector():
         t.start()
         return connectResponse
 
+
     # getCamOscState
     # 获取Cam心跳包响应
     def getCamOscState(self):
@@ -89,10 +91,11 @@ class connector():
         response = requests.post(self.commandUrl, data=bodyJson, headers=self.genericHeader).json()
         return response
 
+    def startPreview(self):
+        return self.command(json.dumps(self.previewBody))
+
     def listCommand(self, jsonList):
-        # self.connect()
-        response = []
-        
+        response = []        
         self.command(json.dumps(self.previewBody))
 
         for bodyJson in jsonList:

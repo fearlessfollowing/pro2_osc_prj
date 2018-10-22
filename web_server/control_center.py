@@ -57,7 +57,7 @@ MOUNT_ROOT = '/mnt'
 POLL_TO = 10000
 
 #to to reset camerad process
-FIFO_TO = 30
+FIFO_TO = 50
 
 ACTION_REQ_SYNC = 0
 ACTION_PIC = 1
@@ -2920,38 +2920,29 @@ class control_center:
                 self.send_oled_type(config.CALIBRATION_FAIL)
         return res
 
-
-    def calibration_blc_notify(self, param):
-        Info('calibration_blc_notify param {}'.format(param))
-        StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)    
-        self.send_oled_type(config.STOP_BLC)
-
-
     def camera_calibrate_blc_done(self, res = None, req = None, oled = False):
         if req is not None:
-            Info('blc done req {}'.format(req))
             if check_dic_key_exist(req, _param) and check_dic_key_exist(req[_param], "reset"):
                 Info('blc reset do nothing')
             else:
-                StateMachine.addCamState(config.STATE_BLC_CALIBRATE)
                 self.send_oled_type(config.START_BLC)
         else:
-            StateMachine.addCamState(config.STATE_BLC_CALIBRATE)
             self.send_oled_type(config.START_BLC)
 
 
     def camera_calibrate_blc_fail(self, err=-1):
-        Info('----> camera_calibrate_blc_fail')
-        StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)
+        if StateMachine.checkStateIn(config.STATE_BLC_CALIBRATE):
+            StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)
         self.send_oled_type_err(config.CALIBRATION_FAIL, err)
 
 
     def camera_calibrate_blc(self, req, from_ui = False):
-        Info('---> camera_calibrate_blc req {} Server State {}'.format(req, StateMachine.getCamState()))
+        Info('[------- APP Req: camera_calibrate_blc ------] req: {}'.format(req))                
         if StateMachine.checkAllowBlc():
+            StateMachine.addCamState(config.STATE_BLC_CALIBRATE)
             res = self.write_and_read(req)
         else:
-            res = cmd_error_state(req[_name], self.get_cam_state())
+            res = cmd_error_state(req[_name], StateMachine.getCamState())
         return res
 
 
@@ -3482,13 +3473,13 @@ class control_center:
 
     #same func as reset
     def state_notify(self, state_str):
-        Info('state_notify info {}'.format(state_str))
+        Info('[-------Notify Message -------] state_notify param {}'.format(state_str))
         self.clear_all()
         self.send_oled_type_err(config.START_FORCE_IDLE, self.get_err_code(state_str))
 
 
     # 方法名称: rec_notify
-    # 功能描述: 处理录像完成通知(可能是正常停止成功;也可能发生错误被迫停止)
+    # 功能描述: 处理录像完成通知(可能是正常停止成功; 也可能发生错误被迫停止)
     #           
     # 入口参数: param - 返回的结果
     # 返回值: 
@@ -3744,14 +3735,10 @@ class control_center:
         Info('[-------Notify Message -------] handle_live_finsh param {}'.format(param))
         if StateMachine.checkStateIn(config.STATE_LIVE):
             StateMachine.rmServerState(config.STATE_LIVE) 
-
         if StateMachine.checkStateIn(config.STATE_LIVE_CONNECTING):        
             StateMachine.rmServerState(config.STATE_LIVE_CONNECTING) 
-
         if StateMachine.checkStateIn(config.STATE_STOP_LIVING):        
             StateMachine.rmServerState(config.STATE_STOP_LIVING) 
-
-
         if StateMachine.checkStateIn(config.STATE_RECORD):        
             StateMachine.rmServerState(config.STATE_RECORD) 
 
@@ -3763,9 +3750,10 @@ class control_center:
 
 
     def handle_live_rec_finish(self, param):
-        Info('start handle live rec finish param {}'.format(param))
-        self.set_cam_state(self.get_cam_state() & ~config.STATE_RECORD )
-        Info('2start handle live rec finish param {}'.format(param))
+        Info('[-------Notify Message -------] handle_live_rec_finish param {}'.format(param))
+        if StateMachine.checkStateIn(config.STATE_RECORD):
+            StateMachine.rmServerState(config.STATE_RECORD)
+
         if self.get_err_code(param) == -432:
             self.send_oled_type_err(config.LIVE_REC_OVER, 390)
         elif self.get_err_code(param) == -434:
@@ -3806,9 +3794,13 @@ class control_center:
         Info("[-------Notify Message -------] timeplapse pic finish param {}".format(param))
         count = param["sequence"]
         self.send_oled_type(config.TIMELPASE_COUNT, OrderedDict({'tl_count': count}))
-        osc_state_handle.send_osc_req(
-            osc_state_handle.make_req(osc_state_handle.SET_TL_COUNT, count))
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_TL_COUNT, count))
 
+
+    def calibration_blc_notify(self, param):
+        Info("[-------Notify Message -------] calibration_blc_notify param {}".format(param))
+        StateMachine.rmServerState(config.STATE_BLC_CALIBRATE)    
+        self.send_oled_type(config.STOP_BLC)
 
 
     # 方法名称: handle_notify_from_camera
@@ -3816,7 +3808,6 @@ class control_center:
     # 参数: content - 传递的参数
     # 返回值: 无
     def handle_notify_from_camera(self, content):
-        # Info('handle notify content {}'.format(content))
         self.acquire_sem_camera()
         try:
             name = content[_name]
@@ -3836,6 +3827,7 @@ class control_center:
         self.release_sem_camera()
 ######################################### Notify End ################################
 
+
     def reset_all(self):
         Info('start reset')
         self.reset_fifo()
@@ -3844,6 +3836,7 @@ class control_center:
         Info('start reset3')
         self.send_oled_type(config.RESET_ALL)
         Info('start reset over')
+
 
     def clear_all(self):
         self.set_cam_state(config.STATE_IDLE)
@@ -4207,7 +4200,6 @@ class control_center:
         err_dict = OrderedDict({'type':type,'err_code':code})
         self.send_req(self.get_write_req(config.OLED_DISP_TYPE_ERR, err_dict))
 
-    # def send_oled_type(self,type,content = None,req = None):
     def send_oled_type(self, type, req = None):
         req_dict = OrderedDict({'type': type})
         Info("send_oled_type type is {}".format(type))
@@ -4230,6 +4222,7 @@ class control_center:
             else:
                 Info('nothing found')
         self.send_req(self.get_write_req(config.OLED_DISP_TYPE, req_dict))
+
 
     def init_fifo_monitor_camera_active(self):
         # Info('init_fifo_monitor_camera_active start')

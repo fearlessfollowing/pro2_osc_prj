@@ -103,47 +103,56 @@
       "shotsSupport": [3],
       "incrementSupport": [1, 2]
     },
+
     "gyro":true,
     "gyroSupport":true,
     "gps":false,
     "gpsSupport":false,
+    
     "imageStabilization":"on",
     "imageStabilizationSupport":["off", "on"],
+    
     "wifiPassword":88888888,
-    "previewFormat":
-    {
-      "width": 1920,
-      "height": 960,
-      "framerate": 30
-    },
-    "previewFormatSupport":[
-      {
+    "previewFormat": {
         "width": 1920,
         "height": 960,
         "framerate": 30
-      }
+    },
+
+    "previewFormatSupport":[
+        {
+            "width": 1920,
+            "height": 960,
+            "framerate": 30
+        }
     ],
+    
     "captureInterval":2,
-    "captureIntervalSupport":
-    {
-      "minInterval": 2,
-      "maxInterval": 60
+    "captureIntervalSupport": {
+        "minInterval": 2,
+        "maxInterval": 60
     },
+    
     "captureNumber":0,
-    "captureNumberSupport":
-    {
-      "minNumber": 0,
-      "maxNumber": 10
+    "captureNumberSupport": {
+        "minNumber": 0,
+        "maxNumber": 10
     },
+    
     "remainingVideoSeconds":1200,
     "pollingDelay":10,
     "delayProcessing":false,
     "delayProcessingSupport":[false],
+    
     "clientVersion":2,
-    "photoStitchingSupport":["none", "ondevice"],
+    
     "photoStitching":"ondevice",
-    "videoStitchingSupport":["none", "ondevice"],
+    "photoStitchingSupport":["ondevice"],
+    
     "videoStitching":"ondevice",
-    "videoGPSSupport":["none"],
-    "videoGPS":"none"
+    "videoStitchingSupport":["none", "ondevice"],
+
+    "videoGPS":"none",
+    "videoGPSSupport":["none"]
+
 }

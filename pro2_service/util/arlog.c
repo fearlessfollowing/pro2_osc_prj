@@ -187,7 +187,7 @@ void logWrapperInit(const char* pLogFilePrefix, int iMaxLogSize, int iMaxLogCoun
     }
 
     #if 0
-    logGetFSize(&gLogWrapper);  /* 初始化当前日志文件的大小: 如果不存在设置的值为0 */
+    logGetFSize(&gLogWrapper);  /* 初始化当前日志文件的大小: 如果不存在设置的值为0 STATE_IDLE */
 
     if (gLogWrapper.mCurLogFileSize >= gLogWrapper.mMaxLogFileSize) {
         logChangeFile(&gLogWrapper);

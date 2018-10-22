@@ -23,8 +23,7 @@
     "apertureSupport":[2.4],
 
     "whiteBalance":"auto",
-    "whiteBalanceSupport":["auto", "incandescent", "daylight",
-                           "cloudy-daylight"],
+    "whiteBalanceSupport":["auto", "incandescent", "daylight", "cloudy-daylight"],
     
     "exposureCompensation":0,
     "exposureCompensationSupport":[-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5,
@@ -81,10 +80,13 @@
 
     "exposureDelay":0,
     "exposureDelaySupport":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60],
+
     "sleepDelay":65536,
     "sleepDelaySupport":[65536],
+    
     "offDelay":65536,
     "offDelaySupport":[65536],
+    
     "totalSpace":0,
     "remainingSpace":0,
     "remainingPictures":0,
@@ -135,10 +137,11 @@
         }
     ],
     
+
     "captureInterval":2,
     "captureIntervalSupport": {
-      "minInterval": 2,
-      "maxInterval": 60
+        "minInterval": 2,
+        "maxInterval": 60
     },
 
     "captureNumber":0,
@@ -149,7 +152,7 @@
 
     "remainingVideoSeconds":1200,
     
-    "pollingDelay":20,
+    "pollingDelay":5,
     
     "delayProcessing":false,
     "delayProcessingSupport":[false],

@@ -65,7 +65,7 @@ def start_osc_state():
         ret = cmd_exception(error_dic('start_osc_state', str(err)))
     return ret
 
-@app.route('/osc/checkForUpdates',methods=['GET', 'POST'])
+@app.route('/osc/checkForUpdates', methods=['GET', 'POST'])
 # @add_header
 def start_osc_checkForUpdates():
     try:
@@ -78,7 +78,7 @@ def start_osc_checkForUpdates():
         ret = cmd_exception(error_dic('start_osc_checkForUpdates', str(err)))
     return ret
 
-@app.route(config.PATH_CMD_EXECUTE,methods=['GET', 'POST'])
+@app.route(config.PATH_CMD_EXECUTE, methods=['GET', 'POST'])
 def start_osc_cmd_execute():
     try:
         h = request.headers
@@ -99,7 +99,7 @@ def start_osc_cmd_execute():
         Err('start_osc_cmd_execute exception {} ret {}'.format(str(err),ret))
     return ret
 
-@app.route(config.PATH_CMD_STATUS,methods=['GET', 'POST'])
+@app.route(config.PATH_CMD_STATUS, methods=['GET', 'POST'])
 def start_osc_cmd_status():
     try:
         h = request.headers

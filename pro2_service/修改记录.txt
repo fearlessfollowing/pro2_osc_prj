@@ -517,8 +517,6 @@ service web_server /usr/local/bin/python3.6 /usr/local/bin/web_server
 2.改写日志系统，新增日志分段
 3.新增列出文件的异步接口
 4.修改老化模式脚本及老化界面
-5.新增OSC API2
-6.修改拔插小卡及卡满后，显示具体的卡号
 
 
 fixup:

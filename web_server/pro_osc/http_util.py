@@ -80,7 +80,7 @@ def test_timer():
 
 def check_done(res):
     if res[_st] == _done:
-        return True;
+        return True
     else:
         return False
 
@@ -119,21 +119,19 @@ def http_req(url, param=None, method='GET'):
             else:
                 Err('r status {}'.format(r.status_code))
                 resp = cmd_exception(error_dic(join_str_list['http_req', url], r.status_code))
-            # Info('2url {} resp {} type resp {}'.format(url, resp, type(resp)))
     except Exception as err:
         resp = cmd_exception(error_dic(join_str_list['http_req' ,url], str(err)))
 
     return resp
 
+
 def set_fingerprint(fp):
     global fingerprint
     fingerprint = fp
-    # print('2set fp {} {}'.format(fingerprint, id(fingerprint)))
+
 
 def get_fingerprint():
     global fingerprint
-    # print('fp id(fp)', fingerprint, id(fingerprint))
-    # fingerprint = 'test'
     return fingerprint
 
 def test_osc_info():
@@ -141,7 +139,6 @@ def test_osc_info():
 
 def test_osc_state():
     st = http_req(config.PATH_STATE)
-    # Info('test_osc_state is {}'.format(st))
     return st
 
 EXTERNAL_DEV = '_external_dev'
@@ -403,7 +400,7 @@ def get_list_files_param():
     return param
 
 def test_list_files(req):
-    return test_osc_execute(config.LIST_FILES,req[_para])
+    return test_osc_execute(config.LIST_FILES, req[_para])
 
 def get_image_param(uri = '/home/vans/python_test/UML.jpg'):
     param = OrderedDict()
@@ -581,14 +578,14 @@ def stop_osc_capture(req):
 def osc_func(req):
     try:
         dict_func = OrderedDict({
-            config.OSC_GET_OPTIONS:start_get_options,
-            config.OSC_SET_OPTIONS:start_set_options,
-            config.TAKE_PICTURE:start_take_pic,
-            config.DELETE:start_delete,
-            config.OSC_CAM_RESET:start_reset,
-            config.LIST_FILES:start_list_file,
-            config.START_CAPTURE:start_osc_capture,
-            config.STOP_CAPTURE: stop_osc_capture,
+            config.OSC_GET_OPTIONS: start_get_options,
+            config.OSC_SET_OPTIONS: start_set_options,
+            config.TAKE_PICTURE:    start_take_pic,
+            config.DELETE:          start_delete,
+            config.OSC_CAM_RESET:   start_reset,
+            config.LIST_FILES:      start_list_file,
+            config.START_CAPTURE:   start_osc_capture,
+            config.STOP_CAPTURE:    stop_osc_capture,
         })
         name = req[_name]
         if check_dic_key_exist(dict_func,name):

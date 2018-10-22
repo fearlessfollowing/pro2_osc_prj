@@ -60,7 +60,7 @@ enum {
 #define TAG "PowerManager"
 
 static int iHubResetInterval = 150;		/* 默认HUB复位时间为500ms */
-static int iCamResetInterval = 50;		/* 模组上电的时间间隔,默认为100MS */
+static int iCamResetInterval = 100;		/* 模组上电的时间间隔,默认为100MS */
 
 static const char* pHubRestProp = NULL;
 static const char* pCamRestProp = NULL;
@@ -112,8 +112,10 @@ static void powerModule(int iOnOff)
         if (access("/sys/class/gpio/gpio478/direction", F_OK) != 0) {
             system("echo 478 > /sys/class/gpio/export");
         }
-        system("echo in > /sys/class/gpio/gpio478/direction");
 
+        system("echo out > /sys/class/gpio/gpio456/direction");
+        system("echo 1 > /sys/class/gpio/gpio456/value");
+        system("echo in > /sys/class/gpio/gpio478/direction");
 
 
 		/* 2.复位HUB */
@@ -148,7 +150,9 @@ static void powerModule(int iOnOff)
 
     		msg_util::sleep_ms(100);
 		}
-
+          msg_util::sleep_ms(100);
+          system("echo 0 > /sys/class/gpio/gpio456/value");
+          msg_util::sleep_ms(100);
 		/* 3.模组上电 */
 		mI2CLight->i2c_read(0x2, &module1_val);
 		mI2CLight->i2c_read(0x3, &module2_val);		
@@ -159,23 +163,24 @@ static void powerModule(int iOnOff)
 
         for (int i = 0; i < 3; i++) {
 
-            /* 6号 */
+            /* 3号 */
             module2_val |= (1 << 3);
             mI2CLight->i2c_write_byte(0x3, module2_val);
-            msg_util::sleep_ms(iCamResetInterval);
 
-            if (getCamState() == 1 || i == 2) {
-                break;
+           // if (getCamState() == 1 || i == 2) {
+           if (1) {
+		return;
+                //break;
             } else {
                 module2_val &= ~(1 << 3);
                 mI2CLight->i2c_write_byte(0x3, module2_val);
                 msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
+                Log.d(TAG, "[%s: %d] Power Module 3 Failed, times = %d", __FILE__, __LINE__, i);
             }
         }
 
         for (int i = 0; i < 3; i++) {
-            /* 3号 */
+            /* 6号 */
             module2_val |= (1 << 0);
             mI2CLight->i2c_write_byte(0x3, module2_val);
             msg_util::sleep_ms(iCamResetInterval);
@@ -186,30 +191,12 @@ static void powerModule(int iOnOff)
                 module2_val &= ~(1 << 0);
                 mI2CLight->i2c_write_byte(0x3, module2_val);
                 msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 3 Failed, times = %d", __FILE__, __LINE__, i);
+                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
             }
         }
 
-		
         for (int i = 0; i < 3; i++) {
-            /* 2号 */
-            module1_val |= (1 << 7);
-            mI2CLight->i2c_write_byte(0x2, module1_val);
-            msg_util::sleep_ms(iCamResetInterval);
-
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module1_val &= ~(1 << 7);
-                mI2CLight->i2c_write_byte(0x2, module1_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 2 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
-
-
-        for (int i = 0; i < 3; i++) {
-            /* 4号 */
+            /* 5号 */
             module2_val |= (1 << 1);
             mI2CLight->i2c_write_byte(0x3, module2_val);
             msg_util::sleep_ms(iCamResetInterval);
@@ -220,13 +207,12 @@ static void powerModule(int iOnOff)
                 module2_val &= ~(1 << 1);
                 mI2CLight->i2c_write_byte(0x3, module2_val);
                 msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 4 Failed, times = %d", __FILE__, __LINE__, i);
+                Log.d(TAG, "[%s: %d] Power Module 5 Failed, times = %d", __FILE__, __LINE__, i);
             }
         }
 
-
         for (int i = 0; i < 3; i++) {
-            /* 1号 */
+            /* 2号 */
             module1_val |= (1 << 6);
             mI2CLight->i2c_write_byte(0x2, module1_val);
             msg_util::sleep_ms(iCamResetInterval);
@@ -237,13 +223,12 @@ static void powerModule(int iOnOff)
                 module1_val &= ~(1 << 6);
                 mI2CLight->i2c_write_byte(0x2, module1_val);
                 msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 1 Failed, times = %d", __FILE__, __LINE__, i);
+                Log.d(TAG, "[%s: %d] Power Module 2 Failed, times = %d", __FILE__, __LINE__, i);
             }
         }
 
-
         for (int i = 0; i < 3; i++) {
-            /* 6号 */
+            /* 4号 */
             module2_val |= (1 << 2);
             mI2CLight->i2c_write_byte(0x3, module2_val);
             msg_util::sleep_ms(iCamResetInterval);
@@ -254,9 +239,26 @@ static void powerModule(int iOnOff)
                 module2_val &= ~(1 << 2);
                 mI2CLight->i2c_write_byte(0x3, module2_val);
                 msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
+                Log.d(TAG, "[%s: %d] Power Module 4 Failed, times = %d", __FILE__, __LINE__, i);
             }
         }
+
+	for (int i = 0; i < 3; i++) {
+            /* 1号 */
+            module1_val |= (1 << 7);
+            mI2CLight->i2c_write_byte(0x2, module1_val);
+            msg_util::sleep_ms(iCamResetInterval);
+
+            if (getCamState() == 1 || i == 2) {
+                break;
+            } else {
+                module1_val &= ~(1 << 7);
+                mI2CLight->i2c_write_byte(0x2, module1_val);
+                msg_util::sleep_ms(iCamResetInterval);
+                Log.d(TAG, "[%s: %d] Power Module 1 Failed, times = %d", __FILE__, __LINE__, i);
+            }
+        }
+
 		break;
 	}
 

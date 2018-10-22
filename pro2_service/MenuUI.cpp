@@ -324,15 +324,15 @@ const char *getMenuName(int cmd)
 
 //str not used 0613
 static ERR_CODE_DETAIL mErrDetails[] = {
-    {432, "No Space",   ICON_STORAGE_INSUFFICIENT128_64},
-    {433, "No Storage", ICON_CARD_EMPTY128_64},
-    {434, "Speed Low",  ICON_SPEEDTEST06128_64},
-    {414, " ",          ICON_ERROR_414128_64},
-    {311, "mSD insufficient", ICON_STORAGE_INSUFFICIENT128_64},
+    {432, "No Space",           ICON_STORAGE_INSUFFICIENT128_64},
+    {433, "No Storage",         ICON_CARD_EMPTY128_64},
+    {434, "Speed Low",          ICON_SPEEDTEST06128_64},
+    {414, " ",                  ICON_ERROR_414128_64},
+    {311, "mSD insufficient",   ICON_STORAGE_INSUFFICIENT128_64},
 
     // add for live rec finish
-    {390, " ", ICON_LIV_REC_INSUFFICIENT_128_64128_64},
-    {391, " ", ICON_LIVE_REC_LOW_SPEED_128_64128_64},
+    {390, " ",                  ICON_LIV_REC_INSUFFICIENT_128_64128_64},
+    {391, " ",                  ICON_LIVE_REC_LOW_SPEED_128_64128_64},
 };
 
 static SYS_ERROR mSysErr[] = {
@@ -646,7 +646,7 @@ void MenuUI::init()
 
 		sp<WifiConfig> wifiConfig = (sp<WifiConfig>)(new WifiConfig());
 
-        #if 1
+        #if 0
 		snprintf(wifiConfig->cApName, 32, "%s-%s.OSC", "Insta360-Pro2", pRandSn);
         #else
 		snprintf(wifiConfig->cApName, 32, "%s-%s", "Insta360-Pro2", pRandSn);
@@ -7153,6 +7153,14 @@ void MenuUI::disp_err_code(int code, int back_menu)
         Log.d(TAG, "[%s: %d] Exit Timelapse Mode now...", __FILE__, __LINE__);
     }
 
+    if (true == mAgingMode) {
+        mAgingMode = false;
+    }
+
+    if (mClientTakeVideoUpdate == true) {
+        mClientTakeVideoUpdate = false;
+    }
+
     if (checkServerStateIn(serverState, STATE_PREVIEW)) {
         syncQueryTfCard(); 
     } else {
@@ -7744,6 +7752,7 @@ int MenuUI::oled_disp_type(int type)
 
             pm->sendUpdateTakeTimelapseLeft(vm->getTakeTimelapseCnt());
 
+            #if 0
             if (true == mTakeVideInTimelapseMode) {
                 mTakeVideInTimelapseMode = false;
             }
@@ -7755,6 +7764,7 @@ int MenuUI::oled_disp_type(int type)
             if (mClientTakeVideoUpdate == true) {
                 mClientTakeVideoUpdate = false;
             }
+            #endif
 
             Log.d(TAG, "[%s: %d] STOP_REC_FAIL ...", __FILE__, __LINE__);
             break;

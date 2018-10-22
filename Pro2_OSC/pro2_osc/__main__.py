@@ -17,13 +17,32 @@ import commandUtility
 from shutil import copyfile
 from flask import Flask, make_response, request, abort, redirect, Response
 
+#
+# 与服务器(web_server)建立连接
+# 1.如果此时服务器与客户端已经连接了连接，应该返回错误
+# 2.在获取/osc/info时去连接web_server
+#
+# 一段时间没有请求后将自动退出预览，断开与web_server的连接
+# 启动预览
+# 获取Sensor相关Option到Current Options中
+
+gConnectState = False
+gInPreview = False
 
 app = Flask(__name__)
 c = cameraConnect.connector()
 connectResponse = c.connect()
-# connectResponse = c.connect()
-# print(connectResponse)
+
+if connectResponse["state"] == "done":
+    gConnectState = True
+    previewResponse = c.startPreview()
+    if previewResponse["state"] == "done":
+        gInPreview = True
+else:
+    print(connectResponse)
+
 startTime = time.time()
+
 
 # 读取osc_info.json的内容，报错在全局变量
 with open(config.OSC_INFO_TEMPLATE) as oscInfoFile:
@@ -40,7 +59,7 @@ def getResponse(option):
     errorValues = None
     bodyJson = request.get_json()
 
-    print("\nREQUEST: ", bodyJson)
+    print("------------- REQUEST: ", bodyJson)
     if bodyJson is None:
         response = ''
         print("???: ", request)
@@ -164,8 +183,7 @@ def getResponse(option):
 #
 @app.route('/osc/info', methods=['GET'])
 def getInfo():
-    print("\nREQUEST: /osc/info")
-
+    print('[---- Client Request: /osc/info ------]')
     oscInfoResponse["serialNumber"] = connectResponse["results"]["sys_info"]["sn"]
     oscInfoResponse["firmwareVersion"] = connectResponse["results"]["sys_info"]["r_v"]
     oscInfoResponse["uptime"] = int(time.time() - startTime)
@@ -176,7 +194,7 @@ def getInfo():
         upTime = float(upTimes[0])
         oscInfoResponse["uptime"] = int(upTime)
 
-    print("RESPONSE: ", oscInfoResponse)
+    print('Result[/osc/info]:', oscInfoResponse)
 
     response = make_response(json.dumps(oscInfoResponse))
     response.headers['Content-Type'] = "application/json;charset=utf-8"
@@ -198,7 +216,7 @@ def getInfo():
 #
 @app.route('/osc/state', methods=['POST'])
 def getState():
-    print("\nREQUEST: /osc/state")
+    print('[---- Client Request: /osc/state ------]')    
     try:
         fingerprint = connectResponse["results"]["Fingerprint"]
     except KeyError:

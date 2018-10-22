@@ -58,7 +58,10 @@ def takePicture(c):
             del takePictureJson["parameters"]["hdr"]
         
         takePictureJson["parameters"]["delay"] = currentOptions["exposureDelay"]
-        takePictureJson["stabilization"] = currentOptions["imageStabilization"]
+        if currentOptions["imageStabilization"] == "on":
+            takePictureJson["stabilization"] = True
+        else:
+            takePictureJson["stabilization"] = False
 
         print(takePictureJson)
         request = json.dumps(takePictureJson)
@@ -80,17 +83,19 @@ def processPicture(c, cParams):
     return commandUtility.buildResponse(responseValues)
 
 
+#
+# startCapture - 拍Timelapse及录像
+#
 def startCapture(c):
     currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
-
     if currentOptions["captureMode"] not in ["interval", "video"]:
         errorValue = commandUtility.buildError('disabledCommand', 'video/interval recording not supported in this mode')
         responseValues = ("camera.startCapture", "error", errorValue)
         return commandUtility.buildResponse(responseValues)
 
-    # exposureOptions = __setExposure(currentOptions)
     fileFormat = currentOptions["fileFormat"]
 
+    # 录像模式
     if currentOptions["captureMode"] == "video":
         startCaptureJson = __loadJsonFile('startCaptureTemplate.json')
         videoMap = __loadJsonFile('videoFormatMap.json')
@@ -104,28 +109,35 @@ def startCapture(c):
             startCaptureJson["parameters"]["stiching"]["height"] = fileFormat["height"]
             startCaptureJson["parameters"]["stiching"]["framerate"] = fileFormat["framerate"]
 
+    # Interval模式
     elif currentOptions["captureMode"] == "interval":
-        startCaptureJson = __loadJsonFile('intervalTemplate.json')
-        pictureMap = __loadJsonFile('pictureFormatMap.json')
-        startCaptureJson["parameters"]["timelapse"]["enable"] = True
+        startCaptureJson = __loadJsonFile(config.INTERVAL_TEMPLATE)
+        pictureMap = __loadJsonFile(config.PIC_FORMAT_MAP_TMPLATE)
+        
         startCaptureJson["parameters"]["timelapse"]["interval"] = currentOptions["captureInterval"]*1000
+        
         # startCaptureJson["parameters"]["stiching"]["mime"] = fileFormat["type"]
         # startCaptureJson["parameters"]["stiching"]["width"] = fileFormat["width"]
         # startCaptureJson["parameters"]["stiching"]["height"] = fileFormat["height"]
+        
         startCaptureJson["parameters"]["origin"]["mime"] = fileFormat["type"]
-        startCaptureJson["parameters"]["origin"]["width"] = pictureMap["width"][str(fileFormat["width"])]
-        startCaptureJson["parameters"]["origin"]["height"] = pictureMap["height"][str(fileFormat["height"])]
+        startCaptureJson["parameters"]["origin"]["width"] = fileFormat["width"]
+        startCaptureJson["parameters"]["origin"]["height"] = fileFormat["height"]
+        if currentOptions["imageStabilization"] == "on":
+            startCaptureJson["parameters"]["stabilization"] = True
+        else:
+            startCaptureJson["parameters"]["stabilization"] = False
+
         if currentOptions["captureNumber"] > 0:
             captureTime = currentOptions["captureInterval"]*(currentOptions["captureNumber"]) + 1
             startCaptureJson["parameters"]["duration"] = captureTime
     
     print(startCaptureJson)
-    # request = (__genOptionsBody(exposureOptions))
-    # request.append(json.dumps(startCaptureJson))
     request = json.dumps(startCaptureJson)
     results = c.command(request)
-    # results = c.listCommand(request)[-1]
+
     print(results)
+    
     responseValues = __checkCameraError(results, "camera.startCapture")
     if responseValues is None:
         if currentOptions["captureMode"] == "interval" and currentOptions["captureNumber"] > 0:
@@ -140,7 +152,7 @@ def startCapture(c):
             print(fileUrl)
             with open('fileUrls.json', 'w') as urlFile:
                 json.dump(fileUrl, urlFile)
-            return ''
+            return ''            
     return commandUtility.buildResponse(responseValues)
 
 
@@ -289,6 +301,8 @@ def delete(c, cParams):
         return commandUtility.buildResponse(responseValues)
 
     urlList = fileList
+
+    # fileList列表中只含有一个元素
     if len(fileList) == 1:
         if "all" in fileList:
             urlList = __urlListHelper(c, 'ALL')
@@ -303,7 +317,8 @@ def delete(c, cParams):
         if '/' not in u:
             u = os.path.join(storagePath, u)
         else:
-            u = os.path.join(storagePath, u.split('/')[-2])
+            # u = os.path.join(storagePath, u.split('/')[-2])
+            pass
         try:
             rmtree(u)
         except OSError:
