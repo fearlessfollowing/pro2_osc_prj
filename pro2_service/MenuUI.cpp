@@ -80,8 +80,6 @@ using namespace std;
 #define MAX_ADB_TIMES       (5)
 #define LONG_PRESS_MSEC     (2000)
 
-#define OPEN_BAT_LOW
-
 #define ONLY_EXFAT
 
 
@@ -495,6 +493,10 @@ void MenuUI::init()
     
     mGpsState = GPS_STATE_NO_DEVICE;
 
+    #ifdef ENABLE_ADAPTER_REMOVE_SHUTDOWN
+    mShutdownTick = 0;
+    #endif
+
     property_set(PROP_SPEED_TEST_COMP_FLAG, "false");
 
     Log.d(TAG, "Create OLED display Object...");
@@ -672,8 +674,8 @@ void MenuUI::init()
 
     Log.d(TAG, "---------> Init Input Manager");
     sp<ARMessage> inputNotify = obtainMessage(UI_MSG_KEY_EVENT);
-    InputManager* in = InputManager::Instance();
-    in->setNotifyRecv(inputNotify);
+    InputManager* im = InputManager::Instance();
+    im->setNotifyRecv(inputNotify);
 
 
     /*******************************************************************************
@@ -5137,13 +5139,14 @@ void MenuUI::disp_calibration_res(int type, int t)
 	
     switch (type) {
         //suc
-        case 0:
+        case 0: {
             clearArea();
             dispIconByType(ICON_CALIBRATED_SUCCESSFULLY128_16);
             break;
+        }
 			
         //fail
-        case 1:
+        case 1: {
 #if 0        
             mCamState |= STATE_CALIBRATE_FAIL;
             Log.d(TAG,"cal fail state 0x%x", mCamState);
@@ -5151,12 +5154,14 @@ void MenuUI::disp_calibration_res(int type, int t)
             dispIconByType(ICON_CALIBRATION_FAILED128_16);
 #endif
             break;
+        }
 
         //calibrating
-        case 2:
+        case 2: {
             clearArea();
             dispIconByType(ICON_CALIBRATING128_16);
             break;
+        }
 			
         case 3: {
             disp_sec(t, 96, 32);
@@ -7868,9 +7873,15 @@ int MenuUI::oled_disp_type(int type)
             Log.e(TAG, "---> START_LIVE_SUC, Current Server State 0x%x", serverState);
             vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
             set_update_mid(INTERVAL_0HZ);
+
+            #if 0
             if (cur_menu != MENU_LIVE_INFO) {
                 setCurMenu(MENU_LIVE_INFO);
             }
+            #else 
+            setCurMenu(MENU_LIVE_INFO);         /* 确保屏幕进入直播状态，客户端发起直播存片时，剩余时间为0 */
+            #endif
+
             break;
         }
 
@@ -9456,6 +9467,51 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
     double dInterTmp, dExternTmp; 
     uint64_t serverState = getServerState();
 
+    /* 移走电源适配器，一段时间后自动关机 */
+    #ifdef ENABLE_ADAPTER_REMOVE_SHUTDOWN
+    
+    bool bCharge = false;
+    if (mBatInterface->read_charge(&bCharge) == 0) {     /* 电池存在 */
+        if (bCharge == true) {  /* 充电状态 */
+            Log.d(TAG, "[%s: %d] Battery is charging, clear flag mAutoShutdownFlag and mShutdownTick", __FILE__, __LINE__);
+            mAutoShutdownFlag = false;
+            mShutdownTick = 0;
+        } else {    /* 非充电状态(1.没接电源适配器<移除电源适配器>; 2.充满了) */
+            Log.d(TAG, "[%s: %d] Battery is not charging, set mAutoShutdownFlag and mShutdownTick, tick[%d]", __FILE__, __LINE__, mShutdownTick);
+            mShutdownTick++;
+
+            if (mAutoShutdownFlag == false) {
+                mAutoShutdownFlag = true;
+            } else {
+                if (mShutdownTick >= ( (5*60*1000) / BAT_INTERVAL)) {
+                    /* 处于录像状态则主动停止录像，并关机 */
+                    if (checkAllowStopRecord(serverState)) {
+                        if (pm->sendStopVideoReq()) {   /* 服务器接收停止录像请求,此时系统处于停止录像状态 */
+                            dispSaving();
+                        } else {
+                            Log.e(TAG, "[%s: %d] Stop Record Request Failed, More detail please check h_log", __FILE__, __LINE__);
+                        }                
+                    } else if (checkAllowStopLive(serverState)) {
+                        if (pm->sendStopLiveReq()) {
+                            dispWaiting();
+                        } else {
+                            Log.e(TAG, "[%s: %d] Stop Living Request Failed, More detail please check h_log", __FILE__, __LINE__);
+                        }
+                    } else if (checkStateEqual(serverState, STATE_IDLE)) {
+                        /* 关机 */
+                        system("shutdown -h now");
+                    }
+                }
+            }
+        }
+    } else {    /* 电池接口读取失败(电源适配器供电) */
+        Log.d(TAG, "[%s: %d] Battery not exist, clear flag mAutoShutdownFlag and mShutdownTick", __FILE__, __LINE__);
+        mAutoShutdownFlag = false;      
+        mShutdownTick = 0;
+    }
+    #endif
+
+
     mBatInterface->read_tmp(&dInterTmp, &dExternTmp);
 
     #ifdef ENABLE_SHOW_BATTERY_TMP
@@ -9472,8 +9528,6 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
     }
 
     if (is_bat_low()) { /* 电池电量低 */
-
-#ifdef OPEN_BAT_LOW
         if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
             // Log.d(TAG, "[%s: %d ] bat low menu[%s] %d state 0x%x", __FILE__, __LINE__, getMenuName(cur_menu), serverState);
             if ((checkServerStateIn(serverState, STATE_RECORD) || bStiching)) {
@@ -9483,7 +9537,6 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
                 bStiching = false;
             }
         }
-#endif
     }
 
     send_delay_msg(UI_READ_BAT, BAT_INTERVAL);  /* 给UI线程发送读取电池电量的延时消息 */

@@ -61,26 +61,38 @@ enum {
 
 static int iHubResetInterval = 150;		/* 默认HUB复位时间为500ms */
 static int iCamResetInterval = 100;		/* 模组上电的时间间隔,默认为100MS */
+static int iCamRePowerOnInterval = 100;          /* 给模组上电失败时，重新上电间隔 */
 
 static const char* pHubRestProp = NULL;
 static const char* pCamRestProp = NULL;
 
 
-static int getCamState()
+static int getCamState(int timeout_count)
 {
-    int val = -1;
+	int val = -1;
+	int count = 0;
+	FILE *fp = NULL;
 
-    FILE* fp = fopen("/sys/class/gpio/gpio478/value", "r");
-    if (fp == NULL) {
-        Log.e(TAG, "[%s: %d] Export gpio first", __FILE__, __LINE__);
-        return -1;
-    } 
+	while (count < timeout_count) {
+		fp = fopen("/sys/class/gpio/gpio478/value", "r");
+		if (fp == NULL) {
+			Log.e(TAG, "[%s: %d] Export gpio first", __FILE__, __LINE__);
+			return -1;
+		} 
 
-    val = getc(fp);
-    Log.d(TAG, "[%s: %d] Read val = %d", __FILE__, __LINE__, val);
-    fclose(fp);
+		val = getc(fp);
+		if (48 == val){
+			break;
+		}
+		count++;
+		msg_util::sleep_ms(10); 
 
-    return (val == 49) ? 1 : 0; 
+		fclose(fp);
+		fp = NULL;
+	}
+	Log.d(TAG, "[%s: %d] Read val = %d count = %d", __FILE__, __LINE__, val, count);
+
+	return (val == 49) ? 0 : 1;
 }
 
 
@@ -93,6 +105,9 @@ static void powerModule(int iOnOff)
 	u8 module2_val = 0; 	
 	u8 readVal1 = 0;
 	u8 readVal2 = 0;
+        u8 error_count = 0;
+        u8 try_times = 3;
+	u8 timeout_count = 15;
 	const char* pFirstPwrOn = NULL;
 
 	switch (iOnOff) {
@@ -113,10 +128,9 @@ static void powerModule(int iOnOff)
             system("echo 478 > /sys/class/gpio/export");
         }
 
-        system("echo out > /sys/class/gpio/gpio456/direction");
-        system("echo 1 > /sys/class/gpio/gpio456/value");
-        system("echo in > /sys/class/gpio/gpio478/direction");
-
+		system("echo out > /sys/class/gpio/gpio456/direction");
+                system("echo 0 > /sys/class/gpio/gpio456/value");
+		system("echo in > /sys/class/gpio/gpio478/direction");
 
 		/* 2.复位HUB */
 		if (access(HUB1_SYS_PATH, F_OK)) {
@@ -150,9 +164,6 @@ static void powerModule(int iOnOff)
 
     		msg_util::sleep_ms(100);
 		}
-          msg_util::sleep_ms(100);
-          system("echo 0 > /sys/class/gpio/gpio456/value");
-          msg_util::sleep_ms(100);
 		/* 3.模组上电 */
 		mI2CLight->i2c_read(0x2, &module1_val);
 		mI2CLight->i2c_read(0x3, &module2_val);		
@@ -160,105 +171,186 @@ static void powerModule(int iOnOff)
 		printf("read 0x2 val = %d", module1_val);
 		printf("read 0x3 val = %d", module2_val);
 
+        	for (int j = 0; j < try_times; j++) {
+			for (int i = 0; i < try_times; i++) {
+				/* 3号 */
+				module2_val |= (1 << 3);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				 msg_util::sleep_ms(iCamResetInterval);
 
-        for (int i = 0; i < 3; i++) {
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else {
+					error_count++;
+					module2_val &= ~(1 << 3);
+					mI2CLight->i2c_write_byte(0x3, module2_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 3 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
 
-            /* 3号 */
-            module2_val |= (1 << 3);
-            mI2CLight->i2c_write_byte(0x3, module2_val);
+			/* 为了兼容已经出货的机子，3次都失败时，默认为旧机子，直接上电，不判断是否上电成功 */
+			if (try_times == error_count) {
+				error_count = 0;
+				j = 1;
+				timeout_count = 1;
+				continue;
+			}
+			error_count = 0;
 
-           // if (getCamState() == 1 || i == 2) {
-           if (1) {
-		return;
-                //break;
-            } else {
-                module2_val &= ~(1 << 3);
-                mI2CLight->i2c_write_byte(0x3, module2_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 3 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+			for (int i = 0; i < try_times; i++) {
+				/* 6号 */
+				module2_val |= (1 << 0);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamResetInterval);
 
-        for (int i = 0; i < 3; i++) {
-            /* 6号 */
-            module2_val |= (1 << 0);
-            mI2CLight->i2c_write_byte(0x3, module2_val);
-            msg_util::sleep_ms(iCamResetInterval);
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else if (i == (try_times-1)) {
+					error_count++;
+					break;
+				}else {
+					error_count++;
+					module2_val &= ~(1 << 0);
+					mI2CLight->i2c_write_byte(0x3, module2_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
 
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module2_val &= ~(1 << 0);
-                mI2CLight->i2c_write_byte(0x3, module2_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 6 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+			if ((error_count > 2) && (j != (try_times-1))) {
+				module1_val &= 0x3f;
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				module2_val &= 0xf0;
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamRePowerOnInterval);
+				error_count = 0;
+				continue;
+			}
 
-        for (int i = 0; i < 3; i++) {
-            /* 5号 */
-            module2_val |= (1 << 1);
-            mI2CLight->i2c_write_byte(0x3, module2_val);
-            msg_util::sleep_ms(iCamResetInterval);
+			for (int i = 0; i < try_times; i++) {
+				/* 5号 */
+				module2_val |= (1 << 1);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamResetInterval);
 
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module2_val &= ~(1 << 1);
-                mI2CLight->i2c_write_byte(0x3, module2_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 5 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else if (i == (try_times-1)) {
+					error_count++;
+					break;
+				}else {
+					error_count++;
+					module2_val &= ~(1 << 1);
+					mI2CLight->i2c_write_byte(0x3, module2_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 5 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
 
-        for (int i = 0; i < 3; i++) {
-            /* 2号 */
-            module1_val |= (1 << 6);
-            mI2CLight->i2c_write_byte(0x2, module1_val);
-            msg_util::sleep_ms(iCamResetInterval);
+			if ((error_count > 2) && (j != (try_times-1))) {
+				module1_val &= 0x3f;
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				module2_val &= 0xf0;
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamRePowerOnInterval);
+				error_count = 0;
+				continue;
+			}
 
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module1_val &= ~(1 << 6);
-                mI2CLight->i2c_write_byte(0x2, module1_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 2 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+			for (int i = 0; i < try_times; i++) {
+				/* 2号 */
+				module1_val |= (1 << 6);
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				msg_util::sleep_ms(iCamResetInterval);
 
-        for (int i = 0; i < 3; i++) {
-            /* 4号 */
-            module2_val |= (1 << 2);
-            mI2CLight->i2c_write_byte(0x3, module2_val);
-            msg_util::sleep_ms(iCamResetInterval);
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else if (i == (try_times-1)) {
+					error_count++;
+					break;
+				}else {
+					error_count++;
+					module1_val &= ~(1 << 6);
+					mI2CLight->i2c_write_byte(0x2, module1_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 2 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
 
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module2_val &= ~(1 << 2);
-                mI2CLight->i2c_write_byte(0x3, module2_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 4 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+			if ((error_count > 2) && (j != (try_times-1))) {
+				module1_val &= 0x3f;
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				module2_val &= 0xf0;
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamRePowerOnInterval);
+				error_count = 0;
+				continue;
+			}
 
-	for (int i = 0; i < 3; i++) {
-            /* 1号 */
-            module1_val |= (1 << 7);
-            mI2CLight->i2c_write_byte(0x2, module1_val);
-            msg_util::sleep_ms(iCamResetInterval);
+			for (int i = 0; i < try_times; i++) {
+				/* 4号 */
+				module2_val |= (1 << 2);
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamResetInterval);
 
-            if (getCamState() == 1 || i == 2) {
-                break;
-            } else {
-                module1_val &= ~(1 << 7);
-                mI2CLight->i2c_write_byte(0x2, module1_val);
-                msg_util::sleep_ms(iCamResetInterval);
-                Log.d(TAG, "[%s: %d] Power Module 1 Failed, times = %d", __FILE__, __LINE__, i);
-            }
-        }
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else if (i == (try_times-1)) {
+                                        error_count++;
+                                        break;
+                                } else {
+					error_count++;
+					module2_val &= ~(1 << 2);
+					mI2CLight->i2c_write_byte(0x3, module2_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 4 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
 
+			if ((error_count > 2) && (j != (try_times-1))) {
+				module1_val &= 0x3f;
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				module2_val &= 0xf0;
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamRePowerOnInterval);
+				error_count = 0;
+				continue;
+			}
+
+			for (int i = 0; i < try_times; i++) {
+				/* 1号 */
+				module1_val |= (1 << 7);
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				msg_util::sleep_ms(iCamResetInterval);
+
+				if (getCamState(timeout_count) == 1 || j == (try_times-1)) {
+					break;
+				} else if (i == (try_times-1)) {
+                                        error_count++;
+                                        break;
+                                } else {
+					error_count++;
+					module1_val &= ~(1 << 7);
+
+					mI2CLight->i2c_write_byte(0x2, module1_val);
+					msg_util::sleep_ms(iCamRePowerOnInterval);
+					Log.d(TAG, "[%s: %d] Power Module 1 Failed, times = %d", __FILE__, __LINE__, i);
+				}
+			}
+			if ((error_count > 2) && (j != (try_times-1))) {
+				module1_val &= 0x3f;
+				mI2CLight->i2c_write_byte(0x2, module1_val);
+				module2_val &= 0xf0;
+				mI2CLight->i2c_write_byte(0x3, module2_val);
+				msg_util::sleep_ms(iCamRePowerOnInterval);
+				error_count = 0;
+				continue;
+			} else {
+				break;
+			}
+
+		}
 		break;
 	}
 
@@ -266,6 +358,7 @@ static void powerModule(int iOnOff)
 		const char* pPowerOnFlag = NULL;
 
 		pPowerOnFlag = property_get(PROP_SYS_MODULE_ON);
+
 
 		if ((NULL == pPowerOnFlag) || !strcmp(pPowerOnFlag, "false")) {
 			system("nvpmodel -m 1");

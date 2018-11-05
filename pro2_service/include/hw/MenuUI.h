@@ -1079,6 +1079,11 @@ private:
     sp<struct _action_info_>    mControlAct;
     sp<BAT_INFO>                m_bat_info_;
 
+    #ifdef ENABLE_ADAPTER_REMOVE_SHUTDOWN
+    bool                        mAutoShutdownFlag;      /* 启动自动关机 */
+    u32                         mShutdownTick;          /* 移走电源经过的滴答数(一个滴答对应一次电池检测的间隔, 5s)) */
+    #endif
+
 	
     sp<SYS_INFO>                mReadSys;
     sp<struct _ver_info_>       mVerInfo;

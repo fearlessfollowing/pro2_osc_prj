@@ -132,12 +132,12 @@ def getResponse(option):
             else:
                 response = getattr(commands, name)(c)
 
-            if name == "getLivePreview" and "error" not in response:
-                time.sleep(3)
-                # Testing two methodologies, below:
-                r = requests.get(response, stream=True)
-                return Response(r.iter_content(chunk_size=10*1024),
-                                content_type='multipart/x-mixed-replace')
+            # if name == "getLivePreview" and "error" not in response:
+            #     time.sleep(3)
+            #     # Testing two methodologies, below:
+            #     r = requests.get(response, stream=True)
+            #     return Response(r.iter_content(chunk_size=10*1024),
+            #                     content_type='multipart/x-mixed-replace')
                 # or below
                 # return redirect(response, 302)
         except AttributeError:
@@ -159,8 +159,8 @@ def getResponse(option):
     print("RESPONSE: ", response)
     if response == '':
         return finalResponse, 204
-    elif "error" in json.loads(response).keys():
-        return finalResponse, 400
+    # elif "error" in json.loads(response).keys():
+    #     return finalResponse, 400
     return finalResponse
 
 

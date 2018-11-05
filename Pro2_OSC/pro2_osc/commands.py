@@ -195,8 +195,11 @@ def getLivePreview(c):
         previewBody["parameters"]["stiching"]["height"] = currentOptions["previewFormat"]["height"]
         previewBody["parameters"]["stiching"]["framerate"] = currentOptions["previewFormat"]["framerate"]
         response = c.command(json.dumps(previewBody))
+        print('--------------------------------------------------')
         print(response)
-        previewUrl = c.getServerIp() + response['results']['_previewUrl']
+        # previewUrl = c.getServerIp() + response['results']['_previewUrl']
+        previewUrl = response['results']['_previewUrl']
+
         print(previewUrl)
         # time.sleep(5)
         # preview = requests.get(previewUrl, stream=True)
@@ -317,7 +320,8 @@ def delete(c, cParams):
         if '/' not in u:
             u = os.path.join(storagePath, u)
         else:
-            # u = os.path.join(storagePath, u.split('/')[-2])
+            print(u.split('/'))
+            u = os.path.join(storagePath, u.split('/')[-2])
             pass
         try:
             rmtree(u)

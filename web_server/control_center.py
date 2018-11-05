@@ -6,7 +6,7 @@
 # 2018年9月4日      skymixos                V0.2.19
 # 2018年9月22日     skymixos                V0.2.20         动态的改变U盘的挂载方式
 # 2018年9月29日     skymixos                V1.0.01         添加响应UI请求的接口  
-#
+# 2018年10月24日    skymixos                V1.0.7          与camerad的同步请求的超时时间设置为70s
 
 from threading import Semaphore
 import json
@@ -34,7 +34,7 @@ from util.time_util import *
 from util.time_zones import *
 from util.version_util import *
 from flask import send_file
-from poll.monitor_event import monitor_fifo_read,mointor_fifo_write_handle,monitor_camera_active_handle
+from poll.monitor_event import monitor_fifo_read, mointor_fifo_write_handle, monitor_camera_active_handle
 
 from thread_utils import *
 from state_machine import *
@@ -57,7 +57,7 @@ MOUNT_ROOT = '/mnt'
 POLL_TO = 10000
 
 #to to reset camerad process
-FIFO_TO = 50
+FIFO_TO = 70
 
 ACTION_REQ_SYNC = 0
 ACTION_PIC = 1

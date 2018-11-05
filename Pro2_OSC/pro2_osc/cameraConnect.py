@@ -44,6 +44,7 @@ class connector():
     def getStoragePath(self):
         try:
             storagePath = os.path.join(self.defaultPath, os.listdir('/mnt/udisk1/')[0])
+
         except IndexError:
             return None
         return storagePath
@@ -93,6 +94,7 @@ class connector():
 
     def startPreview(self):
         return self.command(json.dumps(self.previewBody))
+
 
     def listCommand(self, jsonList):
         response = []        
