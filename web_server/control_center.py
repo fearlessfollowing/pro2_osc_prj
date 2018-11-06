@@ -1468,11 +1468,21 @@ class control_center:
         return read_info
 
 
-    def check_live_save(self,req):
+    def check_live_save(self, req):
         res = False
         if req[_param][config.ORG][config.SAVE_ORG] is True or req[_param][config.STICH]['fileSave'] is True:
             res = True
         # Info('check_live_save req {} res {}'.format(req,res))
+        return res
+
+    def checkLiveSave(self, req):
+        res = False
+        if config.SAVE_ORG in req[_param][config.ORG]:
+            if req[_param][config.ORG][config.SAVE_ORG] is True:
+                res = True
+        if config.STICH in req[_param]:
+            if 'fileSave' in req[_param][config.STICH] and req[_param][config.STICH]['fileSave'] is True:
+                res = True
         return res
 
     # camera_live_done
@@ -1485,7 +1495,7 @@ class control_center:
         StateMachine.addCamState(config.STATE_LIVE)
 
         if req is not None:
-            if self.check_live_save(req) is True:
+            if self.checkLiveSave(req) is True:
                 StateMachine.addCamState(config.STATE_RECORD)
             if oled:
                 self.send_oled_type(config.START_LIVE_SUC)

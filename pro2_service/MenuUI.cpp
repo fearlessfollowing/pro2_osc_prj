@@ -1413,8 +1413,6 @@ void MenuUI::setMenuCfgInit()
 
 void MenuUI::set_update_mid(int interval)
 {
-    uint64_t serverState = getServerState();
-
     clearIconByType(ICON_CAMERA_WAITING_2016_76X32);
 
     send_update_mid_msg(interval);
@@ -1561,7 +1559,7 @@ void MenuUI::commDownKeyProc()
 
     mSelect->last_select = mSelect->select;
     mSelect->select++;
-    if (mSelect->select + (mSelect->cur_page * mSelect->page_max) >= mSelect->total) {
+    if ((u32)mSelect->select + (mSelect->cur_page * mSelect->page_max) >= mSelect->total) {
         mSelect->select = 0;
         if (mSelect->page_num > 1) {
             mSelect->cur_page = 0;
@@ -1634,7 +1632,6 @@ void MenuUI::cfgPicModeItemCurVal(PicVideoCfg* pPicCfg)
             }
         } else {
             pPicCfg->iCurVal = iRawVal;
-            Log.d(TAG, "[%s: %d] Current val [%d]", __FILE__, __LINE__, pPicCfg->iCurVal);
         }
 
     } else {
@@ -1648,7 +1645,6 @@ void MenuUI::printJsonCfg(Json::Value& json)
     string jsonstr = weriter.write(json);
     Log.d(TAG, "[%s: %d] print json: %s", __FILE__, __LINE__, jsonstr.c_str());
 }
-
 
 
 void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPicVideoCfg*>& pItemLists)
@@ -1813,7 +1809,6 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                     pSetItems[i]->iCurVal = 0;
                     sp<Json::Value> pRoot = (sp<Json::Value>)(new Json::Value());
 
-
                     cfgItemJsonFilePath = JSON_CFG_FILE_PATH;
                     cfgItemJsonFilePath +=  pSetItems[i]->pItemName;
                     cfgItemJsonFilePath += ".json";
@@ -1846,10 +1841,14 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
                         } else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_CUSTOMER)) {
                             pCommJsonCmd = pCmdLive_Customer;
                         }
+                        #ifdef ENABLE_LIVE_ORG_MODE
+                        else if (!strcmp(pSetItems[i]->pItemName, TAKE_LIVE_MODE_ORIGIN)) {
+                            pCommJsonCmd = pCmdLive_LiveOrigin;
+                        }
+                        #endif
                         
                         if (reader.parse(pCommJsonCmd, *(pRoot.get()), false)) {
                             pSetItems[i]->jsonCmd = pRoot;
-
                             Log.d(TAG, "[%s: %d] [%s]parse [%s] success", __FILE__, __LINE__,  pSetItems[i]->pItemName, pCommJsonCmd);
                             printJsonCfg( *((pSetItems[i]->jsonCmd).get()));
                         } else {
@@ -2151,20 +2150,33 @@ bool MenuUI::takeVideoIsAgeingMode()
 int MenuUI::check_live_save(Json::Value* liveJson)
 {
     int iRet = LIVE_SAVE_NONE;
+    bool bSaveOrigin = false;
+    bool bSaveFile = false;
 
-    if ((*liveJson)["parameters"]["origin"]["saveOrigin"].asBool() == true 
-        && (*liveJson)["parameters"]["stiching"]["fileSave"].asBool() == true) {
-        // Log.d(TAG, "[%s: %d] >>>>> LIVE_SAVE_ORIGIN_STICH", __FILE__, __LINE__);
-        iRet = LIVE_SAVE_ORIGIN_STICH;
-    } else if ((*liveJson)["parameters"]["origin"]["saveOrigin"].asBool() == false 
-                && (*liveJson)["parameters"]["stiching"]["fileSave"].asBool() == true) {
-        // Log.d(TAG, "[%s: %d] >>>>> LIVE_SAVE_STICH", __FILE__, __LINE__);
-        iRet = LIVE_SAVE_STICH;
-    } else if ((*liveJson)["parameters"]["origin"]["saveOrigin"].asBool() == true 
-                && (*liveJson)["parameters"]["stiching"]["fileSave"].asBool() == false) {
-        // Log.d(TAG, "[%s: %d] >>>>> LIVE_SAVE_ORIGIN", __FILE__, __LINE__);
-        iRet = LIVE_SAVE_ORIGIN;
+    if ((*liveJson)["parameters"]["origin"].isMember("saveOrigin")) {
+        if (true == (*liveJson)["parameters"]["origin"]["saveOrigin"].asBool()) {
+            bSaveOrigin = true;
+        }
     }
+
+
+    if ((*liveJson)["parameters"].isMember("stiching")) {
+        if ((*liveJson)["parameters"]["stiching"].isMember("fileSave")) {
+            if (true == (*liveJson)["parameters"]["stiching"]["fileSave"].asBool()) {
+                bSaveFile = true;
+            }
+        }
+    }
+
+    if (bSaveOrigin && bSaveFile) 
+        iRet = LIVE_SAVE_ORIGIN_STICH;
+
+    if (!bSaveOrigin && bSaveFile)
+        iRet = LIVE_SAVE_STICH;
+
+    if (bSaveOrigin && !bSaveFile) 
+        iRet = LIVE_SAVE_ORIGIN;
+
     return iRet;
 }
 
@@ -2193,7 +2205,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
     struct stPicVideoCfg* pAebPicVidCfg = NULL;
     struct stSetItem* pAebSetItem = NULL;
 
-    VolumeManager* vm = VolumeManager::Instance();
     uint64_t serverState = getServerState();
     ProtoManager* pm = ProtoManager::Instance();
 
@@ -2203,7 +2214,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
 
             Log.d(TAG, "=------------->> sendRpc +++ ACTION_PIC");
             Json::Value* pTakePicJson = NULL;
-            bool bAllow = false;
             
             /* customer和非customer */
             iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
@@ -2345,8 +2355,40 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 /* customer和非customer */
                 iIndex = getMenuSelectIndex(MENU_LIVE_SET_DEF);
                 pTmpPicVidCfg = mLiveAllItemsList.at(iIndex);
+
                 pTakeLiveJson = pTmpPicVidCfg->jsonCmd.get();
                 Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
+
+
+                #ifdef ENABLE_LIVE_ORG_MODE
+                VolumeManager* vm = VolumeManager::Instance();
+                Json::Reader reader;
+                Json::Value tmpCfg;
+
+                if (!strcmp(pTmpPicVidCfg->pItemName, TAKE_LIVE_MODE_ORIGIN)) {
+
+                    /* 从SD卡或U盘中加载指定的json文件来构造Json::Value对象 */
+                    if (strcmp(vm->getLocalVolMountPath(), "none")) {   /* 本地卷存在 */
+                        std::string manualCfg = vm->getLocalVolMountPath();
+                        manualCfg  += "/auto_cfg.json";
+
+                        Log.d(TAG, "--------------> path = %s", manualCfg.c_str());
+                        if (access(manualCfg.c_str(), F_OK) == 0) {
+                            std::ifstream ifs;  
+                            ifs.open (manualCfg.c_str(), std::ios::binary); 
+                            if (reader.parse(ifs, tmpCfg, false)) {
+                                Log.d(TAG, "[%s: %d] parse [%s] success", __FILE__, __LINE__, manualCfg.c_str());
+                                pTakeLiveJson = &tmpCfg;                          
+                            } else {
+                                Log.e(TAG, "---> parse [%s] failed, please check", manualCfg.c_str());
+                            }                          
+                        }
+                    } else {
+                        Log.d(TAG, "----> Local Volume Not Exist, Use default live arguments");
+                    }
+                }
+                #endif
+
                 
                 if (pTakeLiveJson) {
 
@@ -2363,7 +2405,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                             Log.e(TAG, "[%s: %d] What's wrong for Start Living, More Detail check h_log", __FILE__, __LINE__);
                         }
                     } else {    /* 需要存片 */
-
                         if (checkStorageSatisfy(option)) {  /* 对于不需要存片的挡位直接返回true */
                             if (true == checkVidLiveStorageSpeed()) {
                                 if (pm->sendStartLiveReq(*pTakeLiveJson)) {
@@ -2435,61 +2476,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             return true;
         }
 
-        #if 0
         case ACTION_SET_OPTION: {
-            msg->set<int>("type", cmd);
-            switch (cmd) {
-                case OPTION_FLICKER:
-                    msg->set<int>("flicker", mProCfg->get_val(KEY_PAL_NTSC));
-                    break;
-
-                case OPTION_LOG_MODE:
-                    msg->set<int>("mode", 1);
-                    msg->set<int>("effect", 0);
-                    break;
-
-                case OPTION_SET_FAN:
-                    msg->set<int>("fan", mProCfg->get_val(KEY_FAN));
-                    break;
-
-                case OPTION_SET_AUD: {
-                    if (mProCfg->get_val(KEY_AUD_ON) == 1) {
-                        if (mProCfg->get_val(KEY_AUD_SPATIAL) == 1) {
-                            msg->set<int>("aud", 2);
-                        } else {
-                            msg->set<int>("aud", 1);
-                        }
-                    } else {
-                        msg->set<int>("aud", 0);
-                    }
-                    break;
-                }
-
-                case OPTION_GYRO_ON:
-                    msg->set<int>("gyro_on", mProCfg->get_val(KEY_GYRO_ON));
-                    break;
-
-                case OPTION_SET_LOGO:
-                    msg->set<int>("logo_on", mProCfg->get_val(KEY_SET_LOGO));
-                    break;
-
-                case OPTION_SET_VID_SEG:
-                    msg->set<int>("video_fragment", mProCfg->get_val(KEY_VID_SEG));
-                    break;
-
-            #ifdef ENABLE_SET_AUDIO_GAIN    
-             case OPTION_SET_AUD_GAIN: {
-                   sp<CAM_PROP> mProp = sp<CAM_PROP>(new CAM_PROP());
-                   memcpy(mProp.get(),pstProp,sizeof(CAM_PROP));
-                   msg->set<sp<CAM_PROP>>("cam_prop", mProp);
-                     break;
-            }
-            #endif
-                SWITCH_DEF_ERROR(cmd);
-            }
-            #else 
-        case ACTION_SET_OPTION: {
-
             switch (cmd) {
 
                 case OPTION_FLICKER: {
@@ -2607,23 +2594,10 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
             #endif
                 SWITCH_DEF_ERROR(cmd);
             }
-
-
-            #endif
-            break;
+            return true;
         }
         SWITCH_DEF_ERROR(option)
     }
-
-#if 0
-	if (bAllow) {
-        Log.d(TAG, "[%s: %d] -------------> sendRpc use fifo thread, ACTION: %d", __FILE__, __LINE__, option);
-        msg->set<int>("what", OLED_KEY);
-        msg->set<int>("action", option);
-        msg->post();
-    }
-#endif
-
     return bAllow;
 }
 
@@ -4128,10 +4102,10 @@ void MenuUI::dispSettingPage(vector<struct stSetItem*>& setItemsList)
     ICON_POS* pIconPos = NULL;
     struct stSetItem* pTempSetItem = NULL;
     SELECT_INFO * mSelect = getCurMenuSelectInfo();
-    const int iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
+    const u32 iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
 
-    int start = mSelect->cur_page * mSelect->page_max;
-    int end = start + mSelect->page_max;
+    u32 start = mSelect->cur_page * mSelect->page_max;
+    u32 end = start + mSelect->page_max;
     
     if (end > mSelect->total)
         end = mSelect->total;
@@ -4520,6 +4494,7 @@ void MenuUI::startFormatDevice()
 }
 
 
+#if 0
 int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
 {
     char buf[1024] = {0};
@@ -4655,6 +4630,7 @@ ERROR:
 
     return iErrNo;
 }
+#endif
 
 
 
@@ -4714,10 +4690,10 @@ void MenuUI::dispShowStoragePage(SetStorageItem** storageList)
     struct stStorageItem* pTempStorageItem = NULL;
 
     SELECT_INFO * mSelect = getCurMenuSelectInfo();
-    const int iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
+    const u32 iIndex = getMenuSelectIndex(cur_menu);    /* 选中项的索引值 */
 
-    int start = mSelect->cur_page * mSelect->page_max;
-    int end = start + mSelect->page_max;
+    u32 start = mSelect->cur_page * mSelect->page_max;
+    u32 end = start + mSelect->page_max;
     
     if (end > mSelect->total)
         end = mSelect->total;
@@ -4796,73 +4772,43 @@ void MenuUI::disp_org_rts(Json::Value& jsonCmd, int hdmi)
 {
     int org = 0, rts = 0;
 
-    // Json::FastWriter writer;
-    // string jsonstr = writer.write(jsonCmd);
-    // Log.d(TAG, "[%s: %d] cmd: %s", __FILE__, __LINE__, jsonstr.c_str());
-
     if (jsonCmd.isMember("name")) {
 
         if (!strcmp(jsonCmd["name"].asCString(), "camera._takePicture")) {  /* 拍照 */
-            #if 0
-            if (jsonCmd["parameters"].isMember("origin")) {
-                org = 1;
-            }
-            #else 
             if (checkHaveGpsSignal()) {
                 org = 1;
             } else {
                 org = 0;
             }
-
-            #endif
             if (jsonCmd["parameters"].isMember("stiching")) {
                 rts = 1;      
             }
 
         } else if (!strcmp(jsonCmd["name"].asCString(), "camera._startRecording")) {
-            
-            #if 0
-            if (jsonCmd["parameters"].isMember("origin")) {
-                if (jsonCmd["parameters"]["origin"].isMember("saveOrigin")) {
-                    if (true == jsonCmd["parameters"]["origin"]["saveOrigin"].asBool()) {
-                        org = 1;
-                    }
-                }
-            }
-            #else 
             if (checkHaveGpsSignal()) {
                 org = 1;
             } else {
                 org = 0;
             }
-            #endif
 
             if (jsonCmd["parameters"].isMember("stiching")) {
                 rts = 1;     
             }     
 
         } else if (!strcmp(jsonCmd["name"].asCString(), "camera._startLive")) {
-            #if 0
-            if (jsonCmd["parameters"].isMember("origin")) {
-                if (jsonCmd["parameters"]["origin"].isMember("saveOrigin")) {
-                    if (true == jsonCmd["parameters"]["origin"]["saveOrigin"].asBool()) {
-                        org = 1;
-                    }
-                }
-            }
-            #else
             if (checkHaveGpsSignal()) {
                 org = 1;
             } else {
                 org = 0;
             }
-            #endif
 
-            if (jsonCmd["parameters"]["stiching"].isMember("fileSave")) {
-                if (true == jsonCmd["parameters"]["stiching"]["fileSave"].asBool()) {
-                    rts = 1;
-                }
-            }  
+            if (jsonCmd["parameters"].isMember("stiching")) {
+                if (jsonCmd["parameters"]["stiching"].isMember("fileSave")) {
+                    if (true == jsonCmd["parameters"]["stiching"]["fileSave"].asBool()) {
+                        rts = 1;
+                    }
+                } 
+            } 
         }
 
     } else {
@@ -4949,7 +4895,7 @@ void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
 {
 	ICON_INFO iconInfo = {0};
 
-    Log.d(TAG, "[%s: %d] dispPicVidCfg Current val[%d]", __FILE__, __LINE__, pCfg->iCurVal);
+    Log.d(TAG, "[%s: %d] dispPicVidCfg Current item[%s], val[%d]", __FILE__, __LINE__, pCfg->pItemName, pCfg->iCurVal);
 
     iconInfo.x = pCfg->stPos.xPos;
     iconInfo.y = pCfg->stPos.yPos;
@@ -4961,19 +4907,17 @@ void MenuUI::dispPicVidCfg(PicVideoCfg* pCfg, bool bLight)
         Log.e(TAG, "Can't show bottom Mode!!!!!");
     } else {
         /* 显示图标版本 */
-        #if  1
-        if (bLight) {
-            iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
-        } else {
-            iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
+        if (pCfg->bDispType == true) {  /* 以图标的方式显示 */
+            if (bLight) {
+                iconInfo.dat = pCfg->stLightIcon[pCfg->iCurVal];
+            } else {
+                iconInfo.dat = pCfg->stNorIcon[pCfg->iCurVal];
+            }
+            dispIconByLoc(&iconInfo);
+        } else {    /* 以文件的方式显示 */
+            dispStr((const u8 *)pCfg->pNote, pCfg->stPos.xPos, pCfg->stPos.yPos, bLight, pCfg->stPos.iWidth);
         }
-        dispIconByLoc(&iconInfo);
-        #else    
-        /* 名称: Used/Total - 为了节省绘制空间，单位统一用G */
-        dispStr((const u8 *)pCfg->pNote, pCfg->stPos.xPos, pCfg->stPos.yPos, bLight, pCfg->stPos.iWidth);
-        #endif
     }
-
 }
 
 
@@ -5866,7 +5810,7 @@ bool MenuUI::switchEtherIpMode(int iMode)
 void MenuUI::procSetMenuKeyEvent()
 {
     int iVal = 0;
-    int iItemIndex = getMenuSelectIndex(cur_menu);    /* 得到选中的索引 */
+    u32 iItemIndex = getMenuSelectIndex(cur_menu);    /* 得到选中的索引 */
     struct stSetItem* pCurItem = NULL;
     vector<struct stSetItem*>* pVectorList = static_cast<vector<struct stSetItem*>*>(mMenuInfos[cur_menu].privList);
 
@@ -6020,7 +5964,6 @@ void MenuUI::procSetMenuKeyEvent()
 bool MenuUI::checkIsTakeTimelpaseInCustomer()
 {
     Json::Value* picJsonCmd = NULL;
-    Json::FastWriter writer;
     string cmd;
 
     if (true == mClientTakePicUpdate) {     /* 客户端控制拍照(非timelapse) */
@@ -7872,16 +7815,14 @@ int MenuUI::oled_disp_type(int type)
         case START_LIVE_SUC: {  /* 启动直播成功，可能是重连成功 */
             Log.e(TAG, "---> START_LIVE_SUC, Current Server State 0x%x", serverState);
             vm->incOrClearLiveRecSec(true);     /* 重置已经录像的时间为0 */
-            set_update_mid(INTERVAL_0HZ);
-
             #if 0
             if (cur_menu != MENU_LIVE_INFO) {
                 setCurMenu(MENU_LIVE_INFO);
             }
             #else 
             setCurMenu(MENU_LIVE_INFO);         /* 确保屏幕进入直播状态，客户端发起直播存片时，剩余时间为0 */
+            set_update_mid(INTERVAL_0HZ);
             #endif
-
             break;
         }
 
@@ -8606,7 +8547,7 @@ void MenuUI::setTakePicDelay(int iDelay)
 const char* MenuUI::getPicVidCfgNameByIndex(vector<struct stPicVideoCfg*>& mList, int iIndex)
 {
 
-    if (iIndex > mList.size() - 1) {
+    if ((u32)iIndex > mList.size() - 1) {
         Log.e(TAG, "[%s: %d] Invalid Index[%d], please check", __FILE__, __LINE__, iIndex);
     } else {
         struct stPicVideoCfg* pTmpCfg = mList.at(iIndex);
@@ -9509,7 +9450,8 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
         mAutoShutdownFlag = false;      
         mShutdownTick = 0;
     }
-    #endif
+
+    #endif  /* ENABLE_ADAPTER_REMOVE_SHUTDOWN */
 
 
     mBatInterface->read_tmp(&dInterTmp, &dExternTmp);

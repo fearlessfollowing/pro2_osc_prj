@@ -12,6 +12,7 @@
 ** 修改记录:
 ** V1.0			Skymixos		2018-07-15		创建文件，添加注释
 ** V2.0         Skymixos        2018-10-18      增加模组上电是否成功检测
+** V2.1         Skymixos        2018-11-06      增加版本号
 ******************************************************************************************************/
 #include <common/include_common.h>
 #include <common/sp.h>
@@ -55,6 +56,8 @@ enum {
 
 #define HUB1_SYS_PATH 	"/sys/class/gpio/gpio457"
 #define HUB2_SYS_PATH 	"/sys/class/gpio/gpio461"
+
+#define PWR_MANGER_VER  "V1.0.7"
 
 #undef  TAG 
 #define TAG "PowerManager"
@@ -442,6 +445,10 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+    const char* pVer = property_get(PROP_PWR_VER);
+    if (!pVer) {
+        property_set(PROP_PWR_VER, PWR_MANGER_VER);
+    }
 
 	pHubRestProp = property_get(PROP_HUB_RESET_INTERVAL);
 	if (pHubRestProp == NULL) {

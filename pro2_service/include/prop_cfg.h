@@ -1,17 +1,8 @@
-/*
- * pro_cfg.h
- *
- *  Created on: 2018年6月6日
- *      Author: root
- */
-
-#ifndef PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_
-#define PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_
+#ifndef _PROP_CFG_H_
+#define _PROP_CFG_H_
 
 
 #define WIFI_TMP_AP_CONFIG_FILE				"home/nvidia/insta360/etc/.wifi_ap.conf"
-
-
 #define ETH0_NAME       					"eth0"
 #define DEFAULT_ETH0_IP 					"192.168.1.188"
 
@@ -29,48 +20,44 @@
 /*
  * 系统使用的属性
  */
-#define PROP_SYS_AP_SSID			"sys.wifi_ssid"
-#define PROP_SYS_AP_PESUDO_SN		"sys.wifi_pesu_sn"
-#define PROP_SYS_AP_PASSWD			"sys.wifi_passwd"
-#define PROP_SYS_AP_MODE			"sys.wifi_mode"
-#define PROP_SYS_AP_CHANNEL			"sys.wifi_channel"
-#define PROP_WIFI_DRV_EXIST         "sys.wifi_driver"
-#define PROP_WIFI_AP_STATE          "sys.wifi_ap_state"
+#define PROP_SYS_AP_SSID			    "sys.wifi_ssid"
+#define PROP_SYS_AP_PESUDO_SN		    "sys.wifi_pesu_sn"
+#define PROP_SYS_AP_PASSWD			    "sys.wifi_passwd"
+#define PROP_SYS_AP_MODE			    "sys.wifi_mode"
+#define PROP_SYS_AP_CHANNEL			    "sys.wifi_channel"
+#define PROP_WIFI_DRV_EXIST             "sys.wifi_driver"
+#define PROP_WIFI_AP_STATE              "sys.wifi_ap_state"
 
-#define PROP_SYS_FIRM_VER 			"sys.firm_ver"			/*  */
-#define PROP_SYS_IMAGE_VER 			"sys.img_ver"
-#define PROP_UC_START_UPDATE 		"sys.uc_update_app"
-#define PROP_UC_START_APP 			"sys.uc_start_app"
+#define PROP_SYS_FIRM_VER 			    "sys.firm_ver"			
+#define PROP_SYS_IMAGE_VER 			    "sys.img_ver"
+#define PROP_UC_START_UPDATE 		    "sys.uc_update_app"
+#define PROP_UC_START_APP 			    "sys.uc_start_app"
 
-#define PROP_RO_MOUNT_TF            "sys.tf_mount_ro"
+#define PROP_RO_MOUNT_TF                "sys.tf_mount_ro"
 
-#define PROP_CAN_ENTER_UDISK        "sys.can_enter_udisk"
+#define PROP_CAN_ENTER_UDISK            "sys.can_enter_udisk"
 
 /*
  * 模组的数组/TF卡的数目
  */
-#define PROP_REMOTE_TF_NUM          "sys.tf_num"
+#define PROP_REMOTE_TF_NUM              "sys.tf_num"
 
-#define PROP_SYS_UPDATE_IMG_PATH	"update_image_path"
+#define PROP_SYS_UPDATE_IMG_PATH	    "update_image_path"
 
-#define PROP_SYS_UPDTATE_DIR        "sys.update_dir"
+#define PROP_SYS_UPDTATE_DIR            "sys.update_dir"
 
 /** update_check service version prop */
-#define PROP_SYS_UC_VER 			"sys.uc_ver"
 
-#define PROP_SYS_UA_VER 			"sys.ua_ver"
-#define PROP_PRO2_VER               "sys.pro2_ver"
+#define PROP_PWR_FIRST      	        "sys.hub_reset_first"
+#define PROP_KEY_RESPRATE               "sys.key_resprate"
+#define PROP_SKIP_SPEED_TEST            "sys.skip_speed_test"
 
-#define PROP_PWR_FIRST      	    "sys.hub_reset_first"
-#define PROP_KEY_RESPRATE           "sys.key_resprate"
-#define PROP_SKIP_SPEED_TEST        "sys.skip_speed_test"
-
-#define PROP_CAM_STATE              "sys.cam_state"
+#define PROP_CAM_STATE                  "sys.cam_state"
 
 
-#define PROP_PREVIEW_MODE           "sys.preview_mode"
+#define PROP_PREVIEW_MODE               "sys.preview_mode"
 
-#define PROP_SPEED_TEST_COMP_FLAG   "sys.speed_test_comp_flag"
+#define PROP_SPEED_TEST_COMP_FLAG       "sys.speed_test_comp_flag"
 
 #define PROP_LOG_FILE_PATH_BASE         "sys.log_path"
 #define DEFAULT_LOG_FILE_PATH_BASE      "/home/nvidia/insta360/log"
@@ -127,12 +114,6 @@
 
 #define SYS_SN_PATH                 "/home/nvidia/insta360/etc/sn"
 
-
-#if 0
-const char *rom_ver_file = "/home/nvidia/insta360/etc/pro_version";
-const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
-#endif
-
 #define JSON_CFG_FILE_PATH          "/home/nvidia/insta360/etc/"
 
 /* 
@@ -188,6 +169,11 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define TAKE_LIVE_MODE_4K_30F_HDMI       "live_4k_30f_hdmi"
 #define TAKE_LIVE_MODE_4K_30F_3D         "live_4k_3d"
 #define TAKE_LIVE_MODE_4K_30F_3D_HDMI    "live_4k_3d_hdmi"
+
+#ifdef ENABLE_LIVE_ORG_MODE
+#define TAKE_LIVE_MODE_ORIGIN           "live_origin_mode"
+#endif
+
 #define TAKE_LIVE_MODE_CUSTOMER          "live_customer"
 
 
@@ -204,6 +190,18 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 
 
 #define TAKE_VID_MOD_CUSTOMER           "vid_customer"
+
+/*
+ * 各应用版本
+ */
+
+/** Power Manager版本 */
+#define PROP_PWR_VER                    "sys.pm_ver"
+#define PROP_SYS_UC_VER 			    "sys.uc_ver"
+#define PROP_SYS_UA_VER 			    "sys.ua_ver"
+#define PROP_PRO2_VER                   "sys.pro2_ver"
+
+
 
 /*
  * 各设置项的名称 MENU_INFO
@@ -255,8 +253,6 @@ const char *build_ver_file = "/home/nvidia/insta360/etc/pro_build_version";
 #define SET_ITEM_NAME_AEB7          "aeb7"
 #define SET_ITEM_NAME_AEB9          "aeb9"
 
-
-
 #define SYS_TF_COUNT_NUM            6
 
-#endif /* PRO2_OSC_CODE_CODE_CORE_INCLUDE_PROP_CFG_H_ */
+#endif /* _PROP_CFG_H_ */

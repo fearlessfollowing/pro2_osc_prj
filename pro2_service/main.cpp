@@ -48,7 +48,7 @@ void init_fifo();
 void debug_version_info();
 
 
-#define PRO2_VER    "V1.0.4"
+#define PRO2_VER    "V1.0.7_r"
 
 
 int main(int argc ,char *argv[])
@@ -61,7 +61,6 @@ int main(int argc ,char *argv[])
 	
     signal(SIGPIPE, pipe_signal_handler);
 
-    // arlog_configure(true, true, PRO2_SERVICE_LOG_PATH, false);
     logWrapperInit("p_log", 0, 0);
 
     iRet = __system_properties_init();	/* 属性区域初始化 */

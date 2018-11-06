@@ -762,103 +762,69 @@ void oled_module::ssd1306_disp_16_str(const u8 *str,const u8 x, const u8 y, bool
     u8 col_start = x;
     u8 col_limit = COL_MAX;
 
-
-    if(width > 0)
-    {
+    if (width > 0) {
         col_limit = ((x + width) < COL_MAX )? (x + width):COL_MAX;
     }
-    if (y + char_h > ROW_MAX )
-    {
+    
+    if (y + char_h > ROW_MAX ) {
         Log.d(TAG,"page %d exceed %d\n",y + char_h,ROW_MAX);
-#ifdef ENABLE_ABORT
-        abort();
-#else
         return;
-#endif
     }
 
     sp<CHAR_INFO> mCharInfo = sp<CHAR_INFO>(new CHAR_INFO());
     get_page_info_convert(y,char_h,mPageInfo);
 
-//    Log.d(TAG,"str is %s len %d x %d y %d col_start %d "
-//                  "col_limit %d width %d bHigh %d\n",
-//          str, len,x, y, col_start,col_limit, width,bHigh);
-//    Log.d(TAG,"x %d w %d col_limit %d str %s",x,width,col_limit,str);
     if ( mPageInfo->delta_y != 0) {
         DAT_TYPE ucMid = 0;
         for (u8 i = 0; i < len ; i++) {
             get_char_info(str[i], mCharInfo, bHigh);
             if ((col_start + mCharInfo->char_w) <= col_limit) {
-                for (u8 j = 0; j < mCharInfo->char_w; j++)
-                {
+                for (u8 j = 0; j < mCharInfo->char_w; j++) {
                     ucMid = 0;
-                    for (u8 page = 0; page < mPageInfo->dat_page_num; page++)
-                    {
+                    for (u8 page = 0; page < mPageInfo->dat_page_num; page++) {
                         ucMid |= mCharInfo->pucChar[page * mCharInfo->char_w + j] << (8 * page);
                     }
                     set_buf_by_page_info(col_start,ucMid,mPageInfo);
                     col_start++;
                 }
-            }
-            else
-            {
-                Log.d(TAG,"***exceed %d\n",
-                       col_start + mCharInfo->char_w);
+            } else {
+                Log.d(TAG,"***exceed %d\n", col_start + mCharInfo->char_w);
                 goto EXIT;
             }
         }
-        // fill dat if need,use width nor col_limit for width might be zero
-        if(width > 0 && (col_start - x) < col_limit)
-        {
+
+        if (width > 0 && (col_start - x) < col_limit) {
             u8 f_dat = fill_dat[bHigh];
-//            Log.d(TAG,"c 0x%x\n",f_dat);
-            while(col_start < col_limit)
-            {
+            while (col_start < col_limit) {
                 ucMid = 0;
-                for (u8 page = 0; page < mPageInfo->dat_page_num; page++)
-                {
+                for (u8 page = 0; page < mPageInfo->dat_page_num; page++) {
                     ucMid |= f_dat << (8 * page);
                 }
                 set_buf_by_page_info(col_start,ucMid,mPageInfo);
                 col_start++;
             }
         }
-    }
-    else
-    {
-        for(u8 i = 0; i < len; i++)
-        {
-            if((col_start + mCharInfo->char_w) <= col_limit)
-            {
+    } else {
+        for (u8 i = 0; i < len; i++) {
+            if ((col_start + mCharInfo->char_w) <= col_limit) {
                 get_char_info(str[i],mCharInfo,bHigh);
-                for(u8 page = 0; page < mPageInfo->page_num; page++)
-                {
+                for (u8 page = 0; page < mPageInfo->page_num; page++) {
                     set_buf(col_start,(mPageInfo->page_start + page),
                             (const u8 *)&mCharInfo->pucChar[page * mCharInfo->char_w],mCharInfo->char_w);
                 }
                 col_start += mCharInfo->char_w;
-            }
-            else
-            {
+            } else {
                 Log.d(TAG,"!!!exceed %d\n",col_start + mCharInfo->char_w);
                 goto EXIT;
             }
         }
-//        Log.d(TAG,"col_start is %d x %d col_limit %d", col_start,x,col_limit);
-        // fill dat if need use width nor col_limit for width might be zero
+
         if (width > 0 && (col_start - x) < col_limit) {
-//            Log.d(TAG," fill dat 0x%x col_start %d col_limit %d"
-//                          " mPageInfo->page_start %d mPageInfo->page_num %d",
-//                  fill_dat[bHigh], col_start,col_limit, mPageInfo->page_start,
-//                  mPageInfo->page_num);
-            // use col_limit not width for width + x may exceed COL_MAX
-            set_buf(fill_dat[bHigh],col_start,mPageInfo->page_start,
-                    col_limit - col_start,mPageInfo->page_num);
+            set_buf(fill_dat[bHigh],col_start,mPageInfo->page_start, col_limit - col_start,mPageInfo->page_num);
             col_start = col_limit;
         }
     }
 EXIT:
-//    Log.d(TAG,"disp x %d w %d",x,col_start -x );
     disp_dat(x, mPageInfo->page_start, col_start - x ,mPageInfo->page_num);
 }
 
