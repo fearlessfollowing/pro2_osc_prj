@@ -238,6 +238,7 @@
 #define SET_ITEM_NAME_TESTSPEED     "test_speed"
 
 
+#define SET_ITEM_NAME_OFF           "OFF"
 #define SET_ITEM_NAME_3S            "3S"
 #define SET_ITEM_NAME_5S            "5S"
 #define SET_ITEM_NAME_10S           "10S"

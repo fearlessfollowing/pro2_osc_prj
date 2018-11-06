@@ -104,6 +104,7 @@ COM_FLAGS += ' -DENABLE_USE_NEW_CALC_MODE '
 # 使能文件变化监听
 COM_FLAGS += ' -DENABLE_FILE_CHANGE_MONITOR '
 
+
 # 使能调试hostapd
 COM_FLAGS += ' -DENABLE_DEBUG_HOSTAPD '
 
@@ -134,6 +135,10 @@ COM_FLAGS +=  ' -DENABLE_VOLUME_MANAGER_USE_NETLINK '
 # LIVE ORGIN模式
 # 临时测试
 # COM_FLAGS += ' -DENABLE_LIVE_ORG_MODE '
+
+# 机身Photo Delay 0s
+# COM_FLAGS += ' -DENABLE_PHOTO_DELAY_OFF '
+
 
 #
 # 使能拔掉电源适配器后自动停止录像，关机

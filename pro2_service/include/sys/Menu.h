@@ -402,7 +402,7 @@ static MENU_INFO mMenuInfos[] = {
      */
     {
         MENU_SYS_SETTING,
-        {-1 ,0, 0, 8, 3, 3},
+        {-1 ,0, 0, 9, 3, 3},
         {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
         MENU_SET_PHOTO_DEALY,
         NULL,

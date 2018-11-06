@@ -7457,7 +7457,12 @@ bool MenuUI::syncQueryTfCard()
 
 int MenuUI::convCapDelay2Index(int iDelay) 
 {
+#ifdef ENABLE_PHOTO_DELAY_OFF    
+    int iDelayArray[] = {0, 3, 5, 10, 20, 30, 40, 50, 60};
+#else 
     int iDelayArray[] = {3, 5, 10, 20, 30, 40, 50, 60};
+#endif    
+
     int iSize = sizeof(iDelayArray) / sizeof(iDelayArray[0]);
     int iIndex = 0;
     for (iIndex = 0; iIndex < iSize; iIndex++) {
@@ -7475,7 +7480,12 @@ int MenuUI::convCapDelay2Index(int iDelay)
 
 int MenuUI::convIndex2CapDelay(int iIndex)
 {
+#ifdef ENABLE_PHOTO_DELAY_OFF    
+    int iDelayArray[] = {0, 3, 5, 10, 20, 30, 40, 50, 60};
+#else 
     int iDelayArray[] = {3, 5, 10, 20, 30, 40, 50, 60};
+#endif
+
     int iSize = sizeof(iDelayArray) / sizeof(iDelayArray[0]);
 
     if (iIndex < 0 || iIndex > iSize - 1) {
@@ -7503,8 +7513,6 @@ int MenuUI::convAebNumber2Index(int iAebNum)
     } else {
         return 1;   /* 默认返回5s */
     }
-
-
 }
 
 int MenuUI::convIndex2AebNum(int iIndex)
