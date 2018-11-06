@@ -832,14 +832,17 @@ class control_center:
 
 
     def camera_get_options(self, req, from_ui = False):
+        Info('[---------- APP Request: camera_get_options ----] req {}'.format(req))
         read_info = self.write_and_read(req)
         return read_info
 
     def camera_set_image_param(self, req, from_ui = False):
+        Info('[---------- APP Request: camera_set_image_param ----] req {}'.format(req))
         read_info = self.write_and_read(req)
         return read_info
 
     def camera_get_image_param(self, req, from_ui = False):
+        Info('[---------- APP Request: camera_get_image_param ----] req {}'.format(req))
         read_info = self.write_and_read(req)
         return read_info
 
@@ -908,9 +911,9 @@ class control_center:
         self.sync_init_info_to_p(res)
 
     def camera_query_state(self, req, from_ui = False):
+
         read_info = self.write_and_read(req)
         return read_info
-
 
     def camera_set_time_change_fail(self,err = -1):
         Info('sys time change fail')
@@ -1402,10 +1405,12 @@ class control_center:
 
 
     def get_offset(self, req, from_ui = False):
+        Info('[------- APP Req: get_offset ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
         return read_info
 
     def set_offset(self, req, from_ui = False):
+        Info('[------- APP Req: set_offset ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
         return read_info
 
@@ -1419,17 +1424,19 @@ class control_center:
         return read_info
 
     def camera_get_ntsc_pal(self, req, from_ui = False):
+        Info('[------- APP Req: camera_get_ntsc_pal ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
         return read_info
 
     def camera_set_ntsc_pal(self, req, from_ui = False):
+        Info('[------- APP Req: camera_set_ntsc_pal ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
         return read_info
 
     def set_storage_path(self, req, from_ui = False):
+        Info('[------- APP Req: set_storage_path ------] req: {}'.format(req))                
         read_info = self.write_and_read(req)
         return read_info
-
 
     def camera_take_pic_done(self,req = None):
         Info('camera_take_pic_done')
@@ -3949,13 +3956,11 @@ class control_center:
     def osc_path_execute(self,path,fp):
         try:
             if self.get_connect():
-                # Info('osc_path_execute path {}'.format(path))
                 if self.check_fp(fp):
                     ret = self.osc_path_func[path]()
                 else:
                     Err('error fingerprint fp {} path {}'.format(fp, path))
-                    ret = cmd_exception(
-                        error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
+                    ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
             elif self.get_stitch_mode():
                 Info('stich get osc path {}'.format(path))
                 ret = self.osc_stitch_path_func[path]()
@@ -3963,18 +3968,14 @@ class control_center:
                 Err('camera not connected path {}'.format(path))
                 ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
         except Exception as e:
-            Err('osc_path_execute Exception is {} path {}'.format(e,path))
+            Err('osc_path_execute Exception is {} path {}'.format(e, path))
             ret = cmd_exception(error_dic('osc_path_execute', str(e)), path)
         return ret
 
     def start_camera_cmd_func(self, name, req, from_ui = False):
-        Info('start_camera_cmd_func name {}'.format(name))
         self.acquire_sem_camera()
-        Info('start_camera_cmd_func name2 {}'.format(name))
         try:
-            # Info('start_camera_cmd_func name {}'.format(name))
             ret = self.camera_cmd_func[name](req)
-            # Info('2start_camera_cmd_func name {}'.format(name))
         except AssertionError as e:
             Err('start_camera_cmd_func AssertionError e {}'.format(str(e)))
             ret = cmd_exception(error_dic('start_camera_cmd_func AssertionError', str(e)), req)
@@ -3983,7 +3984,6 @@ class control_center:
             ret = cmd_exception(e,name)
         self.release_sem_camera()
 
-        Info('start_camera_cmd_func name3 {}'.format(name))
         return ret
 
     def com_cmd_func(self, req):
@@ -4012,7 +4012,7 @@ class control_center:
             Info('osc_cmd_execute req name {} self.get_connect() {}'.format(name, self.get_connect()))
             if name == config._CONNECT:
                 if self.get_connect():
-                    ret = cmd_exception(error_dic('connect error', 'already connected by another'),name)
+                    ret = cmd_exception(error_dic('connect error', 'already connected by another'), name)
                 elif self.get_stitch_mode():
                     ret = cmd_exception(error_dic('connect error', 'camera is stitch mode'), name)
                 else:
@@ -4033,14 +4033,13 @@ class control_center:
                         Err('error fingerprint fp {} req {}'.format(fp, req))
                         if fp is None:
                             fp = 'none'
-                        ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])),req)
+                        ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), req)
                 else:
                     Err('camera not connected req {}'.format(req))
-                    ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), req)
+                    ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), name)
         except Exception as e:
             Err('osc_cmd_exectue exception e {} req {}'.format(e,req))
-            ret = cmd_exception(str(e),name)
-        # Info('2osc_cmd_execute req {} self.get_connect() {}'.format(req, self.get_connect()))
+            ret = cmd_exception(str(e), name)
         return ret
 
 

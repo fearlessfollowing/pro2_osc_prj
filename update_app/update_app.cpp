@@ -733,7 +733,6 @@ static int pro2Updatecheck(const char* pUpdateFileDir)
 
 #define INSTALL_SAMBA_CMD	"/usr/local/bin/install_samba.sh"
 
-
 static void installVm()
 {
 	mkdir("/swap", 0766);

@@ -2359,8 +2359,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                 pTakeLiveJson = pTmpPicVidCfg->jsonCmd.get();
                 Log.d(TAG, "[%s: %d] Take Live mode [%s]", __FILE__, __LINE__, pTmpPicVidCfg->pItemName);
 
-
-                #ifdef ENABLE_LIVE_ORG_MODE
+#ifdef ENABLE_LIVE_ORG_MODE
                 VolumeManager* vm = VolumeManager::Instance();
                 Json::Reader reader;
                 Json::Value tmpCfg;
@@ -2387,7 +2386,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                         Log.d(TAG, "----> Local Volume Not Exist, Use default live arguments");
                     }
                 }
-                #endif
+#endif  /* ENABLE_LIVE_ORG_MODE */
 
                 
                 if (pTakeLiveJson) {
@@ -2477,6 +2476,7 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
         }
 
         case ACTION_SET_OPTION: {
+            
             switch (cmd) {
 
                 case OPTION_FLICKER: {
@@ -2487,7 +2487,6 @@ bool MenuUI::sendRpc(int option, int cmd, Json::Value* pNodeArg)
                     param["value"] = mProCfg->get_val(KEY_PAL_NTSC);
                     root["name"] = "camera._setOptions";
                     root["parameters"] = param;
-
                     return pm->sendSetOptionsReq(root);
                 }
 
