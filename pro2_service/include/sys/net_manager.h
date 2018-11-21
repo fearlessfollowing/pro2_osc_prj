@@ -169,13 +169,6 @@ public:
 
     void getIpByDhcp();
 
-    void flushDhcpAddr();
-
-    bool isCachedDhcpAddr();
-
-    const char* getCachedDhcpAddr();
-    void setCachedDhcpAddr(const char* ipAddr);
-
     int getNetDevType();
 	
 	int getCurGetIpMode();
@@ -202,7 +195,6 @@ private:
     char            mCurIpAddr[IP_ADDR_STR_LEN];
     char            mSaveIpAddr[IP_ADDR_STR_LEN];
     char            mCachedDhcpAddr[IP_ADDR_STR_LEN];    /* Saved DHCP Ipaddr */
-    bool            mHaveCachedDhcp;
 	int 			iGetIpMode; 		/* 1 = DHCP, 0 = Static */
 
     std::string     mDevName;
@@ -259,9 +251,9 @@ public:
 
     int getSysNetdevCnt();
 
-    sp<NetDev>& getNetDevByname(const char* devName);
+    sp<NetDev> getNetDevByname(const char* devName);
 
-    sp<NetDev>& getNetDevByType(int iType);
+    sp<NetDev> getNetDevByType(int iType);
 
 	sp<ARMessage> obtainMessage(uint32_t what);
 
@@ -301,8 +293,7 @@ private:
 
 	void sendNetPollMsg(int iPollInterval = 1);
 
-    int 					mState;
-	bool 					mExit;
+	bool 					mExit   = false;
 
 	sp<ARLooper> 			mLooper;
     sp<ARHandler> 			mHandler;

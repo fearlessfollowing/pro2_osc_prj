@@ -34,6 +34,8 @@
 #include <thread>
 #include <vector>
 
+#include <log/log_wrapper.h>
+
 #include <prop_cfg.h>
 
 #include <hw/MenuUI.h>
@@ -55,45 +57,29 @@ int main(int argc ,char *argv[])
 {
     int iRet = 0;
 
-    debug_version_info();
-
-    registerSig(default_signal_handler);
-	
+    registerSig(default_signal_handler);	
     signal(SIGPIPE, pipe_signal_handler);
-
-    logWrapperInit("p_log", 0, 0);
 
     iRet = __system_properties_init();	/* 属性区域初始化 */
     if (iRet) {
-        Log.e(TAG, "pro_service service exit: __system_properties_init() faile, ret = %d", iRet);
+        fprintf(stderr, "pro_service service exit: __system_properties_init() faile, ret = %d", iRet);
         return -1;
     }
 
+    LogWrapper::init("/home/nvidia/insta360/log", "p_log", true);
+
+
     property_set(PROP_PRO2_VER, PRO2_VER);
 
-    Log.d(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
+    LOGDBG(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
 
-#if 1
     init_fifo();
     start_all();
-
-#else 
-    MidProtoManager* pm = MidProtoManager::Instance();
-    sp<MenuUI> mu = (sp<MenuUI>)(new MenuUI());
-    if (pm) {
-        pm->setRecvUi(mu);
-        pm->start();
-    }
-    if (mu) {
-        mu->start();
-    }
-#endif
 
     while (1) {
         msg_util::sleep_ms(5*1000);
     }
 
-    Log.d(TAG, "main pro over");
-    
-    logWrapperDeInit();
+    LOGDBG(TAG, "------- Pro2 Service Exit now --------------");
+    return 0;
 }

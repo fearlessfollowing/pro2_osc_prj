@@ -1,5 +1,5 @@
-#ifndef PROJECT_OLED_WRAPPER_H
-#define PROJECT_OLED_WRAPPER_H
+#ifndef _MENU_UI_H_
+#define _MENU_UI_H_
 
 #include <thread>
 #include <vector>
@@ -14,7 +14,7 @@
 
 #include <sys/VolumeManager.h>
 
-#include <sys/Menu.h>
+// #include <sys/Menu.h>
 
 
 
@@ -468,7 +468,7 @@ struct stSetItem;
 struct stPicVideoCfg;
 struct stStorageItem;
 struct stIconPos;
-
+struct _menu_info_;
 class InputManager;
 
 class MenuUI {
@@ -860,7 +860,7 @@ private:
     int     getCurMenuLastSelectIndex();    
     void    updateMenu();
     void    setCurMenu(int menu,int back_menu = -1);
-    void    cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
+    void    cfgPicVidLiveSelectMode(struct _menu_info_ * pParentMenu, std::vector<struct stPicVideoCfg*>& pItemLists);
 
     bool    isQueryTfMenuShowLeftSpace();
  
@@ -908,8 +908,8 @@ private:
     void    dispSetItem(struct stSetItem* pItem, bool iSelected);
     void    procSetMenuKeyEvent();
     void    setMenuCfgInit();
-    void    setSysMenuInit(MENU_INFO* pParentMenu, struct stSetItem** pSetItems);
-    void    setCommonMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists, struct stSetItem** pSetItems, struct stIconPos* pIconPos);    
+    void    setSysMenuInit(struct _menu_info_ * pParentMenu, struct stSetItem** pSetItems);
+    void    setCommonMenuInit(struct _menu_info_ * pParentMenu, std::vector<struct stSetItem*>& pItemLists, struct stSetItem** pSetItems, struct stIconPos* pIconPos);    
     void    updateMenuPage();
     void    updateInnerSetPage(std::vector<struct stSetItem*>& setItemList, bool bUpdateLast);    
     void    dispSettingPage(std::vector<struct stSetItem*>& setItemsList);
@@ -923,12 +923,12 @@ private:
     void    dispShowStoragePage(struct stStorageItem** storageList);
 
 
-    void    volumeItemInit(MENU_INFO* pMenuInfo, std::vector<Volume*>& mVolumeList);
+    void    volumeItemInit(struct _menu_info_ * pMenuInfo, std::vector<Volume*>& mVolumeList);
     void    getShowStorageInfo();
 
     void    updateInnerStoragePage(struct stStorageItem** pItemList, bool bUpdateLast);
 
-    void    setStorageMenuInit(MENU_INFO* pParentMenu, std::vector<struct stSetItem*>& pItemLists);
+    void    setStorageMenuInit(struct _menu_info_ * pParentMenu, std::vector<struct stSetItem*>& pItemLists);
     void    updateBottomMode(bool bLight);
 
     /* 显示底部的规格模式 */
@@ -1177,7 +1177,7 @@ private:
 	/*
 	 * 菜单管理相关 MENU_INFO stPicVideoCfg
 	 */
-	std::vector<sp<MENU_INFO>>          mMenuLists;
+	std::vector<sp<struct _menu_info_>>          mMenuLists;
     std::vector<struct stSetItem*>      mSetItemsList;
     std::vector<struct stSetItem*>      mPhotoDelayList;
     std::vector<struct stSetItem*>      mAebList;
@@ -1190,4 +1190,4 @@ private:
     std::vector<struct stPicVideoCfg*>  mLiveAllItemsList;
 };
 
-#endif //PROJECT_OLED_WRAPPER_H
+#endif  /* _MENU_UI_H_ */

@@ -16,8 +16,7 @@
 #include <hw/battery_interface.h>
 #include <hw/ins_i2c.h>
 
-using namespace std;
-
+#include <log/log_wrapper.h>
 
 #define OLD_BAT
 
@@ -54,8 +53,8 @@ enum {
 };
 
 
-#undef TAG
-#define TAG	"battery_interface"
+#undef  TAG
+#define TAG	"HwBattery"
 
 
 #define MIN_DEG 		(-40.00)
@@ -101,12 +100,12 @@ static double convert_k_to_c(int16 k)
     tmp = (tmp / 10 - 273.15);
 	
 #ifdef DEBUG_BATTERY    
-    Log.d(TAG, "org tmp %f", tmp);
+    LOGDBG(TAG, "org tmp %f", tmp);
 #endif
     tmp = ((double)((int)( (tmp + 0.005) * 100))) / 100;
 
 #ifdef DEBUG_BATTERY    
-	Log.d(TAG, "new org tmp %f", tmp);
+	LOGDBG(TAG, "new org tmp %f", tmp);
 #endif
 
 	return tmp;
@@ -116,7 +115,7 @@ bool abs_large(u16 first ,u16 second, u16 d_val)
 {
     bool bRet = false;
     if (abs(first - second) > d_val) {
-        Log.d(TAG, "battery jump from %d to %d", first, second);
+        LOGDBG(TAG, "battery jump from %d to %d", first, second);
         bRet = true;
     }
     return bRet;
@@ -149,27 +148,6 @@ void battery_interface::test_read_all()
 void battery_interface::init()
 {
 	mI2C = sp<ins_i2c>(new ins_i2c(BATTERY_I2C_BUS, BATTERY_I2C_SLAVE_ADDR));
-
-#if 0
-	read_FullChargeCapacity_mAh(&full_capacity);
-	if (full_capacity == 0) {
-		Log.d(TAG,"no bat booting");
-	} else {
-		Log.d(TAG,"full_capacity %d",full_capacity);
-	}
-
-    u8 val = 0;
-    for (u8 i = 0; i <= 0x61; i++) {
-        if (mI2C->i2c_read(i, &val, 1) == 0) {
-            printf("0x%x ",val);
-        }
-		
-        if ((i + 1) % 16 == 0) {
-            printf("\n");
-        }
-    }
-#endif
-
 }
 
 void battery_interface::deinit()
@@ -189,10 +167,10 @@ int battery_interface::is_enough(u16 req)
             if (val >= req) {
                 good_times++;
             } else {
-                Log.e(TAG, "bat less level(%d %d)", val, req);
+                LOGERR(TAG, "bat less level(%d %d)", val, req);
             }
         } else {
-            Log.e(TAG, "is_enough read error good_times %d", good_times);
+            LOGERR(TAG, "is_enough read error good_times %d", good_times);
             break;
         }
     }
@@ -200,7 +178,7 @@ int battery_interface::is_enough(u16 req)
     if (good_times >= (max_times - 1)) {
         ret = 0;
     } else {
-        Log.e(TAG,"bat less than %d",req);
+        LOGERR(TAG, "bat less than %d", req);
     }
 
     return ret;
@@ -221,12 +199,13 @@ int battery_interface::read_value(int type, u16 *val)
     int ret = -1;
     u8 high = 0;
     u8 low = 0;
+
     if (mI2C->i2c_read(reg_arr[type][0], (u8*)&low, 1) == 0 &&
-       mI2C->i2c_read(reg_arr[type][1], (u8*)&high, 1) == 0) {
+        mI2C->i2c_read(reg_arr[type][1], (u8*)&high, 1) == 0) {
         *val = (u16)(high << 8 | low);
         ret = 0;
     } else {
-        Log.e(TAG, "battery read_u error type %d", type);
+        LOGERR(TAG, "battery read_u error type %d", type);
         *val = 0;
     }
     return ret;
@@ -238,11 +217,11 @@ int battery_interface::read_value(int type, int16 *val)
     u8 high = 0;
     u8 low = 0;
     if (mI2C->i2c_read(reg_arr[type][0], (u8*)&low,1) == 0 &&
-       mI2C->i2c_read(reg_arr[type][1],(u8*)&high,1) == 0) {
+        mI2C->i2c_read(reg_arr[type][1],(u8*)&high,1) == 0) {
         *val = (int16)(high << 8 | low);
         ret = 0;
     } else {
-		// Log.e(TAG, "battery read_i error type %d", type);
+		// LOGERR(TAG, "battery read_i error type %d", type);
         *val = 0;
     }
     return ret;
@@ -261,17 +240,17 @@ int battery_interface::read_tmp(double *int_tmp,double *tmp)
         if (ret == 0) {
 
 #ifdef DEBUG_BATTERY    
-			Log.d(TAG, "read tmp *val 0x%x %d", val, val);
+			LOGDBG(TAG, "read tmp *val 0x%x %d", val, val);
 #endif
             deg = convert_k_to_c(val);
             if (deg >= MIN_DEG && deg < MAX_DEG) {
                 *tmp = deg;
                 break;
             } else {
-                Log.e(TAG, "read tmp exceed deg %.2f", deg);
+                LOGERR(TAG, "read tmp exceed deg %.2f", deg);
             }
         } else {
-            // Log.e(TAG, "read tmp error");
+            // LOGERR(TAG, "read tmp error");
             goto EXIT;
         }
         msg_util::sleep_ms(10);
@@ -282,18 +261,18 @@ int battery_interface::read_tmp(double *int_tmp,double *tmp)
         if (ret == 0) {
 
 #ifdef DEBUG_BATTERY    			
-            Log.d(TAG, "read internal tmp *val 0x%x %d", val, val);
+            LOGDBG(TAG, "read internal tmp *val 0x%x %d", val, val);
 #endif
             deg = convert_k_to_c(val);
             if (deg >= MIN_DEG && deg < MAX_DEG) {
                 *int_tmp = deg;
                 break;
             } else {
-                Log.e(TAG, "read int_tmp exceed deg %.2f", deg);
+                LOGERR(TAG, "read int_tmp exceed deg %.2f", deg);
                 msg_util::sleep_ms(10);
             }
         } else {
-            Log.d(TAG, "read internal tmp error");
+            LOGDBG(TAG, "read internal tmp error");
             goto EXIT;
         }
     }
@@ -318,7 +297,7 @@ int battery_interface::read_charge(bool *bCharge)
             *bCharge = false;
         }
         bSuc = true;
-//        Log.d(TAG,"2read_charge "
+//        LOGDBG(TAG,"2read_charge "
 //                      "*val 0x%x %d",
 //              val,val);
     }
@@ -336,7 +315,7 @@ int battery_interface::read_charge(bool *bCharge)
             *bCharge = false;
         }
 #ifdef DEBUG_BATTERY    		
-        Log.d(TAG,"2read_charge val %d val %d", val, val);
+        LOGDBG(TAG,"2read_charge val %d val %d", val, val);
 #endif
     } else {
         *bCharge = false;
@@ -359,22 +338,22 @@ int battery_interface::read_bat_data(u16 *percent)
     if (read_RemainingCapacity_mAh(&remain) == 0 && read_FullChargeCapacity_mAh(&capacity) == 0) {
 
 #ifdef DEBUG_BATTERY    
-        Log.d(TAG,"remain is 0x%x %d ",remain,remain);
-        Log.d(TAG,"capacity is 0x%x %d ",capacity,capacity);
+        LOGDBG(TAG, "remain is 0x%x %d ", remain,remain);
+        LOGDBG(TAG, "capacity is 0x%x %d ", capacity,capacity);
         if (capacity != full_capacity && full_capacity != 0) {
-            Log.e(TAG," bat capacity changed (%d %d)",capacity,full_capacity);
+            LOGERR(TAG, " bat capacity changed (%d %d)", capacity, full_capacity);
             full_capacity = capacity;
         }
 #endif
 
         if (remain > capacity) {
-            Log.e(TAG," bat remain larage changed (%d %d)",remain,capacity);
+            LOGERR(TAG, " bat remain larage changed (%d %d)", remain, capacity);
         }
         *percent = (remain * 100)/capacity;
         bSuc = true;
         ret = 0;
     } else {
-        Log.d(TAG,"read remain bat error");
+        LOGDBG(TAG, "read remain bat error");
         bSuc = false;
     }
 #endif
@@ -416,17 +395,13 @@ int battery_interface::read_bat_update(sp<BAT_INFO> &pstTmp)
         }
     } else {
         bSuc = false;
-        //force battery_level 1000 to notify battery removed
         pstTmp->battery_level = 1000;
         pstTmp->bCharge = 0;
         if (bLastSuc) {
             bUpdate= true;
         }
     }
-//    Log.d(TAG, "new bat info %d %d bSuc %d bUpdate %d",
-//          pstTmp->battery_level,
-//          pstTmp->bCharge,
-//          bSuc,bUpdate);
+
 
     return bUpdate;
 }
@@ -435,7 +410,7 @@ int battery_interface::read_AverageTimeToFull(u16 *val)
 {
     int ret = read_value(READ_AVERAGETIMETOFULL,val);
     if (ret == 0) {
-//        Log.d(TAG,"read_AverageTimeToFull *val 0x%x %d",*val,*val);
+//        LOGDBG(TAG,"read_AverageTimeToFull *val 0x%x %d",*val,*val);
     }
     return ret;
 }
@@ -450,7 +425,7 @@ int battery_interface::read_FullChargeCapacity_mAh(u16 *val)
             if (*val > 0 && *val <= MAX_BAT_VAL) {
                 break;
             } else {
-                Log.e(TAG, "error full *val 0x%x %d", *val, *val);
+                LOGERR(TAG, "error full *val 0x%x %d", *val, *val);
                 msg_util::sleep_ms(10);
             }
         } else {
@@ -469,7 +444,7 @@ int battery_interface::read_RelativeStateOfCharge(u16 *val)
     int ret = read_value(READ_RELATIVE_STATE_OF_CHARGE, val);
     if (ret == 0) {
         #ifdef DEBUG_BATTERY
-		Log.d(TAG, "read_RelativeStateOfCharge *val 0x%x %d", *val, *val);
+		LOGDBG(TAG, "read_RelativeStateOfCharge *val 0x%x %d", *val, *val);
         #endif
     }
     return ret;
@@ -477,16 +452,16 @@ int battery_interface::read_RelativeStateOfCharge(u16 *val)
 
 int battery_interface::read_RemainingCapacity_mAh(u16 *val)
 {
-
     int ret = 0;
     int max_times = 3;
     int i;
+
     for (i = 0; i < max_times;i++) {
         if (read_value(READ_REMAIN_CAPACITY_mAh,val) == 0) {
             if (*val > 0 && *val <= MAX_BAT_VAL) {
                 break;
             } else {
-                Log.e(TAG, "read_RemainingCapacity_mAh *val 0x%x %d", *val, *val);
+                LOGERR(TAG, "read_RemainingCapacity_mAh *val 0x%x %d", *val, *val);
                 msg_util::sleep_ms(10);
             }
         } else {

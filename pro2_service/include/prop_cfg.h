@@ -105,6 +105,8 @@
 #define PROP_MAX_DISK_SLOT_NUM	    10
 
 
+#define SYS_MAX_BTN_NUM     5
+
 /*
  * WIFI固件路径
  */

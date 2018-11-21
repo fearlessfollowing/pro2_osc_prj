@@ -3,13 +3,12 @@
 #include <linux/i2c-dev.h>
 #include <common/include_common.h>
 #include <hw/ins_i2c.h>
-#include <log/stlog.h>
-#include <log/arlog.h>
+
+#include <log/log_wrapper.h>
 #include <sys/ioctl.h>
 
-using namespace std;
-
-#define TAG "ins_i2c"
+#undef  TAG
+#define TAG "HwI2c"
 
 ins_i2c::ins_i2c(unsigned int i2c_adapter, unsigned int addr,bool bForce)
 {
@@ -44,29 +43,27 @@ void ins_i2c::i2c_open(unsigned int i2c_adapter, unsigned int addr)
 {
     char filename[64];
 
-    unique_lock<mutex> lock(i2c_mutex);
-
+    std::unique_lock<std::mutex> lock(i2c_mutex);
 
     snprintf(filename, sizeof(filename), "/dev/i2c-%d", i2c_adapter);
     i2c_fd = open(filename, O_RDWR);
-    CHECK_NE(i2c_fd,-1);
-    if (ioctl(i2c_fd, i2c_slave_type, addr) < 0) {
-        if (i2c_slave_type == I2C_SLAVE) {
-            if (ioctl(i2c_fd, I2C_SLAVE_FORCE, addr) < 0) {
-            	Log.e(TAG, "I2C_SLAVE_FORCE 0x%x fail addr 0x%x", i2c_slave_type ,addr);
-                Log.d(TAG, "slave fail addr 0x%x", addr);
-                i2c_close();
-            } else {
-                Log.d(TAG, "force 0x%x", addr);
-                i2c_addr = addr;
+    if (i2c_fd > 0) {
+        if (ioctl(i2c_fd, i2c_slave_type, addr) < 0) {
+            if (i2c_slave_type == I2C_SLAVE) {
+                if (ioctl(i2c_fd, I2C_SLAVE_FORCE, addr) < 0) {
+                    LOGERR(TAG, "I2C_SLAVE_FORCE 0x%x fail addr 0x%x", i2c_slave_type ,addr);
+                    LOGDBG(TAG, "slave fail addr 0x%x", addr);
+                    i2c_close();
+                } else {
+                    LOGDBG(TAG, "force 0x%x", addr);
+                    i2c_addr = addr;
+                }
             }
+        } else {
+            i2c_addr = addr;
         }
     } else {
-        i2c_addr = addr;
-    }
-
-	if (i2c_fd != -1) {
-        Log.d(TAG, "2i2c open %s suc addr 0x%x i2c_fd %d\n", filename, addr, i2c_fd);
+        LOGERR(TAG, "2i2c open %s failed addr 0x%x i2c_fd %d", filename, addr, i2c_fd);
     }
 }
 
@@ -85,9 +82,8 @@ int ins_i2c::i2c_write(const u8 reg, const u8 *dat, unsigned int dat_len)
     u8 buf[128];
     unsigned int write_len = 1;
 
-    unique_lock<mutex> lock(i2c_mutex);
+    std::unique_lock<std::mutex> lock(i2c_mutex);
 
-    CHECK_NE(i2c_fd, -1);
     memset(buf, 0x00, sizeof(buf));
 
     buf[0] = (u8)reg;
@@ -112,7 +108,7 @@ int ins_i2c::i2c_write(const u8 reg, const u8 *dat, unsigned int dat_len)
     if (i >= times) {
         //skip battery
         if (i2c_addr != 0x55) {
-            // Log.e(TAG, "really i2c write addr 0x%x reg 0x%x res %d but write len  %d", i2c_addr, reg, res, write_len);
+            // LOGERR(TAG, "really i2c write addr 0x%x reg 0x%x res %d but write len  %d", i2c_addr, reg, res, write_len);
         }
     }
 
@@ -127,12 +123,11 @@ int ins_i2c::i2c_read(const u8 reg, u8 *dat, const unsigned int len)
     if (i2c_write(reg, nullptr,0) == 0) {
         int i = 0;
         int times = 5;
-        unique_lock<mutex> lock(i2c_mutex);
+        std::unique_lock<std::mutex> lock(i2c_mutex);
 
-        CHECK_NE(i2c_fd, -1);
         for (i = 0; i < times; i++) {
             if (read(i2c_fd ,dat, len ) != len) {
-            	Log.e(TAG, "i2c read[%d] reg 0x%x error len is %d",i, reg,len);
+            	LOGERR(TAG, "i2c read[%d] reg 0x%x error len is %d",i, reg,len);
                 msg_util::sleep_ms(2);
             } else {
                 ret = 0;
@@ -141,7 +136,7 @@ int ins_i2c::i2c_read(const u8 reg, u8 *dat, const unsigned int len)
         }
 
         if (i > times) {
-            Log.e(TAG, "really i2c read error addr 0x%x reg 0x%x len is %d", i2c_addr, reg, len);
+            LOGERR(TAG, "really i2c read error addr 0x%x reg 0x%x len is %d", i2c_addr, reg, len);
         }
     }
     return ret;

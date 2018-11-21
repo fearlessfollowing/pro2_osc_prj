@@ -5,6 +5,8 @@
 #include <util/ev++.h>
 #include <util/ARHandler.h>
 
+#include <log/log_wrapper.h>
+
 using namespace std;
 using namespace std::chrono;
 
@@ -19,16 +21,14 @@ ARLooper::ARLooper() : mAsync(mLoop)
 
 ARLooper::~ARLooper()
 {
-    CHECK(!mRunning, "FATAL ERROR: ARLooper should quit before release!");
 }
 
 void ARLooper::run()
 {
-    Log.d(TAG, __FUNCTION__);
     mThreadID = this_thread::get_id();
     mRunning = true;
     mLoop.run();
-    for(auto &timerInfoPair : mTimers)
+    for (auto &timerInfoPair : mTimers)
         timerInfoPair.first->stop();
     mAsync.stop();
     mRunning = false;
@@ -36,7 +36,6 @@ void ARLooper::run()
 
 void ARLooper::quit()
 {
-//    Log.d(TAG, __FUNCTION__);
     CHECK_EQ(mThreadID, this_thread::get_id());
     mQuit = true;
     mLoop.break_loop(ev::ALL);
@@ -44,7 +43,6 @@ void ARLooper::quit()
 
 void ARLooper::sendMessageWithDelayMs(const sp<ARMessage> &msg, int ms)
 {
-//    if(TRACE) Log.d(TAG, __FUNCTION__);
     CHECK_OP(ms, 0, >=);
     {
         unique_lock<mutex> lock(mMutex);
@@ -56,12 +54,10 @@ void ARLooper::sendMessageWithDelayMs(const sp<ARMessage> &msg, int ms)
 
 void ARLooper::dispatchMessage(const sp<ARMessage> &msg)
 {
-//    if(TRACE) Log.d(TAG, __FUNCTION__);
     wp<ARHandler> handlerWp = msg->getHandler();
     sp<ARHandler> handler = handlerWp.lock();
-    if(handler == nullptr)
-    {
-        Log.w(TAG, "dispatching message %p, found handler doesn't exit now", 
+    if (handler == nullptr) {
+        LOGWARN(TAG, "dispatching message %p, found handler doesn't exit now", 
             msg.get());
         return;
     }
@@ -71,10 +67,8 @@ void ARLooper::dispatchMessage(const sp<ARMessage> &msg)
 
 void ARLooper::performAsync(ev::async &watcher, int events)
 {
-//    if(TRACE) Log.d(TAG, __FUNCTION__);
     sp<MsgInfo> msgInfo;
-    while(!mQuit)
-    {
+    while (!mQuit) {
         {
             unique_lock<mutex> lock(mMutex);
             if(mMsgs.empty())
@@ -82,13 +76,11 @@ void ARLooper::performAsync(ev::async &watcher, int events)
             msgInfo = mMsgs.front();
             mMsgs.pop_front();
         }
-        if(!msgInfo->is_delay_msg)
-        {
+
+        if (!msgInfo->is_delay_msg) {
             dispatchMessage(msgInfo->msg);
             msgInfo = nullptr;
-        }
-        else
-        {
+        } else {
             sp<ev::timer> timerWatcher(new ev::timer(mLoop));
             timerWatcher->set<ARLooper, &ARLooper::performTimer>(this);
             mTimers.insert({timerWatcher.get(), {timerWatcher, msgInfo->msg}});
@@ -103,9 +95,9 @@ void ARLooper::performAsync(ev::async &watcher, int events)
 
 void ARLooper::performTimer(ev::timer &watcher, int events)
 {
-    if(TRACE) Log.d(TAG, __FUNCTION__);
-    if(mQuit)
+    if (mQuit)
         return;
+        
     auto itr = mTimers.find(&watcher);
     CHECK_NE(itr, mTimers.end());
     dispatchMessage((*itr).second.msg);

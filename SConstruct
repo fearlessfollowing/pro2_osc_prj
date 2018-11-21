@@ -48,8 +48,8 @@ com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
 
 
 ############################ update_app ####################################
-update_app_obj = SConscript('./update_app/SConscript')
-com_env.Program('out/update_app', update_app_obj)
+#update_app_obj = SConscript('./update_app/SConscript')
+#com_env.Program('out/update_app', update_app_obj)
 
 
 ############################ http_server ####################################
@@ -64,8 +64,8 @@ com_env.Program('out/update_app', update_app_obj)
 
 ############################ power_manager ##################################
 
-power_obj = SConscript('./pro2_service/power/SConscript')
-com_env.Program('./out/power_manager', power_obj)
+#power_obj = SConscript('./pro2_service/power/SConscript')
+#com_env.Program('./out/power_manager', power_obj)
 
 
 ############################ pro2_service ##################################

@@ -6,20 +6,10 @@
 #include <util/ARHandler.h>
 #include <util/ARMessage.h>
 #include <hw/oled_module.h>
-#include <sys/StorageManager.h>
 #include <sys/action_info.h>
-#include <sys/pro_cfg.h>
+#include <prop_cfg.h>
 
-
-enum {
-
-    OLED_KEY_UP			= 0x101,
-    OLED_KEY_DOWN 		= 0x102,
-    OLED_KEY_BACK 		= 0x104,
-    OLED_KEY_SETTING 	= 0x103,
-    OLED_KEY_POWER 		= 0x100,
-    OLED_KEY_MAX,
-};
+#include <hw/InputManager.h>
 
 
 enum {
@@ -122,7 +112,7 @@ typedef struct _menu_info_ {
     int 		back_menu;
 	
     SELECT_INFO mSelectInfo;
-    const int 	mSupportkeys[OLED_KEY_MAX];
+    const int 	mSupportkeys[SYS_MAX_BTN_NUM];
 
 	int 		iMenuId;	/* 菜单的ID */
     
@@ -142,7 +132,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	-1,					/* back_menu */
 		{-1, 0,	0, MAINMENU_MAX, MAINMENU_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN,  0, OLED_KEY_SETTING, OLED_KEY_POWER},
+		{APP_KEY_UP, APP_KEY_DOWN,  0, APP_KEY_SETTING, APP_KEY_POWER},
 		MENU_TOP,           /* Menu ID: MENU_TOP */
 		NULL,
         NULL,
@@ -151,7 +141,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	MENU_TOP,
 		{-1, 0, 0, 0, 0, 0}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
+		{0, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},
 		MENU_PIC_INFO,      /* Menu ID: MENU_PIC_INFO */
 		NULL,
         NULL,        
@@ -160,7 +150,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	MENU_TOP,
 		{-1, 0, 0, 0, 0, 0}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
+		{0, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},
 		MENU_VIDEO_INFO,    /* Menu ID: MENU_VIDEO_INFO */
 		NULL,
         NULL,        
@@ -169,7 +159,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_LIVE_INFO */
     	MENU_TOP,
 		{-1, 0, 0, 0, 0, 0}, 
-		{0, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* DOWN, BACK, SETTING, POWER */
+		{0, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},		/* DOWN, BACK, SETTING, POWER */
 		MENU_LIVE_INFO,     /* Menu ID: MENU_LIVE_INFO */
 		NULL,
         NULL,        
@@ -179,7 +169,7 @@ static MENU_INFO mMenuInfos[] = {
 	{	
     	MENU_TOP,
 		{-1, 0, 0, 0, PAGE_MAX, 5}, /* 项数设置为0，初始化菜单时根据设置项vector的size来决定 */
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},		/* UP, DOWN, BACK, POWER */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},		/* UP, DOWN, BACK, POWER */
 		MENU_SYS_SETTING,    /* Menu ID: MENU_SYS_SETTING */
 		NULL,                /* 设置页菜单的私有数据为一个设置项列表 */
         NULL,        
@@ -188,7 +178,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	MENU_PIC_INFO,
 		{-1, 0, 0, 0, 0, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},  /* UP, DOWN, BACK, SETTING, POWER */
         MENU_PIC_SET_DEF,      /* Menu ID: MENU_PIC_SET_DEF */
         NULL,
         NULL,        
@@ -197,7 +187,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	MENU_VIDEO_INFO,
 		{-1, 0, 0, 0, 1, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_VIDEO_SET_DEF,     /* Menu ID: MENU_VIDEO_SET_DEF */
         NULL,                   /* TODO */
         NULL,        
@@ -206,7 +196,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_LIVE_SET_DEF */
     	MENU_LIVE_INFO,
 		{-1, 0, 0, 0, 0, 1},
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},		/* UP, DOWN, BACK, SETTING, POWER */
         MENU_LIVE_SET_DEF,      /* Menu ID: MENU_LIVE_SET_DEF */
         NULL,
         NULL,        
@@ -224,7 +214,7 @@ static MENU_INFO mMenuInfos[] = {
     {	
     	MENU_PIC_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, 0},			/* BACK */
+		{0, 0, APP_KEY_BACK, 0, 0},			/* BACK */
         MENU_QR_SCAN,           /* Menu ID: MENU_QR_SCAN */
         NULL,
         NULL,        
@@ -233,7 +223,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_STORAGE */
     	MENU_SYS_SETTING,
 		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},	/* BACK */
 		MENU_STORAGE,           /* Menu ID: MENU_STORAGE */
 		NULL,
         NULL,        
@@ -244,7 +234,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SYS_DEV_INFO */
     	MENU_SYS_SETTING,
 		{-1, 0, 0, 1, PAGE_MAX, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, 0},
+		{0, 0, APP_KEY_BACK, 0, 0},
         MENU_SYS_DEV_INFO,      /* Menu ID: MENU_SYS_DEV_INFO */
         NULL,
         NULL,        
@@ -262,7 +252,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_LOW_BAT */
     	MENU_TOP,
     	{0},
-    	{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+    	{0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_LOW_BAT,
         NULL,
         NULL,        
@@ -271,7 +261,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_GYRO_START */
     	MENU_SYS_SETTING,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+		{0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_GYRO_START,
         NULL,
         NULL,        
@@ -280,7 +270,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SPEED_TEST */
     	MENU_PIC_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+		{0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_SPEED_TEST,
         NULL,
         NULL,        
@@ -289,7 +279,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_RESET_INDICATION STATE_IDLE*/
     	MENU_SYS_SETTING,
 		{0},
-		{OLED_KEY_UP, 0, OLED_KEY_BACK, OLED_KEY_SETTING, OLED_KEY_POWER},
+		{APP_KEY_UP, 0, APP_KEY_BACK, APP_KEY_SETTING, APP_KEY_POWER},
         MENU_RESET_INDICATION,
         NULL,
         NULL,        
@@ -339,7 +329,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_LIVE_REC_TIME */
     	MENU_LIVE_INFO,
 		{0},
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},			/* BACK, POWER */
+		{0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},			/* BACK, POWER */
         MENU_LIVE_REC_TIME,
         NULL,
         NULL,        
@@ -353,7 +343,7 @@ static MENU_INFO mMenuInfos[] = {
 	{
         MENU_SYS_SETTING,
         {0},
-        {0, 0, OLED_KEY_BACK, 0 , OLED_KEY_POWER},
+        {0, 0, APP_KEY_BACK, 0 , APP_KEY_POWER},
         MENU_STITCH_BOX,
         NULL,
         NULL,
@@ -367,7 +357,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_STORAGE,
         {0, 0, 0, 1, 1, 1}, 
-        {0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        {0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_FORMAT,
         NULL,
         NULL,
@@ -376,7 +366,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_SHOW_SPACE,
         {0, 0, 0, 2, 2, 1}, 
-        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        {APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_FORMAT,
         NULL,
         NULL,
@@ -390,7 +380,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_SHOW_SPACE,
         {0},
-        {0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        {0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_FORMAT_INDICATION,
         NULL,
         NULL,
@@ -403,7 +393,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_SYS_SETTING,
         {-1 ,0, 0, 9, 3, 3},
-        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        {APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_SET_PHOTO_DEALY,
         NULL,
         NULL,
@@ -416,7 +406,7 @@ static MENU_INFO mMenuInfos[] = {
     {
         MENU_SYS_SETTING,
         {-1 ,0, 0, 8, 3, 3},
-        {OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},
+        {APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},
         MENU_SET_AEB,
         NULL,
         NULL,
@@ -426,7 +416,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SHOW_SPACE */
     	MENU_STORAGE,
 		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},	/* BACK */
 		MENU_SHOW_SPACE,           /* Menu ID: MENU_SHOW_SPACE */
 		NULL,
         NULL,        
@@ -436,7 +426,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SHOW_SPACE SetStorageItem */
     	MENU_SHOW_SPACE,
 		{-1, 0, 0, SET_STORAGE_MAX, SET_STORAGE_MAX, 1}, 
-		{OLED_KEY_UP, OLED_KEY_DOWN, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		{APP_KEY_UP, APP_KEY_DOWN, APP_KEY_BACK, 0, APP_KEY_POWER},	/* BACK */
 		MENU_TF_FORMAT_SELECT,           /* Menu ID: MENU_TF_FORMAT_SELECT */
 		NULL,
         NULL,        
@@ -445,7 +435,7 @@ static MENU_INFO mMenuInfos[] = {
     {	/* MENU_SHOW_SPACE SetStorageItem */
     	MENU_STORAGE,
 		{-1, 0, 0, 0, 0, 1}, 
-		{0, 0, OLED_KEY_BACK, 0, OLED_KEY_POWER},	/* BACK */
+		{0, 0, APP_KEY_BACK, 0, APP_KEY_POWER},	/* BACK */
 		MENU_SET_TEST_SPEED,           /* Menu ID: MENU_TF_FORMAT_SELECT */
 		NULL,
         NULL,        
@@ -475,7 +465,7 @@ static MENU_INFO mMenuInfos[] = {
     	MENU_TOP,
 		{0},
 #if 0        
-		{0, 0, OLED_KEY_BACK, 0, 0},    /* 支持返回键 */
+		{0, 0, APP_KEY_BACK, 0, 0},    /* 支持返回键 */
 #else
 		{0, 0, 0, 0, 0},    /* 支持返回键 */
 #endif

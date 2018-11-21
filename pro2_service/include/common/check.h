@@ -1,5 +1,6 @@
 #ifndef _CHECK_H
 #define _CHECK_H
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -16,7 +17,6 @@ inline std::string ToString(const std::string &str)
 
 inline std::string ToString(int a)
 {
-    // return std::to_string(a);
     char buf[128] = {0};
     snprintf(buf, sizeof(buf), "%d", a);
     return buf;
@@ -75,7 +75,7 @@ inline std::string ToString(const T &a)
 #define CHECK_EQ(a, b) \
     do { \
     if((a) != (b)) {\
-        Log.e(NULL, "CHECK_EQ(%s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_EQ(%s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
         abort();\
@@ -86,7 +86,7 @@ inline std::string ToString(const T &a)
 #define CHECK_NE(a, b) \
     do { \
     if((a) == (b)) {\
-        Log.e(NULL, "CHECK_NE(%s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_NE(%s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
         abort();\
@@ -96,7 +96,7 @@ inline std::string ToString(const T &a)
 #define CHECK_OP(a, b, op) \
     do { \
     if(!((a) op (b))) {\
-        Log.e(NULL, "CHECK_OP(%s, %s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_OP(%s, %s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, #op, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
         abort();\
@@ -106,7 +106,7 @@ inline std::string ToString(const T &a)
 #define CHECK(a, ...) \
     do { \
     if(!(a)) {\
-        Log.e(NULL, "CHECK(%s) failed: %s.(%s:%s:%d)", \
+        fprintf(stderr, "CHECK(%s) failed: %s.(%s:%s:%d)", \
             #a, StringFormat(__VA_ARGS__).c_str(), \
             __FILE__, __FUNCTION__, __LINE__);\
         abort(); \
@@ -117,7 +117,7 @@ inline std::string ToString(const T &a)
 #define CHECK_EQ(a, b) \
     do { \
     if((a) != (b)) {\
-        Log.e(NULL, "CHECK_EQ(%s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_EQ(%s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
     }\
@@ -126,7 +126,7 @@ inline std::string ToString(const T &a)
 #define CHECK_NE(a, b) \
     do { \
     if((a) == (b)) {\
-        Log.e(NULL, "CHECK_NE(%s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_NE(%s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
     }\
@@ -135,7 +135,7 @@ inline std::string ToString(const T &a)
 #define CHECK_OP(a, b, op) \
     do { \
     if(!((a) op (b))) {\
-        Log.e(NULL, "CHECK_OP(%s, %s, %s) failed<%s, %s>(%s:%s:%d)", \
+        fprintf(stderr, "CHECK_OP(%s, %s, %s) failed<%s, %s>(%s:%s:%d)", \
             #a, #b, #op, ToString((a)).c_str(), ToString((b)).c_str(),\
             __FILE__, __FUNCTION__, __LINE__);\
     }\
@@ -144,7 +144,7 @@ inline std::string ToString(const T &a)
 #define CHECK(a, ...) \
     do { \
     if(!(a)) {\
-        Log.e(NULL, "CHECK(%s) failed: %s.(%s:%s:%d)", \
+        fprintf(stderr, "CHECK(%s) failed: %s.(%s:%s:%d)", \
             #a, StringFormat(__VA_ARGS__).c_str(), \
             __FILE__, __FUNCTION__, __LINE__);\
     }\

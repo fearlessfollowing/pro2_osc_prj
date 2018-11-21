@@ -10,7 +10,8 @@
 #include <poll.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include <log/stlog.h>
+
+#include <log/log_wrapper.h>
 
 #include <sys/Process.h>
 
@@ -186,12 +187,11 @@ void Process::killProcessesWithOpenFiles(const char *path, int action)
     struct dirent* de;
 
     if (!(dir = opendir("/proc"))) {
-        Log.e(TAG, "opendir failed (%s)", strerror(errno));
+        LOGERR(TAG, "opendir failed (%s)", strerror(errno));
         return;
     }
 
     while ((de = readdir(dir))) {
-        int killed = 0;
         int pid = getPid(de->d_name);
         char name[PATH_MAX];
 
@@ -203,24 +203,24 @@ void Process::killProcessesWithOpenFiles(const char *path, int action)
         char openfile[PATH_MAX];
 
         if (checkFileDescriptorSymLinks(pid, path, openfile, sizeof(openfile))) {
-            Log.e(TAG, "Process %s (%d) has open file %s", name, pid, openfile);
+            LOGERR(TAG, "Process %s (%d) has open file %s", name, pid, openfile);
         } else if (checkFileMaps(pid, path, openfile, sizeof(openfile))) {
-            Log.e(TAG, "Process %s (%d) has open filemap for %s", name, pid, openfile);
+            LOGERR(TAG, "Process %s (%d) has open filemap for %s", name, pid, openfile);
         } else if (checkSymLink(pid, path, "cwd")) {
-            Log.e(TAG, "Process %s (%d) has cwd within %s", name, pid, path);
+            LOGERR(TAG, "Process %s (%d) has cwd within %s", name, pid, path);
         } else if (checkSymLink(pid, path, "root")) {
-            Log.e(TAG, "Process %s (%d) has chroot within %s", name, pid, path);
+            LOGERR(TAG, "Process %s (%d) has chroot within %s", name, pid, path);
         } else if (checkSymLink(pid, path, "exe")) {
-            Log.e(TAG, "Process %s (%d) has executable path within %s", name, pid, path);
+            LOGERR(TAG, "Process %s (%d) has executable path within %s", name, pid, path);
         } else {
             continue;
         }
 
         if (action == 1) {
-            Log.e(TAG, "Sending SIGHUP to process %d", pid);
+            LOGERR(TAG, "Sending SIGHUP to process %d", pid);
             kill(pid, SIGTERM);
         } else if (action == 2) {
-            Log.e(TAG, "Sending SIGKILL to process %d", pid);
+            LOGERR(TAG, "Sending SIGKILL to process %d", pid);
             kill(pid, SIGKILL);
         }
     }

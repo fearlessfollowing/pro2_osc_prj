@@ -17,13 +17,13 @@ default: \
 #else
 #define SWITCH_DEF_ERROR(item) \
 default: \
-    Log.e(TAG,"%s:%s:%d error item %d",__FILE__,__FUNCTION__,__LINE__,item);\
-    Log.d(TAG,"cancel ab");
+    fprintf(stderr, "%s:%s:%d error item %d",__FILE__,__FUNCTION__,__LINE__,item);\
+    fprintf(stderr,"cancel ab");
 #endif
 
 
 #define ERR_ITEM(item) \
-    Log.e(TAG,"%s:%s:%d error item %d",__FILE__,__FUNCTION__,__LINE__,item);\
+    fprintf(stderr,"%s:%s:%d error item %d",__FILE__,__FUNCTION__,__LINE__,item);\
     abort();
 
 

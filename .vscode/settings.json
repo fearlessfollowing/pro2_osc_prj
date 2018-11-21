@@ -41,6 +41,10 @@
         "streambuf": "cpp",
         "system_error": "cpp",
         "thread": "cpp",
-        "hash_map": "cpp"
+        "hash_map": "cpp",
+        "cmath": "cpp",
+        "cstdarg": "cpp",
+        "cstring": "cpp",
+        "cinttypes": "cpp"
     }
 }
