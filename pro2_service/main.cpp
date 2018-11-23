@@ -39,7 +39,6 @@
 #include <prop_cfg.h>
 
 #include <hw/MenuUI.h>
-#include <sys/MidProto.h>
 #include <prop_cfg.h>
 
 #undef      TAG
@@ -47,10 +46,9 @@
 
 void start_all();
 void init_fifo();
-void debug_version_info();
 
 
-#define PRO2_VER    "V1.0.7_r"
+#define PRO2_VER    "V1.0.9"
 
 
 int main(int argc ,char *argv[])
@@ -67,11 +65,10 @@ int main(int argc ,char *argv[])
     }
 
     LogWrapper::init("/home/nvidia/insta360/log", "p_log", true);
-
-
+    
     property_set(PROP_PRO2_VER, PRO2_VER);
 
-    LOGDBG(TAG, ">>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
+    LOGDBG(TAG, "\n>>>>>>>>>>>>>>>>>>>>>>> Start pro2_service now, Version [%s] <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", property_get(PROP_PRO2_VER));
 
     init_fifo();
     start_all();

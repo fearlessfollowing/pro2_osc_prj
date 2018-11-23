@@ -401,6 +401,8 @@ public:
     bool        checkAllTfCardExist();
     u64         calcRemoteRemainSpace(bool bFactoryMode = false);
 
+    bool        getIneedTfCard(std::vector<int>& vectors);
+
     void        updateLocalVolSpeedTestResult(int iResult);
     void        updateRemoteVolSpeedTestResult(Volume* pVol);
     bool        checkAllmSdSpeedOK();
@@ -540,8 +542,8 @@ private:
 
     int                     mVolumeManagerWorkMode;                 /* 卷管理器的工作模式: U盘模式;普通模式 */
 
-    int                     mHandledAddUdiskVolCnt;
-    int                     mHandledRemoveUdiskVolCnt;
+    u32                     mHandledAddUdiskVolCnt;
+    u32                     mHandledRemoveUdiskVolCnt;
 
     u32                     mTaketimelapseCnt;                      /* 可拍timelapse的张数 */
 

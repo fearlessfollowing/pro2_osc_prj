@@ -403,14 +403,14 @@ enum {
  * 声音文件
  */
 static const char *sound_str[] = {
-    "/home/nvidia/insta360/wav/camera_shutter.wav",
-    "/home/nvidia/insta360/wav/completed.wav",
-    "/home/nvidia/insta360/wav/five_s_timer.wav",
-    "/home/nvidia/insta360/wav/qr_code.wav",
-    "/home/nvidia/insta360/wav/start_rec.wav",
-    "/home/nvidia/insta360/wav/stop_rec.wav",
-    "/home/nvidia/insta360/wav/three_s_timer.wav",
-    "/home/nvidia/insta360/wav/one_s_timer.wav"
+    "camera_shutter.wav",
+    "completed.wav",
+    "five_s_timer.wav",
+    "qr_code.wav",
+    "start_rec.wav",
+    "stop_rec.wav",
+    "three_s_timer.wav",
+    "one_s_timer.wav"
 };
 
 
@@ -623,10 +623,7 @@ private:
 
     void    init_menu_select();
     void    deinit();
-    
-    void    init_sound_thread();
-    
-    void    sound_thread();
+        
     void    play_sound(u32 type);
     void    send_update_light(int menu, int state,int interval,bool bLight = false,int sound_id = -1);
     void    write_p(int p, int val);
@@ -743,6 +740,9 @@ private:
     void    handleGpsState();
     void    drawGpsState();
     void    clearGpsState();
+    
+    void    drawRTS(bool bShow);
+    
     bool    checkCurMenuShowGps();
 
     bool    checkHaveGpsSignal();
@@ -789,6 +789,8 @@ private:
     void    clearArea(u8 x, u8 y, u8 w, u8 h);
     void    clearArea(u8 x = 0, u8 y = 0);
 
+    void    dispInNeedTfCard();
+
     void    dispLeftNum(const char* pBuf);
 
     void    dispFontByLoc(struct stPicVideoCfg* pCfg, bool bLight);
@@ -800,6 +802,7 @@ private:
      * U盘模式提示
      */
     void    tipEnterUdisk();
+    void    tipHowtoExitUdisk();        
     void    enterUdiskSuc();
     void    dispQuitUdiskMode();
     void    dispEnterUdiskFailed();
@@ -1015,8 +1018,6 @@ private:
     sp<ARHandler>               mHandler;
     std::thread                 th_msg_;
 	
-    std::thread                 th_sound_;
-
     bool                        bExitMsg = false;
 
     bool                        bExitUpdate = false;

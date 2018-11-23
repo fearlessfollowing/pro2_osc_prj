@@ -70,7 +70,7 @@
 
 #include <log/log_wrapper.h>
 
-using namespace std;
+// using namespace std;
 
 
 #define ENABLE_MOUNT_TFCARD_RO
@@ -266,7 +266,7 @@ static void clearAllunmountPoint()
 
         if (false == isMountpointMounted(cPath)) {
             LOGWARN(TAG, "Remove it [%s]", cPath);
-            string rmCmd = "rm -rf ";
+            std::string rmCmd = "rm -rf ";
             rmCmd += cPath;
             system(rmCmd.c_str());
         }
@@ -388,11 +388,11 @@ void handleDevRemove(const char* pDevNode)
 {
     u32 i;
     Volume* tmpVol = NULL;
-    string devNodePath = "/dev/";
+    std::string devNodePath = "/dev/";
     devNodePath += pDevNode;
 
     VolumeManager *vm = VolumeManager::Instance();
-    vector<Volume*>& tmpVector = vm->getRemoteVols();
+    std::vector<Volume*>& tmpVector = vm->getRemoteVols();
 
     LOGDBG(TAG, "handleDevRemove -> [%s]", pDevNode);
     LOGDBG(TAG, "Remote vols size = %d", tmpVector.size());
@@ -636,12 +636,12 @@ void VolumeManager::powerOnOffModuleByIndex(bool bOnOff, int iIndex)
  * usb1 / 1-2: 6,1,2    - gpio461
  */
 
-const string moduleHubBasePath = "/sys/devices/3530000.xhci/usb1";
+const std::string moduleHubBasePath = "/sys/devices/3530000.xhci/usb1";
 
 
 bool VolumeManager::waitHub1RestComplete()
 {
-    string hub1Path = moduleHubBasePath + "/1-2";
+    std::string hub1Path = moduleHubBasePath + "/1-2";
     if (access(hub1Path.c_str(), F_OK) == 0) {
         return true;
     } else {
@@ -652,7 +652,7 @@ bool VolumeManager::waitHub1RestComplete()
 
 bool VolumeManager::waitHub2RestComplete()
 {
-    string hub2Path = moduleHubBasePath + "/1-3";
+    std::string hub2Path = moduleHubBasePath + "/1-3";
     if (access(hub2Path.c_str(), F_OK) == 0) {
         return true;
     } else {
@@ -708,7 +708,7 @@ bool VolumeManager::checkEnterUdiskResult()
 Volume* VolumeManager::getUdiskVolByIndex(int iIndex)
 {
     Volume* pVol = NULL;
-    if (iIndex < 0 || iIndex > mModuleVols.size()) {
+    if (iIndex < 0 || (u32)iIndex > mModuleVols.size()) {
         LOGERR(TAG, "Invalid udisk index[%d], please check", iIndex);
     } else {
         for (u32 i = 0; i < mModuleVols.size(); i++) {
@@ -1036,7 +1036,7 @@ void VolumeManager::unmountAll()
 #if 1
     /* 处理TF卡的移除 */
     {
-        unique_lock<mutex> lock(mRemoteDevLock);
+        std::unique_lock<std::mutex> lock(mRemoteDevLock);
         for (i = 0; i < mModuleVols.size(); i++) {
 
             tmpVol = mModuleVols.at(i);
@@ -1087,7 +1087,7 @@ void VolumeManager::exitUdiskMode()
 #if 1
     /* 处理TF卡的移除 */
     {
-        unique_lock<mutex> lock(mRemoteDevLock);
+        std::unique_lock<std::mutex> lock(mRemoteDevLock);
         for (i = 0; i < mModuleVols.size(); i++) {
 
             tmpVol = mModuleVols.at(i);
@@ -1199,7 +1199,7 @@ void VolumeManager::runFileMonitorListener()
             while (readCount >= sizeof(inotifyEvent)) {
                 if (curInotifyEvent->len > 0) {
 
-                    string devNode = "/mnt/";
+                    std::string devNode = "/mnt/";
                     devNode += curInotifyEvent->name;
 
                     if (curInotifyEvent->mask & IN_CREATE) {
@@ -1352,10 +1352,10 @@ bool VolumeManager::stop()
 /*
  * 获取系统中的当前存储设备列表
  */
-vector<Volume*>& VolumeManager::getSysStorageDevList()
+std::vector<Volume*>& VolumeManager::getSysStorageDevList()
 {
-    vector<Volume*>& localVols = getCurSavepathList();
-    vector<Volume*>& remoteVols = getRemoteVols();
+    std::vector<Volume*>& localVols = getCurSavepathList();
+    std::vector<Volume*>& remoteVols = getRemoteVols();
     Volume* tmpVol = NULL;
 
     LOGDBG(TAG, ">>>>>> getSysStorageDevList");
@@ -1409,7 +1409,7 @@ bool VolumeManager::extractMetadata(const char* devicePath, char* volFsType, int
 {
     bool bResult = true;
 
-    string cmd;
+    std::string cmd;
     cmd = "blkid";
     cmd += " -c /dev/null ";
     cmd += devicePath;
@@ -1609,7 +1609,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                         /* 如果是TF卡,不需要做如下操作 */
                         if (volumeIsTfCard(tmpVol) == false) {
 
-                            string testSpeedPath = tmpVol->pMountPath;
+                            std::string testSpeedPath = tmpVol->pMountPath;
                             testSpeedPath + "/.pro_suc";
     
                             if (access(testSpeedPath.c_str(), F_OK) == 0) {
@@ -1680,7 +1680,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
 ** 调 用: 
 ** 根据卷的传递的地址来改变卷的优先级
 *************************************************************************/
-vector<Volume*>& VolumeManager::getCurSavepathList()
+std::vector<Volume*>& VolumeManager::getCurSavepathList()
 {
     Volume* tmpVol = NULL;
     struct statfs diskInfo;
@@ -1758,6 +1758,8 @@ bool VolumeManager::changeMountMethod(const char* mode)
             LOGDBG(TAG, "Volume [%s] not mounted???", tmpVol->pMountPath);
         }
     }
+
+    return true;
 }
 
 
@@ -1791,7 +1793,7 @@ void VolumeManager::setVolCurPrio(Volume* pVol, NetlinkEvent* pEvt)
 
 void VolumeManager::syncLocalDisk()
 {
-    string cmd = "sync -f ";
+    std::string cmd = "sync -f ";
 
     if (mCurrentUsedLocalVol != NULL) {
         cmd += mCurrentUsedLocalVol->pMountPath;
@@ -1948,7 +1950,7 @@ void VolumeManager::sendSavepathChangeNotify(const char* pSavePath)
 
 void VolumeManager::sendCurrentSaveListNotify()
 {
-    vector<Volume*>& curDevList = getCurSavepathList();
+    std::vector<Volume*>& curDevList = getCurSavepathList();
     ProtoManager* pm = ProtoManager::Instance();
     Volume* tmpVol = NULL;
 
@@ -2043,13 +2045,13 @@ void VolumeManager::setNotifyRecv(sp<ARMessage> notify)
 ** 调 用: 
 ** 
 *************************************************************************/
-void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, vector<Volume*>& devList)
+void VolumeManager::sendDevChangeMsg2UI(int iAction, int iType, std::vector<Volume*>& devList)
 {
     if (mNotify != nullptr) {
         sp<ARMessage> msg = mNotify->dup();
         msg->set<int>("action", iAction);    
         msg->set<int>("type", iType);    
-        msg->set<vector<Volume*>>("dev_list", devList);
+        msg->set<std::vector<Volume*>>("dev_list", devList);
         msg->post();
     }
 
@@ -2133,10 +2135,10 @@ bool VolumeManager::checkAllTfCardExist()
     int iExitNum = 0;
     
     {
-        unique_lock<mutex> lock(mRemoteDevLock);
+        std::unique_lock<std::mutex> lock(mRemoteDevLock);
         for (u32 i = 0; i < mModuleVols.size(); i++) {
             tmpVolume = mModuleVols.at(i);
-            if (tmpVolume->uTotal > 0) {     /* 总容量大于0,表示卡存在 */
+            if (tmpVolume && tmpVolume->uTotal > 0) {     /* 总容量大于0,表示卡存在 */
                 iExitNum++;
             }
         }
@@ -2150,6 +2152,19 @@ bool VolumeManager::checkAllTfCardExist()
 }
 
 
+bool VolumeManager::getIneedTfCard(std::vector<int>& vectors)
+{
+    Volume* tmpVolume = NULL;
+    std::unique_lock<std::mutex> lock(mRemoteDevLock);
+    for (u32 i = 0; i < mModuleVols.size(); i++) {
+        tmpVolume = mModuleVols.at(i);
+        if (tmpVolume && tmpVolume->uTotal <= 0) {     /* 总容量大于0,表示卡存在 */
+            vectors.push_back(tmpVolume->iIndex);
+        }
+    }
+    return true;
+}
+
 u64 VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
 {
     u64 iTmpMinSize = ~0UL;
@@ -2158,7 +2173,7 @@ u64 VolumeManager::calcRemoteRemainSpace(bool bFactoryMode)
         mReoteRecLiveLeftSize = 1024 * 256;    /* 单位为MB， 256GB */
     } else {
         {
-            unique_lock<mutex> lock(mRemoteDevLock);
+            std::unique_lock<std::mutex> lock(mRemoteDevLock);
             for (u32 i = 0; i < mModuleVols.size(); i++) {
                 if (iTmpMinSize > mModuleVols.at(i)->uAvail) {
                     iTmpMinSize = mModuleVols.at(i)->uAvail;
@@ -2190,7 +2205,7 @@ void VolumeManager::updateLocalVolSpeedTestResult(int iResult)
         mCurrentUsedLocalVol->iSpeedTest = iResult;
         if (iResult) {
             LOGDBG(TAG, "Speed test suc, create pro_suc Now...");
-            string cmd = "touch ";
+            std::string cmd = "touch ";
             cmd += mCurrentUsedLocalVol->pMountPath;
             cmd += "/.pro_suc";
             system(cmd.c_str());
@@ -2204,7 +2219,7 @@ void VolumeManager::updateRemoteVolSpeedTestResult(Volume* pVol)
 {
     Volume* tmpVol = NULL;
 
-    unique_lock<mutex> lock(mRemoteDevLock); 
+    std::unique_lock<std::mutex> lock(mRemoteDevLock); 
     for (u32 i = 0; i < mModuleVols.size(); i++) {
         tmpVol = mModuleVols.at(i);
         if (tmpVol && pVol) {
@@ -2221,7 +2236,7 @@ bool VolumeManager::checkAllmSdSpeedOK()
     Volume* tmpVolume = NULL;
     int iExitNum = 0;
     {
-        unique_lock<mutex> lock(mRemoteDevLock);
+        std::unique_lock<std::mutex> lock(mRemoteDevLock);
         for (u32 i = 0; i < mModuleVols.size(); i++) {
             tmpVolume = mModuleVols.at(i);
             if ((tmpVolume->uTotal > 0) && tmpVolume->iSpeedTest) {     /* 总容量大于0,表示卡存在 */
@@ -2258,7 +2273,7 @@ bool VolumeManager::checkSavepathChanged()
 }
 
 
-int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
+int VolumeManager::handleRemoteVolHotplug(std::vector<sp<Volume>>& volChangeList)
 {
     Volume* tmpSourceVolume = NULL;
     int iAction = VOLUME_ACTION_UNSUPPORT;
@@ -2269,7 +2284,7 @@ int VolumeManager::handleRemoteVolHotplug(vector<sp<Volume>>& volChangeList)
         sp<Volume> tmpChangedVolume = volChangeList.at(0);
 
         {
-            unique_lock<mutex> lock(mRemoteDevLock); 
+            std::unique_lock<std::mutex> lock(mRemoteDevLock); 
             for (u32 i = 0; i < mModuleVols.size(); i++) {
                 tmpSourceVolume = mModuleVols.at(i);
                 if (tmpChangedVolume && tmpSourceVolume) {
@@ -2765,7 +2780,7 @@ int VolumeManager::unmountVolume(Volume* pVol, NetlinkEvent* pEvt, bool force)
     AutoMutex _l(pVol->mVolLock);
 
     if (pEvt->getEventSrc() == NETLINK_EVENT_SRC_KERNEL) {
-        string devnode = "/dev/";
+        std::string devnode = "/dev/";
         devnode += pEvt->getDevNodeName();
         LOGDBG(TAG, "umount volume devname[%s], event devname[%s]", pVol->cDevNode, devnode.c_str());
 
@@ -3150,16 +3165,16 @@ void VolumeManager::updateRemoteTfsInfo(std::vector<sp<Volume>>& mList)
 }
 
 
-vector<Volume*>& VolumeManager::getRemoteVols()
+std::vector<Volume*>& VolumeManager::getRemoteVols()
 {
-    vector<Volume*>& remoteVols = mModuleVols;
+    std::vector<Volume*>& remoteVols = mModuleVols;
     return remoteVols;
 }
 
 
-vector<Volume*>& VolumeManager::getLocalVols()
+std::vector<Volume*>& VolumeManager::getLocalVols()
 {
-    vector<Volume*>& localVols = mLocalVols;
+    std::vector<Volume*>& localVols = mLocalVols;
     return localVols;
 }
 

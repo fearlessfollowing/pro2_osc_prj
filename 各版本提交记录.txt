@@ -1323,3 +1323,11 @@ gen_image(1, 0, 2)  # 主版本号,次版本号,修订版本号
 3.制作成压缩文件
 # zip -r Insta360_Pro2_Upate_vx.x.x.zip Insta360_Pro2_Upate.bin
 
+
+
+1.更新内核解决插入外置MIC时，播放倒计时声音卡顿问题
+2.解决插入HDMI后，播放倒计时声音不正常问题
+3.缺小卡时会提示缺的是哪些小卡
+4.心跳包中新增CPU/GPU温度，电池温度，模组温度
+'sys_tmp':{'nv_tmp':XXX.xx, 'bat_tmp': XXX.xx, 'module_tmp':XXX.xx}
+5.进入U盘模式后，按返回键会提示'需要重启才能退出U盘模式'

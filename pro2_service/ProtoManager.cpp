@@ -74,6 +74,8 @@
 #define REQ_SET_OPTIONS             "camera._setOptions"
 #define REQ_AWB_CALC                "camera._calibrationAwb"
 
+#define REQ_UPDATE_SYS_TEMP         "camera._updateSysTemp"
+
 /*********************************************************************************************
  *  外部函数
  *********************************************************************************************/
@@ -1439,6 +1441,53 @@ bool ProtoManager::sendSetOptionsReq(Json::Value& optionsReq)
         }
     }
     return bRet;     
+}
+
+bool ProtoManager::sendUpdateSysTempReq(Json::Value& pram)
+{
+    int iResult = -1;
+    bool bRet = false;
+
+    Json::Value jsonRes;   
+    Json::Value root;
+
+    std::ostringstream osInput;
+    std::ostringstream osOutput;
+
+    std::string resultStr = "";
+    std::string sendStr = "";
+    Json::StreamWriterBuilder builder;
+
+    builder.settings_["indentation"] = "";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root[_name] = REQ_UPDATE_SYS_TEMP;
+    root[_param] = pram;
+
+	writer->write(root, &osInput);
+    sendStr = osInput.str();
+
+    iResult = sendHttpSyncReq(gReqUrl, &jsonRes, gPExtraHeaders, sendStr.c_str());
+    switch (iResult) {
+        case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
+            writer->write(jsonRes, &osOutput);
+            resultStr = osOutput.str();
+            LOGDBG(TAG, "sendUpdateSysTempReq -> request Result: %s", resultStr.c_str());
+            if (jsonRes.isMember(_state)) {
+                if (jsonRes[_state] == _done) {     
+                    bRet = true;
+                }
+            } else {
+                bRet = false;
+            }
+            break;
+        }
+        default: {  /* 通信错误 */
+            LOGERR(TAG, "sendUpdateSysTempReq -> Maybe Transfer Error");
+            bRet = false;
+        }
+    }
+    return bRet; 
 }
 
 

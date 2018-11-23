@@ -39,9 +39,7 @@
 #include <util/msg_util.h>
 #include <util/bytes_int_convert.h>
 #include <sys/pro_cfg.h>
-#include <sys/pro_uevent.h>
 #include <sys/action_info.h>
-#include <util/GitVersion.h>
 #include <log/log_wrapper.h>
 #include <system_properties.h>
 #include <prop_cfg.h>
@@ -59,9 +57,7 @@
 #include <sys/mount.h>
 #include <iostream>
 #include <fstream>
-
 #include <sys/ProtoManager.h>
-
 #include <sys/Mutex.h>
 #include <icon/setting_menu_icon.h>
 #include <icon/pic_video_select.h>
@@ -707,7 +703,7 @@ void MenuUI::init()
 *************************************************************************/
 MenuUI::MenuUI(const sp<ARMessage> &notify): mNotify(notify)
 {
-    LOGDBG(TAG, "[%s: %d]>>>>>>> Constructor MenuUI Object");
+    LOGDBG(TAG, ">>>>>>> Constructor MenuUI Object");
  
     initUiMsgHandler();	        /* 初始化消息处理线程 */
     init();					    /* MenuUI内部成员初始化 */
@@ -743,6 +739,7 @@ void MenuUI::send_init_disp()
     sp<ARMessage> msg = obtainMessage(UI_DISP_INIT);
     msg->post();
 }
+
 
 /*************************************************************************
 ** 方法名称: init_cfg_select
@@ -823,39 +820,25 @@ void MenuUI::play_sound(u32 type)
 {
     if (mProCfg->get_val(KEY_SPEAKER) == 1) {
         if (type >= 0 && type <= sizeof(sound_str) / sizeof(sound_str[0])) {
+
+            #if 1
             char cmd[1024];
 
             /* Note:
              * aplay 带 -D hw:1,0 参数时播出的音声会有两声
              * 去掉-D hw:1,0 参数，插上HDMI时没有声音播放
              */
-            snprintf(cmd, sizeof(cmd), "aplay %s", sound_str[type]);
+            snprintf(cmd, sizeof(cmd), "aplay -D hw:1,0 %s/%s", "/home/nvidia/insta360/wav", sound_str[type]);
             system(cmd);
+            #else 
+            AudioManager::Instance()->playWav(sound_str[type]);
+            #endif
+
 		} else {
             LOGDBG(TAG, "sound type %d exceed", type);
 		}
     }
 }
-
-
-void MenuUI::sound_thread()
-{
-#ifdef ENABLE_SOUND
-    while (!bExitSound) {
-        if (mProCfg->get_val(KEY_SPEAKER) == 1) {
-
-        }
-        msg_util::sleep_ms(INTERVAL_1HZ);
-    }
-#endif
-}
-
-
-void MenuUI::init_sound_thread()
-{
-    th_sound_ = thread([this] { sound_thread(); });
-}
-
 
 
 /****************************************************************************************************
@@ -983,6 +966,7 @@ void MenuUI::disp_msg_box(int type)
             break;
 
         case DISP_NEED_SDCARD: {
+
             clearArea();
             #if 1
             dispStr((const u8*)"Please", 48, 8, false, 128);
@@ -990,9 +974,8 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            dispStr((const u8*)"Shutting down ejecting", 4, 16, false, 128);
-            dispStr((const u8*)" storage devices...", 8, 32, false, 128);
-            dispStr((const u8*)"Stop pressing button", 8, 48, false, 128);
+            dispStr((const u8*)"No mSD card", 27, 16, false, 84);
+            dispStr((const u8*)"(1,2,3,4,5,6)", 23, 32, false, 84);
             #endif
             break;
         }
@@ -1005,7 +988,6 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"storage space first...", 6, 40, false, 128);
             #else
             clearArea();
-
             dispStr((const u8*)"Reading storage devices", 0, 16, false, 128);
             dispStr((const u8*)"ServerIP:192.168.1.188", 0, 32, false, 128);
             dispStr((const u8*)"192.168.1.188", 12, 48, false, 128);
@@ -2639,7 +2621,7 @@ void MenuUI::read_ver_info()
 	
     snprintf(mVerInfo->r_v_str, sizeof(mVerInfo->r_v_str), "V: %s", mVerInfo->r_ver);
 	
-    snprintf(mVerInfo->p_ver, sizeof(mVerInfo->p_ver), "%s", GIT_SHA1);
+    snprintf(mVerInfo->p_ver, sizeof(mVerInfo->p_ver), "%s", "K_1.1.0");
 
 	/* 内核使用的版本 */
     snprintf(mVerInfo->k_ver, sizeof(mVerInfo->k_ver), "%s", "4.4.38");
@@ -2927,175 +2909,185 @@ void MenuUI::procBackKeyEvent()
 
     LOGDBG(TAG, "procBackKeyEvent --> Current menu[%s], Current Server state[0x%x]", getMenuName(cur_menu), tmpState);
 
-    if (cur_menu == MENU_SYS_ERR || cur_menu == MENU_SYS_DEV_INFO ||
-		cur_menu == MENU_DISP_MSG_BOX || cur_menu == MENU_LOW_BAT ||
-		cur_menu == MENU_LIVE_REC_TIME || cur_menu == MENU_SET_PHOTO_DEALY /* || cur_menu == MENU_LOW_PROTECT*/)  {	/* add by skymixos */
-        
-        set_cur_menu_from_exit();
-
-    #ifdef ENABLE_MENU_STITCH_BOX        
-    } else if (cur_menu == MENU_STITCH_BOX) {
-        if (!bStiching) {
+    switch (cur_menu) {
+        case MENU_SYS_ERR:
+        case MENU_SYS_DEV_INFO:
+        case MENU_DISP_MSG_BOX:
+        case MENU_LOW_BAT:
+        case MENU_LIVE_REC_TIME:
+        case MENU_SET_PHOTO_DEALY: {
             set_cur_menu_from_exit();
-            sendRpc(ACTION_SET_STICH);
+            break;
         }
-    #endif    
-    } else if (cur_menu == MENU_FORMAT_INDICATION) {
-        if (checkServerStateIn(tmpState, STATE_FORMATING)) {
-            LOGDBG(TAG, "In Device Formating state, Can't return here");
-        } else {
-            if (mFormartState) {
-                mFormartState = false;      /* 清除在格式化状态标志 */
-            }
-            set_cur_menu_from_exit();   /* 返回上级菜单 */
-        }
-    } else if (cur_menu == MENU_SPEED_TEST || cur_menu == MENU_SET_TEST_SPEED) {
-        if (checkServerStateIn(tmpState, STATE_SPEED_TEST)) {
-            LOGDBG(TAG, "Server in Speed Test state, you can't back until Test is over");
-        } else {
-            if (true == mSpeedTestUpdateFlag) { 
-                mSpeedTestUpdateFlag = false;
-                property_set(PROP_SPEED_TEST_COMP_FLAG, "false");   
-            }
-            set_cur_menu_from_exit();
-        }
-    } else if (cur_menu == MENU_STORAGE) {  /* 从MENU_STORAGE退出时，给模组下电 */
 
-        #ifdef ENABLE_STORAGE_MODULE_ON
-        property_set(PROP_SYS_MODULE_ON, "false");
-        system("power_manager power_off");
-        #endif
-        set_cur_menu_from_exit();
-
-    }
-    #ifdef ENABLE_AWB_CALC 
-    else if (cur_menu == MENU_SYS_SETTING) {  /* 工厂AWB校正 */
-
-        set_cur_menu_from_exit();
-
-        if (tmpState == STATE_IDLE) {
-            im->setEnableReport(false);
-            /* 发送AWB校正请求 - 如果服务器处于IDLE状态 */
-            
-            setLight();
-
-            if (pm->sendWbCalcReq()) {
-                setLightDirect(FRONT_GREEN | BACK_GREEN);
+        case MENU_FORMAT_INDICATION: {
+            if (checkServerStateIn(tmpState, STATE_FORMATING)) {
+                LOGDBG(TAG, "In Device Formating state, Can't return here");
             } else {
-                setLightDirect(FRONT_RED | BACK_RED);
-            }
-            im->setEnableReport(true);
-        } else {
-            LOGERR(TAG, "Server is busy, 0x%x", tmpState);
+                if (mFormartState) {
+                    mFormartState = false;      /* 清除在格式化状态标志 */
+                }
+                set_cur_menu_from_exit();   /* 返回上级菜单 */
+            }            
+            break;
         }
-    } 
-    #endif
-    else {
-		        
-        switch (tmpState) {
 
-            case STATE_IDLE: {
+        case MENU_SPEED_TEST:
+        case MENU_SET_TEST_SPEED: {
+            if (checkServerStateIn(tmpState, STATE_SPEED_TEST)) {
+                LOGDBG(TAG, "Server in Speed Test state, you can't back until Test is over");
+            } else {
+                if (true == mSpeedTestUpdateFlag) { 
+                    mSpeedTestUpdateFlag = false;
+                    property_set(PROP_SPEED_TEST_COMP_FLAG, "false");   
+                }
                 set_cur_menu_from_exit();
-                break;
-            }
-			
-            case STATE_UDISK: {     /* 必须完全进入U盘才能返回 */
-                VolumeManager* vm = VolumeManager::Instance();
-                if (vm->checkEnteredUdiskMode()) {
-                    oled_disp_type(EXIT_UDISK_MODE);
-                } else {
-                    LOGERR(TAG, "Entering Udisk Mode, please Wait...");
-                }
-                break;
-            }
+            }            
+            break;
+        }
 
-            case STATE_PREVIEW: {    /* 预览状态下,按返回键 */
-                switch (cur_menu) {
-                    case MENU_PIC_INFO:
-                    case MENU_VIDEO_INFO:
-                    case MENU_LIVE_INFO: {
-
-                        if (mTakeVideInTimelapseMode == true) {
-                            mTakeVideInTimelapseMode = false;
-                        }
-
-                        if (pm->sendStopPreview()) {
-                            dispWaiting();		/* 屏幕中间显示"..." */
-                        } else {
-                            LOGERR(TAG, "Stop preview request fail");
-                        }
-                        break;
-                    }
-						
-                     // preview state sent from http req while calibrating ,qr scan,gyro_start
-                    case MENU_CALIBRATION:
-                    case MENU_QR_SCAN:
-                    case MENU_GYRO_START:
-                    case MENU_NOSIE_SAMPLE: {
-                        setCurMenu(MENU_PIC_INFO);
-                        break;
-                    }
-					
-                    case MENU_PIC_SET_DEF:
-                    case MENU_VIDEO_SET_DEF:
-                    case MENU_LIVE_SET_DEF:
-                    case MENU_SPEED_TEST:
-                    
-                    case MENU_CALC_BLC:
-                    case MENU_CALC_BPC:
-                    case MENU_UDISK_MODE:
-
-#ifdef MENU_WIFI_CONNECT                    
-                    case MENU_WIFI_CONNECT:
+        case MENU_STORAGE: {
+#ifdef ENABLE_STORAGE_MODULE_ON
+            property_set(PROP_SYS_MODULE_ON, "false");
+            system("power_manager power_off");
 #endif
-                        set_cur_menu_from_exit();
-                        break;
-					
-                    default:
-                        break;
-                }
-                break;
-            }
-				
-            default: {
-                switch (cur_menu) {
-                    case MENU_QR_SCAN:
-                        exit_qr_func();
-                        break;
-					
-                    default:
-                        LOGDBG(TAG, "strange enter (%s 0x%x)", getMenuName(cur_menu), tmpState);
+            set_cur_menu_from_exit();            
+            break;
+        }
 
-                        if (checkInLive(tmpState)) {
-                            if (cur_menu != MENU_LIVE_INFO) {
-                                LOGERR(TAG, "---> In Live State, but Current Menu is [%s]", getMenuName(cur_menu));
-                                setCurMenu(MENU_LIVE_INFO);
+#ifdef ENABLE_AWB_CALC 
+        case MENU_SYS_SETTING: {
+            set_cur_menu_from_exit();
+
+            if (tmpState == STATE_IDLE) {
+                im->setEnableReport(false);
+                /* 发送AWB校正请求 - 如果服务器处于IDLE状态 */
+                
+                setLight();
+
+                if (pm->sendWbCalcReq()) {
+                    setLightDirect(FRONT_GREEN | BACK_GREEN);
+                } else {
+                    setLightDirect(FRONT_RED | BACK_RED);
+                }
+                im->setEnableReport(true);
+            } else {
+                LOGERR(TAG, "Server is busy, 0x%x", tmpState);
+            }
+            break;
+        }
+#endif
+        case MENU_UDISK_MODE: {     /* 进入U盘后，按返回键提示用户只能重启才能退出U盘模式 */
+            VolumeManager* vm = VolumeManager::Instance();
+
+        #if 0
+            if (vm->checkEnteredUdiskMode()) {
+                oled_disp_type(EXIT_UDISK_MODE);
+            } else {
+                LOGERR(TAG, "Entering Udisk Mode, please Wait...");
+            }
+        #else 
+            tipHowtoExitUdisk();
+
+            msg_util::sleep_ms(3000);
+
+            if (vm->checkEnterUdiskResult()) {
+                enterUdiskSuc();
+            } else {
+                dispEnterUdiskFailed();
+            }
+        #endif
+            break;
+        }
+
+        default: {
+            switch (tmpState) {
+                case STATE_IDLE: {
+                    set_cur_menu_from_exit();
+                    break;
+                }
+
+                case STATE_PREVIEW: {    /* 预览状态下,按返回键 */
+                    switch (cur_menu) {
+                        case MENU_PIC_INFO:
+                        case MENU_VIDEO_INFO:
+                        case MENU_LIVE_INFO: {
+                            if (mTakeVideInTimelapseMode == true) {
+                                mTakeVideInTimelapseMode = false;
                             }
-                        } else if (checkServerStateIn(tmpState, STATE_RECORD)) {
-                            if (cur_menu != MENU_VIDEO_INFO) {
-                                setCurMenu(MENU_VIDEO_INFO);
+                            if (pm->sendStopPreview()) {
+                                clearArea(20, 16, 84, 32);
+                                dispWaiting();		/* 屏幕中间显示"..." */
+                            } else {
+                                LOGERR(TAG, "Stop preview request fail");
                             }
-                        } else if (checkServerStateIn(tmpState, STATE_CALIBRATING)) {
-                            if (cur_menu != MENU_CALIBRATION) {
-                                setCurMenu(MENU_CALIBRATION);
-                            }
-                        } else if (checkServerStateIn(tmpState, STATE_SPEED_TEST)) {
-                            if (cur_menu != MENU_SPEED_TEST) {
-                                setCurMenu(MENU_SPEED_TEST);
-                            }
-                        } else if (checkServerStateIn(tmpState, STATE_START_GYRO)) {
-                            if (cur_menu != MENU_GYRO_START) {
-                                setCurMenu(MENU_GYRO_START);
-                            }
-                        } else if (checkServerStateIn(tmpState, STATE_NOISE_SAMPLE)) {
-                            if (cur_menu != MENU_NOSIE_SAMPLE) {
-                                setCurMenu(MENU_NOSIE_SAMPLE);
-                            }
-                        } else {
+                            break;
+                        }
+                            
+                        case MENU_CALIBRATION:
+                        case MENU_QR_SCAN:
+                        case MENU_GYRO_START:
+                        case MENU_NOSIE_SAMPLE: {
+                            setCurMenu(MENU_PIC_INFO);
+                            break;
+                        }
+                        
+                        case MENU_PIC_SET_DEF:
+                        case MENU_VIDEO_SET_DEF:
+                        case MENU_LIVE_SET_DEF:
+                        case MENU_SPEED_TEST:
+                        
+                        case MENU_CALC_BLC:
+                        case MENU_CALC_BPC:
+                            set_cur_menu_from_exit();
+                            break;
+                        
+                        default:
+                            break;
+                    }
+                    break;
+                }
+		
+                default: {
+                    switch (cur_menu) {
+                        case MENU_QR_SCAN:
+                            exit_qr_func();
+                            break;
+                        
+                        default:
+                            LOGDBG(TAG, "strange enter (%s 0x%x)", getMenuName(cur_menu), tmpState);
+
+                            if (checkInLive(tmpState)) {
+                                if (cur_menu != MENU_LIVE_INFO) {
+                                    LOGERR(TAG, "---> In Live State, but Current Menu is [%s]", getMenuName(cur_menu));
+                                    setCurMenu(MENU_LIVE_INFO);
+                                }
+                            } else if (checkServerStateIn(tmpState, STATE_RECORD)) {
+                                if (cur_menu != MENU_VIDEO_INFO) {
+                                    setCurMenu(MENU_VIDEO_INFO);
+                                }
+                            } else if (checkServerStateIn(tmpState, STATE_CALIBRATING)) {
+                                if (cur_menu != MENU_CALIBRATION) {
+                                    setCurMenu(MENU_CALIBRATION);
+                                }
+                            } else if (checkServerStateIn(tmpState, STATE_SPEED_TEST)) {
+                                if (cur_menu != MENU_SPEED_TEST) {
+                                    setCurMenu(MENU_SPEED_TEST);
+                                }
+                            } else if (checkServerStateIn(tmpState, STATE_START_GYRO)) {
+                                if (cur_menu != MENU_GYRO_START) {
+                                    setCurMenu(MENU_GYRO_START);
+                                }
+                            } else if (checkServerStateIn(tmpState, STATE_NOISE_SAMPLE)) {
+                                if (cur_menu != MENU_NOSIE_SAMPLE) {
+                                    setCurMenu(MENU_NOSIE_SAMPLE);
+                                }
+                            } else {
                         }
                         break;
+                    }
+                    break;
                 }
-                break;
             }
         }
     }
@@ -3846,7 +3838,7 @@ void MenuUI::calcRemainSpace(bool bUseCached)
                     if (pTmpCfg) {
                         u32 uRecLeftSec = vm->calcTakeRecLefSec(*((pTmpCfg->jsonCmd).get()));
                         vm->setRecLeftSec(uRecLeftSec);                    
-                        LOGDBG(TAG, "[%s: %d]--> UI Mode, Record left secs: %u", uRecLeftSec);
+                        LOGDBG(TAG, "--> UI Mode, Record left secs: %u", uRecLeftSec);
                     }
                 }                
             }
@@ -4383,7 +4375,7 @@ void MenuUI::startFormatDevice()
         ProtoManager* pm = ProtoManager::Instance();
         int iResult = pm->sendFormatmSDReq(iTfIndex);
         dispTfcardFormatReuslt(iResult, iTfIndex);
-        
+
     } else {    /* 大卡或USB设备 */
         LOGDBG(TAG, "Format Native USB Device");
 
@@ -4795,6 +4787,8 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
 {
     int new_org_rts = 0;
 
+    LOGDBG(TAG, "------------------------->>> org = %d, rts = %d", org, rts);
+
     if (org == 1) {
         if (rts == 1) {
             new_org_rts = 0;
@@ -4812,36 +4806,25 @@ void MenuUI::disp_org_rts(int org, int rts, int hdmi)
     {
         switch (new_org_rts) {
             case 0:
-                // dispIconByType(ICON_INFO_ORIGIN32_16);
                 drawGpsState();
-                dispIconByType(ICON_INFO_RTS32_16);
+                drawRTS(true);
                 break;
             case 1:
-                // dispIconByType(ICON_INFO_ORIGIN32_16);
                 drawGpsState();
-                clearIconByType(ICON_INFO_RTS32_16);
+                drawRTS(false);
                 break;
             case 2:
-                // clearIconByType(ICON_INFO_ORIGIN32_16);
                 clearGpsState();
-                dispIconByType(ICON_INFO_RTS32_16);
+                drawRTS(true);
                 break;
             case 3:
-                // clearIconByType(ICON_INFO_ORIGIN32_16);
                 clearGpsState();
-                clearIconByType(ICON_INFO_RTS32_16);
+                drawRTS(false);
                 break;
+
             SWITCH_DEF_ERROR(new_org_rts)
         }
     }
-
-    #if 0
-    if (hdmi == 0)  {
-        clearIconByType(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
-    } else if (hdmi == 1) {
-        dispIconByType(ICON_LIVE_INFO_HDMI_78_48_50_1650_16);
-    }
-    #endif
 }
 
 
@@ -5638,28 +5621,23 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
         /*
          * 进入U盘的时候，禁止按键输入
          */
-        case MENU_UDISK_MODE: { /* 状态由外部锁定 */
+        case MENU_UDISK_MODE: { /* 状态由外部锁定: Server处于STATE_UDISK状态 */
             
             /* 防止用户在按确认键进入U盘后，立即按了返回键，导致刚入U盘立即退出的现象，在此处进入输入，让
              * 该阶段的按键无效(不上报) - 2018年9月19日
              */
             VolumeManager* vm = VolumeManager::Instance();
             InputManager* in = InputManager::Instance();
-
-            /* 进入U盘模式后将不响应任何按键事件，除非关机 */
-            in->setEnableReport(false);
-
+            in->setEnableReport(false);     /* 进入U盘模式后将不响应任何按键事件，除非关机 */
             tipEnterUdisk();            
             if (vm->enterUdiskMode()) {
                 enterUdiskSuc();
             } else {
                 dispEnterUdiskFailed();
             }
-
             #ifdef ENBALE_INPUT_EVENT_WHEN_ENTER_UDISK
             in->setEnableReport(true);
             #endif
-
             break;
         }
         SWITCH_DEF_ERROR(cur_menu);
@@ -6037,9 +6015,9 @@ void MenuUI::procPowerKeyEvent()
                         switchEtherIpMode(0);
 
                         /** 重启dnsmasq服务 */
-                        system("setprop ctl.stop dnsmasq");
+                        property_set("ctl.stop", "dnsmasq");
                         msg_util::sleep_ms(200);
-                        system("setprop ctl.start dnsmasq");
+                        property_set("ctl.start", "dnsmasq");
                         oled_disp_type(ENTER_UDISK_MODE);
                     } else {
                         LOGWARN(TAG, "Server Not Allow enter Udisk mode");
@@ -7188,8 +7166,8 @@ void MenuUI::set_flick_light()
 bool MenuUI::checkServerIsBusy()
 {
     bool bRet = false;
+    uint64_t serverState = getServerState();
 
-    //busy state with light flick
     const int busy_state[] = {STATE_TAKE_CAPTURE_IN_PROCESS,
                               STATE_PIC_STITCHING,
                               STATE_RECORD,
@@ -7198,7 +7176,7 @@ bool MenuUI::checkServerIsBusy()
                               STATE_CALIBRATING};
 
     for (u32 i = 0; i < sizeof(busy_state)/sizeof(busy_state[0]); i++) {
-        if (checkServerStateIn(busy_state[i])) {
+        if (checkServerStateIn(serverState, busy_state[i])) {
             bRet = true;
             break;
         }
@@ -8127,18 +8105,16 @@ int MenuUI::oled_disp_type(int type)
                 case MENU_PIC_INFO:
                 case MENU_PIC_SET_DEF: { /* 直接读取PIC_ALL_PIC_DEF来更新底部空间 */
 
-                        /* 将该参数直接拷贝给自身的customer */
-                        int iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
-                        PicVideoCfg* curCfg = mPicAllItemsList.at(iIndex);
-                        if (curCfg) {
-                            if (!strcmp(curCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
-                                LOGDBG(TAG, "[%s: %d]-->> update customer arguments now...");
-                                /* 更新底部空间及右侧 - 2018年8月7日 */
-                                dispBottomInfo(false, true); 
-                            }
+                    /* 将该参数直接拷贝给自身的customer */
+                    int iIndex = getMenuSelectIndex(MENU_PIC_SET_DEF);
+                    PicVideoCfg* curCfg = mPicAllItemsList.at(iIndex);
+                    if (curCfg) {
+                        if (!strcmp(curCfg->pItemName, TAKE_PIC_MODE_CUSTOMER)) {
+                            LOGDBG(TAG, "-->> update customer arguments now...");
+                            /* 更新底部空间及右侧 - 2018年8月7日 */
+                            dispBottomInfo(false, true); 
                         }
-
-                    LOGDBG(TAG, "[%s: %d]");
+                    }
                     break;
                 }
 
@@ -8146,17 +8122,16 @@ int MenuUI::oled_disp_type(int type)
                 case MENU_VIDEO_INFO:
                 case MENU_VIDEO_SET_DEF: { /* 直接读取PIC_ALL_PIC_DEF来更新底部空间 */
 
-                        /* 将该参数直接拷贝给自身的customer */
-                        int iIndex = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
-                        PicVideoCfg* curCfg = mVidAllItemsList.at(iIndex);
-                        if (curCfg) {
-                            if (!strcmp(curCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
-                                LOGDBG(TAG, "update Video customer arguments now...");
-                                /* 更新底部空间及右侧 - 2018年8月7日 */
-                                dispBottomInfo(false, true);                                
-                            }
+                    /* 将该参数直接拷贝给自身的customer */
+                    int iIndex = getMenuSelectIndex(MENU_VIDEO_SET_DEF);
+                    PicVideoCfg* curCfg = mVidAllItemsList.at(iIndex);
+                    if (curCfg) {
+                        if (!strcmp(curCfg->pItemName, TAKE_VID_MOD_CUSTOMER)) {
+                            LOGDBG(TAG, "update Video customer arguments now...");
+                            /* 更新底部空间及右侧 - 2018年8月7日 */
+                            dispBottomInfo(false, true);                                
                         }
-                    LOGDBG(TAG, "[%s: %d]");
+                    }
                     break;
                 }
 
@@ -8192,7 +8167,7 @@ int MenuUI::oled_disp_type(int type)
          * 更新timelapse值
          */
         case TIMELPASE_COUNT: { 
-            LOGDBG(TAG, "[%s: %d]>>>>>>>>>> tl_count %d", tl_count);
+            LOGDBG(TAG, ">>>>>>>>>> tl_count %d", tl_count);
             disp_tl_count(tl_count);    /* 显示timelpase拍摄值以及剩余可拍的张数 */
 
             if (vm->getTakeTimelapseCnt() > 0) {
@@ -8800,7 +8775,7 @@ void MenuUI::handleKeyMsg(int iAppKey)
 *************************************************************************/
 void MenuUI::handleLongKeyMsg(int key)
 {
-    LOGDBG(TAG, "[%s: %d]long press key 0x%x", key);
+    LOGDBG(TAG, "long press key 0x%x", key);
     VolumeManager* vm = VolumeManager::Instance();
     bool bNeedShutdown = false;
     uint64_t serverState = getServerState();
@@ -9068,8 +9043,16 @@ void MenuUI::clearGpsState()
 
 void MenuUI::drawGpsState()
 {
-    clearArea(96, 16, 32, 16);    
+    clearArea(104, 16, 24, 16);    
     dispStr((const u8*)"GPS", 104, 16, false, 24);    
+}
+
+void MenuUI::drawRTS(bool bShow)
+{
+    clearArea(104, 32, 24, 16);        
+    if (bShow) {
+        dispStr((const u8*)"RTS", 104, 32, false, 24);      
+    }
 }
 
 
@@ -9446,7 +9429,7 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
 
     if (is_bat_low()) { /* 电池电量低 */
         if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
-            // LOGDBG(TAG, "[%s: %d ] bat low menu[%s] %d state 0x%x", getMenuName(cur_menu), serverState);
+            // LOGDBG(TAG, "bat low menu[%s] %d state 0x%x", getMenuName(cur_menu), serverState);
             if ((checkServerStateIn(serverState, STATE_RECORD) || bStiching)) {
                 setCurMenu(MENU_LOW_BAT, MENU_TOP);
                 addState(STATE_LOW_BAT);
@@ -9976,8 +9959,6 @@ void MenuUI::send_update_light(int menu, int state, int interval, bool bLight, i
     if (sound_id != -1 && mProCfg->get_val(KEY_SPEAKER) == 1) {
         flick_light();
         play_sound(sound_id);
-	
-        //force to 0 ,for play sounds cost times
         interval = 0;
     } else if (bLight) {	/* 需要闪灯 */
         flick_light();
@@ -10117,6 +10098,16 @@ void MenuUI::tipEnterUdisk()
     dispStr((const u8*)"any storage devices.", 10, 48, false, 128);
 }
 
+
+void MenuUI::tipHowtoExitUdisk()
+{
+    clearArea(0, 16);
+    dispStr((const u8*)"Need to restart the", 12, 16, false, 128);
+    dispStr((const u8*)"camera to exit the", 14, 32, false, 128);
+    dispStr((const u8*)"reading storage mode", 8, 48, false, 128);    
+}
+
+
 void MenuUI::enterUdiskSuc()
 {
     clearArea(0, 16);
@@ -10229,28 +10220,29 @@ void MenuUI::dispReady(bool bDispReady)
 {
     VolumeManager* vm = VolumeManager::Instance();
 
+    clearArea(20, 16, 84, 32);
+
     switch (cur_menu) {
         case MENU_PIC_INFO:
         case MENU_VIDEO_INFO: {
             /* 调用存储管理器来判断显示图标 */
             if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {    /* 大卡,小卡都在 */
 
-                #ifdef ENABLE_DEBUG_MODE
+            #ifdef ENABLE_DEBUG_MODE
                 LOGDBG(TAG, "^++^ All Card is Exist ....");        
-                #endif
+            #endif
                 dispIconByType(ICON_CAMERA_READY_20_16_76_32);
             } else if (vm->checkLocalVolumeExist() && (vm->checkAllTfCardExist() == false)) {   /* 大卡在,缺小卡 */
 
-                #ifdef ENABLE_DEBUG_MODE
+            #ifdef ENABLE_DEBUG_MODE
                 LOGDBG(TAG, "Warnning Need TF Card ....");
-                #endif
-                dispIconByLoc(&needTfCardIconInfo);
-
+            #endif
+                dispInNeedTfCard();
             } else {    /* 小卡在,大卡不在 或者大卡小卡都不在: 直接显示NO SD CARD */
 
-                #ifdef ENABLE_DEBUG_MODE
+            #ifdef ENABLE_DEBUG_MODE
                 LOGDBG(TAG, "Warnning SD Card or TF Card Lost!!!");
-                #endif
+            #endif
                 dispIconByType(ICON_VIDEO_NOSDCARD_76_32_20_1676_32);
             }            
             break;
@@ -10286,7 +10278,7 @@ void MenuUI::dispReady(bool bDispReady)
                         #ifdef ENABLE_DEBUG_MODE
                         LOGDBG(TAG, "Warnning Need TF Card ....");
                         #endif
-                        dispIconByLoc(&needTfCardIconInfo);
+                        dispInNeedTfCard();
 
                     } else {    /* 小卡在,大卡不在 或者大卡小卡都不在: 直接显示NO SD CARD */
 
@@ -10300,6 +10292,47 @@ void MenuUI::dispReady(bool bDispReady)
             }             
             break;
         }
+    }
+}
+
+
+void MenuUI::dispInNeedTfCard()
+{
+    char cIndex[128] = {0};
+    std::vector<int> cards;
+    int iStartPos = 20;
+
+    VolumeManager* vm = VolumeManager::Instance();
+
+    cards.clear();
+
+    vm->getIneedTfCard(cards);
+
+    dispStr((const u8*)"No mSD card", 27, 16, false, 104 - 27);
+
+    if (cards.size() > 0) {
+
+        LOGDBG(TAG, "card size: %d", cards.size());
+
+        cIndex[0] = '(';
+        u32 i;
+        for (i = 0; i < cards.size(); i++) {
+            cIndex[i*2 + 1] = cards.at(i) + '0';
+            cIndex[i*2 + 2] = ',';
+        }
+        cIndex[(i-1)*2 + 2] = ')';
+
+        LOGDBG(TAG, "Lost mSD List: %s", cIndex);
+
+        switch (cards.size()) {
+            case 6: iStartPos = 23; break;
+            case 5: iStartPos = 29; break;
+            case 4: iStartPos = 35; break;
+            case 3: iStartPos = 41; break;
+            case 2: iStartPos = 47; break;
+            case 1: iStartPos = 53; break;
+        }
+        dispStr((const u8*)cIndex, iStartPos, 32, false, 104 - iStartPos);
     }
 }
 

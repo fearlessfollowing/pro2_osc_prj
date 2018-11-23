@@ -593,3 +593,20 @@ Response:
 说明:
 "index": -1:表示格式化所有的小卡; [1-6]表示格式化指定的卡
 "state": "done":成功; "error":操作失败
+
+
+7.更新系统温度
+Request:
+{
+    "name":camera._updateSysTemp",
+    "parameters":{
+        "nv_temp":45.23,
+        "bat_temp":55.22,
+        "module_temp":32.26
+    }
+}
+Response:
+{ 
+    "name": "camera._updateSysTemp", 
+    "state": "done"       
+}

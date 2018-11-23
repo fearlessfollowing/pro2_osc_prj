@@ -1,3 +1,4 @@
+######################################################################################################
 # -*- coding: UTF-8 -*-
 # 文件名：  control_center.py 
 # 版本：    V1.0.1
@@ -7,6 +8,8 @@
 # 2018年9月22日     skymixos                V0.2.20         动态的改变U盘的挂载方式
 # 2018年9月29日     skymixos                V1.0.01         添加响应UI请求的接口  
 # 2018年10月24日    skymixos                V1.0.7          与camerad的同步请求的超时时间设置为70s
+# 2018年11月22日    skymixos                V1.0.8          查询TF卡失败时不清除心跳包中小卡信息
+######################################################################################################
 
 from threading import Semaphore
 import json
@@ -2387,8 +2390,8 @@ class control_center:
             osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.SET_TF_INFO, ret['results']))
         else:
             Info('++++++++>>> query storage bad......')
-            # 查询失败，将心跳包中小卡的信息去除
-            osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TF_INFO))
+            # 查询失败，将心跳包中小卡的信息去除(不删除之前的结果以避免出现心跳包中没有小卡信息)
+            # osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.CLEAR_TF_INFO))
 
         StateMachine.rmServerState(config.STATE_QUERY_STORAGE)
         return read_info

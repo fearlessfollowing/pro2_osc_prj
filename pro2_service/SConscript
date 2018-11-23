@@ -26,6 +26,8 @@ src += ['VolumeManager.cpp']
 src += ['Process.cpp']
 src += ['forkUtil.cpp']
 src += ['ProtoManager.cpp']
+#src += ['AudioManager.cpp']
+
 
 #src += [config.PRO2_SERVICE + '/util/arlog.c']
 src += [config.PRO2_SERVICE + '/util/ARMessage.cpp']

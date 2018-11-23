@@ -12,8 +12,8 @@
 ** 修改记录:
 ** V1.0			Skymixos		2018-09-28		创建文件，添加注释
 ******************************************************************************************************/
-#ifndef _TRAN_MANAGER_H_
-#define _TRAN_MANAGER_H_
+#ifndef _PROTO_MANAGER_H_
+#define _PROTO_MANAGER_H_
 
 #include <string>
 #include <string>
@@ -205,6 +205,8 @@ public:
      */
     bool            sendSetOptionsReq(Json::Value& optionsReq);
 
+    /* 更新系统温度 */
+    bool            sendUpdateSysTempReq(Json::Value& updateArgs);
 
 
 private:
