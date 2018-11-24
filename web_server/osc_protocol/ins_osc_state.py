@@ -31,6 +31,7 @@ STORAGE_POS = 1
 CAM_STATE = '_cam_state'
 GPS_STATE = '_gps_state'
 SND_STATE = '_snd_state'
+SYS_TEMP  = '_sys_temp'
 
 
 sem_vfs = Semaphore()
@@ -171,6 +172,7 @@ class osc_state(threading.Thread):
             osc_state_handle.TF_FORMAT_CLEAR_SPEED:     self.clear_tf_speed_flag,
             osc_state_handle.UPDATE_REC_LEFT_SEC:       self.set_rec_left_sec,
             osc_state_handle.UPDATE_TIME_LAPSE_LEFT:    self.update_timelapse_left,
+            osc_state_handle.UPDATE_SYS_TEMP:           self.updateSysTemp,
         })
 
         while self._exit is False:
@@ -190,6 +192,10 @@ class osc_state(threading.Thread):
 
     def update_timelapse_left(self, param):
         self._time_lapse_left = param['tl_left']
+
+
+    def updateSysTemp(self, param):
+        self._sys_temp = param
 
 
     def set_tf_info(self, dev_infos):
@@ -343,6 +349,7 @@ class osc_state(threading.Thread):
             # 获取Camera当前的状态
             st = self.poll_info[CAM_STATE]
 
+            self.poll_info[SYS_TEMP] = self._sys_temp
             self.poll_info[LEFT_INFO][REC_LEFT_INFO] = self._rec_left
             self.poll_info[LEFT_INFO][LIVE_REC_LEFT_INFO] = self._live_rec_left
             self.poll_info[LEFT_INFO][REC_INFO] = self._rec_sec
@@ -494,6 +501,7 @@ class osc_state_handle:
     TF_FORMAT_CLEAR_SPEED = 11
     UPDATE_REC_LEFT_SEC = 12
     UPDATE_TIME_LAPSE_LEFT = 13
+    UPDATE_SYS_TEMP = 14
 
     @classmethod
     def start(cls):

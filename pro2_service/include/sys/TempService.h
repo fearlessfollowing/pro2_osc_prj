@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <thread>
+#include <hw/battery_interface.h>
 
 class TempService {
 
@@ -10,10 +11,10 @@ public:
     TempService();
     ~TempService();
 
-    std::shared_ptr<TempService>& Instance();
+    static std::shared_ptr<TempService>& Instance();
 
-    bool startService();
-    bool stopService();
+    void startService();
+    void stopService();
 
 private:
 
@@ -29,16 +30,18 @@ private:
     bool            reportSysTemp();
     void            writePipe(int p, int val);
     
-    bool            getNvTemp();
-    bool            getBatteryTemp();
-    bool            getModuleTemp();
+    void            getNvTemp();
+    void            getBatteryTemp();
+    void            getModuleTemp();
 
     std::thread                         mLooperThread;
     std::mutex                          mLock; 
-    std::mutex                          mInstanceLock;
+    static std::mutex                   mInstanceLock;
     bool                                mRunning;
     static std::shared_ptr<TempService> mInstance;
     static bool                         mHaveInstance;
+    std::shared_ptr<battery_interface>  mBattery;
+
 };
 
 

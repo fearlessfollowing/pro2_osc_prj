@@ -2257,8 +2257,8 @@ enum {
 
 PIC_ORG aeb3Ev = {3, -64, 64, 0};
 PIC_ORG aeb5Ev = {5, -32, 32, 0};
-PIC_ORG aeb7Ev = {7, -16, 16, 0};
-PIC_ORG aeb9Ev = {9, -10, 10, 0};
+PIC_ORG aeb7Ev = {7, -19, 19, 0};
+PIC_ORG aeb9Ev = {9, -19, 19, 0};
 
 
 typedef struct stIconPos {

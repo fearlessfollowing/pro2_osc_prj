@@ -1,6 +1,6 @@
 
-#ifndef PROJECT_BATTERY_INTERFACE_H
-#define PROJECT_BATTERY_INTERFACE_H
+#ifndef _BATTERY_H_
+#define _BATTERY_H_
 
 #include <common/sp.h>
 

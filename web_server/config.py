@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
-#Constants
+
 import platform
 import os
-#from util.str_util import int_to_bytes
 
 #standard
 CMD_GET_STATUS      = 'camera.get_status'
@@ -271,6 +270,8 @@ _REQ_SET_OPTIONS            = 'camera._setOptions'
 # AWB校正
 _REQ_AWB_CALC               = 'camera._calibrationAwb'
 
+# 更新系统温度
+_REQ_UPDATE_SYS_TMP         = 'camera._updateSysTemp'
 
 """camera_state"""
 STATE_IDLE                      = 0x00

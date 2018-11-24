@@ -227,7 +227,7 @@ int battery_interface::read_value(int type, int16 *val)
     return ret;
 }
 
-int battery_interface::read_tmp(double *int_tmp,double *tmp)
+int battery_interface::read_tmp(double *int_tmp, double *tmp)
 {
     int16 val = 0;
     int i;
@@ -283,29 +283,6 @@ EXIT:
 
 int battery_interface::read_charge(bool *bCharge)
 {
-#if 0
-    u16 val = 0;
-    int ret = read_value(READ_AVERAGETIME_TOEMPTY,&val);
-    if(ret == 0)
-    {
-        if(val == 65535)
-        {
-            *bCharge = true;
-        }
-        else
-        {
-            *bCharge = false;
-        }
-        bSuc = true;
-//        LOGDBG(TAG,"2read_charge "
-//                      "*val 0x%x %d",
-//              val,val);
-    }
-    else
-    {
-        bSuc = false;
-    }
-#else
     int16 val = 0;
     int ret = read_Current(&val);
     if (ret == 0) {
@@ -320,7 +297,6 @@ int battery_interface::read_charge(bool *bCharge)
     } else {
         *bCharge = false;
     }
-#endif
     return ret;
 }
 
@@ -408,11 +384,7 @@ int battery_interface::read_bat_update(sp<BAT_INFO> &pstTmp)
 
 int battery_interface::read_AverageTimeToFull(u16 *val)
 {
-    int ret = read_value(READ_AVERAGETIMETOFULL,val);
-    if (ret == 0) {
-//        LOGDBG(TAG,"read_AverageTimeToFull *val 0x%x %d",*val,*val);
-    }
-    return ret;
+    return read_value(READ_AVERAGETIMETOFULL,val);
 }
 
 int battery_interface::read_FullChargeCapacity_mAh(u16 *val)

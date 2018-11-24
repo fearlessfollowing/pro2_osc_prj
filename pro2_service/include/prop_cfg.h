@@ -102,9 +102,10 @@
 
 #define PROP_SERVER_STATE           "sys.server_state"
 
+#define PROP_POLL_SYS_TMP_PERIOD    "sys.poll_temp_period"
+
+
 #define PROP_MAX_DISK_SLOT_NUM	    10
-
-
 #define SYS_MAX_BTN_NUM     5
 
 /*

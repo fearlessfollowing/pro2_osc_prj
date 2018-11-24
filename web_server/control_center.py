@@ -409,6 +409,9 @@ class control_center:
             # AWB校正
             config._REQ_AWB_CALC:               self.cameraUiCalcAwb,
 
+            # 更新系统温度
+            config._REQ_UPDATE_SYS_TMP:         self.cameraUiUpdateSysTemp,
+
         })
 
 
@@ -2348,6 +2351,17 @@ class control_center:
         Info('[------- UI Req: cameraUiSetOptions ------] req: {}'.format(req))      
         return self.camera_set_options(req)
 
+
+    def cameraUiUpdateSysTemp(self, req):
+        Info('[------- UI Req: cameraUiUpdateSysTemp ------] req: {}'.format(req))      
+        res = OrderedDict()
+        res[_name] = req[_name]
+        res[_state] = config.DONE   
+
+        # 将温度信息更新到心跳包中
+        osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.UPDATE_SYS_TEMP, req[_param]))
+
+        return json.dumps(res) 
 
     def cameraUiCalcAwb(self, req):
         Info('[------- UI Req: cameraUiCalcAwb ------] req: {}'.format(req))  

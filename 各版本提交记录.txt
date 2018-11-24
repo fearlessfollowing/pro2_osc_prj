@@ -1325,9 +1325,94 @@ gen_image(1, 0, 2)  # 主版本号,次版本号,修订版本号
 
 
 
+版本号：V1.0.10
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+
+（肖神）
+1.更新防抖库,解决收到开启防抖偶发crash问题 
+2.增加模组获取温度功能 
+3.更改重置gamma曲线不用重启预览 
+4.3dhdmi性能优化
+
+
+（罗品京）
+修改点:
 1.更新内核解决插入外置MIC时，播放倒计时声音卡顿问题
 2.解决插入HDMI后，播放倒计时声音不正常问题
 3.缺小卡时会提示缺的是哪些小卡
-4.心跳包中新增CPU/GPU温度，电池温度，模组温度
-'sys_tmp':{'nv_tmp':XXX.xx, 'bat_tmp': XXX.xx, 'module_tmp':XXX.xx}
+4.心跳包中新增CPU/GPU温度，电池温度，模组温度'sys_tmp':{'nv_tmp':XXX.xx, 'bat_tmp': XXX.xx, 'module_tmp':XXX.xx}
 5.进入U盘模式后，按返回键会提示'需要重启才能退出U盘模式'
+6.修复相机卡满之后，客户端控制拍照的UI异常
+7.修复客户端拍摄timelapse,概率性出现心跳包中无小卡信息
+
+（建聪）
+1.解决 独立曝光时，1号模组收敛异常的问题
+2.解决 aeb时，exif信息和实际曝光错位的问题
+3.增加 备份默认曲线数据，用于恢复默认曲线
+4.增加 实时上报模组温度的功能
+5.更新 HDR IQ
+ 	(1). 优化颜色。
+	(2). 优化长短帧过渡。
+
+
+测试风险点:
+
+
+遗留问题：
+samba相关的问题
+
+固件类型：测试组测试
+
+
+
+
+
+
+
+2018-11-24 10:52:59,941 - INFO: [------- APP Req: camera_take_pic ------] req: {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}
+2018-11-24 10:52:59,957 - INFO: -------> checkAllowTakePic, cam state 8
+2018-11-24 10:52:59,957 - INFO: ---> before add, server state is 0x8
+2018-11-24 10:52:59,993 - INFO: 2set cam state 10
+2018-11-24 10:53:00,028 - INFO: ---> after add, server state is 0xa
+2018-11-24 10:53:00,128 - INFO: send_oled_type type is 6
+2018-11-24 10:53:00,324 - INFO: send_oled_type req {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}
+2018-11-24 10:53:00,390 - INFO: self.req_action[req[_name]] is 1
+2018-11-24 10:53:01,079 - ERROR: cmd camera._takePicture fail
+2018-11-24 10:53:01,249 - ERROR: name camera._takePicture err_code -432
+2018-11-24 10:53:01,351 - INFO: camera_take_pic_fail happen
+2018-11-24 10:53:01,392 - INFO: ---> before rm, server state is 0xa
+2018-11-24 10:53:01,524 - INFO: 2set cam state 8
+2018-11-24 10:53:01,544 - INFO: ---> after rm, server state is 0x8
+2018-11-24 10:53:01,658 - INFO: send_oled_type_err type is 8 code -432
+2018-11-24 10:53:01,719 - INFO: take pic read_info {"name": "camera._takePicture", "sequence": 43, "state": "error", "error": {"code": -432, "description": "no storage space left"}}
+2018-11-24 10:53:01,922 - INFO: disp oled err req OrderedDict([('type', 8), ('err_code', -432)])
+2018-11-24 10:53:02,688 - INFO: -----------> add state 0x2
+2018-11-24 10:53:02,743 - INFO: 2set cam state 10
+2018-11-24 10:53:02,839 - INFO: ---> current server state 0xa
+2018-11-24 10:53:07,818 - INFO: [------- UI Req: cameraUiQueryTfcard ------] req: {'name': 'camera._queryStorage'}
+2018-11-24 10:53:07,892 - INFO: ---> before add, server state is 0xa
+2018-11-24 10:53:07,936 - INFO: 2set cam state 1034
+2018-11-24 10:53:08,118 - INFO: ---> after add, server state is 0x40a
+2018-11-24 10:53:08,785 - INFO: resut info is {"name": "camera._queryStorage", "sequence": 44, "state": "done", "results": {"storagePath": "/mnt/sdcard", "module": [{"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 1}, {"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 2}, {"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 3}, {"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 4}, {"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 5}, {"storage_total": 61088, "storage_left": 0, "pro_suc": 1, "index": 6}]}}
+2018-11-24 10:53:08,786 - INFO: >>>>>> query storage is ok.....
+2018-11-24 10:53:08,846 - INFO: ---> before rm, server state is 0x40a
+2018-11-24 10:53:08,907 - INFO: 2set cam state 10
+2018-11-24 10:53:08,974 - INFO: ---> after rm, server state is 0xa
+2018-11-24 10:53:17,206 - INFO: osc_cmd_execute req name camera.listFiles self.get_connect() True
+2018-11-24 10:53:17,263 - DEBUG: camera_list_files path /mnt/sdcard req {'name': 'camera.listFiles', 'parameters': {'startPosition': 0, 'fileType': 'all', 'path': '/mnt/sdcard', 'maxThumbSize': 0, 'entryCount': 500}}
+2018-11-24 10:53:20,574 - INFO: osc_cmd_execute req name camera._startShell self.get_connect() True
+2018-11-24 10:53:20,822 - INFO: sys cmd (cd /home/nvidia/insta360/log/ && ls log* > /data/camera_log_path) ret 0
+2018-11-24 10:53:20,853 - INFO: start_shell {'name': 'camera._startShell', 'parameters': {'cmd': '(cd /home/nvidia/insta360/log/ && ls log* > /data/camera_log_path)'}} ret {"name": "camera._startShell", "state": "done"}
+2018-11-24 10:53:55,617 - DEBUG: monitor_camera_active read_content is b'{ "name": "camera._snd_state_", "sequence": 0, "parameters": { "type": 1, "is_spatial": false, "dev_name": "insta360" } }' content_len 121
+2018-11-24 10:53:55,735 - INFO: [-------Notify Message -------] snd_notify param {'type': 1, 'is_spatial': False, 'dev_name': 'insta360'}
+2018-11-24 10:53:58,838 - WARNING: poll_timeout
+2018-11-24 10:53:58,923 - INFO: [------- APP Req: camera_disconnect ------] req: OrderedDict([('name', 'camera._disconnect')])
+2018-11-24 10:53:59,079 - INFO: camera_disconnect Server State 0xa
+2018-11-24 10:53:59,140 - INFO: 2camera_disconnect ret {"name": "camera._disconnect", "state": "done"} self.get_cam_state() 0xa
+
+
+
+"_sys_temp": {"bat_temp": 38.0, "module_temp": 49.0, "nv_temp": 36.5}

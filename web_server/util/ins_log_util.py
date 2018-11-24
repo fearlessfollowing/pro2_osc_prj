@@ -16,7 +16,7 @@ from threading import Semaphore
 from logging import handlers
 
 # 单个日志文件的最大长度为30MB
-MAX_LOG_LIMIT = 30*1024*1024
+MAX_LOG_LIMIT = 20*1024*1024
 
 class Logger(object):
     #日志级别关系映射
@@ -28,7 +28,7 @@ class Logger(object):
         'crit':     logging.CRITICAL
     }
 
-    def __init__(self, filename, level='info', createMode='a', backCount=3, fmt='%(asctime)s - %(levelname)s: %(message)s'):
+    def __init__(self, filename, level='info', createMode='a', backCount=5, fmt='%(asctime)s - %(levelname)s: %(message)s'):
         
         self.logger = logging.getLogger(filename)
         format_str = logging.Formatter(fmt) #设置日志格式

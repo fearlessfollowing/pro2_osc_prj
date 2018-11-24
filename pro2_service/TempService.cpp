@@ -40,10 +40,17 @@
 #undef      TAG
 #define     TAG "TempService"
 
-#define MAX(a,b) (((a) > (b)) ? (a):(b))
+#define MAX_VAL(a,b) (((a) > (b)) ? (a):(b))
 
+#define CPU_TEMP_PATH   "/sys/class/thermal/thermal_zone2/temp"
+#define GPU_TEMP_PATH   "/sys/class/thermal/thermal_zone1/temp"
+#define PROP_MODUE_TMP  "module.temp"
+
+#define INVALID_TMP_VAL     1000.0f
 
 bool TempService::mHaveInstance = false;
+static std::mutex gInstanceLock;
+static std::shared_ptr<TempService> gInstance;
 
 enum {
     CtrlPipe_Shutdown = 0,                  /* 关闭管道通知: 线程退出时使用 */
@@ -54,12 +61,12 @@ enum {
 std::shared_ptr<TempService>& TempService::Instance()
 {
     {
-        std::unique_lock<std::mutex> lock(mInstanceLock);   
+        std::unique_lock<std::mutex> lock(gInstanceLock);   
         if (mHaveInstance == false) {
-            mInstance = std::make_shared<TempService>();
+            gInstance = std::make_shared<TempService>();
         }
     }
-    return mInstance;
+    return gInstance;
 }
 
 
@@ -75,12 +82,11 @@ void TempService::writePipe(int p, int val)
     }
 }
 
-
-
 TempService::TempService()
 {
     mRunning = false;
     pipe(mCtrlPipe);
+    mBattery = std::make_shared<battery_interface>();
     LOGDBG(TAG, "---> constructor TempService now ...");
 }
 
@@ -92,48 +98,107 @@ TempService::~TempService()
     close(mCtrlPipe[1]);
 }
 
-#define CPU_TEMP_PATH   "/sys/class/thermal/thermal_zone2/temp"
-#define GPU_TEMP_PATH   "/sys/class/thermal/thermal_zone1/temp"
-#define PROP_MODUE_TMP  "module.temp"
 
-
-
-bool TempService::getNvTemp()
+void TempService::getNvTemp()
 {
+    mCpuTmp = INVALID_TMP_VAL;
+    mGpuTmp = INVALID_TMP_VAL;
 
+    char cCpuBuf[512] = {0};
+    char cGpuBuf[512] = {0};
+    int uCpuTemp = 0;
+    int uGpuTemp = 0;
+
+    FILE* fp1 = fopen(CPU_TEMP_PATH, "r");
+    if (fp1) {
+        fgets(cCpuBuf, sizeof(cCpuBuf), fp1);
+        cCpuBuf[strlen(cCpuBuf) -1] = '\0';
+        uCpuTemp = atoi(cCpuBuf);
+        mCpuTmp = uCpuTemp / 1000.0f;
+        fclose(fp1);
+    }
+
+
+    FILE* fp2 = fopen(GPU_TEMP_PATH, "r");
+    if (fp2) {
+        fgets(cGpuBuf, sizeof(cGpuBuf), fp2);
+        cGpuBuf[strlen(cGpuBuf) -1] = '\0';
+        uGpuTemp = atoi(cGpuBuf);
+        mGpuTmp = uGpuTemp / 1000.0f;
+        fclose(fp2);
+    }
+
+#ifdef ENABLE_DEBUG_TMPSERVICE
+    LOGDBG(TAG, "CPU temp[%f]C, GPU temp[%f]C", mCpuTmp, mGpuTmp);
+#endif
 }
 
-bool TempService::getBatteryTemp()
+void TempService::getBatteryTemp()
 {
+    mBatteryTmp = INVALID_TMP_VAL;
 
+    bool bCharge = false;
+    double dInterTemp = 0.0f;
+    double dOuterTemp = 0.0f;
+
+    if (mBattery->read_charge(&bCharge) == 0) { /* 电池存在 */
+        if(!mBattery->read_tmp(&dInterTemp, &dOuterTemp)) {
+            mBatteryTmp = static_cast<int>(MAX_VAL(dInterTemp, dOuterTemp));
+        #ifdef ENABLE_DEBUG_TMPSERVICE
+            LOGDBG(TAG, "Current Battery temp: [%f]C", mBatteryTmp);
+        #endif
+        } else {
+            LOGERR(TAG, "---> read battery temp failed");
+        }
+    } else {
+        LOGDBG(TAG, "battery not exist !!!");
+    }
 }
 
-bool TempService::getModuleTemp()
+void TempService::getModuleTemp()
 {
-    mModuleTmp = 45.0f;
+    mModuleTmp = INVALID_TMP_VAL;
+
+    int iModuleTemp = 0;
+    const char* pModuleTemp = property_get(PROP_MODUE_TMP);
+    if (pModuleTemp) {
+        iModuleTemp = atoi(pModuleTemp);
+        mModuleTmp = iModuleTemp / 1.0f;
+    #ifdef ENABLE_DEBUG_TMPSERVICE
+        LOGDBG(TAG, "Current Module temp: [%f]C", mModuleTmp);
+    #endif
+    } else {
+        LOGERR(TAG, "--> get Module Temp prop failed");
+    }
 }
 
 
 bool TempService::reportSysTemp()
 {   
     Json::Value param;
-    
-    param["nv_temp"] = MAX(mCpuTmp, mGpuTmp);
+    param["nv_temp"] = MAX_VAL(mCpuTmp, mGpuTmp);
     param["bat_temp"] = mBatteryTmp;
     param["module_temp"] = mModuleTmp;
-
     return ProtoManager::Instance()->sendUpdateSysTempReq(param);
 }
 
-
 int TempService::serviceLooper()
 {
-    struct timeval to = {2, 0};
+    fd_set read_fds;
+    struct timeval to;    
+    int rc = 0;
+    int max = -1;    
+    const char* pPollTime = NULL;
 
     while (true) {
-        fd_set read_fds;
-        int rc = 0;
-        int max = -1;
+
+        to.tv_sec = 2;
+        to.tv_usec = 0;
+
+        pPollTime = property_get(PROP_POLL_SYS_TMP_PERIOD);
+        if (pPollTime) {
+            to.tv_sec = atoi(pPollTime);
+        }
 
         FD_SET(mCtrlPipe[0], &read_fds);	
         if (mCtrlPipe[0] > max)
@@ -166,7 +231,7 @@ int TempService::serviceLooper()
 }
 
 
-bool TempService::startService()
+void TempService::startService()
 {
     {
         std::unique_lock<std::mutex> lock(mLock);   
@@ -177,7 +242,7 @@ bool TempService::startService()
 }
 
 
-bool TempService::stopService()
+void TempService::stopService()
 {
     std::unique_lock<std::mutex> lock(mLock);   
     if (mRunning) {

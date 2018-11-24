@@ -607,6 +607,8 @@ Request:
 }
 Response:
 { 
-    "name": "camera._updateSysTemp", 
+    "name": "camera. ", 
     "state": "done"       
 }
+
+nvidia,tegra186-i2c

@@ -27,6 +27,8 @@ src += ['Process.cpp']
 src += ['forkUtil.cpp']
 src += ['ProtoManager.cpp']
 #src += ['AudioManager.cpp']
+src += ['TempService.cpp']
+
 
 
 #src += [config.PRO2_SERVICE + '/util/arlog.c']
