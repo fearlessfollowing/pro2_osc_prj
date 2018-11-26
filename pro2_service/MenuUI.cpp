@@ -62,6 +62,7 @@
 #include <sys/TempService.h>
 #include <icon/setting_menu_icon.h>
 #include <icon/pic_video_select.h>
+#include <err_code.h>
 
 using namespace std;
 
@@ -118,27 +119,25 @@ enum {
  * UI线程使用的消息
  */
 enum {
-    UI_MSG_DISP_TYPE,//0
+    UI_MSG_DISP_TYPE,           //0
     UI_MSG_DISP_ERR_MSG,
     UI_MSG_KEY_EVENT,
     UI_MSG_LONG_KEY_EVENT,
     UI_MSG_UPDATE_IP,
-    UI_DISP_BATTERY,//5
-    
-    //set config wifi same thread as oled wifi key action
+    UI_DISP_BATTERY,            //5
     UI_MSG_CONFIG_WIFI,		        /* 配置WIFI参数 */
 
     UI_MSG_SET_SN,
     UI_MSG_SET_SYNC_INFO,
     UI_UPDATE_DEV_INFO,
     UI_UPDATE_MID,              //10
-    OLED_DISP_BAT_LOW,
+    UI_DISP_BAT_LOW,
     OLED_UPDATE_CAPTURE_LIGHT,
     OLED_UPDATE_CAL_LIGHT,
     UI_CLEAR_MSG_BOX,
     UI_READ_BAT,                // 15
     UI_DISP_LIGHT,
-    //disp oled info at start
+
     UI_DISP_INIT,
     UI_MSG_QUERY_TF_RES,               /* TF卡状态消息 */
     UI_MSG_TF_STATE,
@@ -324,8 +323,6 @@ static ERR_CODE_DETAIL mErrDetails[] = {
     {434, "Speed Low",          ICON_SPEEDTEST06128_64},
     {414, " ",                  ICON_ERROR_414128_64},
     {311, "mSD insufficient",   ICON_STORAGE_INSUFFICIENT128_64},
-
-    // add for live rec finish
     {390, " ",                  ICON_LIV_REC_INSUFFICIENT_128_64128_64},
     {391, " ",                  ICON_LIVE_REC_LOW_SPEED_128_64128_64},
 };
@@ -979,9 +976,8 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            dispStr((const u8*)"Please restart the", 12, 16, false, 128);
-            dispStr((const u8*)"camera to exit the", 14, 32, false, 128);
-            dispStr((const u8*)"storage reading mode", 8, 48, false, 128); 
+            tipmSDcardSpeedInsufficient();
+
             #endif
             break;
         }
@@ -1910,10 +1906,8 @@ int MenuUI::oled_reset_disp(int type)
     mCamState = STATE_IDLE;
     
     //keep sys error back to menu top
-    disp_sys_err(type,MENU_TOP);
+    disp_sys_err(type, MENU_TOP);
     
-    //fix select if working by controller 0616
-
 //    init_menu_select();
     //reset wifi config
     return 0;
@@ -6566,6 +6560,7 @@ void MenuUI::disp_tl_count(int count)
     }
 }
 
+#if 0
 void MenuUI::minus_cam_state(u64 state)
 {
     rm_state(state);
@@ -6608,6 +6603,7 @@ void MenuUI::minus_cam_state(u64 state)
         LOGWARN(TAG," minus error Server State 0x%x state 0x%x", getServerState(), state);
     }
 }
+#endif
 
 
 void MenuUI::disp_err_code(int code, int back_menu)
@@ -6643,6 +6639,7 @@ void MenuUI::disp_err_code(int code, int back_menu)
         LOGDBG(TAG, "Error Occurred, but Server not in Preview state, skip Query TF Card");
     }
 
+
     for (u32 i = 0; i < sizeof(mErrDetails) / sizeof(mErrDetails[0]); i++) {
         if (mErrDetails[i].code == code) {
             if (mErrDetails[i].icon != -1) {
@@ -6659,9 +6656,36 @@ void MenuUI::disp_err_code(int code, int back_menu)
 	
     if (!bFound) {
         if (strlen(err_code) == 0) {
-            dispIconByType(ICON_ERROR_128_64128_64);
-            snprintf(err_code, sizeof(err_code), "%d", code);
-            dispStr((const u8 *)err_code, 64, 16);
+            switch (code) {
+                case ERR_HIGH_TEMPERATURE: {        /* 温度过高 */
+                    tipHighTempError();
+                    break;
+                }
+
+                case ERR_mSD_WRITE_SPEED_INSUFF: {  /* mSD卡卡速不足 */
+                    
+                    break;
+                }
+
+                case ERR_LOW_WRITE_SPEED: {         /* 大卡的卡速不足 */
+                    tipSDcardSpeedInsufficient();
+                    break;
+                }
+
+                case ERR_FILE_OPEN_FAILED:          /* 文件打开失败，检查是否写保护 */
+                case ERR_FILE: {
+                    tipWriteProtectError(code);
+                    break;
+                }
+
+
+                default: {
+                    dispIconByType(ICON_ERROR_128_64128_64);
+                    snprintf(err_code, sizeof(err_code), "%d", code);
+                    dispStr((const u8 *)err_code, 64, 16);
+                    break;
+                }
+            }
         } else {
             clearArea();
             dispStr((const u8 *)err_code, 16, 16);
@@ -6671,8 +6695,8 @@ void MenuUI::disp_err_code(int code, int back_menu)
 	
     reset_last_info();
 
-    //force cur menu sys_err
-    setLightDirect(BACK_RED|FRONT_RED);
+    /* 进入MENU_SYS_ERR菜单，前后灯全部设置为红色 */
+    setLightDirect(BACK_RED|FRONT_RED); 
     cur_menu = MENU_SYS_ERR;
     bDispTop = false;
 }
@@ -6864,16 +6888,14 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
         mControlPicJsonCmd.clear();
     } 
 
-
     if (err_code == -1) {
         oled_disp_type(type);
     } else { // new error_code
 
         int back_menu = MENU_TOP;
         tl_count = -1;
-		
-        //make it good code
         err_code = abs(err_code);
+
         switch (type) {
             case START_PREVIEW_FAIL:
                 back_menu = get_error_back_menu();
@@ -6956,6 +6978,9 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 break;
         }
 		
+        /*
+         * 显示错误码
+         */
         if (err_code != -1) {
             disp_err_code(err_code, back_menu);
         }
@@ -7657,15 +7682,15 @@ int MenuUI::oled_disp_type(int type)
 			
         case QR_FINISH_CORRECT:
             play_sound(SND_QR);
-            minus_cam_state(STATE_START_QR);
+            // minus_cam_state(STATE_START_QR);
             break;
 			
         case QR_FINISH_ERROR:
-            disp_sys_err(type,get_back_menu(cur_menu));
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
 			
         case QR_FINISH_UNRECOGNIZE:
-            disp_sys_err(type,get_back_menu(cur_menu));
+            disp_sys_err(type, get_back_menu(cur_menu));
             break;
 			
         case CAPTURE_ORG_SUC:
@@ -7673,7 +7698,7 @@ int MenuUI::oled_disp_type(int type)
             break;
 		
         case CALIBRATION_ORG_SUC:
-            LOGDBG(TAG,"rec calibration org suc");
+            LOGDBG(TAG, "rec calibration org suc");
             break;
 
         /* 根据Customer参数重新修改配置: 比如：Origin, RTS, 剩余空间 */
@@ -8337,22 +8362,23 @@ void MenuUI::handleKeyMsg(int iAppKey)
 ** 方法名称: handleLongKeyMsg
 ** 方法功能: 处理长按键的消息
 ** 入口参数: 
-**      key - 被按下的键值
-**      ts  - 按下的时长
+**      iAppkey - 被按下的键值
 ** 返回值: 
 ** 调 用: handleMessage
 **
 *************************************************************************/
-void MenuUI::handleLongKeyMsg(int key)
+void MenuUI::handleLongKeyMsg(int iAppKey)
 {
-    LOGDBG(TAG, "long press key 0x%x", key);
+extern const char *getAppKeyName(int cmd);
+
+    LOGDBG(TAG, "handleLongKeyMsg, key[%s]", getAppKeyName(iAppKey));
     VolumeManager* vm = VolumeManager::Instance();
     bool bNeedShutdown = false;
     uint64_t serverState = getServerState();
 
-    if ((key == APP_KEY_POWER) && (cur_menu != MENU_UDISK_MODE)) {
+    if ((iAppKey == APP_KEY_POWER) && (cur_menu != MENU_UDISK_MODE)) {
 
-        LOGDBG(TAG, "Are you want Power off Machine ...");
+        LOGDBG(TAG, "Power off Machine, current Menu[%s]", getMenuName(cur_menu));
         
         /* 如果是在主菜单或设置菜单，卸载卡后关机（IDLE状态）
             * 如果是在录像状态，停止录像
@@ -9066,212 +9092,210 @@ void MenuUI::handleMessage(const sp<ARMessage> &msg)
     LOGDBG(TAG, "UI Core get msg: what[%d]", what);
 #endif
 
-    if (UI_EXIT == what) {  /* 退出消息循环 */
-        exitAll();
-    } else {
-        switch (what) {
+    switch (what) {
 
-            /* 显示指定的页面(状态) */
-            case UI_MSG_DISP_TYPE: {  
-                {
-                    std::unique_lock<std::mutex> lock(mutexState);
-                    sp<DISP_TYPE> disp_type;
-                    CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
-					
-                    LOGDBG(TAG, "UI_MSG_DISP_TYPE (%d %d %d %s)",
-								disp_type->qr_type,         // 2 
-								disp_type->type,            // 1
-								disp_type->tl_count,        // -1
-								getMenuName(cur_menu));                 
-					
-					handleDispTypeMsg(disp_type);
-                }
-				break;
-            }
-					
-            case UI_MSG_DISP_ERR_MSG: {     /* 显示错误消息 */
+        /* 显示指定的页面(状态) */
+        case UI_MSG_DISP_TYPE: {  
+            {
                 std::unique_lock<std::mutex> lock(mutexState);
-                sp<ERR_TYPE_INFO> mErrInfo;
-                CHECK_EQ(msg->find<sp<ERR_TYPE_INFO>>("err_type_info", &mErrInfo),true);
-				handleDispErrMsg(mErrInfo);
-				break;
-            }
-               
-
-            case UI_MSG_KEY_EVENT: {	/* 短按键消息处理 */
-                int key = -1;
-                CHECK_EQ(msg->find<int>("oled_key", &key), true);
-                handleKeyMsg(key);
-				break;
-            }
+                sp<DISP_TYPE> disp_type;
+                CHECK_EQ(msg->find<sp<DISP_TYPE>>("disp_type", &disp_type), true);
                 
-            case UI_MSG_LONG_KEY_EVENT: {	/* 长按键消息处理 */
-                int key;
-                CHECK_EQ(msg->find<int>("long_key", &key), true);
-				handleLongKeyMsg(key);
-				 break;
-            }
-
-            case UI_MSG_SHUT_DOWN: {
-                handleShutdown();
-                break;
-            }
-
-            case UI_MSG_UPDATE_IP: {	/* 更新IP */
-				sp<DEV_IP_INFO> tmpIpInfo;
-				CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
-
-                #ifdef ENABLE_DEBUG_NET
-				LOGDBG(TAG, "UI_MSG_UPDATE_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
-                #endif
-				handleUpdateIp(tmpIpInfo->ipAddr);
-               	break;
-            }
-
-            case UI_MSG_CONFIG_WIFI:  {	/* 配置WIFI (UI-CORE处理) */
-                sp<WifiConfig> mConfig;
-                CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
-                handleorSetWifiConfig(mConfig);
-                break;
-            }
+                LOGDBG(TAG, "UI_MSG_DISP_TYPE (%d %d %d %s)",
+                            disp_type->qr_type,         // 2 
+                            disp_type->type,            // 1
+                            disp_type->tl_count,        // -1
+                            getMenuName(cur_menu));                 
                 
-            case UI_MSG_SET_SN: {	/* 设置SN */
-                sp<SYS_INFO> mSysInfo;
-                CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
-                handleUpdateSysInfo(mSysInfo);
-                break;
+                handleDispTypeMsg(disp_type);
             }
-
-			/*
-			 * 同步初始化
-			 */
-            case UI_MSG_SET_SYNC_INFO: {	/* 同步初始化信息(来自control_center) */
-                exit_sys_err();
-                sp<SYNC_INIT_INFO> mSyncInfo;
-                CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
-                handleSetSyncInfo(mSyncInfo);	/* 根据同步系统初始化系统参数及显示 */
-                
-                ProtoManager* pm = ProtoManager::Instance();
-                int iQueryResult = -1, i;
-                for (i = 0; i < 3; i++) {
-                    iQueryResult = pm->sendQueryGpsState();
-                    if (iQueryResult >= 0) {
-                        break;
-                    } 
-                }
-
-                if (i < 3) {
-                    mGpsState = iQueryResult;
-                } else {
-                    LOGERR(TAG, "Query Gps State failed, what's wrong");
-                   mGpsState = 0;
-                }
-                break;
-            }
-
-            case UI_DISP_INIT: {	            /* 1.初始化显示消息 */
-                handleDispInit();               /* 初始化显示 */
-                
-                REQ_SYNC reqSync;
-                memset(&reqSync, 0, sizeof(reqSync));
-                snprintf(reqSync.sn, sizeof(reqSync.sn), "%s", mReadSys->sn);
-                snprintf(reqSync.r_v, sizeof(reqSync.r_v), "%s", mVerInfo->r_ver);
-                snprintf(reqSync.p_v, sizeof(reqSync.p_v), "%s", mVerInfo->p_ver);
-                snprintf(reqSync.k_v, sizeof(reqSync.k_v), "%s", mVerInfo->k_ver);                
-
-                ProtoManager* pm = ProtoManager::Instance();
-                pm->sendStateSyncReq(&reqSync);
-                break;
-            }
-
-
-            case UI_MSG_UPDATE_GPS_STATE: {
-                int iGpstate;
-                CHECK_EQ(msg->find<int>("gps_state", &iGpstate), true);
-                mGpsState = iGpstate;
-                handleGpsState();
-                break;
-            }
-
-			/*
-			 * 更新存储设备列表(消息来自DevManager线程)
-			 */
-            case UI_UPDATE_DEV_INFO: {
-                vector<Volume*> mList;
-                int iAction = -1;
-                int iType = -1;
-                CHECK_EQ(msg->find<vector<Volume*>>("dev_list", &mList), true);
-                CHECK_EQ(msg->find<int>("action", &iAction), true);
-                CHECK_EQ(msg->find<int>("type", &iType), true);
-
-                handleUpdateDevInfo(iAction, iType, mList);
-                break;
-            }
-
-            case UI_MSG_TF_STATE: {     /* TF卡状态变化: 卡拔出, 卡插入 */
-                vector<sp<Volume>> mTfChangeList;
-                CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfChangeList), true);
-                handleTfStateChanged(mTfChangeList);
-                break;
-            }
-
-            #if 0
-            case UI_MSG_TF_FORMAT_RES: {
-                vector<sp<Volume>> mTfFormatList;
-                CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfFormatList), true);
-                // handleTfFormated(mTfFormatList);       
-                break;         
-            }
-            #endif
-
-
-            case UI_MSG_SPEEDTEST_RESULT: {
-                vector<sp<Volume>> mSpeedTestList;
-                CHECK_EQ(msg->find<vector<sp<Volume>>>("speed_test", &mSpeedTestList), true);
-                handleSppedTest(mSpeedTestList); 
-                break;
-            }
-
-            case UI_UPDATE_MID: {    /* 更新显示时间(只有在录像,直播的UI */
-                handleUpdateMid();
-				break;
-            }
-
-			/*
-			 * 低电
-			 */
-            case OLED_DISP_BAT_LOW:
-                break;
-
-
-            case UI_READ_BAT: {     /* 读取电池电量消息 */
-                unique_lock<mutex> lock(mutexState);
-                handleCheckBatteryState();
-                break;
-            }
-
-            case UI_DISP_LIGHT: {   /* 显示灯状态消息 */
-                int menu;
-                int interval;
-
-                CHECK_EQ(msg->find<int>("menu", &menu), true);
-                CHECK_EQ(msg->find<int>("interval", &interval), true);
-
-				handleDispLightMsg(menu, interval);
-				break;
-            }
-                			
-            case UI_CLEAR_MSG_BOX: {      /* 清除消息框 */
-                if (cur_menu == MENU_DISP_MSG_BOX) {    /* 如果当前处于消息框菜单中,执行返回 */
-                    procBackKeyEvent();
-                } else {
-                    LOGDBG(TAG, "Warnning Cler MsgBox cur_menu [%s]", getMenuName(cur_menu));
-                }
-                break;
-            }
-				
-            SWITCH_DEF_ERROR(what)
+            break;
         }
+                
+        case UI_MSG_DISP_ERR_MSG: {     /* 显示错误消息 */
+            std::unique_lock<std::mutex> lock(mutexState);
+            sp<ERR_TYPE_INFO> mErrInfo;
+            CHECK_EQ(msg->find<sp<ERR_TYPE_INFO>>("err_type_info", &mErrInfo), true);
+            handleDispErrMsg(mErrInfo);
+            break;
+        }
+            
+        case UI_MSG_KEY_EVENT: {	    /* 短按键消息处理 */
+            int key = -1;
+            CHECK_EQ(msg->find<int>("oled_key", &key), true);
+            handleKeyMsg(key);
+            break;
+        }
+            
+        case UI_MSG_LONG_KEY_EVENT: {	/* 长按键消息处理 */
+            int key;
+            CHECK_EQ(msg->find<int>("long_key", &key), true);
+            handleLongKeyMsg(key);
+                break;
+        }
+
+        case UI_MSG_SHUT_DOWN: {
+            handleShutdown();
+            break;
+        }
+
+        case UI_MSG_UPDATE_IP: {	    /* 更新IP */
+            sp<DEV_IP_INFO> tmpIpInfo;
+            CHECK_EQ(msg->find<sp<DEV_IP_INFO>>("info", &tmpIpInfo), true);
+
+            #ifdef ENABLE_DEBUG_NET
+            LOGDBG(TAG, "UI_MSG_UPDATE_IP dev[%s], ip[%s]", tmpIpInfo->cDevName, tmpIpInfo->ipAddr);
+            #endif
+            handleUpdateIp(tmpIpInfo->ipAddr);
+            break;
+        }
+
+        case UI_MSG_CONFIG_WIFI:  {	    /* 配置WIFI (UI-CORE处理) */
+            sp<WifiConfig> mConfig;
+            CHECK_EQ(msg->find<sp<WifiConfig>>("wifi_config", &mConfig), true);
+            handleorSetWifiConfig(mConfig);
+            break;
+        }
+            
+        case UI_MSG_SET_SN: {	        /* 设置SN */
+            sp<SYS_INFO> mSysInfo;
+            CHECK_EQ(msg->find<sp<SYS_INFO>>("sys_info", &mSysInfo), true);
+            handleUpdateSysInfo(mSysInfo);
+            break;
+        }
+
+        /** 同步初始化 */
+        case UI_MSG_SET_SYNC_INFO: {	/* 同步初始化信息(来自control_center) */
+            exit_sys_err();
+            sp<SYNC_INIT_INFO> mSyncInfo;
+            CHECK_EQ(msg->find<sp<SYNC_INIT_INFO>>("sync_info", &mSyncInfo), true);
+            handleSetSyncInfo(mSyncInfo);	/* 根据同步系统初始化系统参数及显示 */
+            
+            ProtoManager* pm = ProtoManager::Instance();
+            int iQueryResult = -1, i;
+            for (i = 0; i < 3; i++) {
+                iQueryResult = pm->sendQueryGpsState();
+                if (iQueryResult >= 0) {
+                    break;
+                } 
+            }
+
+            if (i < 3) {
+                mGpsState = iQueryResult;
+            } else {
+                LOGERR(TAG, "Query Gps State failed, what's wrong");
+                mGpsState = 0;
+            }
+            break;
+        }
+
+        case UI_DISP_INIT: {            /* 1.初始化显示消息 */
+            handleDispInit();               /* 初始化显示 */
+            
+            REQ_SYNC reqSync;
+            memset(&reqSync, 0, sizeof(reqSync));
+            snprintf(reqSync.sn, sizeof(reqSync.sn), "%s", mReadSys->sn);
+            snprintf(reqSync.r_v, sizeof(reqSync.r_v), "%s", mVerInfo->r_ver);
+            snprintf(reqSync.p_v, sizeof(reqSync.p_v), "%s", mVerInfo->p_ver);
+            snprintf(reqSync.k_v, sizeof(reqSync.k_v), "%s", mVerInfo->k_ver);                
+
+            ProtoManager* pm = ProtoManager::Instance();
+            pm->sendStateSyncReq(&reqSync);
+            break;
+        }
+
+
+        case UI_MSG_UPDATE_GPS_STATE: {
+            int iGpstate;
+            CHECK_EQ(msg->find<int>("gps_state", &iGpstate), true);
+            mGpsState = iGpstate;
+            handleGpsState();
+            break;
+        }
+
+        /*
+            * 更新存储设备列表(消息来自DevManager线程)
+            */
+        case UI_UPDATE_DEV_INFO: {
+            vector<Volume*> mList;
+            int iAction = -1;
+            int iType = -1;
+            CHECK_EQ(msg->find<vector<Volume*>>("dev_list", &mList), true);
+            CHECK_EQ(msg->find<int>("action", &iAction), true);
+            CHECK_EQ(msg->find<int>("type", &iType), true);
+
+            handleUpdateDevInfo(iAction, iType, mList);
+            break;
+        }
+
+        case UI_MSG_TF_STATE: {         /* TF卡状态变化: 卡拔出, 卡插入 */
+            vector<sp<Volume>> mTfChangeList;
+            CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfChangeList), true);
+            handleTfStateChanged(mTfChangeList);
+            break;
+        }
+
+        #if 0
+        case UI_MSG_TF_FORMAT_RES: {
+            vector<sp<Volume>> mTfFormatList;
+            CHECK_EQ(msg->find<vector<sp<Volume>>>("tf_list", &mTfFormatList), true);
+            // handleTfFormated(mTfFormatList);       
+            break;         
+        }
+        #endif
+
+
+        case UI_MSG_SPEEDTEST_RESULT: {
+            vector<sp<Volume>> mSpeedTestList;
+            CHECK_EQ(msg->find<vector<sp<Volume>>>("speed_test", &mSpeedTestList), true);
+            handleSppedTest(mSpeedTestList); 
+            break;
+        }
+
+        case UI_UPDATE_MID: {           /* 更新显示时间(只有在录像,直播的UI */
+            handleUpdateMid();
+            break;
+        }
+
+        /*
+            * 低电
+            */
+        case UI_DISP_BAT_LOW:
+            break;
+
+
+        case UI_READ_BAT: {             /* 读取电池电量消息 */
+            unique_lock<mutex> lock(mutexState);
+            handleCheckBatteryState();
+            break;
+        }
+
+        case UI_DISP_LIGHT: {           /* 显示灯状态消息 */
+            int menu;
+            int interval;
+
+            CHECK_EQ(msg->find<int>("menu", &menu), true);
+            CHECK_EQ(msg->find<int>("interval", &interval), true);
+
+            handleDispLightMsg(menu, interval);
+            break;
+        }
+                        
+        case UI_CLEAR_MSG_BOX: {        /* 清除消息框 */
+            if (cur_menu == MENU_DISP_MSG_BOX) {    /* 如果当前处于消息框菜单中,执行返回 */
+                procBackKeyEvent();
+            } else {
+                LOGDBG(TAG, "Warnning Cler MsgBox cur_menu [%s]", getMenuName(cur_menu));
+            }
+            break;
+        }
+
+        case UI_EXIT: {
+            exitAll();
+            break;
+        }
+
+        SWITCH_DEF_ERROR(what)
     }
 }
 
@@ -9437,7 +9461,7 @@ void MenuUI::send_delay_msg(int msg_id, int delay)
 
 void MenuUI::send_bat_low()
 {
-    sp<ARMessage> msg = obtainMessage(OLED_DISP_BAT_LOW);
+    sp<ARMessage> msg = obtainMessage(UI_DISP_BAT_LOW);
     msg->post();
 }
 
@@ -9625,9 +9649,9 @@ void MenuUI::tipEnterUdisk()
 void MenuUI::tipHowtoExitUdisk()
 {
     clearArea(0, 16);
-    dispStr((const u8*)"Please restart the", 12, 16, false, 128);
-    dispStr((const u8*)"camera to exit the", 14, 32, false, 128);
-    dispStr((const u8*)"storage reading mode", 8, 48, false, 128);    
+    dispStr((const u8*)"Please restart the", 17, 16, false, 128);
+    dispStr((const u8*)"camera to exit storage", 4, 32, false, 128);
+    dispStr((const u8*)"device reading mode.", 8, 48, false, 128); 
 }
 
 
@@ -9644,12 +9668,14 @@ void MenuUI::enterUdiskSuc()
     dispStr((const u8*)"Reading storage devices", 0, 16, false, 128);
     dispStr((const u8*)"ServerIP:192.168.1.188", 0, 32, false, 128);
 #endif
+
 }
 
 
 void MenuUI::dispQuitUdiskMode()
 {
     clearArea(0, 16);
+
     /* 正在退出U盘模式 */
     dispStr((const u8*)"Ejecting...", 40, 16, false, 128);
     dispStr((const u8*)"Please do not remove", 6, 32, false, 128);
@@ -9826,12 +9852,9 @@ void MenuUI::dispInNeedTfCard()
 
     clearArea(20, 16, 84, 32);
 
-    VolumeManager* vm = VolumeManager::Instance();
-
     cards.clear();
-
+    VolumeManager* vm = VolumeManager::Instance();
     vm->getIneedTfCard(cards);
-
     dispStr((const u8*)"No mSD card", 27, 16, false, 104 - 27);
 
     if (cards.size() > 0) {
@@ -9900,6 +9923,65 @@ void MenuUI::disp_low_bat()
     setLightDirect(BACK_RED|FRONT_RED);
 }
 
+
+
+
+/*
+ * 提示温度过高: 417错误
+ *
+ * Error 417.Camera temp
+ * temperature high. Please 
+ * turn on the fan or take 
+ * a break before continue
+ */
+void MenuUI::tipHighTempError()
+{
+    dispStr((const u8*)"Error 417. Camera", 15, 0, false, 128);
+    dispStr((const u8*)"temperature high.Please", 0, 16, false, 128);
+    dispStr((const u8*)"turn on the fan or take", 0, 32, false, 128);
+    dispStr((const u8*)"a break before continue", 0, 48, false, 128); 
+}
+
+
+/*
+ * 小卡速度不足
+ */
+void MenuUI::tipmSDcardSpeedInsufficient()
+{
+    dispStr((const u8*)"Error 313.", 37, 0, false, 128);
+    dispStr((const u8*)"mSD card(1,2,3,4,5,6)", 0, 16, false, 128);
+    dispStr((const u8*)"speed insufficient.Please", 0, 32, false, 128);
+    dispStr((const u8*)"overwrite before use.", 7, 48, false, 128);  
+}
+
+
+/*
+ * 大卡卡速不足
+ */
+void MenuUI::tipSDcardSpeedInsufficient()
+{
+    dispStr((const u8*)"Error 434.", 37, 0, false, 128);
+    dispStr((const u8*)"SD card speed", 25, 16, false, 128);
+    dispStr((const u8*)"insufficient.Please", 18, 32, false, 128);
+    dispStr((const u8*)"overwrite before use.", 7, 48, false, 128); 
+}
+
+
+/*
+ * 写保护错误
+ */
+void MenuUI::tipWriteProtectError(int iErrno)
+{
+    if (iErrno == 430) {
+        dispStr((const u8*)"Error 430.", 37, 0, false, 128);
+    } else {
+        dispStr((const u8*)"Error 431.", 37, 0, false, 128);        
+    }
+
+    dispStr((const u8*)"Please remove", 27, 16, false, 128);
+    dispStr((const u8*)"write-protection from", 10, 32, false, 128);
+    dispStr((const u8*)"SD card before use.", 9, 48, false, 128); 
+}
 
 const char* MenuUI::getDispType(int iType)
 {

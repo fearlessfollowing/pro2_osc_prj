@@ -1472,7 +1472,9 @@ bool ProtoManager::sendUpdateSysTempReq(Json::Value& pram)
         case PROTO_MANAGER_REQ_SUC: {   /* 接收到了replay,解析Rely */
             writer->write(jsonRes, &osOutput);
             resultStr = osOutput.str();
+            #if 0
             LOGDBG(TAG, "sendUpdateSysTempReq -> request Result: %s", resultStr.c_str());
+            #endif
             if (jsonRes.isMember(_state)) {
                 if (jsonRes[_state] == _done) {     
                     bRet = true;

@@ -6,9 +6,35 @@
 
 #include <log/log_wrapper.h>
 
+#include <util/font_ascii.h>
 
 #undef  TAG
 #define TAG "Util"
+
+
+#if 0
+/*
+ * 拼接出一个字符串，并计算出该字符串在UI上居中显示的起始位置
+ */
+int calcStrCat(char* srcBuf, char* subBuf, int iErrno, int iStartPos, int iEndPos)
+{
+    if (srcBuf) {
+        int iStartSrcPos = strlen(srcBuf);
+        if (subBuf) {
+            strcat(srcBuf, subBuf);
+        }
+
+        if (iErrno > 0) {
+            char errno_buf[12] = {0};
+            sprintf(errno_buf, "%d", iErrno);
+            strcat(srcBuf, errno_buf);
+        }
+
+    } else {
+        return -1;
+    }
+}
+#endif
 
 
 

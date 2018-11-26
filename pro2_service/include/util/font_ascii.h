@@ -17,8 +17,6 @@ typedef struct _char_other_ {
 typedef struct _coordinate_ {
     const u8 x;
     const u8 y;
-//    const u8 w;
-//    const u8 h;
 }COORDINATE;
 
 enum {
@@ -320,104 +318,6 @@ static u8 InsDev_Oled_Char_empty_bin[] = {
 };
 
 
-#if 0
-InsDev_Oled_Char_t InsDev_Oled_Char[] = {
-   { 3, InsDev_Oled_Char_empty_bin}, //sp 0
-   { 3, InsDev_Oled_Char_empty_bin}, // ! 1
-   { 3, InsDev_Oled_Char_empty_bin}, // " 2
-   { 3, InsDev_Oled_Char_empty_bin}, // # 3
-   { 3, InsDev_Oled_Char_empty_bin}, // $ 4
-   { 3, InsDev_Oled_Char_empty_bin}, // % 5
-   { 3, InsDev_Oled_Char_empty_bin}, // & 6
-   { 3, InsDev_Oled_Char_empty_bin}, // ' 7
-   { 3, InsDev_Oled_Char_empty_bin}, // ( 8
-   { 3, InsDev_Oled_Char_empty_bin}, // ) 9
-   { 3, InsDev_Oled_Char_empty_bin}, // * 10
-   { 3, InsDev_Oled_Char_empty_bin}, // + 11
-   { 3, InsDev_Oled_Char_empty_bin}, // , 12
-   { 4, InsDev_Oled_Char_minus_bin}, // - 13
-   { 3, InsDev_Oled_Char_dot_bin}, // . 14
-   { 3, InsDev_Oled_Char_empty_bin}, // / 15
-   { 6, InsDev_Oled_Char_0_bin}, // 0 16
-   { 6, InsDev_Oled_Char_1_bin}, // 1 17
-   { 6, InsDev_Oled_Char_2_bin}, // 2 18
-   { 6, InsDev_Oled_Char_3_bin}, // 3 19
-   { 6, InsDev_Oled_Char_4_bin}, // 4 20
-   { 6, InsDev_Oled_Char_5_bin}, // 5 21
-   { 6, InsDev_Oled_Char_6_bin}, // 6 22
-   { 6, InsDev_Oled_Char_7_bin}, // 7 23
-   { 6, InsDev_Oled_Char_8_bin}, // 8 24
-   { 6, InsDev_Oled_Char_9_bin}, // 9 25
-   { 6, InsDev_Oled_Char_colon_bin}, // : 26
-   { 3, InsDev_Oled_Char_empty_bin}, // ; 27
-   { 3, InsDev_Oled_Char_empty_bin}, // < 28
-   { 3, InsDev_Oled_Char_empty_bin}, // = 29
-   { 3, InsDev_Oled_Char_empty_bin}, // > 30
-   { 6, InsDev_Oled_Char_question_bin}, // ? 31
-   { 3, InsDev_Oled_Char_empty_bin}, // @ 32
-   { 8, InsDev_Oled_Char_A_bin}, // A 33
-   { 7, InsDev_Oled_Char_B_bin}, // B 34
-   { 7, InsDev_Oled_Char_C_bin}, // C 35
-   { 8, InsDev_Oled_Char_D_bin}, // D 36
-   { 6, InsDev_Oled_Char_E_bin}, // E 37
-   { 6, InsDev_Oled_Char_F_bin}, // F 38
-   { 7, InsDev_Oled_Char_G_bin}, // G 39
-   { 7, InsDev_Oled_Char_H_bin}, // H 40
-   { 4, InsDev_Oled_Char_I_bin}, // I 41
-   { 4, InsDev_Oled_Char_J_bin}, // J 42
-   { 6, InsDev_Oled_Char_K_bin}, // K 43
-   { 6, InsDev_Oled_Char_L_bin}, // L 44
-   { 8, InsDev_Oled_Char_M_bin}, // M 45
-   { 7, InsDev_Oled_Char_N_bin}, // N 46
-   { 8, InsDev_Oled_Char_O_bin}, // O 47
-   { 6, InsDev_Oled_Char_P_bin}, // P 48
-   { 8, InsDev_Oled_Char_Q_bin}, // Q 49
-   { 8, InsDev_Oled_Char_R_bin}, // R 50
-   { 6, InsDev_Oled_Char_S_bin}, // S 51
-   { 8, InsDev_Oled_Char_T_bin}, // T 52
-   { 8, InsDev_Oled_Char_U_bin}, // U 53
-   { 8, InsDev_Oled_Char_V_bin}, // V 54
-   { 10, InsDev_Oled_Char_W_bin}, // W 55
-   { 7, InsDev_Oled_Char_X_bin}, // X 56
-   { 8, InsDev_Oled_Char_Y_bin}, // Y 57
-   { 8, InsDev_Oled_Char_Z_bin}, // Z 58
-   { 3, InsDev_Oled_Char_empty_bin}, // [ 59
-   { 3, InsDev_Oled_Char_empty_bin}, // \ 60
-   { 3, InsDev_Oled_Char_empty_bin}, // ] 61
-   { 3, InsDev_Oled_Char_empty_bin}, // ^ 62
-   { 3, InsDev_Oled_Char_empty_bin}, // _ 63
-   { 3, InsDev_Oled_Char_empty_bin}, // ' 64
-   { 6, InsDev_Oled_Char_a_bin}, // a 65
-   { 6, InsDev_Oled_Char_b_bin}, // b 66
-   { 5, InsDev_Oled_Char_c_bin}, // c 67
-   { 6, InsDev_Oled_Char_d_bin}, // d 68
-   { 6, InsDev_Oled_Char_e_bin}, // e 69
-   { 4, InsDev_Oled_Char_f_bin}, // f 70
-   { 6, InsDev_Oled_Char_g_bin}, // g 71
-   { 6, InsDev_Oled_Char_h_bin}, // h 72
-   { 2, InsDev_Oled_Char_i_bin}, // i 73
-   { 3, InsDev_Oled_Char_j_bin}, // j 74
-   { 6, InsDev_Oled_Char_k_bin}, // k 75
-   { 2, InsDev_Oled_Char_l_bin}, // l 76
-   { 8, InsDev_Oled_Char_m_bin}, // m 77
-   { 6, InsDev_Oled_Char_n_bin}, // n 78
-   { 6, InsDev_Oled_Char_o_bin}, // o 79
-   { 6, InsDev_Oled_Char_p_bin}, // p 80
-   { 6, InsDev_Oled_Char_q_bin}, // q 81
-   { 4, InsDev_Oled_Char_r_bin}, // r 82
-   { 6, InsDev_Oled_Char_s_bin}, // s 83
-   { 4, InsDev_Oled_Char_t_bin}, // t 84
-   { 6, InsDev_Oled_Char_u_bin}, // u 85
-   { 6, InsDev_Oled_Char_v_bin}, // v 86
-   { 8, InsDev_Oled_Char_w_bin}, // w 87
-   { 6, InsDev_Oled_Char_x_bin}, // x 88
-   { 6, InsDev_Oled_Char_y_bin}, // y 89
-   { 6, InsDev_Oled_Char_z_bin}, // z 90
-   { 3, InsDev_Oled_Char_empty_bin} // horiz lines91
-};
-
-#else
-
 static CHAR_INFO gArrySmallAlpha[] = {
    { 6, InsDev_Oled_Char_a_bin}, // a 65
    { 6, InsDev_Oled_Char_b_bin}, // b 66
@@ -477,9 +377,6 @@ static CHAR_INFO gArryBigAlpha[] = {
    { 8, InsDev_Oled_Char_Z_bin}, // Z 58      
 };
 
-#endif
-
-
 static const u8 digit_6_16[][12] = {
     {0x00,0xE0,0x10,0x10,0x10,0xE0,0x00,0x07,0x08,0x08,0x08,0x07},//0 0
     {0x00,0x10,0x10,0xF0,0x00,0x00,0x00,0x08,0x08,0x0F,0x08,0x08},//1 1
@@ -508,7 +405,6 @@ static const u8 digit_6_16_e[][12] = {
 
 
 static const u8 num_space_6x16[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};//" "
-
 static const u8 num_space_3x16[] = {0x00,0x00,0x00,0x00,0x00,0x00};//" "
 
 
@@ -528,7 +424,7 @@ static const u8 text_number_co_0000_6x16[] = {   // ","
 };
 
 static const u8 text_number_bs_0000_6x16[] = {   // "/"
-    0x00,0x00,0x00,0xE0,0x1C,0x00,0x00,0x38,0x07,0x00,0x00,0x00
+    0x00, 0x00, 0x00, 0xE0, 0x1C, 0x00,0x00,0x38,0x07,0x00,0x00,0x00
 };
 
 

@@ -144,14 +144,16 @@ void TempService::getBatteryTemp()
     if (mBattery->read_charge(&bCharge) == 0) { /* 电池存在 */
         if(!mBattery->read_tmp(&dInterTemp, &dOuterTemp)) {
             mBatteryTmp = static_cast<int>(MAX_VAL(dInterTemp, dOuterTemp));
-        #ifdef ENABLE_DEBUG_TMPSERVICE
+#ifdef ENABLE_DEBUG_TMPSERVICE
             LOGDBG(TAG, "Current Battery temp: [%f]C", mBatteryTmp);
-        #endif
+#endif
         } else {
             LOGERR(TAG, "---> read battery temp failed");
         }
     } else {
+#ifdef ENABLE_DEBUG_TMPSERVICE
         LOGDBG(TAG, "battery not exist !!!");
+#endif 
     }
 }
 
