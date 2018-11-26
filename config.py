@@ -6,6 +6,7 @@
 # Descriptor: Defined some Enviorn var and Control Options
 # Version: V1.0
 ##########################################################################################################
+
 import os
 import platform
 
@@ -146,11 +147,14 @@ COM_FLAGS += ' -DENBALE_INPUT_EVENT_WHEN_ENTER_UDISK '
 # COM_FLAGS += ' -DENABLE_ADAPTER_REMOVE_SHUTDOWN '
 
 
+# 使能退出U盘模式提示
+COM_FLAGS += ' -DENABLE_TIP_HOW_TO_EXIT_UDISK '
+
+
 # 调试Netlink消息
 # COM_FLAGS += ' -DENABLE_DEBUG_NETLINK_MSG '
 
 COM_FLAGS += ' -fexceptions -Wall -Wunused-variable '
-
 
 
 # toolchains options

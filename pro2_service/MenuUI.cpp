@@ -973,14 +973,15 @@ void MenuUI::disp_msg_box(int type)
         case DISP_NEED_SDCARD: {
 
             clearArea();
-            #if 1
+            #if 0
             dispStr((const u8*)"Please", 48, 8, false, 128);
             dispStr((const u8*)"ensure SD card or", 16, 24, false, 128);
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            dispStr((const u8*)"No mSD card", 27, 16, false, 84);
-            dispStr((const u8*)"(1,2,3,4,5,6)", 23, 32, false, 84);
+            dispStr((const u8*)"Please restart the", 12, 16, false, 128);
+            dispStr((const u8*)"camera to exit the", 14, 32, false, 128);
+            dispStr((const u8*)"storage reading mode", 8, 48, false, 128); 
             #endif
             break;
         }
@@ -2962,21 +2963,19 @@ void MenuUI::procBackKeyEvent()
         case MENU_UDISK_MODE: {     /* 进入U盘后，按返回键提示用户只能重启才能退出U盘模式 */
             VolumeManager* vm = VolumeManager::Instance();
 
-        #if 0
-            if (vm->checkEnteredUdiskMode()) {
-                oled_disp_type(EXIT_UDISK_MODE);
-            } else {
-                LOGERR(TAG, "Entering Udisk Mode, please Wait...");
-            }
-        #else 
+        #ifdef ENABLE_TIP_HOW_TO_EXIT_UDISK
             tipHowtoExitUdisk();
-
             msg_util::sleep_ms(3000);
-
             if (vm->checkEnterUdiskResult()) {
                 enterUdiskSuc();
             } else {
                 dispEnterUdiskFailed();
+            }
+        #else 
+            if (vm->checkEnteredUdiskMode()) {
+                oled_disp_type(EXIT_UDISK_MODE);
+            } else {
+                LOGERR(TAG, "Entering Udisk Mode, please Wait...");
             }
         #endif
             break;
@@ -2998,7 +2997,6 @@ void MenuUI::procBackKeyEvent()
                                 mTakeVideInTimelapseMode = false;
                             }
                             if (pm->sendStopPreview()) {
-                                clearArea(20, 16, 84, 32);
                                 dispWaiting();		/* 屏幕中间显示"..." */
                             } else {
                                 LOGERR(TAG, "Stop preview request fail");
@@ -4945,6 +4943,7 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
     switch (cur_menu) {
         case MENU_TOP: {      /* 主菜单 */
             dispIconByType(main_icons[mProCfg->get_val(KEY_WIFI_ON)][getCurMenuCurSelectIndex()]);
+            LOGDBG(TAG, "----> SHOW MENU_TOP HERE.....");
             break;
         }
 		
@@ -9538,6 +9537,7 @@ void MenuUI::dispAgingStr()
 
 void MenuUI::dispWaiting()
 {
+    clearArea(20, 16, 84, 32);
     dispIconByType(ICON_CAMERA_WAITING_2016_76X32);
 }
 
@@ -9625,10 +9625,11 @@ void MenuUI::tipEnterUdisk()
 void MenuUI::tipHowtoExitUdisk()
 {
     clearArea(0, 16);
-    dispStr((const u8*)"Need to restart the", 12, 16, false, 128);
+    dispStr((const u8*)"Please restart the", 12, 16, false, 128);
     dispStr((const u8*)"camera to exit the", 14, 32, false, 128);
-    dispStr((const u8*)"reading storage mode", 8, 48, false, 128);    
+    dispStr((const u8*)"storage reading mode", 8, 48, false, 128);    
 }
+
 
 void MenuUI::enterUdiskSuc()
 {
@@ -9742,11 +9743,10 @@ void MenuUI::dispReady(bool bDispReady)
 {
     VolumeManager* vm = VolumeManager::Instance();
 
-    clearArea(20, 16, 84, 32);
-
     switch (cur_menu) {
         case MENU_PIC_INFO:
         case MENU_VIDEO_INFO: {
+
             /* 调用存储管理器来判断显示图标 */
             if (vm->checkLocalVolumeExist() && vm->checkAllTfCardExist()) {    /* 大卡,小卡都在 */
 
@@ -9823,6 +9823,8 @@ void MenuUI::dispInNeedTfCard()
     char cIndex[128] = {0};
     std::vector<int> cards;
     int iStartPos = 20;
+
+    clearArea(20, 16, 84, 32);
 
     VolumeManager* vm = VolumeManager::Instance();
 
