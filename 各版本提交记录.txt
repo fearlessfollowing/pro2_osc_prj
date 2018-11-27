@@ -1369,6 +1369,33 @@ samba相关的问题
 
 
 
+版本号：V1.0.11
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+
+（肖神）
+
+
+（罗品京）
+修改点:
+1.新增错误号305，430，417对应的文案
+2.fixup 客户端非预览页拍照花屏问题
+3.fixup samba模式下，长按电源键关机问题
+
+（建聪）
+1.解决 照片exif信息，Exposure time和Shutter speed的值不一样问题
+
+
+测试风险点:
+
+
+遗留问题：
+samba相关的问题
+
+固件类型：测试组测试
+
 
 
 
@@ -1416,3 +1443,41 @@ samba相关的问题
 
 
 "_sys_temp": {"bat_temp": 38.0, "module_temp": 49.0, "nv_temp": 36.5}
+
+
+
+"camera._listFiles", 
+"results": "{
+    "name": "camera._listFilesFinsh", 
+    "state": "done", 
+    "results": {
+        "totalEntries": 2538, 
+        "entries": [
+            {"fileUrl": "/mnt/sdcard", "name": "0.dat"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "1.dat"},
+            {"fileUrl": "/mnt/sdcard", "name": "2.dat"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "3.dat"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "4.dat"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "5.dat"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "6.dat"},
+            {"fileUrl": "/mnt/sdcard", "name": "Insta360_Pro2_Update.bin"}, 
+            {"fileUrl": "/mnt/sdcard", "name": "._Insta360_Pro2_Update.bin"}, 
+            {"fileUrl": "/mnt/sdcard", "name": ".pro_suc"}, 
+            {"fileUrl": "/mnt/sdcard/System Volume Information", "name": "IndexerVolumeGuid"}, 
+            {"fileUrl": "/mnt/sdcard/System Volume Information", "name": "WPSettings.dat"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "pro.prj"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "gyro.mp4"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_6.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_5.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_4.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_3.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_2.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "origin_1.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "pano.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/PIC_20180919172309", "name": "thumbnail.jpg"}, 
+            {"fileUrl": "/mnt/sdcard/VID_20180919172328", "name": "pro.prj"}, 
+            {"fileUrl": "/mnt/sdcard/VID_20180919172328", "name": "origin_4_lrv.mp4"}, 
+            {"fileUrl": "/mnt/sdcard/VID_20180919172328", "name": "origin_5_lrv.mp4"}
+        ]
+    }
+}

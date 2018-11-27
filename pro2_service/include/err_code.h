@@ -1,6 +1,10 @@
 #ifndef _ERR_CODE_H_
 #define _ERR_CODE_H_
 
+#ifndef ERR_MODULE_HIGH_TEMP    
+#define ERR_MODULE_HIGH_TEMP        305     /* 模组温度过高 */
+#endif
+
 #ifndef ERR_NO_mSD
 #define ERR_NO_mSD                  310     /* 未插入mSD卡 */
 #endif

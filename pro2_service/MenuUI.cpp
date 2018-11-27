@@ -6657,15 +6657,17 @@ void MenuUI::disp_err_code(int code, int back_menu)
     if (!bFound) {
         if (strlen(err_code) == 0) {
             switch (code) {
+                case ERR_MODULE_HIGH_TEMP:
                 case ERR_HIGH_TEMPERATURE: {        /* 温度过高 */
-                    tipHighTempError();
+                    tipHighTempError(code);
                     break;
                 }
 
-                case ERR_mSD_WRITE_SPEED_INSUFF: {  /* mSD卡卡速不足 */
-                    
+#if 0
+                case ERR_mSD_WRITE_SPEED_INSUFF: {  /* mSD卡卡速不足 */                    
                     break;
                 }
+#endif
 
                 case ERR_LOW_WRITE_SPEED: {         /* 大卡的卡速不足 */
                     tipSDcardSpeedInsufficient();
@@ -6677,7 +6679,6 @@ void MenuUI::disp_err_code(int code, int back_menu)
                     tipWriteProtectError(code);
                     break;
                 }
-
 
                 default: {
                     dispIconByType(ICON_ERROR_128_64128_64);
@@ -9923,9 +9924,6 @@ void MenuUI::disp_low_bat()
     setLightDirect(BACK_RED|FRONT_RED);
 }
 
-
-
-
 /*
  * 提示温度过高: 417错误
  *
@@ -9934,9 +9932,14 @@ void MenuUI::disp_low_bat()
  * turn on the fan or take 
  * a break before continue
  */
-void MenuUI::tipHighTempError()
+void MenuUI::tipHighTempError(int iErrno)
 {
-    dispStr((const u8*)"Error 417. Camera", 15, 0, false, 128);
+    clearArea();    
+    if (ERR_MODULE_HIGH_TEMP == iErrno) {
+        dispStr((const u8*)"Error 305. Camera", 15, 0, false, 128);
+    } else {
+        dispStr((const u8*)"Error 417. Camera", 15, 0, false, 128);
+    }
     dispStr((const u8*)"temperature high.Please", 0, 16, false, 128);
     dispStr((const u8*)"turn on the fan or take", 0, 32, false, 128);
     dispStr((const u8*)"a break before continue", 0, 48, false, 128); 
@@ -9948,6 +9951,7 @@ void MenuUI::tipHighTempError()
  */
 void MenuUI::tipmSDcardSpeedInsufficient()
 {
+    clearArea();      
     dispStr((const u8*)"Error 313.", 37, 0, false, 128);
     dispStr((const u8*)"mSD card(1,2,3,4,5,6)", 0, 16, false, 128);
     dispStr((const u8*)"speed insufficient.Please", 0, 32, false, 128);
@@ -9960,6 +9964,7 @@ void MenuUI::tipmSDcardSpeedInsufficient()
  */
 void MenuUI::tipSDcardSpeedInsufficient()
 {
+    clearArea();    
     dispStr((const u8*)"Error 434.", 37, 0, false, 128);
     dispStr((const u8*)"SD card speed", 25, 16, false, 128);
     dispStr((const u8*)"insufficient.Please", 18, 32, false, 128);
@@ -9972,7 +9977,8 @@ void MenuUI::tipSDcardSpeedInsufficient()
  */
 void MenuUI::tipWriteProtectError(int iErrno)
 {
-    if (iErrno == 430) {
+    clearArea();
+    if (ERR_FILE_OPEN_FAILED == iErrno) {
         dispStr((const u8*)"Error 430.", 37, 0, false, 128);
     } else {
         dispStr((const u8*)"Error 431.", 37, 0, false, 128);        

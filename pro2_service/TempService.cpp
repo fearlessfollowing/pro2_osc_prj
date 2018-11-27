@@ -63,6 +63,7 @@ std::shared_ptr<TempService>& TempService::Instance()
     {
         std::unique_lock<std::mutex> lock(gInstanceLock);   
         if (mHaveInstance == false) {
+            mHaveInstance = true;
             gInstance = std::make_shared<TempService>();
         }
     }
@@ -170,7 +171,9 @@ void TempService::getModuleTemp()
         LOGDBG(TAG, "Current Module temp: [%f]C", mModuleTmp);
     #endif
     } else {
+    #ifdef ENABLE_DEBUG_TMPSERVICE
         LOGERR(TAG, "--> get Module Temp prop failed");
+    #endif
     }
 }
 
@@ -194,7 +197,7 @@ int TempService::serviceLooper()
 
     while (true) {
 
-        to.tv_sec = 2;
+        to.tv_sec = 3;
         to.tv_usec = 0;
 
         pPollTime = property_get(PROP_POLL_SYS_TMP_PERIOD);
@@ -216,7 +219,7 @@ int TempService::serviceLooper()
             getModuleTemp();
 
             if (reportSysTemp()) {
-                LOGDBG(TAG, "Report Sys Temperature Suc.");
+                // LOGDBG(TAG, "Report Sys Temperature Suc.");
             }
         }
 

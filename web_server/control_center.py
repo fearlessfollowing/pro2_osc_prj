@@ -661,7 +661,7 @@ class control_center:
         read_info = self.write_and_read(req)
         return read_info
 
-    def start_non_stich_camera_func(self,name,req):
+    def start_non_stich_camera_func(self, name, req):
         try:
             ret = self.non_camera_stitch_func[name](req)
         except AssertionError as e:
