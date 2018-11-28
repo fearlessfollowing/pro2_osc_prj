@@ -97,7 +97,7 @@ void CacheService::init()
         mkdir(pDbPath, 0600);
     }
 
-    std::string dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
+    std::string dbPathName = DEFAULT_CACHE_DB_PATH "/" DEFAULT_DB_NAME;
     if (access(dbPathName.c_str(), F_OK) != 0) {
         if (createDatabase(dbPathName.c_str())) {
             LOGDBG(TAG, "--> create db[%s] suc.", dbPathName.c_str());
@@ -134,7 +134,6 @@ bool CacheService::createCacheTable(std::string tabName)
 {
     sqlite3 *db;
     int  rc;
-    char *sql;
     char *zErrMsg = 0;
     bool bResult = true;
     std::string dbPathName;
@@ -142,7 +141,7 @@ bool CacheService::createCacheTable(std::string tabName)
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH "/" DEFAULT_DB_NAME;
     }
 
     LOGDBG(TAG, ">> Create table[%s] in db[%s]", tabName.c_str(), dbPathName.c_str());
@@ -158,7 +157,7 @@ bool CacheService::createCacheTable(std::string tabName)
               "FILEURL    TEXT,"    \
               "NAME       TEXT,"    \
               "THUBNAIL   BLOB,"    \
-              "FILESIZE   INTEGER," \
+              "FILESIZE   REAL," \
               "FILEATTR   INTEGER," \
               "FILEDATE   NUMERIC," \
               "FILEWIDHT  INTEGER," \
@@ -189,7 +188,6 @@ bool CacheService::delCacheTable(std::string tabName)
 {
     sqlite3 *db;
     int  rc;
-    char *sql;
     char *zErrMsg = 0;
     bool bResult = true;
     std::string dbPathName;
@@ -197,7 +195,7 @@ bool CacheService::delCacheTable(std::string tabName)
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH "/" DEFAULT_DB_NAME;
     }
 
     LOGDBG(TAG, ">> Create table[%s] in db[%s]", tabName.c_str(), dbPathName.c_str());
@@ -240,7 +238,6 @@ bool CacheService::insertCacheItem(std::string tabName, CacheItem* ptrCacheItem)
     sqlite3 *db;
     char *zErrMsg = 0;
     int  rc;
-    char *sql;
     char cInsertVal[1024] = {0};
     bool bResult = true;
     std::string dbPathName;
@@ -248,7 +245,7 @@ bool CacheService::insertCacheItem(std::string tabName, CacheItem* ptrCacheItem)
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH "/" DEFAULT_DB_NAME;
     }
 
     rc = sqlite3_open(dbPathName.c_str(), &db);
@@ -257,11 +254,11 @@ bool CacheService::insertCacheItem(std::string tabName, CacheItem* ptrCacheItem)
         return false;
     } 
 
-    std::string cmdPart1 = "INSERT INFO " + tabName;
+    std::string cmdPart1 = "INSERT INTO " + tabName;
     cmdPart1 += "(PATHNAME,FILEURL,NAME,FILESIZE,FILEATTR,FILEDATE,FILEWIDHT,FILEHEIGHT,LNG,LAT,ISPROCESS) VALUES ";
 
     std::string sqlCmd = cmdPart1;
-    sprintf(cInsertVal, "('%s','%s','%s',%d,%d,'%s',%d,%d,%f,%f,%d);", ptrCacheItem->fullPathName.c_str(),
+    sprintf(cInsertVal, "('%s','%s','%s',%lu,%d,'%s',%d,%d,%f,%f,%d);", ptrCacheItem->fullPathName.c_str(),
                                                                        ptrCacheItem->fileUrl.c_str(),
                                                                        ptrCacheItem->fileName.c_str(),
                                                                        ptrCacheItem->fileSize,
@@ -273,13 +270,15 @@ bool CacheService::insertCacheItem(std::string tabName, CacheItem* ptrCacheItem)
                                                                        ptrCacheItem->fLant,
                                                                        (ptrCacheItem->bProcess == true) ? 1:0);
     sqlCmd += cInsertVal;
+    
+    // LOGDBG(TAG, "---> insert sql: %s", sqlCmd.c_str());
     rc = sqlite3_exec(db, sqlCmd.c_str(), NULL, 0, &zErrMsg);
     if (rc != SQLITE_OK) {
         LOGERR(TAG, "SQL error: %s", zErrMsg);
         sqlite3_free(zErrMsg);
         bResult = false;
     } else {
-        LOGDBG(TAG, "Insert table line successfully");
+        // LOGDBG(TAG, "Insert table line successfully");
     }
     sqlite3_close(db);
     return bResult;
@@ -291,15 +290,13 @@ bool CacheService::delCacheItem(std::string tabName, std::shared_ptr<CacheItem> 
     sqlite3 *db;
     char *zErrMsg = 0;
     int  rc;
-    char *sql;
-    char cInsertVal[1024] = {0};
     bool bResult = true;
     std::string dbPathName;
 
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH "/" DEFAULT_DB_NAME;
     }
 
     rc = sqlite3_open(dbPathName.c_str(), &db);
@@ -331,7 +328,6 @@ bool CacheService::delCacheItem(std::string tabName, std::shared_ptr<CacheItem> 
 bool CacheService::createDatabase(const char* dbName)
 {
     sqlite3 *db;
-    char *zErrMsg = 0;
     int rc;
     
     rc = sqlite3_open(dbName, &db);
@@ -458,7 +454,7 @@ bool CacheService::recurFileList(char *basePath)
  * }
  */
 
-bool CacheService::scanVolume(std::string volName)
+void CacheService::scanVolume(std::string volName)
 {
     struct timeval sTime, eTime;
     long usedTime = 0;
@@ -471,7 +467,8 @@ bool CacheService::scanVolume(std::string volName)
         /* 提取表明为"当前表名" */
         loadTabState(tabPathName.c_str(), &mCurTabState);
     }
-
+    createCacheTable(mCurTabState["tab_name"].asCString());
+    
     /*
      * 扫描指定目录下的所有文件（可加一个过滤器）
      */
@@ -481,6 +478,7 @@ bool CacheService::scanVolume(std::string volName)
 
     usedTime = (eTime.tv_sec - sTime.tv_sec) * 1000 + (eTime.tv_usec - sTime.tv_usec) / 1000;
     LOGDBG(TAG, "Scan dir[%s], total consumer: [%ld]ms", volName.c_str(), usedTime);
+
 }
 
 
@@ -536,10 +534,14 @@ void CacheService::genTabStateFile()
 {
     Json::Value valArray;
     Json::Value item;
+    char cTabName[128] = {0};
 
     for (int i = 0; i < 10; i++) {
         item.clear();
-        item["tab_name"] = "insta360_tab_" + i;
+        memset(cTabName, 0, sizeof(cTabName));
+
+        sprintf(cTabName, "insta360_tab_%d", i);
+        item["tab_name"] = cTabName;
         item["used_time"] = 0;
         valArray.append(item);
     }
@@ -556,14 +558,14 @@ Json::Value CacheService::allocTabItem()
     u32 uBestIndex = 0, uLeastTime = ~0;
     
     for (i = 0; i < mTabState.size(); i++) {
-        if (mTabState[i]["used_time"].asInt() < uLeastTime) {
-            uLeastTime = mTabState[i]["used_time"].asInt();
+        if (mTabState[i]["used_time"].asUInt() < uLeastTime) {
+            uLeastTime = mTabState[i]["used_time"].asUInt();
             uBestIndex = i;
         }
     }
 
     LOGDBG(TAG, "--> get best index: %d", uBestIndex);
-    usedTime = mTabState[uBestIndex]["used_time"].asInt();
+    usedTime = mTabState[uBestIndex]["used_time"].asUInt();
     mTabState[uBestIndex]["used_time"] = ++usedTime;
 
     return mTabState[uBestIndex];
@@ -595,7 +597,7 @@ void CacheService::loadTabState(const char* pFile, Json::Value* jsonRoot)
     if (parseFromStream(builder, ifs, jsonRoot, &errs)) {
         LOGDBG(TAG, "loadTabState parse [%s] success", pFile);
     } else {
-        LOGDBG(TAG, "loadTabState parse [%s] failed", pFile);
+        LOGERR(TAG, "loadTabState parse [%s] failed", pFile);
     }
     ifs.close();
 }

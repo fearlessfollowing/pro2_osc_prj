@@ -64,6 +64,7 @@
 #include <icon/pic_video_select.h>
 #include <err_code.h>
 
+
 using namespace std;
 
 #undef      TAG
@@ -970,7 +971,7 @@ void MenuUI::disp_msg_box(int type)
         case DISP_NEED_SDCARD: {
 
             clearArea();
-            #if 0
+            #if 1
             dispStr((const u8*)"Please", 48, 8, false, 128);
             dispStr((const u8*)"ensure SD card or", 16, 24, false, 128);
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
@@ -6663,11 +6664,10 @@ void MenuUI::disp_err_code(int code, int back_menu)
                     break;
                 }
 
-#if 0
-                case ERR_mSD_WRITE_SPEED_INSUFF: {  /* mSD卡卡速不足 */                    
+                case ERR_mSD_WRITE_SPEED_INSUFF: {  /* mSD卡卡速不足 */   
+                    tipmSDcardSpeedInsufficient();
                     break;
                 }
-#endif
 
                 case ERR_LOW_WRITE_SPEED: {         /* 大卡的卡速不足 */
                     tipSDcardSpeedInsufficient();

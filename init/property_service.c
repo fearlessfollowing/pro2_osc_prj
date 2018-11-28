@@ -356,15 +356,15 @@ int _property_set(const char *name, const char *value)
     int namelen = strlen(name);
     int valuelen = strlen(value);
 
-    if(namelen >= PROP_NAME_MAX) return -1;
-    if(valuelen >= PROP_VALUE_MAX) return -1;
-    if(namelen < 1) return -1;
+    if (namelen >= PROP_NAME_MAX) return -1;
+    if (valuelen >= PROP_VALUE_MAX) return -1;
+    if (namelen < 1) return -1;
 
     pi = (prop_info*) __system_property_find(name);
 
-    if(pi != 0) {
+    if (pi != 0) {
         /* ro.* properties may NEVER be modified once set */
-        if(!strncmp(name, "ro.", 3)) return -1;
+        if (!strncmp(name, "ro.", 3)) return -1;
 
         pa = __system_property_area__;
         update_prop_info(pi, value, valuelen);
@@ -404,11 +404,6 @@ int _property_set(const char *name, const char *value)
          * to prevent them from being overwritten by default values.
          */
         write_persistent_property(name, value);
-#ifdef HAVE_SELINUX
-    } else if (strcmp("selinux.reload_policy", name) == 0 &&
-               strcmp("1", value) == 0) {
-        selinux_reload_policy();
-#endif
     }
     property_changed(name, value);
     return 0;

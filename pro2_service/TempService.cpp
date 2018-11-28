@@ -168,10 +168,10 @@ void TempService::getModuleTemp()
     int iModuleTemp = -200;
 
     for (int i = 1; i <= 6; i++) {
+        memset(cModProp, 0, sizeof(cModProp));
         sprintf(cModProp, "module.temp%d", i);
         const char* pModTemp = property_get(cModProp);
         if (pModTemp) {
-            LOGDBG(TAG, "---> prop name: %s, val %s", cModProp, pModTemp);
             bModuleTempInvalid = true;
             if (atoi(pModTemp) > iModuleTemp) {
                 iModuleTemp = atoi(pModTemp);

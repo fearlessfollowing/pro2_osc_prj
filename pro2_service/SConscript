@@ -28,6 +28,8 @@ src += ['forkUtil.cpp']
 src += ['ProtoManager.cpp']
 #src += ['AudioManager.cpp']
 src += ['TempService.cpp']
+src += ['CacheService.cpp']
+
 
 
 

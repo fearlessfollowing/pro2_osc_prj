@@ -32,7 +32,7 @@ typedef struct stTabSchema {
     std::string     fileUrl;
     std::string     fileName;
     std::string     fileThumbnail;      // 文件对应的缩略图名称    
-    unsigned int    fileSize;           // 文件大小
+    unsigned long   fileSize;            // 文件大小
     unsigned int    fileAttr;           // 文件的属性（目录、普通文件、链接文件等）
     std::string     fileDate;           // 文件的创建日期
     unsigned int    u32Width;           // 视频/图片的宽度
@@ -41,7 +41,7 @@ typedef struct stTabSchema {
     float           fLant;              // 精度（可选）
     bool            bProcess;           // 是否已经处理过
 
-    stTabSchema(std::string url, std::string name, u32 size, u32 attr, std::string date, bool bProc = false) {
+    stTabSchema(std::string url, std::string name, u64 size, u32 attr, std::string date, bool bProc = false) {
         fileUrl = url;
         fileName = name;
         fullPathName = fileUrl + "/" + name;
@@ -77,6 +77,8 @@ public:
 
     std::vector<sp<CacheItem>>& listCachedItems();
 
+    void        scanVolume(std::string volName);
+
 
 private:
     std::vector<sp<CacheItem>>           mListVec;              /* 列文件时的存储容器 */
@@ -104,7 +106,6 @@ private:
      */
     bool        recurFileList(char *basePath);
 
-    bool        scanVolume(std::string volName);
     bool        createDatabase(const char* dbName);
 
 

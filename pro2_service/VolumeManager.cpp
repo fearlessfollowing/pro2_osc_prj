@@ -70,7 +70,7 @@
 
 #include <log/log_wrapper.h>
 
-// using namespace std;
+#include <sys/CacheService.h>
 
 
 #define ENABLE_MOUNT_TFCARD_RO
@@ -1619,10 +1619,12 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             }
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
+
                         #ifdef USE_TRAN_SEND_MSG
                             sendCurrentSaveListNotify();
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
                         #endif
+                            // CacheService::Instance()->scanVolume(tmpVol->pMountPath);
                         }
                     }
                 }

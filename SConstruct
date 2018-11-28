@@ -69,12 +69,10 @@ com_env.Program(target = MONITOR_EXE, source = MONITOR_OBJS)
 
 
 ############################ pro2_service ##################################
-
-#pro2_service_env = com_env.Clone()
-
-#Export('pro2_service_env')
+pro2_service_env = com_env.Clone()
+pro2_service_env.Append(LIBS=['sqlite3'])
 pro2_service_obj = SConscript('./pro2_service/SConscript')
-com_env.Program('./out/pro2_service', pro2_service_obj)
+pro2_service_env.Program('./out/pro2_service', pro2_service_obj)
 
 
 
