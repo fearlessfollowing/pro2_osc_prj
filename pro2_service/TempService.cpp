@@ -11,6 +11,8 @@
 ** 日     期: 2018年11月23日
 ** 修改记录:
 ** V1.0			Skymixos		2018-05-04		创建文件，添加注释
+** V2.0         Skymixos        2018-11-28      修改模组的温度检测
+**                                              （选择6个中温度最高的上报，模组下电后，温度变为无效值）
 ******************************************************************************************************/
 #include <dirent.h>
 #include <fcntl.h>
@@ -44,7 +46,6 @@
 
 #define CPU_TEMP_PATH   "/sys/class/thermal/thermal_zone2/temp"
 #define GPU_TEMP_PATH   "/sys/class/thermal/thermal_zone1/temp"
-#define PROP_MODUE_TMP  "module.temp"
 
 #define INVALID_TMP_VAL     1000.0f
 
@@ -162,19 +163,30 @@ void TempService::getModuleTemp()
 {
     mModuleTmp = INVALID_TMP_VAL;
 
-    int iModuleTemp = 0;
-    const char* pModuleTemp = property_get(PROP_MODUE_TMP);
-    if (pModuleTemp) {
-        iModuleTemp = atoi(pModuleTemp);
-        mModuleTmp = iModuleTemp / 1.0f;
-    #ifdef ENABLE_DEBUG_TMPSERVICE
-        LOGDBG(TAG, "Current Module temp: [%f]C", mModuleTmp);
-    #endif
-    } else {
-    #ifdef ENABLE_DEBUG_TMPSERVICE
-        LOGERR(TAG, "--> get Module Temp prop failed");
-    #endif
+    bool bModuleTempInvalid = false;
+    char cModProp[64] = {0};    
+    int iModuleTemp = -200;
+
+    for (int i = 1; i <= 6; i++) {
+        sprintf(cModProp, "module.temp%d", i);
+        const char* pModTemp = property_get(cModProp);
+        if (pModTemp) {
+            LOGDBG(TAG, "---> prop name: %s, val %s", cModProp, pModTemp);
+            bModuleTempInvalid = true;
+            if (atoi(pModTemp) > iModuleTemp) {
+                iModuleTemp = atoi(pModTemp);
+            }
+        }
     }
+
+    const char* pModState = property_get("module.power");  
+    if (bModuleTempInvalid && pModState && !strcmp(pModState, "on")) {
+        mModuleTmp = iModuleTemp * 1.0f;
+    }
+
+#ifdef ENABLE_DEBUG_TMPSERVICE
+    LOGDBG(TAG, "Current Module temp: [%f]C", mModuleTmp);
+#endif
 }
 
 

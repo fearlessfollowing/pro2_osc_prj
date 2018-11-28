@@ -25,7 +25,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <iostream>
+#include <sstream>
+#include <fstream>
 #include <sys/ins_types.h>
 #include <hw/InputManager.h>
 #include <util/util.h>
@@ -42,10 +44,11 @@
 #define     TAG "CacheService"
 
 
-#define  DEFAULT_CACHE_DB_PATH      "/home/nvidia/insta360/db"
-#define  DEFAULT_DB_NAME            "insta360.db"
-
-#define  PROP_DB_PATH    "sys.db_path"
+#define  DEFAULT_CACHE_DB_PATH          "/home/nvidia/insta360/db"
+#define  DEFAULT_DB_NAME                "insta360.db"
+#define  DEFAULT_TAB_STATE_PATH_NAME    "/home/nvidia/insta360/etc/tab_state.json"
+#define  DEFAULT_VOL_REL_TAB_PATH       "/.LOST.DIR/.insta360_tab_id.json"
+#define  PROP_DB_PATH                   "sys.db_path"
 
 static bool mHaveInstance = false;
 static std::mutex gInstanceLock;
@@ -80,6 +83,8 @@ CacheService::~CacheService()
 void CacheService::init()
 {
     mListVec.clear();
+    mTabState.clear();
+    mCurTabState.clear();
     
     /* 初始化数据库 */
     const char* pDbPath = DEFAULT_CACHE_DB_PATH;
@@ -92,7 +97,7 @@ void CacheService::init()
         mkdir(pDbPath, 0600);
     }
 
-    std::string dbPathName = DEFAULT_CACHE_DB_PATH + "/" + DEFAULT_DB_NAME;
+    std::string dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
     if (access(dbPathName.c_str(), F_OK) != 0) {
         if (createDatabase(dbPathName.c_str())) {
             LOGDBG(TAG, "--> create db[%s] suc.", dbPathName.c_str());
@@ -104,7 +109,14 @@ void CacheService::init()
     }
 
     mDbPathName = dbPathName;
-    mCurTabName = "none";
+
+    /* 检查tab_state.json是否存在，如果不存在将生成该文件 */
+    if (access(DEFAULT_TAB_STATE_PATH_NAME, F_OK) != 0) {
+        LOGDBG(TAG, "---> gen tab_state.json here...");
+        genTabStateFile();
+    } else {    /* 加载tab_state.json到mTabState中 */
+        loadTabState(DEFAULT_TAB_STATE_PATH_NAME, &mTabState);
+    }
 }
 
 
@@ -130,7 +142,7 @@ bool CacheService::createCacheTable(std::string tabName)
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH + "/" + DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
     }
 
     LOGDBG(TAG, ">> Create table[%s] in db[%s]", tabName.c_str(), dbPathName.c_str());
@@ -185,7 +197,7 @@ bool CacheService::delCacheTable(std::string tabName)
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH + "/" + DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
     }
 
     LOGDBG(TAG, ">> Create table[%s] in db[%s]", tabName.c_str(), dbPathName.c_str());
@@ -223,7 +235,7 @@ bool CacheService::delCacheTable(std::string tabName)
  * 在指定的表中，插入一行数据
  * 
  */
-bool CacheService::insertCacheItem(std::string tabName, std::shared_ptr<CacheItem> ptrCacheItem)
+bool CacheService::insertCacheItem(std::string tabName, CacheItem* ptrCacheItem)
 {
     sqlite3 *db;
     char *zErrMsg = 0;
@@ -236,7 +248,7 @@ bool CacheService::insertCacheItem(std::string tabName, std::shared_ptr<CacheIte
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH + "/" + DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
     }
 
     rc = sqlite3_open(dbPathName.c_str(), &db);
@@ -274,7 +286,6 @@ bool CacheService::insertCacheItem(std::string tabName, std::shared_ptr<CacheIte
 }
 
 
-
 bool CacheService::delCacheItem(std::string tabName, std::shared_ptr<CacheItem> ptrCacheItem)
 {
     sqlite3 *db;
@@ -288,7 +299,7 @@ bool CacheService::delCacheItem(std::string tabName, std::shared_ptr<CacheItem> 
     if (mDbPathName.length() > 0) {
         dbPathName = mDbPathName;
     } else {
-        dbPathName = DEFAULT_CACHE_DB_PATH + "/" + DEFAULT_DB_NAME;
+        dbPathName = DEFAULT_CACHE_DB_PATH"/"DEFAULT_DB_NAME;
     }
 
     rc = sqlite3_open(dbPathName.c_str(), &db);
@@ -356,15 +367,23 @@ bool CacheService::recurFileList(char *basePath)
             if (stat(path_name, &tmpStat)) {
                 LOGERR(TAG, "stat path[%s] failed", path_name);
             } else {
-                if (S_ISDIR(tmpStat.st_mode)) {
+                if (S_ISDIR(tmpStat.st_mode)) {         /* 目录 */
                     memset(base, '\0', sizeof(base));
                     strcpy(base, basePath);
                     strcat(base, "/");
                     strcat(base, ptr->d_name);
                     recurFileList(base);
-                } else if (S_ISREG(tmpStat.st_mode)) {
+                } else if (S_ISREG(tmpStat.st_mode)) {  /* 普通文件 */
                     // 构造一行记录，填入到对应的tab中
-                } else if (S_ISLNK(tmpStat.st_mode)) {
+
+                    CacheItem tabItem(basePath, 
+                                      ptr->d_name, 
+                                      tmpStat.st_size, 
+                                      1, 
+                                      "2018:11:07:15:34:54+08:00");
+
+                    insertCacheItem(mCurTabState["tab_name"].asCString() , &tabItem);
+                } else if (S_ISLNK(tmpStat.st_mode)) {  /* 链接文件 */
                     LOGDBG(TAG, "file [%s] is link file", path_name);
                 }
             }
@@ -375,17 +394,83 @@ bool CacheService::recurFileList(char *basePath)
 }
 
 
+/*
+ * 扫描指定的卷：
+ * 1.当卷插入时，会检查其根目录下是否存在.LOST.DIR/.insta360_tab_id文件，
+ *  如果存在该文件存放的表名: insta360_tab_xxxx
+ *  如果文件不存在，为该卷创建一个表(insta360_tab_xxxx),并将表名写入到根目录的.insta360_tab_id中
+ * 2.创建表（如果不存在）
+ * 3.扫描卷，并根据卷中当前的内容来更新对应的表的内容
+ * 
+ * 
+ * 
+ * 
+ * {
+ *  "tab_name": "insta360_tab_1000"
+ *  "used_time": 0
+ * }
+ * 
+ * 
+ * tab_state.json
+ * {
+ *   "tab_state":[
+ *      "item0":{
+ *          "tab_name": "insta360_tab_0000",
+ *          "used_time": 0, 
+ *      },
+ *      "item1":{
+ *          "tab_name": "insta360_tab_0001",
+ *          "used_time": 0, 
+ *      },
+ *      "item2":{
+ *          "tab_name": "insta360_tab_0002",
+ *          "used_time": 0, 
+ *      },
+  *      "item3":{
+ *          "tab_name": "insta360_tab_0003",
+ *          "used_time": 0, 
+ *      },
+ *      "item4":{
+ *          "tab_name": "insta360_tab_0004",
+ *          "used_time": 0, 
+ *      },
+ *      "item5":{
+ *          "tab_name": "insta360_tab_0005",
+ *          "used_time": 0, 
+ *      },
+ *      "item6":{
+ *          "tab_name": "insta360_tab_0006",
+ *          "used_time": 0, 
+ *      },
+ *      "item7":{
+ *          "tab_name": "insta360_tab_0007",
+ *          "used_time": 0, 
+ *      },
+ *      "item8":{
+ *          "tab_name": "insta360_tab_0008",
+ *          "used_time": 0, 
+ *      },
+ *      "item9":{
+ *          "tab_name": "insta360_tab_0009",
+ *          "used_time": 0, 
+ *      },
+ *   ]
+ * }
+ */
+
 bool CacheService::scanVolume(std::string volName)
 {
     struct timeval sTime, eTime;
     long usedTime = 0;
+    std::string tabPathName = volName + "/.LOST.DIR/.insta360_tab_id.json";
     
-    if (mCurTabName == "none") {
-        mCurTabName = "insta360_tab";
+    if (access(tabPathName.c_str(), F_OK) != 0) {   /* 不存在.insta360_tab_id文件 */
+        /* 分配一个表名，回收表名时，对应的表也会被回收 */
+        mCurTabState = allocTabItem();
     } else {
-        
+        /* 提取表明为"当前表名" */
+        loadTabState(tabPathName.c_str(), &mCurTabState);
     }
-
 
     /*
      * 扫描指定目录下的所有文件（可加一个过滤器）
@@ -397,5 +482,135 @@ bool CacheService::scanVolume(std::string volName)
     usedTime = (eTime.tv_sec - sTime.tv_sec) * 1000 + (eTime.tv_usec - sTime.tv_usec) / 1000;
     LOGDBG(TAG, "Scan dir[%s], total consumer: [%ld]ms", volName.c_str(), usedTime);
 }
+
+
+
+/*
+ * tab_state.json
+ * {
+ *   "tab_state":[
+ *      "item0":{
+ *          "tab_name": "insta360_tab_0000",
+ *          "used_time": 0, 
+ *      },
+ *      "item1":{
+ *          "tab_name": "insta360_tab_0001",
+ *          "used_time": 0, 
+ *      },
+ *      "item2":{
+ *          "tab_name": "insta360_tab_0002",
+ *          "used_time": 0, 
+ *      },
+  *      "item3":{
+ *          "tab_name": "insta360_tab_0003",
+ *          "used_time": 0, 
+ *      },
+ *      "item4":{
+ *          "tab_name": "insta360_tab_0004",
+ *          "used_time": 0, 
+ *      },
+ *      "item5":{
+ *          "tab_name": "insta360_tab_0005",
+ *          "used_time": 0, 
+ *      },
+ *      "item6":{
+ *          "tab_name": "insta360_tab_0006",
+ *          "used_time": 0, 
+ *      },
+ *      "item7":{
+ *          "tab_name": "insta360_tab_0007",
+ *          "used_time": 0, 
+ *      },
+ *      "item8":{
+ *          "tab_name": "insta360_tab_0008",
+ *          "used_time": 0, 
+ *      },
+ *      "item9":{
+ *          "tab_name": "insta360_tab_0009",
+ *          "used_time": 0, 
+ *      },
+ *   ]
+ * }
+ */
+void CacheService::genTabStateFile()
+{
+    Json::Value valArray;
+    Json::Value item;
+
+    for (int i = 0; i < 10; i++) {
+        item.clear();
+        item["tab_name"] = "insta360_tab_" + i;
+        item["used_time"] = 0;
+        valArray.append(item);
+    }
+
+    mTabState["tab_state"] = valArray;
+    syncJson2File(DEFAULT_TAB_STATE_PATH_NAME, mTabState);
+}
+
+
+Json::Value CacheService::allocTabItem()
+{
+    u32 i = 0;
+    u32 usedTime = 0;
+    u32 uBestIndex = 0, uLeastTime = ~0;
+    
+    for (i = 0; i < mTabState.size(); i++) {
+        if (mTabState[i]["used_time"].asInt() < uLeastTime) {
+            uLeastTime = mTabState[i]["used_time"].asInt();
+            uBestIndex = i;
+        }
+    }
+
+    LOGDBG(TAG, "--> get best index: %d", uBestIndex);
+    usedTime = mTabState[uBestIndex]["used_time"].asInt();
+    mTabState[uBestIndex]["used_time"] = ++usedTime;
+
+    return mTabState[uBestIndex];
+}
+
+
+void CacheService::syncTabItem2Vol(std::string volPath, Json::Value& item)
+{
+    std::string tabAbsPath = volPath + DEFAULT_VOL_REL_TAB_PATH;
+    
+    LOGDBG(TAG, "--> Vol abs path: %s", tabAbsPath.c_str());
+    
+    if (access(tabAbsPath.c_str(), F_OK) == 0) {
+        unlink(tabAbsPath.c_str());
+    }
+    syncJson2File(tabAbsPath.c_str(), item);
+}
+
+
+void CacheService::loadTabState(const char* pFile, Json::Value* jsonRoot)
+{
+    Json::CharReaderBuilder builder;
+    builder["collectComments"] = false;
+    JSONCPP_STRING errs;
+
+    std::ifstream ifs;  
+    ifs.open(pFile, std::ios::binary); 
+
+    if (parseFromStream(builder, ifs, jsonRoot, &errs)) {
+        LOGDBG(TAG, "loadTabState parse [%s] success", pFile);
+    } else {
+        LOGDBG(TAG, "loadTabState parse [%s] failed", pFile);
+    }
+    ifs.close();
+}
+
+
+void CacheService::syncJson2File(std::string path, Json::Value& jsonNode)
+{
+    Json::StreamWriterBuilder builder; 
+    // builder.settings_["indentation"] = ""; 
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
+    std::ofstream ofs;
+	ofs.open(path.c_str());
+    writer->write(jsonNode, &ofs);
+    ofs.close();
+}
+
 
 

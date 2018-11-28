@@ -9951,9 +9951,18 @@ void MenuUI::tipHighTempError(int iErrno)
  */
 void MenuUI::tipmSDcardSpeedInsufficient()
 {
+    const char* pCard = property_get("module.unspeed");
+    char cCardBuf[128] = {0};
+
+    if (pCard) {
+        sprintf(cCardBuf, "mSD card(%s)", pCard);
+    } else {
+        sprintf(cCardBuf, "mSD card(6)");
+    }
+    
     clearArea();      
     dispStr((const u8*)"Error 313.", 37, 0, false, 128);
-    dispStr((const u8*)"mSD card(1,2,3,4,5,6)", 0, 16, false, 128);
+    dispStr((const u8*)cCardBuf, 30, 16, false, 128);
     dispStr((const u8*)"speed insufficient.Please", 0, 32, false, 128);
     dispStr((const u8*)"overwrite before use.", 7, 48, false, 128);  
 }

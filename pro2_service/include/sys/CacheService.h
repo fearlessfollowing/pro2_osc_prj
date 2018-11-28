@@ -22,6 +22,8 @@
 #include <mutex>
 #include <thread>
 
+#include <json/value.h>
+#include <json/json.h>
 #include <sqlite3.h>
 
 
@@ -38,6 +40,22 @@ typedef struct stTabSchema {
     float           fLng;               // 纬度（可选）
     float           fLant;              // 精度（可选）
     bool            bProcess;           // 是否已经处理过
+
+    stTabSchema(std::string url, std::string name, u32 size, u32 attr, std::string date, bool bProc = false) {
+        fileUrl = url;
+        fileName = name;
+        fullPathName = fileUrl + "/" + name;
+        fileThumbnail = "";
+        fileSize = size;
+        fileAttr = attr;
+        fileDate = date;
+        u32Width = 4000;
+        u32Height = 3000;
+        fLng = 0.0f;
+        fLant = 0.0f;
+        bProcess = bProc;
+    }
+
 } CacheItem;
 
 
@@ -57,14 +75,14 @@ public:
      *  - 列出指定表中符合条件的项
      */
 
-    //
     std::vector<sp<CacheItem>>& listCachedItems();
 
 
 private:
     std::vector<sp<CacheItem>>           mListVec;              /* 列文件时的存储容器 */
-    std::string                          mCurTabName;           /* 当前正在使用的表（对应一个卷） */
+    Json::Value                          mCurTabState;           /* 当前正在使用的表（对应一个卷） */
     std::string                          mDbPathName;
+    Json::Value                          mTabState;             /* 维护表状态Json root */
 
     void        init();
     void        deInit();
@@ -78,7 +96,7 @@ private:
     /*
      * 插入/更新/删除指定的表项
      */
-    bool        insertCacheItem(std::string tabName, std::shared_ptr<CacheItem> ptrCacheItem);
+    bool        insertCacheItem(std::string tabName, CacheItem* ptrCacheItem);
     bool        delCacheItem(std::string tabName, std::shared_ptr<CacheItem> ptrCacheItem);
 
     /*
@@ -89,6 +107,16 @@ private:
     bool        scanVolume(std::string volName);
     bool        createDatabase(const char* dbName);
 
+
+    /*
+     * tab_state
+     */
+    void            genTabStateFile();
+    Json::Value     allocTabItem();
+    void            syncTabItem2Vol(std::string volPath, Json::Value& item);
+    void            loadTabState(const char* pFile, Json::Value* jsonRoot);
+
+    void            syncJson2File(std::string path, Json::Value& jsonNode);
 
 };
 
