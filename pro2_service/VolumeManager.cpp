@@ -134,7 +134,6 @@ static Condition    gWaitMountComplete;
 
 
 
-
 /*************************************************************************
 ** 方法名称: do_coldboot
 ** 方法功能: 往指定目录的uevent下写入add来达到模拟设备"冷启动"的效果
@@ -1617,6 +1616,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             } else {
                                 tmpVol->iSpeedTest = 0;
                             }
+                            
                             setVolCurPrio(tmpVol, evt);
                             setSavepathChanged(VOLUME_ACTION_ADD, tmpVol);
 
@@ -1624,6 +1624,7 @@ int VolumeManager::handleBlockEvent(NetlinkEvent *evt)
                             sendCurrentSaveListNotify();
                             sendDevChangeMsg2UI(VOLUME_ACTION_ADD, tmpVol->iVolSubsys, getCurSavepathList());
                         #endif
+
                             // CacheService::Instance()->scanVolume(tmpVol->pMountPath);
                         }
                     }

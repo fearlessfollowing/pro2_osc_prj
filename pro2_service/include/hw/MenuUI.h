@@ -881,6 +881,8 @@ private:
      * 系统信息
      */
     void    dispSysInfo();
+    void    updateSnFirmVer();
+
 
     /*
      * 存储相关: 计算剩余空间

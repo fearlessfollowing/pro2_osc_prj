@@ -25,5 +25,6 @@ STATUS_MAP_TEMPLATE     = TEMPLATE_ARGS_PATH + '/statusMapping.json'
 TAKEPIC_TEMPLATE        = TEMPLATE_ARGS_PATH + '/takePictureTemplate.json' 
 VIDEO_FORMAT_TEMPLATE   = TEMPLATE_ARGS_PATH + '/videoFormatMap.json'
 
+SN_FIRM_JSON            = '/home/nvidia/insta360/etc/sn_firm.json'
 
 UP_TIME_PATH            = '/proc/uptime'

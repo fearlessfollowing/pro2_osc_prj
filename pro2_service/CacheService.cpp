@@ -390,70 +390,6 @@ bool CacheService::recurFileList(char *basePath)
 }
 
 
-/*
- * 扫描指定的卷：
- * 1.当卷插入时，会检查其根目录下是否存在.LOST.DIR/.insta360_tab_id文件，
- *  如果存在该文件存放的表名: insta360_tab_xxxx
- *  如果文件不存在，为该卷创建一个表(insta360_tab_xxxx),并将表名写入到根目录的.insta360_tab_id中
- * 2.创建表（如果不存在）
- * 3.扫描卷，并根据卷中当前的内容来更新对应的表的内容
- * 
- * 
- * 
- * 
- * {
- *  "tab_name": "insta360_tab_1000"
- *  "used_time": 0
- * }
- * 
- * 
- * tab_state.json
- * {
- *   "tab_state":[
- *      "item0":{
- *          "tab_name": "insta360_tab_0000",
- *          "used_time": 0, 
- *      },
- *      "item1":{
- *          "tab_name": "insta360_tab_0001",
- *          "used_time": 0, 
- *      },
- *      "item2":{
- *          "tab_name": "insta360_tab_0002",
- *          "used_time": 0, 
- *      },
-  *      "item3":{
- *          "tab_name": "insta360_tab_0003",
- *          "used_time": 0, 
- *      },
- *      "item4":{
- *          "tab_name": "insta360_tab_0004",
- *          "used_time": 0, 
- *      },
- *      "item5":{
- *          "tab_name": "insta360_tab_0005",
- *          "used_time": 0, 
- *      },
- *      "item6":{
- *          "tab_name": "insta360_tab_0006",
- *          "used_time": 0, 
- *      },
- *      "item7":{
- *          "tab_name": "insta360_tab_0007",
- *          "used_time": 0, 
- *      },
- *      "item8":{
- *          "tab_name": "insta360_tab_0008",
- *          "used_time": 0, 
- *      },
- *      "item9":{
- *          "tab_name": "insta360_tab_0009",
- *          "used_time": 0, 
- *      },
- *   ]
- * }
- */
-
 void CacheService::scanVolume(std::string volName)
 {
     struct timeval sTime, eTime;
@@ -464,7 +400,7 @@ void CacheService::scanVolume(std::string volName)
         /* 分配一个表名，回收表名时，对应的表也会被回收 */
         if (!allocTabItem()) {
             LOGDBG(TAG, "---> allocTabItem failed, return");
-            return;
+            return; 
         }
     } else {
         /* 提取表明为"当前表名" */
@@ -485,54 +421,6 @@ void CacheService::scanVolume(std::string volName)
 }
 
 
-
-/*
- * tab_state.json
- * {
- *   "tab_state":[
- *      "item0":{
- *          "tab_name": "insta360_tab_0000",
- *          "used_time": 0, 
- *      },
- *      "item1":{
- *          "tab_name": "insta360_tab_0001",
- *          "used_time": 0, 
- *      },
- *      "item2":{
- *          "tab_name": "insta360_tab_0002",
- *          "used_time": 0, 
- *      },
-  *      "item3":{
- *          "tab_name": "insta360_tab_0003",
- *          "used_time": 0, 
- *      },
- *      "item4":{
- *          "tab_name": "insta360_tab_0004",
- *          "used_time": 0, 
- *      },
- *      "item5":{
- *          "tab_name": "insta360_tab_0005",
- *          "used_time": 0, 
- *      },
- *      "item6":{
- *          "tab_name": "insta360_tab_0006",
- *          "used_time": 0, 
- *      },
- *      "item7":{
- *          "tab_name": "insta360_tab_0007",
- *          "used_time": 0, 
- *      },
- *      "item8":{
- *          "tab_name": "insta360_tab_0008",
- *          "used_time": 0, 
- *      },
- *      "item9":{
- *          "tab_name": "insta360_tab_0009",
- *          "used_time": 0, 
- *      },
- *   ]
- * }
- */
 void CacheService::genTabStateFile()
 {
     Json::Value valArray;
@@ -560,9 +448,9 @@ bool CacheService::allocTabItem()
     u32 usedTime = 0;
     u32 uBestIndex = 0, uLeastTime = ~0;
     
-    if (mTabState.isMember("tab_state") && mTabStat["tab_state"].size() > 0) {
+    if (mTabState.isMember("tab_state") && mTabState["tab_state"].size() > 0) {
         for (i = 0; i < mTabState["tab_state"].size(); i++) {
-            if (mTabStatetab_state["tab_state"][i]["used_time"].asUInt() < uLeastTime) {
+            if (mTabState["tab_state"][i]["used_time"].asUInt() < uLeastTime) {
                 uLeastTime = mTabState["tab_state"][i]["used_time"].asUInt();
                 uBestIndex = i;
             }

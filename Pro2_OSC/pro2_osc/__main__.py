@@ -1,10 +1,12 @@
 # -*- coding: UTF-8 -*-
+#########################################################################################
 # 文件名：  __main__.py 
 # 版本：    V1.0.1
 # 修改记录：
 # 日期              修改人                  版本            备注
 # 2018年10月16日    Skymixos                V1.0.3          增加注释
 #
+#########################################################################################
 
 import os
 import json
@@ -41,17 +43,24 @@ if connectResponse["state"] == "done":
 else:
     print(connectResponse)
 
-startTime = time.time()
+# startTime = time.time()
 
 
-# 读取osc_info.json的内容，报错在全局变量
+#
+# 加载osc_info.json的内容，保存在全局变量gOscInfoResponse中
+#
 with open(config.OSC_INFO_TEMPLATE) as oscInfoFile:
-    oscInfoResponse = json.load(oscInfoFile)
+    gOscInfoResponse = json.load(oscInfoFile)
+
+with open(config.SN_FIRM_JSON) as snFirmFile:
+    gSnFirmInfo = json.load(snFirmFile)
+
 
 
 @app.before_first_request
 def setup():
     copyfile(config.DEFAULT_OPTIONS, config.CURRENT_OPTIONS)
+
 
 
 @app.route('/osc/commands/<option>', methods=['POST'])
@@ -184,24 +193,24 @@ def getResponse(option):
 @app.route('/osc/info', methods=['GET'])
 def getInfo():
     print('[---- Client Request: /osc/info ------]')
-    oscInfoResponse["serialNumber"] = connectResponse["results"]["sys_info"]["sn"]
-    oscInfoResponse["firmwareVersion"] = connectResponse["results"]["sys_info"]["r_v"]
-    oscInfoResponse["uptime"] = int(time.time() - startTime)
+    gOscInfoResponse["serialNumber"]    = gSnFirmInfo["serialNumber"]
+    gOscInfoResponse["firmwareVersion"] = gSnFirmInfo["firmwareVersion"]
+    
+    # gOscInfoResponse["uptime"] = int(time.time() - startTime)
 
+    # 读取系统已经启动的时间
     with open(config.UP_TIME_PATH) as upTimeFile:
         startUptimeLine = upTimeFile.readline()
         upTimes = startUptimeLine.split(" ")
         upTime = float(upTimes[0])
-        oscInfoResponse["uptime"] = int(upTime)
+        gOscInfoResponse["uptime"] = int(upTime)
 
-    print('Result[/osc/info]:', oscInfoResponse)
+    print('Result[/osc/info]:', gOscInfoResponse)
 
-    response = make_response(json.dumps(oscInfoResponse))
+    response = make_response(json.dumps(gOscInfoResponse))
     response.headers['Content-Type'] = "application/json;charset=utf-8"
     response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
-
-
 
 # 
 # /osc/state API返回相机的state属性

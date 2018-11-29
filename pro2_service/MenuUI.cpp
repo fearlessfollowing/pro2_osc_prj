@@ -2653,7 +2653,7 @@ bool MenuUI::read_sys_info(int type, const char *name)
                         pStr = pStr + strlen(astSysRead[type].header);
                         switch (type) {
                             case SYS_KEY_SN: {
-                                snprintf(mReadSys->sn, sizeof(mReadSys->sn), "%s",pStr);
+                                snprintf(mReadSys->sn, sizeof(mReadSys->sn), "%s", pStr);
                                 ret = true;
                                 break;
                             }
@@ -8559,6 +8559,28 @@ void MenuUI::handleSetSyncInfo(sp<SYNC_INIT_INFO> &mSyncInfo)
 	
 }
 
+#define SN_FIRM_VER_PATH "/home/nvidia/insta360/etc/sn_firm.json"
+
+
+void MenuUI::updateSnFirmVer()
+{
+    Json::Value root;
+    root["serialNumber"]    = mReadSys->sn;
+    root["firmwareVersion"] = mVerInfo->r_ver;
+
+    if (access(SN_FIRM_VER_PATH, F_OK) == 0) {
+        unlink(SN_FIRM_VER_PATH);
+    }
+
+    Json::StreamWriterBuilder builder; 
+    // builder.settings_["indentation"] = ""; 
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
+    std::ofstream ofs;
+	ofs.open(SN_FIRM_VER_PATH);
+    writer->write(root, &ofs);
+    ofs.close();
+}
+
 
 /*************************************************************************
 ** 方法名称: handleDispInit
@@ -8570,16 +8592,23 @@ void MenuUI::handleSetSyncInfo(sp<SYNC_INIT_INFO> &mSyncInfo)
 *************************************************************************/
 void MenuUI::handleDispInit()
 {
-    read_sn();						/* 获取系统序列号 */
-    read_uuid();					/* 读取设备的UUID */
-    read_ver_info();				/* 读取系统的版本信息 */ 
+    read_sn();						    /* 获取系统序列号 */
+    read_uuid();					    /* 读取设备的UUID */
+    read_ver_info();				    /* 读取系统的版本信息 */ 
 	
-    init_cfg_select();				/* 根据配置初始化选择项 */
+    /* 
+     * 更新相机的SN和固件版本到/home/nvidia/insta360/etc/sn_firmver.json中
+     */
+    updateSnFirmVer();
 
-    bDispTop = true;				/* 显示顶部标志设置为true */
+    init_cfg_select();				    /* 根据配置初始化选择项 */
+
+    bDispTop = true;				    /* 显示顶部标志设置为true */
 
 	handleCheckBatteryState(true);		/* 检查电池的状态 */
 }
+
+
 
 bool MenuUI::checkCurMenuShowGps()
 {
