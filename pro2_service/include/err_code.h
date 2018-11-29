@@ -18,15 +18,15 @@
 #endif
 
 #ifndef ERR_mSD_WRITE_SPEED_INSUFF
-#define ERR_mSD_WRITE_SPEED_INSUFF  313 /* mSD卡速不足 */
+#define ERR_mSD_WRITE_SPEED_INSUFF  313     /* mSD卡速不足 */
 #endif
 
 #ifndef ERR_NO_ALLOW_OPERATION
-#define ERR_NO_ALLOW_OPERATION      413 /* 不允许的操作 */
+#define ERR_NO_ALLOW_OPERATION      413     /* 不允许的操作 */
 #endif
 
 #ifndef ERR_MIC
-#define ERR_MIC                     414 /* 麦克风错误 */
+#define ERR_MIC                     414     /* 麦克风错误 */
 #endif
 
 

@@ -462,7 +462,10 @@ void CacheService::scanVolume(std::string volName)
     
     if (access(tabPathName.c_str(), F_OK) != 0) {   /* 不存在.insta360_tab_id文件 */
         /* 分配一个表名，回收表名时，对应的表也会被回收 */
-        mCurTabState = allocTabItem();
+        if (!allocTabItem()) {
+            LOGDBG(TAG, "---> allocTabItem failed, return");
+            return;
+        }
     } else {
         /* 提取表明为"当前表名" */
         loadTabState(tabPathName.c_str(), &mCurTabState);
@@ -551,24 +554,29 @@ void CacheService::genTabStateFile()
 }
 
 
-Json::Value CacheService::allocTabItem()
+bool CacheService::allocTabItem()
 {
     u32 i = 0;
     u32 usedTime = 0;
     u32 uBestIndex = 0, uLeastTime = ~0;
     
-    for (i = 0; i < mTabState.size(); i++) {
-        if (mTabState[i]["used_time"].asUInt() < uLeastTime) {
-            uLeastTime = mTabState[i]["used_time"].asUInt();
-            uBestIndex = i;
-        }
+    if (mTabState.isMember("tab_state") && mTabStat["tab_state"].size() > 0) {
+        for (i = 0; i < mTabState["tab_state"].size(); i++) {
+            if (mTabStatetab_state["tab_state"][i]["used_time"].asUInt() < uLeastTime) {
+                uLeastTime = mTabState["tab_state"][i]["used_time"].asUInt();
+                uBestIndex = i;
+            }
+        }        
+        LOGDBG(TAG, "--> get best index: %d", uBestIndex);
+        usedTime = mTabState["tab_state"][uBestIndex]["used_time"].asUInt();
+        mTabState["tab_state"][uBestIndex]["used_time"] = ++usedTime;
+        
+        mCurTabState = mTabState["tab_state"][uBestIndex];
+        return true;
+    } else {
+        LOGERR(TAG, "--> mTabState not member 'tab_state' or size <= 0");
+        return false;
     }
-
-    LOGDBG(TAG, "--> get best index: %d", uBestIndex);
-    usedTime = mTabState[uBestIndex]["used_time"].asUInt();
-    mTabState[uBestIndex]["used_time"] = ++usedTime;
-
-    return mTabState[uBestIndex];
 }
 
 

@@ -321,7 +321,6 @@ const char *getMenuName(int cmd)
 static ERR_CODE_DETAIL mErrDetails[] = {
     {432, "No Space",           ICON_STORAGE_INSUFFICIENT128_64},
     {433, "No Storage",         ICON_CARD_EMPTY128_64},
-    {434, "Speed Low",          ICON_SPEEDTEST06128_64},
     {414, " ",                  ICON_ERROR_414128_64},
     {311, "mSD insufficient",   ICON_STORAGE_INSUFFICIENT128_64},
     {390, " ",                  ICON_LIV_REC_INSUFFICIENT_128_64128_64},

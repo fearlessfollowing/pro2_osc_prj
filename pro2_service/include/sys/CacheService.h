@@ -113,7 +113,7 @@ private:
      * tab_state
      */
     void            genTabStateFile();
-    Json::Value     allocTabItem();
+    bool            allocTabItem();
     void            syncTabItem2Vol(std::string volPath, Json::Value& item);
     void            loadTabState(const char* pFile, Json::Value* jsonRoot);
 
