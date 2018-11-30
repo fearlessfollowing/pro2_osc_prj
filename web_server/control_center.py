@@ -3970,20 +3970,22 @@ class control_center:
         else:
             return False
 
-    def osc_path_execute(self,path,fp):
+    def osc_path_execute(self, path, fp):
         try:
-            if self.get_connect():
-                if self.check_fp(fp):
-                    ret = self.osc_path_func[path]()
-                else:
-                    Err('error fingerprint fp {} path {}'.format(fp, path))
-                    ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
-            elif self.get_stitch_mode():
-                Info('stich get osc path {}'.format(path))
-                ret = self.osc_stitch_path_func[path]()
-            else:
-                Err('camera not connected path {}'.format(path))
-                ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
+            # if self.get_connect():
+            #     if self.check_fp(fp):
+            #         ret = self.osc_path_func[path]()
+            #     else:
+            #         Err('error fingerprint fp {} path {}'.format(fp, path))
+            #         ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
+            # elif self.get_stitch_mode():
+            #     Info('stich get osc path {}'.format(path))
+            #     ret = self.osc_stitch_path_func[path]()
+            # else:
+            #     Err('camera not connected path {}'.format(path))
+            #     ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
+            # 去掉指纹检查，直接执行命令 - 2018年11月30日
+            ret = self.osc_path_func[path]()
         except Exception as e:
             Err('osc_path_execute Exception is {} path {}'.format(e, path))
             ret = cmd_exception(error_dic('osc_path_execute', str(e)), path)

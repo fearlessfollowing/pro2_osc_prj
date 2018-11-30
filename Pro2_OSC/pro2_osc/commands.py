@@ -23,13 +23,19 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
 # 
 # 拍照,使用8K的模板参数
 # 注: 拍照只能在"captureMode" = "image"模式下进行
-#
-def takePicture(c):
+# 1.检查存储设备是否存在，如果不存在，直接返回被禁止的命令
+# 2.进行当前采集模式检查
+def takePicture(connectObj):
 
     takePictureJson = __loadJsonFile(config.TAKEPIC_TEMPLATE)
     currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
     pictureMap = __loadJsonFile(config.PIC_FORMAT_MAP_TMPLATE)    
     
+    storagePath = connectObj.getStoragePath()
+    if storagePath == 'none':
+        # responseValues = ("camera.takePicture", "error", commandUtility.buildError('disabledCommand', 'no storage device'))
+        return commandUtility.buildErrorResponse('disabledCommand', 'no storage device')        
+
     # if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
     if currentOptions["captureMode"] in ["image"]:
         fileFormat = currentOptions["fileFormat"]
@@ -66,7 +72,7 @@ def takePicture(c):
         print(takePictureJson)
         request = json.dumps(takePictureJson)
 
-        results = c.command(request)
+        results = connectObj.command(request)
         responseValues = __checkCameraError(results, "camera.takePicture")
         if responseValues is None:
             print(results)
@@ -184,27 +190,32 @@ def stopCapture(c):
 
 
 def getLivePreview(c):
-    cameraState = c.command(json.dumps({"name": "camera._queryState"}))["results"]["state"]
-    if cameraState not in ["idle", "preview"]:
-        errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
-        responseValues = ("camera.getLivePreview", "error", errorValues)
-        return commandUtility.buildResponse(responseValues)
-    else:
-        previewBody = __loadJsonFile(config.PREVIEW_TEMPLATE)
-        previewBody["parameters"]["stiching"]["width"] = currentOptions["previewFormat"]["width"]
-        previewBody["parameters"]["stiching"]["height"] = currentOptions["previewFormat"]["height"]
-        previewBody["parameters"]["stiching"]["framerate"] = currentOptions["previewFormat"]["framerate"]
-        response = c.command(json.dumps(previewBody))
-        print('--------------------------------------------------')
-        print(response)
-        # previewUrl = c.getServerIp() + response['results']['_previewUrl']
-        previewUrl = response['results']['_previewUrl']
+    # cameraState = c.command(json.dumps({"name": "camera._queryState"}))["results"]["state"]
+    # if cameraState not in ["idle", "preview"]:
+    #     errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
+    #     responseValues = ("camera.getLivePreview", "error", errorValues)
+    #     return commandUtility.buildResponse(responseValues)
+    # else:
+    #     previewBody = __loadJsonFile(config.PREVIEW_TEMPLATE)
+    #     previewBody["parameters"]["stiching"]["width"] = currentOptions["previewFormat"]["width"]
+    #     previewBody["parameters"]["stiching"]["height"] = currentOptions["previewFormat"]["height"]
+    #     previewBody["parameters"]["stiching"]["framerate"] = currentOptions["previewFormat"]["framerate"]
+    #     response = c.command(json.dumps(previewBody))
+    #     print('--------------------------------------------------')
+    #     print(response)
+    #     # previewUrl = c.getServerIp() + response['results']['_previewUrl']
+    #     previewUrl = response['results']['_previewUrl']
 
-        print(previewUrl)
-        # time.sleep(5)
-        # preview = requests.get(previewUrl, stream=True)
-        #
-        return previewUrl
+    #     print(previewUrl)
+    #     # time.sleep(5)
+    #     # preview = requests.get(previewUrl, stream=True)
+    #     #
+    #     return previewUrl
+    #
+    # 暂时不支持该命令
+    errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
+    responseValues = ("camera.getLivePreview", "error", errorValues)
+    return commandUtility.buildResponse(responseValues)    
 
 
 def listFiles(c, cParams):
@@ -220,8 +231,7 @@ def listFiles(c, cParams):
         errorValues = commandUtility.buildError("missingParameter",
                                                 "missing param")
     if (len(cParams) > 3 and startPosition is None) or len(cParams) > 4:
-        errorValues = commandUtility.buildError("invalidParameterName",
-                                                "unrecognized param")
+        errorValues = commandUtility.buildError("invalidParameterName", "unrecognized param")
     if startPosition is None:
         startPosition = 0
     if errorValues is not None:
@@ -229,8 +239,14 @@ def listFiles(c, cParams):
         return commandUtility.buildResponse(responseValues)
 
     storagePath = c.getStoragePath()
+    if storagePath == "none":
+        errorValues = commandUtility.buildError("invalidParameterName", "storage device not exist")
+        responseValues = ("camera.listFiles", "error", errorValues)
+        return commandUtility.buildResponse(responseValues)
+
 
     print("reported storage path: " + storagePath)
+
     if fileType in ["all", "video", "image"]:
         if fileType == "all":
             fileList = __urlListHelper(c, 'ALL')
@@ -242,13 +258,12 @@ def listFiles(c, cParams):
             responseValues = ("camera.listFiles", "done", [''])
             return commandUtility.buildResponse(responseValues)
     else:
-        errorValues = commandUtility.buildError('invalidParameterValue',
-                                                'invalid param value')
+        errorValues = commandUtility.buildError('invalidParameterValue', 'invalid param value')
         responseValues = ("camera.listFiles", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
 
     totalEntries = len(fileList)
-    entries = __loadJsonFile('entriesTemplate.json')
+    entries = __loadJsonFile(config.ENTRIES_TIMPLATE)
     fileList = sorted(fileList, key=__getDate, reverse=True)[startPosition:]
     if entryCount < len(fileList):
         fileList = fileList[:entryCount]
@@ -531,18 +546,15 @@ def switchWifi(c, cParams):
         wifiSsid = cParams["wifiSsid"]
         wifiPwd = cParams["wifiPwd"]
     except KeyError:
-        errorValues = commandUtility.buildError('missingParameter',
-                                                'Missing input parameter')
+        errorValues = commandUtility.buildError('missingParameter', 'Missing input parameter')
     if len(cParams.keys()) > 3:
-        errorValues = commandUtility.buildError('invalidParameterName',
-                                                'unrecognized parameter(s)')
+        errorValues = commandUtility.buildError('invalidParameterName', 'unrecognized parameter(s)')
     if errorValues is not None:
         responseValues = ("camera.switchWifi", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
 
     responseValues = ("camera.switchWifi", "error",
-                      commandUtility.buildError('disabledCommand',
-                                                'Currently unsupported'))
+                      commandUtility.buildError('disabledCommand', 'Currently unsupported'))
     return commandUtility.buildResponse(responseValues)
 
 

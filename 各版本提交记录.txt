@@ -1398,7 +1398,7 @@ samba相关的问题
 
 
 
-版本号：V1.0.12
+版本号：V1.0.13
 固件地址：禅道
 开发自测通过：是
 
@@ -1408,13 +1408,11 @@ samba相关的问题
 
 
 （罗品京）
-修改点:
-1.新增错误号305，430，417对应的文案
-2.fixup 客户端非预览页拍照花屏问题
-3.fixup samba模式下，长按电源键关机问题
+
 
 （建聪）
-1.解决 照片exif信息，Exposure time和Shutter speed的值不一样问题
+1.回退 iq切换功能
+2.修复 上个版本HDR第一次录像噪点明显的问题
 
 
 测试风险点:
@@ -1424,6 +1422,8 @@ samba相关的问题
 samba相关的问题
 
 固件类型：测试组测试
+
+z
 
 
 2018-11-24 10:52:59,941 - INFO: [------- APP Req: camera_take_pic ------] req: {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}

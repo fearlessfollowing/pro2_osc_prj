@@ -190,7 +190,6 @@ static const SYS_READ astSysRead[] = {
 
 
 #define INTERVAL_0HZ        0
-
 #define INTERVAL_1HZ 	    (1000)
 
 //#define INTERVAL_3HZ      (333)
@@ -528,11 +527,11 @@ void MenuUI::init()
     mVerInfo = sp<VER_INFO>(new VER_INFO());
     CHECK_NE(mVerInfo, nullptr);
 
-    #ifdef ENABLE_WIFI_STA
+#ifdef ENABLE_WIFI_STA
     mWifiConfig = sp<WIFI_CONFIG>(new WIFI_CONFIG());
     CHECK_NE(mWifiConfig, nullptr);	
     memset(mWifiConfig.get(), 0, sizeof(WIFI_CONFIG));
-    #endif
+#endif
 
     LOGDBG(TAG, "Create System NetManager Object...");
 
@@ -641,7 +640,7 @@ void MenuUI::init()
 
 		sp<WifiConfig> wifiConfig = (sp<WifiConfig>)(new WifiConfig());
 
-        #if 0
+        #if 1
 		snprintf(wifiConfig->cApName, 32, "%s-%s.OSC", "Insta360-Pro2", pRandSn);
         #else
 		snprintf(wifiConfig->cApName, 32, "%s-%s", "Insta360-Pro2", pRandSn);

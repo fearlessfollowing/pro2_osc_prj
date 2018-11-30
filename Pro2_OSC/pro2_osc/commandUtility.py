@@ -31,5 +31,15 @@ def buildResponse(body):
     return json.dumps(responseTemplate)
 
 
+def buildErrorResponse(error, message):
+    responseTemplate = {}
+    response = {}
+    response["code"] = error
+    response["message"] = message
+    responseTemplate["error"] = response
+    return json.dumps(responseTemplate)
+
+
+
 def buildError(error, msg):
     return {"code": error, "message": msg}

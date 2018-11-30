@@ -5,7 +5,8 @@
 # 修改记录：
 # 日期              修改人                  版本            备注
 # 2018年10月16日    Skymixos                V1.0.3          增加注释
-#
+# 
+# BUG467 - 设置时钟之前不能进入预览，否则相机会报467错误
 #########################################################################################
 
 import os
@@ -14,6 +15,7 @@ import time
 import config
 import commands
 import requests
+import base64
 import cameraConnect
 import commandUtility
 from shutil import copyfile
@@ -32,7 +34,12 @@ gConnectState = False
 gInPreview = False
 
 app = Flask(__name__)
-c = cameraConnect.connector()
+
+#
+# 构造全局的Camera连接对象
+#
+gCameraConObj = cameraConnect.connector()
+c = gCameraConObj
 connectResponse = c.connect()
 
 if connectResponse["state"] == "done":
@@ -43,8 +50,6 @@ if connectResponse["state"] == "done":
 else:
     print(connectResponse)
 
-# startTime = time.time()
-
 
 #
 # 加载osc_info.json的内容，保存在全局变量gOscInfoResponse中
@@ -54,8 +59,6 @@ with open(config.OSC_INFO_TEMPLATE) as oscInfoFile:
 
 with open(config.SN_FIRM_JSON) as snFirmFile:
     gSnFirmInfo = json.load(snFirmFile)
-
-
 
 @app.before_first_request
 def setup():
@@ -129,6 +132,7 @@ def getResponse(option):
                 responseValues = (name, state, error)
             response = commandUtility.buildResponse(responseValues)
 
+    # 请求执行命令
     elif option == 'execute' and bodyJson is not None:
         name = bodyJson['name'].split('.')[1]
         print("COMMAND: " + name)
@@ -137,9 +141,9 @@ def getResponse(option):
         try:
             if hasParams:
                 commandParams = bodyJson["parameters"]
-                response = getattr(commands, name)(c, commandParams)
+                response = getattr(commands, name)(gCameraConObj, commandParams)
             else:
-                response = getattr(commands, name)(c)
+                response = getattr(commands, name)(gCameraConObj)
 
             # if name == "getLivePreview" and "error" not in response:
             #     time.sleep(3)
@@ -174,7 +178,7 @@ def getResponse(option):
 
 
 # 
-# /osc/info API返回有关支持的相机和功能的基本信息
+# /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
 # 输入: 无
 # 输出:
 #   manufacturer - string(相机制造商)
@@ -192,7 +196,7 @@ def getResponse(option):
 #
 @app.route('/osc/info', methods=['GET'])
 def getInfo():
-    print('[---- Client Request: /osc/info ------]')
+    print('[---- OSC Request: /osc/info ------]')
     gOscInfoResponse["serialNumber"]    = gSnFirmInfo["serialNumber"]
     gOscInfoResponse["firmwareVersion"] = gSnFirmInfo["firmwareVersion"]
     
@@ -212,6 +216,8 @@ def getInfo():
     response.headers['X-Content-Type-Options'] = 'nosniff'
     return response
 
+
+
 # 
 # /osc/state API返回相机的state属性
 # 输入: 无
@@ -226,17 +232,18 @@ def getInfo():
 @app.route('/osc/state', methods=['POST'])
 def getState():
     print('[---- Client Request: /osc/state ------]')    
-    try:
-        fingerprint = connectResponse["results"]["Fingerprint"]
-    except KeyError:
-        fingerprint = 'test'
-    state = {"batteryLevel": 1.0, "storageUri": c.getStoragePath()}
+    # try:
+    #     fingerprint = connectResponse["results"]["Fingerprint"]
+    # except KeyError:
+    #     fingerprint = 'test'
+    # state = {"batteryLevel": 1.0, "storageUri": c.getStoragePath()}
 
-    print("state object: ", state)
-    response = {"fingerprint": fingerprint, "state": state}
+    # print("state object: ", state)
+    # response = {"fingerprint": fingerprint, "state": state}
 
-    # print("cam state packet:", c.getCamState())
-    print(c.getCamOscState().json())
+    # 返回一个响应字典
+    response = gCameraConObj.getCamOscState()
+
 
     print("RESPONSE: ", response)
     finalResponse = make_response(json.dumps(response))

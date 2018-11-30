@@ -100,7 +100,6 @@ def flask_osc_path_execute(path):
 
         if check_dic_key_exist(h, config.FINGERPRINT):
             fp = h[config.FINGERPRINT]
-        # Print('1path is {} {}'.format(path,fp))
         ret = app_controller.osc_path_execute(join_str_list(('/osc/',path)), fp)
     except Exception as err:
         Err('flask_osc_path_execute osc path exception {}'.format(str(err)))
