@@ -6,7 +6,7 @@
 # 2018年10月16日    Skymixos                V1.0.3          增加注释
 # 
 # OSC 服务器作为客户端去连接web_server拥有更高的优先级，更够强制服务器去断开普通客户端的连接
-# 
+# 建立与WebServer连接的时候会启动
 
 import os
 import json
@@ -14,8 +14,13 @@ import socket
 import config
 import requests
 import base64
+import time
 import timer_util
 from threading import Semaphore
+from log_util import *
+
+# 1s的定时器
+POLL_TO = 1000
 
 class connector():
     def __init__(self):
@@ -25,25 +30,94 @@ class connector():
         self.storagePath = self.defaultPath
         self.commandUrl = self.localIp + '/osc/commands/execute'
         self.stateUrl = self.localIp + '/osc/state'
-        self.contentTypeHeader = {'Content-Type': 'application/json'}
-        self.genericHeader = {'Content-Type': 'application/json', 'Fingerprint': 'test'}
-        self.connectBody = json.dumps({'name': 'camera._connect', 'parameters':{'client':'osc'}})
-        self.queryBody = json.dumps({'name': 'camera._queryState'})
-        self.hbPackeLock = Semaphore()
-        self.oscStateDict = {'fingerprint': 'test', 'state': {'batteryLevel': 0.0, 'storageUri':'/mnt/sdcard'}}
+        self.contentTypeHeader  = {'Content-Type': 'application/json'}
+        self.genericHeader      = {'Content-Type': 'application/json', 'Fingerprint': 'test'}
+        self.connectBody        = json.dumps({'name': 'camera._connect', 'parameters':{'client':'osc'}})
+        self.disconnectBody     = json.dumps({'name':'camera._disconnect'})
+        self.queryBody          = json.dumps({'name': 'camera._queryState'})
+        self.hbPackeLock        = Semaphore()
+
+        self.oscStateDict       = {'fingerprint': 'test', 'state': {'batteryLevel': 0.0, 'storageUri':None}}
+        
+        self.tickLock           = Semaphore()
+        self.localTick          = 0
+
+        # 用于标识服务器是否处于预览状态
+        self.serverInPreview = False
+        self.previewLock = Semaphore()
+
+        # 是否在处理OSC客户端的请求
+        # 当启动OSC服务器时，会设置一个1分钟超时的定时器，如果1分钟内没有OSC请求将主动断开与web_server的连接
+        self.isOscCmdProcess = False
+
+        # 是否与WebServer建立了连接
+        # 何时与WebServer建立连接?
+        # 1.启动OSC-Server时会与WebServer建立连接(self.isWebServerConnected = True)
+        # 2.OSC请求到来，但(self.isWebServerConnected=False)时会与WebServer建立连接
+        # 何时断开?
+        # 1.OSC-Server处于空闲状态，1min中没有任何OSC请求时，主动与WebServer断开
+        self.isWebSerConnected = False
+
 
         with open(config.PREVIEW_TEMPLATE) as previewFile:
             self.previewBody = json.load(previewFile)
-        self.camBackHbPacket = None
 
+
+        # 
+        # 启动心跳包更新线程（该线程伴随osc_server一直存在）
+        # 
+        def hotBit():
+            if self.isWebSerConnected == True and self.isOscCmdProcess == True:
+                requests.get(self.stateUrl, headers=self.genericHeader)
+                self.tickLock.acquire()
+                self.localTick = 0
+                self.tickLock.release()
+            else:
+                if self.isWebSerConnected == True:
+                    self.tickLock.acquire()
+                    self.localTick += 1
+                    self.tickLock.release()
+                    requests.get(self.stateUrl, headers=self.genericHeader)
+    
+                    # print("---> localtick = ", self.localTick)
+                    Info("----> locltick: {}".format(self.localTick))
+                    if self.localTick == 30:    # 主动与WebServer断开连接
+                        self.disconnect()
+                        self.tickLock.acquire()
+                        self.localTick = 0
+                        self.tickLock.release()
+                        self.serverInPreview = False
+                        self.isWebSerConnected = False
+
+        t = timer_util.perpetualTimer(1, hotBit)
+        t.start()
 
     def getServerIp(self):
-        try:
-            serverIp = [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1] + ":8000"
-        except OSError:
-            serverIp = "http://192.168.43.1:8000"
+        serverIp = "http://192.168.43.1:8000"
         return serverIp
 
+    # 
+    # 判断服务器是否处于预览状态
+    # 
+    def isServerInPreview(self):
+        self.previewLock.acquire()
+        previewState = self.serverInPreview
+        self.previewLock.release()
+        return previewState
+
+    def clearLocalTick(self):
+        self.tickLock.acquire()
+        self.localTick = 0
+        self.tickLock.release()
+
+
+    def setIsCmdProcess(self, result):
+        self.isOscCmdProcess = result
+
+    # 判断是否与WebServer处于连接状态
+    # 处于连接状态返回True;否则返回False
+    def isWebServerConnected(self):
+        return self.isWebSerConnected
 
     # 
     # 获取存储路径
@@ -61,16 +135,15 @@ class connector():
             return None
         return storagePath
 
-
     def listUrls(self, dirUrl):
         urlList = os.listdir(dirUrl)
         return [self.getServerIp() + dirUrl + url for url in urlList]
-
 
     #
     # connect - 与web_server建立连接(connect)
     #
     def connect(self):
+        Info("---> Ready connect Web-Server")
         connectResponse = requests.post(self.commandUrl, data=self.connectBody, headers=self.contentTypeHeader).json()
         print(json.dumps(connectResponse))
         try:
@@ -78,15 +151,25 @@ class connector():
         except KeyError:
             self.genericHeader["Fingerprint"] = "test"
 
-        def hotBit():
-            oscStatePacket = requests.get(self.stateUrl, headers=self.genericHeader)
-            self.hbPackeLock.acquire()
-            self.camBackHbPacket = oscStatePacket
-            self.hbPackeLock.release()
+        self.isWebSerConnected = True  # 与服务器建立连接
+        if self.isServerInPreview() == False:
+            startPreviewRes = self.startPreview()
+            print(startPreviewRes)
+            Info("---> request start preview: {}".format(startPreviewRes))
 
-        t = timer_util.perpetualTimer(1, hotBit)
-        t.start()
+            if startPreviewRes["state"] == "done":
+                self.serverInPreview = True
+                time.sleep(0.5)
+
         return connectResponse
+
+    #   
+    # disconnect - 与Web_server断开连接(disconnect)
+    #  
+    def disconnect(self):
+        requests.post(self.commandUrl, data=self.disconnectBody, headers=self.genericHeader)
+        self.isWebSerConnected = False  # 与服务器断开连接
+        self.serverInPreview = False
 
 
     # getCamOscState
@@ -95,36 +178,26 @@ class connector():
     # 3.最终返回oscStateDict
     # /system/python/usr/local/bin/python3.5 /system/python/prog/ws_src/pro_osc_main.py
     def getCamOscState(self):
-        self.hbPackeLock.acquire()
         oscStatePacket = requests.post(self.stateUrl, headers=self.genericHeader)
         oscStateJson = oscStatePacket.json()
-        print(oscStateJson)
-        self.oscStateDict['fingerprint'] = str(base64.urlsafe_b64encode(bytes([int(oscStateJson['state']['_cam_state'])])))
-        self.oscStateDict['state']['batteryLevel'] = oscStateJson['state']['_battery']['battery_level']
+        self.oscStateDict['fingerprint'] = str(hex(oscStateJson['state']['_cam_state']))
+        batteryPer = oscStateJson['state']['_battery']['battery_level'] / 100
+        if batteryPer == 10:
+            batteryPer = 0
+        self.oscStateDict['state']['batteryLevel'] = float(batteryPer)
         if oscStateJson['state']['_external_dev']['save_path'] is not None:
             self.oscStateDict['state']['storageUri'] = oscStateJson['state']['_external_dev']['save_path']
-        self.hbPackeLock.release()
+    
         return self.oscStateDict
 
-
-    # try:
-    #     fingerprint = connectResponse["results"]["Fingerprint"]
-    # except KeyError:
-    #     fingerprint = 'test'
-    # state = {"batteryLevel": 1.0, "storageUri": c.getStoragePath()}
-
-    # print("state object: ", state)
-    # response = {"fingerprint": fingerprint, "state": state}
-
-
-    #
-    # def disconnect():
-    #     return nativeCommand(json.dumps({"name": "camera._disconnect"}), genericHeader)
 
     def command(self, bodyJson):
         response = requests.post(self.commandUrl, data=bodyJson, headers=self.genericHeader).json()
         return response
 
+    # 
+    # 启动预览
+    # 
     def startPreview(self):
         return self.command(json.dumps(self.previewBody))
 
@@ -137,6 +210,3 @@ class connector():
             response.append(requests.post(self.commandUrl, data=bodyJson, headers=self.genericHeader).json())
 
         return response
-
-    # def nativeCommand(self, argBody, argHeader):
-    #     return requests.post(self.commandUrl, data=argBody, headers=argHeader).json()

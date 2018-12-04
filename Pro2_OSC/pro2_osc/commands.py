@@ -14,6 +14,7 @@ import findOptions
 import commandUtility
 import changeOptions
 from shutil import rmtree
+from log_util import *
 
 
 with open(config.CURRENT_OPTIONS) as optionsFile:    
@@ -33,7 +34,6 @@ def takePicture(connectObj):
     
     storagePath = connectObj.getStoragePath()
     if storagePath == 'none':
-        # responseValues = ("camera.takePicture", "error", commandUtility.buildError('disabledCommand', 'no storage device'))
         return commandUtility.buildErrorResponse('disabledCommand', 'no storage device')        
 
     # if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
@@ -41,11 +41,8 @@ def takePicture(connectObj):
         fileFormat = currentOptions["fileFormat"]
         if fileFormat["type"] == "jpeg":
             takePictureJson["parameters"]["stiching"]["mime"] = "jpeg"
-            #pictureMap["type"][str(fileFormat["type"])]
             takePictureJson["parameters"]["stiching"]["width"] = 7680
-            #pictureMap["width"][str(fileFormat["width"])]
             takePictureJson["parameters"]["stiching"]["height"] = 3840
-            #pictureMap["height"][str(fileFormat["height"])]
         else:
             del takePictureJson["parameters"]["stiching"]
 
@@ -79,7 +76,7 @@ def takePicture(connectObj):
             commandId = results["sequence"]
             responseValues = ("camera.takePicture", "inProgress", commandId, 0)
     else:
-        print(currentOptions["captureMode"])
+        Info(currentOptions["captureMode"])
         responseValues = ("camera.takePicture", "error", commandUtility.buildError('disabledCommand', 'Cannot take picture in current mode/state'))
     return commandUtility.buildResponse(responseValues)
 
@@ -138,11 +135,11 @@ def startCapture(c):
             captureTime = currentOptions["captureInterval"]*(currentOptions["captureNumber"]) + 1
             startCaptureJson["parameters"]["duration"] = captureTime
     
-    print(startCaptureJson)
+    Info(startCaptureJson)
     request = json.dumps(startCaptureJson)
     results = c.command(request)
 
-    print(results)
+    Info(results)
     
     responseValues = __checkCameraError(results, "camera.startCapture")
     if responseValues is None:
@@ -155,7 +152,7 @@ def startCapture(c):
                 responseValues = ("camera.startCapture", "error", errorValues)
         else:
             fileUrl = {"fileUrls": [results["results"]["_recordUrl"]]}
-            print(fileUrl)
+            Info(fileUrl)
             with open('fileUrls.json', 'w') as urlFile:
                 json.dump(fileUrl, urlFile)
             return ''            
@@ -189,6 +186,10 @@ def stopCapture(c):
     return commandUtility.buildResponse(responseValues)
 
 
+#
+# 获取预览流
+# 如果系统不处于预览状态，启动预览
+#
 def getLivePreview(c):
     # cameraState = c.command(json.dumps({"name": "camera._queryState"}))["results"]["state"]
     # if cameraState not in ["idle", "preview"]:
@@ -213,6 +214,7 @@ def getLivePreview(c):
     #     return previewUrl
     #
     # 暂时不支持该命令
+    # 检查OSC-Server是否已经开启了预览，如果没有启动预览
     errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
     responseValues = ("camera.getLivePreview", "error", errorValues)
     return commandUtility.buildResponse(responseValues)    
@@ -245,7 +247,7 @@ def listFiles(c, cParams):
         return commandUtility.buildResponse(responseValues)
 
 
-    print("reported storage path: " + storagePath)
+    Info("reported storage path: {}".format(storagePath))
 
     if fileType in ["all", "video", "image"]:
         if fileType == "all":
@@ -290,7 +292,8 @@ def listFiles(c, cParams):
                 # im = Image.open(folderPath + fn)
                 # (entries["width"], entries["height"]) = im.size
                 if maxThumbSize is not None:
-                    entries["thumbnail"] = folderUri + "thumbnail.jpg" # how to encode int
+                    pass
+                    # entries["thumbnail"] = folderUri + "thumbnail.jpg" # how to encode int
                     # with open(os.path.join(folderUri, "thumbnail.jpg"), "rb") as image_file:
                     #     encoded_string = base64.b64encode(image_file.read())
                     # entries["thumbnail"] = encoded_string
@@ -302,6 +305,7 @@ def listFiles(c, cParams):
 
     results = {"entries": entryList, "totalEntries": totalEntries}
     responseValues = ("camera.listFiles", "done", results)
+    Info(responseValues)
     return commandUtility.buildResponse(responseValues)
 
 
@@ -369,7 +373,7 @@ def delete(c, cParams):
 # }
 def setOptions(c, cParams):
     errorValues = None
-    print(cParams)
+    Info(cParams)
     try:
         options = cParams["options"]
     except KeyError:
@@ -393,7 +397,7 @@ def setOptions(c, cParams):
             if currentOptions["exposureProgram"] == 2:
                 currentOptions["iso"] = 0
                 currentOptions["shutterSpeed"] = 0
-            print("exposureProgram changed")
+            Info("exposureProgram changed")
         else:
             errorMsg = 'Unsupported exposure program'
             errorValues = ("camera.setOptions", "error",
@@ -406,7 +410,7 @@ def setOptions(c, cParams):
             currentOptions["captureMode"] = options["captureMode"]
             if options["captureMode"] in ["image", "interval"]:
                 pictureDict = {"type": "jpeg", "width": 4000, "height": 3000}
-                print("changed to jpeg")
+                Info("changed to jpeg")
                 if ["captureMode"] == "interval":
                     currentOptions["captureInterval"] = 2
                     currentOptions["captureNumber"] = 0
@@ -417,7 +421,7 @@ def setOptions(c, cParams):
             elif options["captureMode"] in ["video"]:
                 videoDict = {"type": "mp4", "width": 3840, "height": 1920,
                              "framerate": 30}
-                print("changed to mp4")
+                Info("changed to mp4")
                 currentOptions["fileFormat"] = videoDict
                 currentOptions["videoStitching"] = True
 
@@ -432,7 +436,7 @@ def setOptions(c, cParams):
             optionValue = options[optionKey]
             print("Changing " + optionKey + " to:", optionValue)
             response = getattr(changeOptions, optionKey)(c, optionValue, currentOptions)
-            print(response)
+            Info(response)
             if response == '':
                 currentOptions[optionKey] = optionValue
             else:

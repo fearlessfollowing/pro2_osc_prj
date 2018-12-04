@@ -28,3 +28,5 @@ VIDEO_FORMAT_TEMPLATE   = TEMPLATE_ARGS_PATH + '/videoFormatMap.json'
 SN_FIRM_JSON            = '/home/nvidia/insta360/etc/sn_firm.json'
 
 UP_TIME_PATH            = '/proc/uptime'
+
+LOG_FILE                = '/home/nvidia/insta360/log/osc_log'

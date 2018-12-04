@@ -7,6 +7,9 @@
 # 2018年10月16日    Skymixos                V1.0.3          增加注释
 # 
 # BUG467 - 设置时钟之前不能进入预览，否则相机会报467错误
+# 1.OSC服务器在1min中没有接收到客户端的任何请求时会主动断开与Web_server的连接
+# 2.OSC服务器的连接Web_server的优先级大于客户端,当osc去去连接Web_server时,如果Web_server处于
+#   与客户端连接的状态会先断开与客户端的连接再与OSC建立连接
 #########################################################################################
 
 import os
@@ -20,6 +23,7 @@ import cameraConnect
 import commandUtility
 from shutil import copyfile
 from flask import Flask, make_response, request, abort, redirect, Response
+from log_util import *
 
 #
 # 与服务器(web_server)建立连接
@@ -30,8 +34,6 @@ from flask import Flask, make_response, request, abort, redirect, Response
 # 启动预览
 # 获取Sensor相关Option到Current Options中
 
-gConnectState = False
-gInPreview = False
 
 app = Flask(__name__)
 
@@ -39,17 +41,9 @@ app = Flask(__name__)
 # 构造全局的Camera连接对象
 #
 gCameraConObj = cameraConnect.connector()
-c = gCameraConObj
-connectResponse = c.connect()
 
-if connectResponse["state"] == "done":
-    gConnectState = True
-    previewResponse = c.startPreview()
-    if previewResponse["state"] == "done":
-        gInPreview = True
-else:
-    print(connectResponse)
-
+# c = gCameraConObj
+# connectResponse = c.connect()
 
 #
 # 加载osc_info.json的内容，保存在全局变量gOscInfoResponse中
@@ -65,20 +59,32 @@ def setup():
     copyfile(config.DEFAULT_OPTIONS, config.CURRENT_OPTIONS)
 
 
-
+# getResponse()
+# 描述: 处理(status, command)
+# 
 @app.route('/osc/commands/<option>', methods=['POST'])
 def getResponse(option):
     errorValues = None
     bodyJson = request.get_json()
 
-    print("------------- REQUEST: ", bodyJson)
+    Info("------------- REQUEST: {}".format(bodyJson))
     if bodyJson is None:
         response = ''
         print("???: ", request)
         return response, 204
 
+    # 设置正在处理命令
+    gCameraConObj.setIsCmdProcess(True)    
+    gCameraConObj.clearLocalTick()
+
+    # 如果OSC-Server没有与WebServer建立连接，先在次建立连接
+    if gCameraConObj.isWebServerConnected() == False:
+        gCameraConObj.connect()
+
+    # 获取状态
     if option == 'status':
-        print("STATUS: /osc/commands/status")
+        Info("STATUS: /osc/commands/status")
+        
         try:
             commandId = int(bodyJson["id"])
         except KeyError:
@@ -94,10 +100,11 @@ def getResponse(option):
             finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
             finalResponse.headers['X-Content-Type-Options'] = "nosniff"
 
+            gCameraConObj.setIsCmdProcess(False)
             return finalResponse, 400
 
         progressRequest = json.dumps({"name": "camera._getResult", "parameters": {"list_ids": [commandId]}})
-        response = c.command(progressRequest)
+        response = gCameraConObj.command(progressRequest)
         if "error" in response.keys():
             responseValues = ("camera.takePicture", "inProgress", commandId, 0.5)
             response = commandUtility.buildResponse(responseValues)
@@ -113,15 +120,15 @@ def getResponse(option):
                 name = mappedList[0]
                 results = progress["results"][resultKey]
                 if name == "camera.takePicture":
-                    finalResults = c.getServerIp() + results + '/pano.jpg'
+                    finalResults = gCameraConObj.getServerIp() + results + '/pano.jpg'
                 elif name == "camera.startCapture":
                     finalResults = []
-                    folderUrl = c.getServerIp() + results + '/'
+                    folderUrl = gCameraConObj.getServerIp() + results + '/'
                     for f in os.listdir(results):
                         if "jpg" or "jpeg" in f:
                             finalResults.append(folderUrl + f)
                         if "mp4" in f:
-                            finalResults = c.getServerIp() + results + '/pano.mp4'
+                            finalResults = gCameraConObj.getServerIp() + results + '/pano.mp4'
                             break
                 responseValues = (name, state, {mappedList[1]: finalResults})
             if state == "inProgress":
@@ -135,7 +142,7 @@ def getResponse(option):
     # 请求执行命令
     elif option == 'execute' and bodyJson is not None:
         name = bodyJson['name'].split('.')[1]
-        print("COMMAND: " + name)
+        Info("COMMAND: {}" + name)
         
         hasParams = "parameters" in bodyJson.keys()
         try:
@@ -161,24 +168,35 @@ def getResponse(option):
             errorValue = commandUtility.buildError('invalidParameterName', 'invalid param name')
             responseValues = (name, "error", errorValue)
             response = commandUtility.buildResponse(responseValues)
-
     else:
         abort(404)
 
     finalResponse = make_response(response)
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
     finalResponse.headers['X-Content-Type-Options'] = "nosniff"
-    
-    print("RESPONSE: ", response)
+
+    # 对于Option类型的命令返回响应代表命令处理完成    
+    if option == 'status':
+        gCameraConObj.setIsCmdProcess(False)
+    elif option == 'execute':
+        # 对于录像，启动后不能算命令完成
+        # 停止的条件: 
+        #   1.空间不足，被动停止（由其他的执行路径设置setIsCmdProcess）
+        #   2.主动停止stopCapture
+        if name != "startCapture" or name != 'getLivePreview':
+            gCameraConObj.setIsCmdProcess(False)
+    else:
+        gCameraConObj.setIsCmdProcess(False)
+
+    Info("RESPONSE: {}".format(response))
     if response == '':
         return finalResponse, 204
-    # elif "error" in json.loads(response).keys():
-    #     return finalResponse, 400
-    return finalResponse
+    else:    
+        return finalResponse
 
 
-# 
-# /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
+# getInfo()
+# 描述: /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
 # 输入: 无
 # 输出:
 #   manufacturer - string(相机制造商)
@@ -196,12 +214,10 @@ def getResponse(option):
 #
 @app.route('/osc/info', methods=['GET'])
 def getInfo():
-    print('[---- OSC Request: /osc/info ------]')
+    Info('[---- OSC Request: /osc/info ------]')
     gOscInfoResponse["serialNumber"]    = gSnFirmInfo["serialNumber"]
     gOscInfoResponse["firmwareVersion"] = gSnFirmInfo["firmwareVersion"]
     
-    # gOscInfoResponse["uptime"] = int(time.time() - startTime)
-
     # 读取系统已经启动的时间
     with open(config.UP_TIME_PATH) as upTimeFile:
         startUptimeLine = upTimeFile.readline()
@@ -209,7 +225,7 @@ def getInfo():
         upTime = float(upTimes[0])
         gOscInfoResponse["uptime"] = int(upTime)
 
-    print('Result[/osc/info]:', gOscInfoResponse)
+    Info('Result[/osc/info]: {}'.format(gOscInfoResponse))
 
     response = make_response(json.dumps(gOscInfoResponse))
     response.headers['Content-Type'] = "application/json;charset=utf-8"
@@ -218,8 +234,8 @@ def getInfo():
 
 
 
-# 
-# /osc/state API返回相机的state属性
+# getState()
+# 描述：/osc/state API返回相机的state属性(不需要与WebServer建立连接)
 # 输入: 无
 # 输出:
 #   fingerprint - string(当前相机状态的指纹)
@@ -231,21 +247,14 @@ def getInfo():
 #
 @app.route('/osc/state', methods=['POST'])
 def getState():
-    print('[---- Client Request: /osc/state ------]')    
-    # try:
-    #     fingerprint = connectResponse["results"]["Fingerprint"]
-    # except KeyError:
-    #     fingerprint = 'test'
-    # state = {"batteryLevel": 1.0, "storageUri": c.getStoragePath()}
-
-    # print("state object: ", state)
-    # response = {"fingerprint": fingerprint, "state": state}
-
+    Info('[---- Client Request: /osc/state ------]')    
+    
     # 返回一个响应字典
     response = gCameraConObj.getCamOscState()
-
-
-    print("RESPONSE: ", response)
+    
+    print(response)
+    
+    Info("Result[/osc/state]: {}".format(response))
     finalResponse = make_response(json.dumps(response))
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
     finalResponse.headers['X-Content-Type-Options'] = 'nosniff'    
@@ -283,7 +292,6 @@ def getState():
 #     finalResponse = make_response(json.dumps(response))
 #     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
 #     return finalResponse
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, threaded=True)

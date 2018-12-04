@@ -134,6 +134,8 @@
 #define VER_FULL_TMP_PATH		    "/home/nvidia/insta360/etc/.sys_tmp_ver"
 #define VER_BUILD_PATH 			    "/home/nvidia/insta360/etc/pro_build_version"
 
+#define DNSMASQ_CONF_PATH           "/etc/dnsmasq.conf"
+
 /*
  * 配置参数路径
  */

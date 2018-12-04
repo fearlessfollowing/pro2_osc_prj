@@ -694,7 +694,6 @@ class control_center:
 
     def poll_timeout(self):
         Warn('poll_timeout')
-        # self.get_timer_stop_cost()
         if self.get_connect() is False:
             Warn('poll timeout but cam not connected')
         self.camera_disconnect(self.get_req(config._DISCONNECT))
@@ -2353,7 +2352,7 @@ class control_center:
 
 
     def cameraUiUpdateSysTemp(self, req):
-        Info('[------- UI Req: cameraUiUpdateSysTemp ------] req: {}'.format(req))      
+        # Info('[------- UI Req: cameraUiUpdateSysTemp ------] req: {}'.format(req))      
         res = OrderedDict()
         res[_name] = req[_name]
         res[_state] = config.DONE   
