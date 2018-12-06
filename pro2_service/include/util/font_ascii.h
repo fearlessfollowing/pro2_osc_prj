@@ -451,6 +451,16 @@ static const u8 text_right_bracket_6x16[] = {   // "("
 };
 
 
+static const u8 text_hyphen_6x16[] = {   // "-"
+0x00,0x80,0x80,0x80,0x80,0x80,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
+static const u8 text_vecline_6x16[] = {   // "|"
+    0x00,0x00,0x00,0xF8,0x00,0x00,0x00,0x00,0x00,0x0F,0x00,0x00,
+};
+
+
+
 //higligh
 static const u8 num_space_6x16_e[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};//" " highlight
 static const u8 num_space_3x16_e[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};   //" " highlight
@@ -475,6 +485,8 @@ static CHAR_OTHER others_array[] = {
     {':', {text_number_colon_0000_6x16, text_number_colon_0000_6x16_e}},
     {'(', {text_left_bracket_6x16, text_left_bracket_6x16}},
     {')', {text_right_bracket_6x16, text_right_bracket_6x16}},
+    {'-', {text_hyphen_6x16, text_hyphen_6x16}},
+    {'|', {text_vecline_6x16, text_vecline_6x16}}
 };
 
 

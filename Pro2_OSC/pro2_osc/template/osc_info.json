@@ -15,6 +15,7 @@
     "api": [
         "/osc/info",
         "/osc/state",
+        "/osc/checkForUpdates",        
         "/osc/commands/execute",
         "/osc/commands/status"
     ]

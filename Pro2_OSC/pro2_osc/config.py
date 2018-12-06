@@ -30,3 +30,7 @@ SN_FIRM_JSON            = '/home/nvidia/insta360/etc/sn_firm.json'
 UP_TIME_PATH            = '/proc/uptime'
 
 LOG_FILE                = '/home/nvidia/insta360/log/osc_log'
+
+
+STATE_IDLE    = 0x00000000
+STATE_TAKEPIC = 0x00000001

@@ -37,26 +37,123 @@ from log_util import *
 
 app = Flask(__name__)
 
-#
-# 构造全局的Camera连接对象
-#
+# 构造全局的Camera连接对象 #
 gCameraConObj = cameraConnect.connector()
 
-# c = gCameraConObj
-# connectResponse = c.connect()
-
-#
-# 加载osc_info.json的内容，保存在全局变量gOscInfoResponse中
-#
+# 加载osc_info.json的内容，保存在全局变量gOscInfoResponse中 #
 with open(config.OSC_INFO_TEMPLATE) as oscInfoFile:
     gOscInfoResponse = json.load(oscInfoFile)
 
 with open(config.SN_FIRM_JSON) as snFirmFile:
     gSnFirmInfo = json.load(snFirmFile)
 
+
 @app.before_first_request
 def setup():
     copyfile(config.DEFAULT_OPTIONS, config.CURRENT_OPTIONS)
+
+
+# getInfo()
+# 描述: /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
+# 输入: 无
+# 输出:
+#   manufacturer - string(相机制造商)
+#   model - string(相机型号)
+#   serialNumber - string(序列号)
+#   firmwareVersion - string(当前固件版本)
+#   supportUrl - string(相机支持网页的URL)
+#   gps - bool(相机GPS)
+#   gyro - 陀螺仪(bool)
+#   uptime - 相机启动后的秒数(int)
+#   api - 支持的API列表(字符串数组)
+#   endpoints - {httpPort, httpUpdatesPort, httpsPort, httpsUpdatesPort}
+#   apiLevel - [1], [2], [1,2]
+#   _vendorSpecific
+#
+@app.route('/osc/info', methods=['GET'])
+def getInfo():
+    Info('[---- OSC Request: /osc/info ------]')
+    gOscInfoResponse["serialNumber"]    = gSnFirmInfo["serialNumber"]
+    gOscInfoResponse["firmwareVersion"] = gSnFirmInfo["firmwareVersion"]
+
+    # 如果OSC-Server没有与WebServer建立连接，先在次建立连接
+    if gCameraConObj.isWebServerConnected() == False:
+        gCameraConObj.connect()
+
+    # 读取系统已经启动的时间
+    with open(config.UP_TIME_PATH) as upTimeFile:
+        startUptimeLine = upTimeFile.readline()
+        upTimes = startUptimeLine.split(" ")
+        upTime = float(upTimes[0])
+        gOscInfoResponse["uptime"] = int(upTime)
+
+    Info('Result[/osc/info]: {}'.format(gOscInfoResponse))
+
+    response = make_response(json.dumps(gOscInfoResponse))
+    response.headers['Content-Type'] = "application/json;charset=utf-8"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+# getState()
+# 描述：/osc/state API返回相机的state属性(不需要与WebServer建立连接)
+# 输入: 无
+# 输出:
+#   fingerprint - string(当前相机状态的指纹)
+#   state - json对象(相机型号)
+#   {
+#       batterLevel - float(电池电量)
+#       storageUri  - string(区分不通存储的唯一标识)
+#   }
+#
+@app.route('/osc/state', methods=['POST'])
+def getState():
+    Info('[---- Client Request: /osc/state ------]')    
+    
+    # 返回一个响应字典
+    response = gCameraConObj.getCamOscState()
+    
+    print(response)
+    
+    Info("Result[/osc/state]: {}".format(response))
+    finalResponse = make_response(json.dumps(response))
+    finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
+    finalResponse.headers['X-Content-Type-Options'] = 'nosniff'    
+    return finalResponse
+
+
+
+@app.route('/osc/checkForUpdates', methods=['POST'])
+def compareFingerprint():
+    Info('[-----/osc/checkForUpdates--------------]')
+    errorValues = None
+    waitTimeout = None
+    bodyJson = request.get_json()
+
+    try:
+        stateFingerprint = bodyJson["stateFingerprint"]
+        if "waitTimeout" in bodyJson.keys():
+            waitTimeout = bodyJson["waitTimeout"]
+    except KeyError:
+        errorValues = commandUtility.buildError("missingParameter", "stateFingerprint not specified")
+    
+    if (waitTimeout is None and len(bodyJson.keys()) > 1) or len(bodyJson.keys()) > 2:
+        errorValues = commandUtility.buildError("invalidParameterName")
+
+    if errorValues is not None:
+        responseValues = ("camera.checkForUpdates", "error", errorValues)
+        response = commandUtility.buildResponse(responseValues)
+    else:
+        oscState = gCameraConObj.getCamOscState()
+
+        throttleTimeout = 60
+        newFingerprint = oscState['fingerprint']
+        results = {"stateFingerprint": newFingerprint, "throttleTimeout": throttleTimeout}
+        responseValues = ("camera.checkForUpdates", "done", results)
+
+    finalResponse = make_response(json.dumps(response))
+    finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
+    return finalResponse
 
 
 # getResponse()
@@ -77,14 +174,13 @@ def getResponse(option):
     gCameraConObj.setIsCmdProcess(True)    
     gCameraConObj.clearLocalTick()
 
-    # 如果OSC-Server没有与WebServer建立连接，先在次建立连接
     if gCameraConObj.isWebServerConnected() == False:
         gCameraConObj.connect()
+
 
     # 获取状态
     if option == 'status':
         Info("STATUS: /osc/commands/status")
-        
         try:
             commandId = int(bodyJson["id"])
         except KeyError:
@@ -142,7 +238,7 @@ def getResponse(option):
     # 请求执行命令
     elif option == 'execute' and bodyJson is not None:
         name = bodyJson['name'].split('.')[1]
-        Info("COMMAND: {}" + name)
+        Info("Execute command: " + name)
         
         hasParams = "parameters" in bodyJson.keys()
         try:
@@ -171,6 +267,9 @@ def getResponse(option):
     else:
         abort(404)
 
+
+    Info("Command Response: {}".format(response))
+
     finalResponse = make_response(response)
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
     finalResponse.headers['X-Content-Type-Options'] = "nosniff"
@@ -194,104 +293,6 @@ def getResponse(option):
     else:    
         return finalResponse
 
-
-# getInfo()
-# 描述: /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
-# 输入: 无
-# 输出:
-#   manufacturer - string(相机制造商)
-#   model - string(相机型号)
-#   serialNumber - string(序列号)
-#   firmwareVersion - string(当前固件版本)
-#   supportUrl - string(相机支持网页的URL)
-#   gps - bool(相机GPS)
-#   gyro - 陀螺仪(bool)
-#   uptime - 相机启动后的秒数(int)
-#   api - 支持的API列表(字符串数组)
-#   endpoints - {httpPort, httpUpdatesPort, httpsPort, httpsUpdatesPort}
-#   apiLevel - [1], [2], [1,2]
-#   _vendorSpecific
-#
-@app.route('/osc/info', methods=['GET'])
-def getInfo():
-    Info('[---- OSC Request: /osc/info ------]')
-    gOscInfoResponse["serialNumber"]    = gSnFirmInfo["serialNumber"]
-    gOscInfoResponse["firmwareVersion"] = gSnFirmInfo["firmwareVersion"]
-    
-    # 读取系统已经启动的时间
-    with open(config.UP_TIME_PATH) as upTimeFile:
-        startUptimeLine = upTimeFile.readline()
-        upTimes = startUptimeLine.split(" ")
-        upTime = float(upTimes[0])
-        gOscInfoResponse["uptime"] = int(upTime)
-
-    Info('Result[/osc/info]: {}'.format(gOscInfoResponse))
-
-    response = make_response(json.dumps(gOscInfoResponse))
-    response.headers['Content-Type'] = "application/json;charset=utf-8"
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    return response
-
-
-
-# getState()
-# 描述：/osc/state API返回相机的state属性(不需要与WebServer建立连接)
-# 输入: 无
-# 输出:
-#   fingerprint - string(当前相机状态的指纹)
-#   state - json对象(相机型号)
-#   {
-#       batterLevel - float(电池电量)
-#       storageUri  - string(区分不通存储的唯一标识)
-#   }
-#
-@app.route('/osc/state', methods=['POST'])
-def getState():
-    Info('[---- Client Request: /osc/state ------]')    
-    
-    # 返回一个响应字典
-    response = gCameraConObj.getCamOscState()
-    
-    print(response)
-    
-    Info("Result[/osc/state]: {}".format(response))
-    finalResponse = make_response(json.dumps(response))
-    finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
-    finalResponse.headers['X-Content-Type-Options'] = 'nosniff'    
-    return finalResponse
-
-
-
-# @app.route('/osc/checkForUpdates', methods=['POST'])
-# def compareFingerprint():
-#     print("\nasked for update\n")
-#     errorValues = None
-#     waitTimeout = None
-#     bodyJson = request.get_json()
-#     try:
-#         stateFingerprint = bodyJson["stateFingerprint"]
-#         if "waitTimeout" in bodyJson.keys():
-#             waitTimeout = bodyJson["waitTimeout"]
-#     except KeyError:
-#         errorValues = commandUtility.buildError("missingParameter",
-#                                                 "stateFingerprint not specified")
-#     if (waitTimeout is None and len(bodyJson.keys()) > 1) or len(bodyJson.keys()) > 2:
-#         errorValues = commandUtility.buildError("invalidParameterName")
-#     if errorValues is not None:
-#         responseValues = ("camera.checkForUpdates", "error", errorValues)
-#         response = commandUtility.buildResponse(responseValues)
-#     else:
-#         connectResponse = c.connect()
-#         throttleTimeout = 30
-#         newFingerprint = connectResponse["Fingerprint"]
-#         # if newFingerprint != stateFingerprint:
-#         results = {"stateFingerprint": newFingerprint,
-#                    "throttleTimeout": throttleTimeout}
-#         responseValues = ("camera.checkForUpdates", "done", results)
-#         # while newFingerprint == stateFingerprint and :
-#     finalResponse = make_response(json.dumps(response))
-#     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
-#     return finalResponse
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, threaded=True)

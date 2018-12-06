@@ -21,6 +21,8 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
     currentOptions = json.load(optionsFile)
 
 
+
+
 # 
 # 拍照,使用8K的模板参数
 # 注: 拍照只能在"captureMode" = "image"模式下进行
@@ -28,16 +30,31 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
 # 2.进行当前采集模式检查
 def takePicture(connectObj):
 
+    Print('--------------------------> takePicture <----------------------------')
     takePictureJson = __loadJsonFile(config.TAKEPIC_TEMPLATE)
     currentOptions = __loadJsonFile(config.CURRENT_OPTIONS)
     pictureMap = __loadJsonFile(config.PIC_FORMAT_MAP_TMPLATE)    
-    
+
+
+    # 存储设备检查
     storagePath = connectObj.getStoragePath()
     if storagePath == 'none':
+        Warn('Takepicture, but not storage devcie exist')
         return commandUtility.buildErrorResponse('disabledCommand', 'no storage device')        
+
+    tmpState = connectObj.getOscServerState()
+    Info('+++++ current osc state: {}'.format(tmpState))
+
+    if connectObj.checkOscStateIn(config.STATE_TAKEPIC) == True:
+        Warn('Takepicture, last take picture not complete!')
+        return commandUtility.buildErrorResponse('disabledCommand', 'takePicture not complete')        
 
     # if currentOptions["exposureProgram"] in [1, 2, 4, 9] and currentOptions["captureMode"] in ["image"]:
     if currentOptions["captureMode"] in ["image"]:
+        
+        # 设置为正在拍照
+        connectObj.addOscState(config.STATE_TAKEPIC)
+
         fileFormat = currentOptions["fileFormat"]
         if fileFormat["type"] == "jpeg":
             takePictureJson["parameters"]["stiching"]["mime"] = "jpeg"
@@ -65,19 +82,23 @@ def takePicture(connectObj):
             takePictureJson["stabilization"] = True
         else:
             takePictureJson["stabilization"] = False
+        
+        Info("Take picture Args: {}".format(takePictureJson))
 
-        print(takePictureJson)
         request = json.dumps(takePictureJson)
 
         results = connectObj.command(request)
         responseValues = __checkCameraError(results, "camera.takePicture")
         if responseValues is None:
-            print(results)
+            Info(results)
             commandId = results["sequence"]
             responseValues = ("camera.takePicture", "inProgress", commandId, 0)
     else:
         Info(currentOptions["captureMode"])
         responseValues = ("camera.takePicture", "error", commandUtility.buildError('disabledCommand', 'Cannot take picture in current mode/state'))
+
+    connectObj.rmOscState(config.STATE_TAKEPIC)
+
     return commandUtility.buildResponse(responseValues)
 
 
@@ -481,8 +502,7 @@ def setOptions(c, cParams):
         for result in results:
             if "error" in result.keys():
                 errorMsg = "camera error changing option"
-                errorValues = ("camera.setOptions", "error",
-                               commandUtility.buildError('invalidParameterValue', errorMsg))
+                errorValues = ("camera.setOptions", "error", commandUtility.buildError('invalidParameterValue', errorMsg))
                 return commandUtility.buildResponse(errorValues)
 
     with open(config.CURRENT_OPTIONS, 'w') as newOptions:

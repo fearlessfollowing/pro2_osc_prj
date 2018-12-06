@@ -22,6 +22,8 @@ from log_util import *
 # 1s的定时器
 POLL_TO = 1000
 
+
+
 class connector():
     def __init__(self):
         self.localIp = 'http://127.0.0.1:20000'
@@ -59,8 +61,8 @@ class connector():
         self.isWebSerConnected = False
 
 
-        with open(config.PREVIEW_TEMPLATE) as previewFile:
-            self.previewBody = json.load(previewFile)
+        self.gActionLock = Semaphore()
+        self.gState = config.STATE_IDLE
 
 
         # 
@@ -92,9 +94,47 @@ class connector():
         t = timer_util.perpetualTimer(1, hotBit)
         t.start()
 
+        with open(config.PREVIEW_TEMPLATE) as previewFile:
+            self.previewBody = json.load(previewFile)
+
+
     def getServerIp(self):
         serverIp = "http://192.168.43.1:8000"
         return serverIp
+
+
+    def getOscServerState(self):
+        self.gActionLock.acquire()
+        Info("----------------------> getActionState")
+        tmpState = self.gState
+        self.gActionLock.release()
+        return tmpState
+
+    def setOscServerState(self, state):
+        self.gActionLock.acquire()
+        Info("----------------------> setState")
+        self.gState = state
+        self.gActionLock.release()
+
+
+    def addOscState(self, state):
+        Info('---> before add, server state is {}'.format(self.getOscServerState()))
+        self.setOscServerState(self.getOscServerState() | state)
+        Info('---> after add, server state is {}'.format(self.getOscServerState()))
+
+
+    def rmOscState(self, state):
+        Info('---> before rm, server state is {}'.format(self.getOscServerState()))
+        self.setOscServerState(self.getOscServerState() & ~state)
+        Info('---> after rm, server state is {}'.format(self.getOscServerState()))
+
+
+    def checkOscStateIn(self, state):
+        if (self.getOscServerState() & state) == state:
+            return True
+        else:
+            return False
+
 
     # 
     # 判断服务器是否处于预览状态
@@ -145,23 +185,29 @@ class connector():
     def connect(self):
         Info("---> Ready connect Web-Server")
         connectResponse = requests.post(self.commandUrl, data=self.connectBody, headers=self.contentTypeHeader).json()
-        print(json.dumps(connectResponse))
+        
+        # print(json.dumps(connectResponse))
+        
+        Info("Connect Response: {}".format(connectResponse))
+
         try:
             self.genericHeader["Fingerprint"] = json.dumps(connectResponse['results']['Fingerprint'])
         except KeyError:
             self.genericHeader["Fingerprint"] = "test"
 
         self.isWebSerConnected = True  # 与服务器建立连接
-        if self.isServerInPreview() == False:
-            startPreviewRes = self.startPreview()
-            print(startPreviewRes)
-            Info("---> request start preview: {}".format(startPreviewRes))
 
-            if startPreviewRes["state"] == "done":
-                self.serverInPreview = True
-                time.sleep(0.5)
+        # if self.isServerInPreview() == False:
+        #     startPreviewRes = self.startPreview()
+        #     print(startPreviewRes)
+        #     Info("---> request start preview: {}".format(startPreviewRes))
+
+        #     if startPreviewRes["state"] == "done":
+        #         self.serverInPreview = True
+        #         time.sleep(0.5)
 
         return connectResponse
+
 
     #   
     # disconnect - 与Web_server断开连接(disconnect)
@@ -205,7 +251,6 @@ class connector():
     def listCommand(self, jsonList):
         response = []        
         self.command(json.dumps(self.previewBody))
-
         for bodyJson in jsonList:
             response.append(requests.post(self.commandUrl, data=bodyJson, headers=self.genericHeader).json())
 

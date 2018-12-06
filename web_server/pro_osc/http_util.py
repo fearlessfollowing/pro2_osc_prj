@@ -1,4 +1,4 @@
-# import http.client
+
 import config
 import base64
 from collections import OrderedDict
@@ -14,25 +14,27 @@ from util.str_util import *
 from util.ins_util import *
 from util.time_util import *
 from util.timer_util import *
-from util.log_util import *
+from util.ins_log_util import *
 
 
 bSave = True
-_name = config._NAME
-POLL_TO = 1000
-fingerprint = None
-poll_timer = None
-global_osc_state = None
-THREED_LEFT = '3d_top_left'
-THREED_RIG = '3d_top_right'
-SESSION_ID='sessionId'
-_st = config._STATE
-_done = config.DONE
+_name               = config._NAME
 
-_para = config.PARAM
-_name=config._NAME
+POLL_TO             = 1000
+fingerprint         = None
+poll_timer          = None
 
-last_take_pic_res=None
+global_osc_state    = None
+THREED_LEFT         = '3d_top_left'
+THREED_RIG          = '3d_top_right'
+SESSION_ID          = 'sessionId'
+_st                 = config._STATE
+_done               = config.DONE
+_para               = config.PARAM
+_name               = config._NAME
+last_take_pic_res   = None
+EXTERNAL_DEV        = '_external_dev'
+EXTERNAL_ENTRIES    = 'entries'
 
 def get_session_id():
     return "12ABC3"
@@ -40,13 +42,8 @@ def get_session_id():
 def ins_delay():
     time.sleep(2)
 
+
 def get_addr():
-    # return 'http://127.0.0.1:20000'
-    # return 'http://192.168.43.1:20000'
-    # return 'http://192.168.2.242:20000'
-    # return 'http://192.168.3.88:20000'
-    # for i in range(len(sys.argv)):
-    #     print('arg{} {}'.format(i, sys.argv[i]))
     if len(sys.argv) > 1:
         ip = sys.argv[1]
     else:
@@ -70,13 +67,14 @@ new_to = 0
 def poll_timeount():
     global old_to, new_to
     new_to = time.perf_counter()
-    # Info(' poll to interval {}'.format(new_to - old_to))
     test_osc_state()
     old_to = time.perf_counter()
+
 
 def test_timer():
     global poll_timer
     poll_timer = RepeatedTimer(POLL_TO, poll_timeount, "test_poll", False)
+
 
 def check_done(res):
     if res[_st] == _done:
@@ -84,30 +82,24 @@ def check_done(res):
     else:
         return False
 
+
 def http_req(url, param=None, method='GET'):
     try:
         if param is None:
-            # r = requests.get('http://127.0.0.1:20000' + url)
-            # resp = r.json()
-            # print('response ', resp)
             heads = OrderedDict({'Content-Type': 'application/json',config.FINGERPRINT:get_fingerprint()})
-            # heads['Connection'] = 'close'
-            # print('1 resquest ')
             r = requests.post(get_addr() + url, headers=heads)
             resp = r.json()
-            # print('1response ', resp)
-            # Info('response r.headers {} time is {}'.format(r.headers, time.strftime("%Y-%m-%d_%H:%M:%S(%z)", time.localtime())))
         else:
             heads = {'Content-Type': 'application/json'}
             if param['name'] != config._CONNECT:
                 heads[config.FINGERPRINT] = get_fingerprint()
+
             print('param {} headers {} get_addr {} '.format(param,heads,get_addr()))
             r = requests.post(get_addr() + url, headers=heads, json=param)
 
             if r.status_code == requests.codes.ok:
                 resp = r.json()
                 if param['name'] != config.GET_IMAGE:
-                    # Info('2response {} type {}'.format(resp,type(resp)))
                     if param[_name] == config._CONNECT and resp[_st] == _done:
                         set_fingerprint(resp[config.RESULTS][config.FINGERPRINT])
                         test_timer()
@@ -141,8 +133,7 @@ def test_osc_state():
     st = http_req(config.PATH_STATE)
     return st
 
-EXTERNAL_DEV = '_external_dev'
-EXTERNAL_ENTRIES='entries'
+
 
 def get_storage_uri(dic):
     ret = None
@@ -175,10 +166,6 @@ def start_get_osc_st():
         ret = cmd_exception(error_dic('start_get_osc_st', str(e)))
     return ret
 
-# def get_execute_param(name, param = None):
-#     dict = OrderedDict()
-#     dict[_name] = name
-#     dict[config.PARAM] = param
 
 def test_osc_execute(name, param=None):
     return http_req(config.PATH_CMD_EXECUTE, get_param(name, param))
@@ -195,9 +182,7 @@ def test_reset():
     return test_osc_execute(config.CAMERA_RESET)
 
 def get_origin(mime = 'jpeg',w = 4000,h = 3000,save_org = bSave,framerate = None,bitrate = None):
-    org = OrderedDict({config.MIME: mime,
-                       config.WIDTH: w, config.HEIGHT: h,
-                       config.SAVE_ORG: True})
+    org = OrderedDict({config.MIME: mime, config.WIDTH: w, config.HEIGHT: h, config.SAVE_ORG: True})
     if save_org is not None:
         org[config.SAVE_ORG] = save_org
     if framerate is not None:
@@ -225,18 +210,14 @@ def get_take_pic_param():
     param = OrderedDict()
     param[config.ORG] = get_origin(w = 4000,h = 3000)
     param[config.STICH] = get_stich()
-    # param[config.HDR] = 'true'
-    # param[config.PICTURE_COUNT] = 3
-    # param[config.PICTURE_INTER] = 5
     return param
 
 def get_hdr_param():
     param = OrderedDict()
     param[config.ORG] = get_origin()
-
     param['hdr'] = OrderedDict({"enable": True, "count": 3, "min_ev": -32, "max_ev": 32})
-
     return param
+
 
 def get_pic_param(mode=config.MODE_3D):
     param = OrderedDict()
@@ -247,6 +228,7 @@ def get_pic_param(mode=config.MODE_3D):
         param[config.STICH] = get_stich(w=7680, h=3840, mode='pano')
 
     return param
+
 
 def test_take_pic(req):
     Info('osc_option.get_hdr() is {}'.format(osc_option.get_hdr()))
@@ -284,22 +266,6 @@ def get_stich_video_param():
     param[config.STICH] = get_stich(mime = 'h264',framerate=30,bitrate=3000)
     return param
 
-def test_start_compose_video():
-    test_osc_execute(config._START_STICH_VIDEO,get_stich_video_param())
-
-def get_stich_pic_param():
-    param = OrderedDict()
-    param['file1'] = '/sdcard/0.jpg',
-    param['file2'] = '/sdcard/1.jpg',
-    param['file3'] = '/sdcard/2.jpg',
-    param['file4'] = '/sdcard/3.jpg',
-    param['file5'] = '/sdcard/4.jpg',
-    param['file6'] = '/sdcard/5.jpg',
-    param[config.STICH] = get_stich()
-    return param
-
-def test_start_compose_pic():
-    test_osc_execute(config._START_STICH_PIC,get_stich_pic_param())
 
 def get_rec_param():
     param = OrderedDict()
@@ -443,25 +409,6 @@ def get_set_image_param(mode = 'auto'):
     param = OrderedDict()
     param['property'] = '3a_mode'
     param['value'] = 1
-    # param_3a = OrderedDict()
-    # param['3a_mode'] = mode
-    #
-    # if mode == 'auto':
-    #     param['wb'] = 14
-    #     param['iso'] = 9
-    #     param['shutter'] = 43
-    #
-    # param['3a'] = param_3a
-
-    # param['brightness'] = 255
-    # param['contrast'] = 255
-    # param['saturation'] = 255
-    # param['hue'] = 15
-    # param['sharpness'] = 6
-    # param['ev_bias'] = 255
-    # param['ae_meter'] = 255
-    # param['dig_effect'] = 8
-    # param['flicker'] = 2
     return param
 
 def set_image_param():
@@ -476,23 +423,6 @@ def get_set_wifi_param():
 
 def set_wifi_config():
     test_osc_execute(config._SET_WIFI_CONFIG, get_set_wifi_param())
-
-def get_hdmi_param(mode=config.MODE_3D):
-    br = 25000
-    param = OrderedDict()
-    if mode == config.MODE_3D:
-        param[config.ORG] = get_origin(mime='h264', w=2160, h=1620, framerate=25, bitrate=br)
-    else:
-        param[config.ORG] = get_origin(mime='h264', w=2560, h=1440, framerate=30, bitrate=br)
-
-    param[config.AUD] = get_audio()
-    return param
-
-def set_hdmi_on():
-    test_osc_execute(config._SET_HDMI_ON, get_hdmi_param())
-
-def set_hdmi_off():
-    test_osc_execute(config._SET_HDMI_OFF)
 
 
 def cmd_done_dict(name,res = None):

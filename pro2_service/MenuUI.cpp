@@ -1020,8 +1020,10 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            tipmSDcardSpeedInsufficient();
-
+            dispStr((const u8*)"Error 434. SD card", 13, 0, false, 128);
+            dispStr((const u8*)"speed insufficient.Please", 0, 16, false, 128);
+            dispStr((const u8*)"do a full overwrite", 16, 32, false, 128);
+            dispStr((const u8*)"format before use.", 14, 48, false, 128); 
             #endif
             break;
         }
@@ -10056,16 +10058,17 @@ void MenuUI::tipmSDcardSpeedInsufficient()
     char cCardBuf[128] = {0};
 
     if (pCard) {
-        sprintf(cCardBuf, "mSD card(%s)", pCard);
+        sprintf(cCardBuf, "Error 313. mSD card(%s)", pCard);
     } else {
-        sprintf(cCardBuf, "mSD card(6)");
+        sprintf(cCardBuf, "Error 313. mSD card(6)");
     }
     
     clearArea();      
-    dispStr((const u8*)"Error 313.", 37, 0, false, 128);
-    dispStr((const u8*)cCardBuf, 30, 16, false, 128);
-    dispStr((const u8*)"speed insufficient.Please", 0, 32, false, 128);
-    dispStr((const u8*)"overwrite before use.", 7, 48, false, 128);  
+    dispStr((const u8*)cCardBuf, 0, 0, false, 128);
+    dispStr((const u8*)"speed insufficient.", 16, 16, false, 128);
+    dispStr((const u8*)"Please do a full over-", 6, 32, false, 128);
+    dispStr((const u8*)"write format before use", 2, 48, false, 128);  
+    
 }
 
 
@@ -10075,10 +10078,11 @@ void MenuUI::tipmSDcardSpeedInsufficient()
 void MenuUI::tipSDcardSpeedInsufficient()
 {
     clearArea();    
-    dispStr((const u8*)"Error 434.", 37, 0, false, 128);
-    dispStr((const u8*)"SD card speed", 25, 16, false, 128);
-    dispStr((const u8*)"insufficient.Please", 18, 32, false, 128);
-    dispStr((const u8*)"overwrite before use.", 7, 48, false, 128); 
+    dispStr((const u8*)"Error 434. SD card", 13, 0, false, 128);
+    dispStr((const u8*)"speed insufficient.Please", 0, 16, false, 128);
+    dispStr((const u8*)"do a full overwrite", 16, 32, false, 128);
+    dispStr((const u8*)"format before use.", 14, 48, false, 128); 
+
 }
 
 

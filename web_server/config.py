@@ -411,7 +411,6 @@ elif platform.machine() == 'aarch64':
     BROWER_ROOT = '/home/nvidia/insta360/log/'
     STORAGE_ROOT = BROWER_ROOT
     
-    # LOG_ROOT = STORAGE_ROOT + 'py_log/'
     LOG_FILE = STORAGE_ROOT + 'h_log'
     # DB_NAME = STORAGE_ROOT + '360_pro'
 
@@ -453,28 +452,24 @@ SERVICEUNAVAILABLE= { 'SERVICEUNAVAILABLE':'Processing requests cannot be receiv
 CANCELEDSHOOTING= { 'CANCELEDSHOOTING':'Shooting request cancellation of the self-timer'}
 UNEXPECTED= {'UNEXPECTED':'Other errors'}
 
-#state res
-DONE = 'done'
+DONE        = 'done'
 IN_PROGRESS = 'inProgress'
-ERROR = 'error'
-RESULTS = 'results'
+ERROR       = 'error'
+RESULTS     = 'results'
 FINGERPRINT = 'Fingerprint'
 
-# #pro file path
-# BASE_DIR = '/sdcard/'
-# UPLOAD_DIR = BASE_DIR + 'upload/'
 
-PIC_FORMAT = '_pictureFormat'
-REC_FORMAT = '_recordFormat'
-PREVIEW_FORMAT = 'previewFormat'
-LIVE_FORMAT = '_liveFormat'
-VR_MODE = '_vrMode'
+PIC_FORMAT      = '_pictureFormat'
+REC_FORMAT      = '_recordFormat'
+PREVIEW_FORMAT  = 'previewFormat'
+LIVE_FORMAT     = '_liveFormat'
+VR_MODE         = '_vrMode'
 
-PREVIEW_URL = '_previewUrl'
-RECORD_URL = '_recordUrl'
-LIVE_URL = '_liveUrl'
+PREVIEW_URL     = '_previewUrl'
+RECORD_URL      = '_recordUrl'
+LIVE_URL        = '_liveUrl'
 
-ORG_URL_LIST='_orgURLList'
+ORG_URL_LIST    = '_orgURLList'
 
 #write fifo msg
 # OLED_DISP_STR = 'oled_disp_str'
