@@ -59,7 +59,6 @@ class osc_info():
         osc_info['model'] = 'Insta360 Pro2'
         osc_info['serialNumber'] = cls.get_sn()
         osc_info['firmwareVersion'] = cls.get_version()
-        # osc_info['firmwareVersion'] = [1, 2]
         osc_info['supportUrl'] = '127.0.0.1'
         osc_info['endpoints'] = {'httpPort':80,'httpUpdatePort':cls.get_http_update_port()}
         osc_info['gps'] = True

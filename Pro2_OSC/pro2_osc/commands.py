@@ -22,6 +22,8 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
 
 
 
+/system/python/usr/local/bin/python3.5 /system/python/prog/ws_src/pro_osc_main.py
+
 
 # 
 # 拍照,使用8K的模板参数

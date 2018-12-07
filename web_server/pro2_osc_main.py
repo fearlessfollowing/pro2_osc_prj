@@ -31,7 +31,11 @@ from util.signal_util import *
 from osc_protocol.ins_osc_info import osc_info
 from osc_protocol.ins_osc_state import osc_state_handle
 from osc_protocol.ins_check_update import osc_check_update
-from pro_osc.http_util import *
+import pro_osc.http_util
+
+
+SN_FIRM_JSON = '/home/nvidia/insta360/etc/sn_firm.json'
+UP_TIME_PATH = '/proc/uptime'
 
 
 class MyResponse(Response):
@@ -46,47 +50,112 @@ app.config.update(
     SECRET_KEY = '...'
 )
 
+gConnectObj = pro_osc.http_util.connector()
+
+with open(SN_FIRM_JSON) as snFirmFile:
+    gSnFirmInfo = json.load(snFirmFile)
+
+
+def getOscInfo():
+    curOscInfo = OrderedDict()
+    curOscInfo['manufacturer'] = 'Shenzhen Arashi Vision'
+    curOscInfo['model'] = 'Insta360 Pro2'
+    curOscInfo['serialNumber'] = gSnFirmInfo["serialNumber"]
+    curOscInfo['firmwareVersion'] = gSnFirmInfo["firmwareVersion"]
+    curOscInfo['supportUrl'] = 'https://support.insta360.com'
+    curOscInfo['gps'] = True
+    curOscInfo['gyro'] = True
+
+    curOscInfo['uptime'] = 0
+
+    # 读取系统已经启动的时间
+    with open(UP_TIME_PATH) as upTimeFile:
+        startUptimeLine = upTimeFile.readline()
+        upTimes = startUptimeLine.split(" ")
+        upTime = float(upTimes[0])
+        curOscInfo['uptime'] = int(upTime)
+
+    curOscInfo['apiLevel'] = [2]
+    curOscInfo['endpoints'] = {
+        'httpPort': 80,
+        "httpUpdatesPort": 10080
+    }
+
+    curOscInfo['api'] = [
+        '/osc/info',
+        '/osc/state',
+        '/osc/checkForUpdates',        
+        '/osc/commands/execute',
+        '/osc/commands/status'
+    ]
+    _vendorSpecific = OrderedDict()
+    curOscInfo['_vendorSpecific'] = _vendorSpecific
+    return curOscInfo
+
+
+
+# getInfo()
+# 描述: /osc/info API返回有关支持的相机和功能的基本信息(不需要与web_server建立连接即可)
+# 输入: 无
+# 输出:
+#   manufacturer - string(相机制造商)
+#   model - string(相机型号)
+#   serialNumber - string(序列号)
+#   firmwareVersion - string(当前固件版本)
+#   supportUrl - string(相机支持网页的URL)
+#   gps - bool(相机GPS)
+#   gyro - 陀螺仪(bool)
+#   uptime - 相机启动后的秒数(int)
+#   api - 支持的API列表(字符串数组)
+#   endpoints - {httpPort, httpUpdatesPort, httpsPort, httpsUpdatesPort}
+#   apiLevel - [1], [2], [1,2]
+#   _vendorSpecific
+#
+# 请求osc_info时会与web_server建立连接
+# 
 @app.route('/osc/info', methods=['GET', 'POST'])
 def start_osc_info():
     try:
-        Info('start_osc_info start')
-        res = test_connect()
-        Info('start osc ret {} type {}'.format(res,type(res)))
-        if res[config._STATE] == config.DONE:
-            ret = osc_info.get_google_osc_info()
-            if check_dic_key_exist(res['results'],'sys_info'):
-                ret["serialNumber"] = res["results"]["sys_info"]["sn"]
-                ret["firmwareVersion"] = res["results"]["sys_info"]["r_v"]
-            ret["uptime"] = int(time.time() - osc_start_time)
-            ret = dict_to_jsonstr(ret)
-        else:
-            ret = dict_to_jsonstr(res)
+        Info('[----- osc request: /osc/info ---------]')
+
+        # osc/info是最先请求的
+        # 先检查与WebServer的连接状态，如果已经处于连接状态，
+        # res = gConnectObj.test_connect()
+        if gConnectObj.isWebServerConnected() == False:
+            gConnectObj.connect()
+
+        ret = dict_to_jsonstr(getOscInfo())
         Info('osc info ret {}'.format(ret))
+
     except Exception as err:
         Err('start_osc_info osc path exception {}'.format(str(err)))
         ret = cmd_exception(error_dic('start_osc_info', str(err)))
     return ret
 
 
+#
+# 获取 osc state 
+#
 @app.route('/osc/state', methods=['GET', 'POST'])
 def start_osc_state():
     try:
-        Info('start_osc_state2 request.headers {}'.format(request.headers))
-        ret = start_get_osc_st()
-        Info('start_osc_state3 ret {}'.format(ret))
+        Info('[----- osc request: /osc/state ---------]')
+        ret = gConnectObj.getCamOscState()
     except Exception as err:
         Err('start_osc_state osc path exception {}'.format(str(err)))
         ret = cmd_exception(error_dic('start_osc_state', str(err)))
     return ret
 
+
+#
+# 检查是否有更新 osc checkForUpdates
+# 
 @app.route('/osc/checkForUpdates', methods=['GET', 'POST'])
-# @add_header
 def start_osc_checkForUpdates():
     try:
-        # fp = None
         h = request.headers
         Info('osc start_osc_checkForUpdates h {}'.format(h))
-        ret = osc_check_update.check_update()
+        ret = gConnectObj.osc_check_update.check_update()
     except Exception as err:
         Err('start_osc_checkForUpdates osc path exception {}'.format(str(err)))
         ret = cmd_exception(error_dic('start_osc_checkForUpdates', str(err)))
@@ -97,20 +166,28 @@ def start_osc_checkForUpdates():
 def start_osc_cmd_execute():
     try:
         h = request.headers
-        # Print('start_osc_cmd_execute h is {}'.format(h))
         content_type = h.get('Content-Type')
         if 'application/json' in content_type:
+
+            gConnectObj.setIsCmdProcess(True)    
+            gConnectObj.clearLocalTick()
+
+            if gConnectObj.isWebServerConnected() == False:
+                gConnectObj.connect()
+
             data = request.get_json()
             Info('start_osc_cmd_execute data {} type {}'.format(data,type(data)))
-            ret = osc_func(data)
+            ret = gConnectObj.osc_func(data)
             if data['name'] != 'camera.listFiles':
                 Info('start_osc_cmd_execute ret {} type {}'.format(ret, type(ret)))
         else:
             data = bytes_to_dic(request.data)
-            ret = osc_func(data)
+            ret = gConnectObj.osc_func(data)
     except Exception as err:
         ret = cmd_exception(error_dic('start_osc_cmd_execute',str(err)))
         Err('start_osc_cmd_execute exception {} ret {}'.format(str(err),ret))
+
+    gConnectObj.setIsCmdProcess(False)
     return ret
 
 
@@ -118,25 +195,30 @@ def start_osc_cmd_execute():
 def start_osc_cmd_status():
     try:
         h = request.headers
-        Print('start_osc_cmd_execute h is {}'.format(h))
         content_type = h.get('Content-Type')
         if 'application/json' in content_type:
+
+            gConnectObj.setIsCmdProcess(True)    
+            gConnectObj.clearLocalTick()
+
+            if gConnectObj.isWebServerConnected() == False:
+                gConnectObj.connect()
+
             data = request.get_json()
             Info('start_osc_cmd_status data {} type {}'.format(data,type(data)))
         else:
             data = bytes_to_dic(request.data)
             Info('2start_osc_cmd_execute data {} type {}'.format(data, type(data),type(request.data)))
-        ret = start_get_cmd_status(data)
+        ret = gConnectObj.start_get_cmd_status(data)
     except Exception as err:
         ret = cmd_exception(error_dic('start_osc_cmd_execute',str(err)))
         Err('start_osc_cmd_status exception {} ret {}'.format(str(err),ret))
-    Info('start_osc_cmd_status ret {} type {}'.format(ret,type(ret)))
+
+    gConnectObj.setIsCmdProcess(False)
     return ret
 
 def main():
     Info('start osc app')
     app.run(host='0.0.0.0', port=80, debug=True, use_reloader=config.USER_RELOAD, threaded=config.HTTP_ASYNC)
 
-
-osc_start_time = time.time()
 main()

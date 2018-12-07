@@ -3655,17 +3655,9 @@ void MenuUI::volumeItemInit(MENU_INFO* pParentMenu, vector<Volume*>& mVolumeList
 
         int pos = i % pParentMenu->mSelectInfo.page_max;		// 3
         switch (pos) {
-            case 0:
-                tmPos.yPos 		= 16;
-                break;
-
-            case 1:
-                tmPos.yPos 		= 32;
-                break;
-            
-            case 2:
-                tmPos.yPos 		= 48;
-                break;
+            case 0: tmPos.yPos = 16; break;
+            case 1: tmPos.yPos = 32; break;
+            case 2: tmPos.yPos = 48; break;
         }
         #ifdef ENABLE_SHOW_SPACE_NV
         tmPos.xPos 		= 27;   
@@ -4299,148 +4291,6 @@ void MenuUI::startFormatDevice()
     mFormartState = true;       /* 格式化完成 */
 
 }
-
-
-#if 0
-int MenuUI::formatDev(const char* pDevNode, const char* pMountPath)
-{
-    char buf[1024] = {0};
-    int err_trim = 0;
-    int iErrNo = FORMAT_ERR_SUC;
-    int i, iRetry = 3;
-
-    /*
-     * 1.卸载本地设备（卸载成功从mLocalStorageList中移除该设备）
-     */
-    #ifdef ENABLE_FORMAT_DEV_USE_SYSTEM_CMD
-    snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
-    if (exec_sh_new((const char *)buf) != 0) {
-        LOGDBG(TAG, "umount path[%s] failed", pMountPath);
-        iErrNo = FORMAT_ERR_UMOUNT;
-        goto ERROR;
-    }
-    LOGDBG(TAG, "Umount dev [%s] Success !!", pDevNode);
-
-    #else   /* 使用API卸载 */
-
-    for (i = 0; i < iRetry; i++) {
-        LOGDBG(TAG, "umount2 dev[%s], mount pointer[%s]", pDevNode, pMountPath);
-        if (umount2(pMountPath, MNT_FORCE)) {
-            LOGERR(TAG, "umount dev[%s] failed, times[%d]", pDevNode, i);
-            msg_util::sleep_ms(100);
-            continue;
-        } else {
-            break;
-        }
-    }
-
-    if (i >= iRetry) {
-        LOGERR(TAG, "umount dev[%s] failed", pDevNode);
-        iErrNo = FORMAT_ERR_UMOUNT_EXFAT;
-        goto ERROR;
-    } else {    /* 卸载成功(可以考虑直接操作mLocalStorageList,将Volume的状态设置为已卸载状态) */
-        LOGERR(TAG, "umount dev[%s] Suc", pDevNode);
-    }
-
-    #endif
-
-    msg_util::sleep_ms(100);
-
-    memset(buf, 0, sizeof(buf));
-    snprintf(buf, sizeof(buf), "mke2fs -F -t ext4 %s", pDevNode);   
-
-    LOGDBG(TAG, "Format dev[%s] to Ext4", pDevNode); 
-
-    if (exec_sh_new((const char *)buf) != 0) {
-        LOGDBG(TAG, "Format dev[%s] Failed", pDevNode);
-        iErrNo = FORMAT_ERR_FORMAT_EXT4;
-        goto ERROR;
-    }  else {
-        
-        LOGDBG(TAG, "Format dev[%s] to Ext4 Success!!!", pDevNode);
-
-        memset(buf, 0, sizeof(buf));
-        snprintf(buf, sizeof(buf), "mount -t ext4 -o discard %s %s", pDevNode, pMountPath);
-        if (exec_sh_new((const char *)buf) != 0) {
-            LOGDBG(TAG, "Mount dev[%s] -> path[%s] Failed", pDevNode, pMountPath);
-            iErrNo = FORMAT_ERR_MOUNT_EXT4;
-            goto ERROR;
-        } else {    /* 挂载正常 */
-
-            LOGDBG(TAG, "ReMount dev[%s] to [%s] Success!!!", pDevNode, pMountPath);
-
-        #ifdef ENABLE_FS_TRIM            
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "fstrim %s", pMountPath);
-            if (exec_sh_new((const char *)buf) != 0) {
-                iErrNo = FORMAT_ERR_FSTRIM;
-                goto ERROR;
-            }
-            LOGDBG(TAG, "Fstrim Dev[%s] Success!", pMountPath);
-        #else
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "e4defrag %s", pMountPath);
-            exec_sh_new((const char *)buf);
-            LOGDBG(TAG, "e4defrag Dev[%s] Success!", pMountPath);
-
-        #endif
-            msg_util::sleep_ms(200);
-
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
-            if (exec_sh_new((const char *)buf) != 0) {
-                iErrNo = FORMAT_ERR_UMOUNT_EXT4;
-                goto ERROR;
-            }
-            
-            LOGDBG(TAG, "umount Dev[%s] Success!", pMountPath);
-
-            msg_util::sleep_ms(500);
-
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "mkfs.exfat %s", pDevNode);
-            if (exec_sh_new((const char *)buf) != 0) {
-                iErrNo = FORMAT_ERR_FORMAT_EXFAT;
-                goto ERROR;
-            }
-            LOGDBG(TAG, "Format Dev[%s] to Exfat Success!", pDevNode);
-
-            system("killall vold_test");    /* 重启挂载服务 */
-        }
-    }
-
-ERROR:
-    switch (iErrNo) {
-        case FORMAT_ERR_UMOUNT_EXFAT:
-        case FORMAT_ERR_FORMAT_EXT4:
-        case FORMAT_ERR_MOUNT_EXT4:
-        case FORMAT_ERR_UMOUNT_EXT4:
-        case FORMAT_ERR_FORMAT_EXFAT:
-        case FORMAT_ERR_E4DEFRAG:
-            LOGDBG(TAG, "Action[%d] dev[%s], path[%s]", iErrNo, pDevNode, pMountPath);
-            break;
-        
-        case FORMAT_ERR_FSTRIM: {     /* fstrim失败,应该将其重启格式化成exfat格式 */
-
-            LOGDBG(TAG, "Fstrim Failed Now, umount, and format it to exfat");
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "umount -f %s", pMountPath);
-            exec_sh_new((const char *)buf);
-
-            memset(buf, 0, sizeof(buf));
-            snprintf(buf, sizeof(buf), "mkexfat %s", pDevNode);
-            exec_sh_new((const char *)buf);
-            system("killall vold_test");    /* 重启挂载服务 */            
-            break;  
-        }
-    }
-
-    return iErrNo;
-}
-#endif
-
-
-
 
 /*
  *  103, 16 - 
@@ -6635,50 +6485,6 @@ void MenuUI::disp_tl_count(int count)
     }
 }
 
-#if 0
-void MenuUI::minus_cam_state(u64 state)
-{
-    rm_state(state);
-
-    if (check_state_equal(STATE_IDLE)) {
-        reset_last_info();
-        switch (state) {
-            case STATE_CALIBRATING:
-            case STATE_START_GYRO:
-            case STATE_START_QR:
-            case STATE_NOISE_SAMPLE:
-                set_cur_menu_from_exit();
-                break;
-
-            default:
-                setCurMenu(MENU_TOP);
-                break;
-        }
-    } else if (check_state_preview()) {
-        switch (cur_menu) {
-            case MENU_PIC_INFO:
-            case MENU_VIDEO_INFO:
-                dispReady();
-                break;
-
-            case MENU_LIVE_INFO:
-                dispReady();
-                break;
-
-            case MENU_QR_SCAN:
-                set_cur_menu_from_exit();
-                break;
-
-            default:
-                //force pic menu
-                setCurMenu(MENU_PIC_INFO);
-                break;
-        }
-    } else {
-        LOGWARN(TAG," minus error Server State 0x%x state 0x%x", getServerState(), state);
-    }
-}
-#endif
 
 
 void MenuUI::disp_err_code(int code, int back_menu)
@@ -6826,15 +6632,9 @@ void MenuUI::set_flick_light()
     
     if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
         switch ((front_light)) {
-            case FRONT_RED:
-                fli_light = BACK_RED;
-                break;
-            case FRONT_YELLOW:
-                fli_light = BACK_YELLOW;
-                break;
-            case FRONT_WHITE:
-                fli_light = BACK_WHITE;
-                break;
+            case FRONT_RED:     fli_light = BACK_RED; break;
+            case FRONT_YELLOW:  fli_light = BACK_YELLOW; break;
+            case FRONT_WHITE:   fli_light = BACK_WHITE; break;
             SWITCH_DEF_ERROR(front_light);
         }
     }
@@ -6972,54 +6772,18 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
         err_code = abs(err_code);
 
         switch (type) {
-            case START_PREVIEW_FAIL:
-                back_menu = get_error_back_menu();
-                break;
-			
-            // #BUG1402
-            case CAPTURE_FAIL:
-                back_menu = get_error_back_menu(MENU_PIC_INFO);     // MENU_PIC_INFO;
-                break;
-				
-            case START_REC_FAIL:
-                back_menu = get_error_back_menu(MENU_VIDEO_INFO);   //MENU_VIDEO_INFO;
-                break;
-				
-            case START_LIVE_FAIL:
-                back_menu = get_error_back_menu(MENU_LIVE_INFO);//MENU_LIVE_INFO;
-                break;
-				
-            case QR_FINISH_ERROR:
-                back_menu = get_back_menu(MENU_QR_SCAN);
-                break;
-				
-            case START_QR_FAIL:
-                back_menu = get_back_menu(MENU_QR_SCAN);
-                break;
-				
-            case STOP_QR_FAIL:
-                back_menu = get_back_menu(MENU_QR_SCAN);
-                break;
-				
-            case QR_FINISH_UNRECOGNIZE:
-                back_menu = get_back_menu(MENU_QR_SCAN);
-                break;
-				
-            case CALIBRATION_FAIL:
-                back_menu = get_back_menu(MENU_CALIBRATION);
-                break;
-				
-            case START_GYRO_FAIL:
-                back_menu = get_back_menu(MENU_GYRO_START);
-                break;
-				
-            case START_NOISE_FAIL:
-                back_menu = get_back_menu(MENU_NOSIE_SAMPLE);
-                break;
-				
-            case STOP_PREVIEW_FAIL:
-                back_menu = get_error_back_menu();                  // MENU_TOP;
-                break;
+            case START_PREVIEW_FAIL:    back_menu = get_error_back_menu(); break;
+            case CAPTURE_FAIL:          back_menu = get_error_back_menu(MENU_PIC_INFO); break;  // MENU_PIC_INFO;
+            case START_REC_FAIL:        back_menu = get_error_back_menu(MENU_VIDEO_INFO); break;  //MENU_VIDEO_INFO;
+            case START_LIVE_FAIL:       back_menu = get_error_back_menu(MENU_LIVE_INFO); break;  //MENU_LIVE_INFO;
+            case QR_FINISH_ERROR:       back_menu = get_back_menu(MENU_QR_SCAN); break;
+            case START_QR_FAIL:         back_menu = get_back_menu(MENU_QR_SCAN); break;
+            case STOP_QR_FAIL:          back_menu = get_back_menu(MENU_QR_SCAN); break;
+            case QR_FINISH_UNRECOGNIZE: back_menu = get_back_menu(MENU_QR_SCAN); break;
+            case CALIBRATION_FAIL:      back_menu = get_back_menu(MENU_CALIBRATION); break;
+            case START_GYRO_FAIL:       back_menu = get_back_menu(MENU_GYRO_START); break;
+            case START_NOISE_FAIL:      back_menu = get_back_menu(MENU_NOSIE_SAMPLE); break;
+            case STOP_PREVIEW_FAIL:     back_menu = get_error_back_menu(); break;  // MENU_TOP;
 				
             case STOP_REC_FAIL: {    /* 停止录像失败 */
                 oled_disp_type(type);
@@ -7047,10 +6811,11 @@ int MenuUI::oled_disp_err(sp<struct _err_type_info_> &mErr)
                 back_menu = MENU_LIVE_INFO;
                 break;
 			
-            default:
+            default: {
                 LOGDBG(TAG, "bad type %d code %d", type, err_code);
                 err_code = -1;
                 break;
+            }
         }
 		
         /*
@@ -7409,7 +7174,6 @@ int MenuUI::oled_disp_type(int type)
                 if (mClientTakePicUpdate == true) {
                     LOGDBG(TAG, "Client control Take picture suc");
                     mClientTakePicUpdate = false;
-                    // dispBottomInfo();   /* 重新显示之前的挡位信息 */
                     setCurMenu(MENU_PIC_INFO);
                 } else {
                     LOGDBG(TAG, ">>> CAPTURE_SUC remain pic %d", mCanTakePicNum);
@@ -8402,28 +8166,12 @@ void MenuUI::handleKeyMsg(int iAppKey)
 	if (check_cur_menu_support_key(iAppKey)) {	
 		
         switch (iAppKey) {
-        case APP_KEY_UP:		/* "UP"键的处理 */
-            procUpKeyEvent();
-            break;
-		
-        case APP_KEY_DOWN:		/* "DOWN"键的处理 */
-            procDownKeyEvent();
-            break;
-		
-        case APP_KEY_BACK:		/* "BACK"键的处理 */
-            procBackKeyEvent();
-            break;
-		
-        case APP_KEY_SETTING:	/* "Setting"键的处理 */
-            procSettingKeyEvent();
-            break;
-		
-        case APP_KEY_POWER:	/* "POWER"键的处理 */
-            procPowerKeyEvent();
-            break;
-
-        default:
-            break;
+            case APP_KEY_UP:        procUpKeyEvent(); break;    
+            case APP_KEY_DOWN:      procDownKeyEvent(); break;  
+            case APP_KEY_BACK:      procBackKeyEvent(); break;
+            case APP_KEY_SETTING:	procSettingKeyEvent(); break;
+            case APP_KEY_POWER:	    procPowerKeyEvent(); break;
+            default: break;
         }
     } else {
         LOGDBG(TAG, "cur menu[%s] not support cur key[%d]", getMenuName(cur_menu), iAppKey);
@@ -8854,26 +8602,13 @@ void MenuUI::handleSppedTest(std::vector<sp<Volume>>& mSpeedTestList)
         
     LOGDBG(TAG, "cMsg Content: %s", cMsg);
     switch (i) {
-        case 1:
-            xStarPos = 46;
-            break;
-        case 2:
-            xStarPos = 40;
-            break;
-        case 3:
-            xStarPos = 34;
-            break;
-        case 4:
-            xStarPos = 28;
-            break;
-        case 5:
-            xStarPos = 22;
-            break;
-        case 6:
-            xStarPos = 16;
-            break;
-        default:
-            break;
+        case 1: xStarPos = 46; break;
+        case 2: xStarPos = 40; break;
+        case 3: xStarPos = 34; break;
+        case 4: xStarPos = 28; break;
+        case 5: xStarPos = 22; break;
+        case 6: xStarPos = 16; break;
+        default: break;
     }
 
     if (iLocalTestFlag == 0) {  /* 大卡不通过 */
@@ -9691,40 +9426,15 @@ void MenuUI::dispLeftNum(const char* pBuf)
     int iStartPos = 78;         /* 默认的显示的横坐标为78 */
 
     switch (iLen) {
-        case 1:
-            iStartPos = 122;
-            break;
-
-        case 2:
-            iStartPos = 116;
-            break;
-
-        case 3:
-            iStartPos = 110;
-            break;
-
-        case 4:
-            iStartPos = 104;
-            break;
-        
-        case 5:
-            iStartPos = 98;
-            break;
-
-        case 6:
-            iStartPos = 92;
-            break;
-        
-        case 7:
-            iStartPos = 86;
-            break;
-
-        case 8:
-            iStartPos = 80;
-            break;
-        
-        default:
-            break;
+        case 1: iStartPos = 122; break;
+        case 2: iStartPos = 116; break;
+        case 3: iStartPos = 110; break;
+        case 4: iStartPos = 104; break;
+        case 5: iStartPos = 98; break;
+        case 6: iStartPos = 92; break;
+        case 7: iStartPos = 86; break;
+        case 8: iStartPos = 80; break;
+        default: break;
     }
 
     clearArea(78, 48);  /* 先清除一下该区域 */
