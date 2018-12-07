@@ -486,7 +486,6 @@ class control_center:
         self.state_notify_func = OrderedDict({
             config._STATE_NOTIFY:           self.state_notify,
 
-
             config._RECORD_FINISH:          self.rec_notify,
             
             config._PIC_NOTIFY:             self.pic_notify,
@@ -585,7 +584,8 @@ class control_center:
         Info('camera_old_factory_awb')
         Info('content is {}'.format(content))
         os.system("factory_test awb")
-        
+
+
     def camera_get_result(self, req, from_ui = False):
         try:
             req_ids = req[_param]['list_ids']
@@ -615,6 +615,7 @@ class control_center:
                 read_info[config.RESULTS] = OrderedDict()
                 read_info[config.RESULTS]['res_array'] = res_array
                 read_info = dict_to_jsonstr(read_info)
+
                 #remove _id_list item got
                 for res_item in res_array:
                     for id_dict in self.async_id_list:
@@ -627,8 +628,9 @@ class control_center:
             Err('camera_get_result e {}'.format(e))
             read_info = cmd_exception(str(e), config._GET_RESULTS)
         
-        Info('camera_get_result read_info {}'.format(read_info))
+        # Info('camera_get_result read_info {}'.format(read_info))
         return read_info
+
 
     def get_err_code(self, content):
         err_code = -1
@@ -642,7 +644,6 @@ class control_center:
     def send_reset_camerad(self):
         Info('send_reset_camerad')
         return self.camera_reset(self.get_req(config.CAMERA_RESET),True)
-
 
 
     def camera_start_stitch_fail(self,err = -1):
@@ -700,14 +701,11 @@ class control_center:
 
 
     def start_poll_timer(self):
-        # Print('start poll timer id poll_timer {}'.format(id(self.poll_timer)))
         self.poll_timer.start()
 
 
     def stop_poll_timer(self):
-        # Print('stop poll timer id poll_timer {}'.format(id(self.poll_timer)))
         self.poll_timer.stop()
-        # Print('stop poll timer over')
 
     # def restart_timer(self):
     #     self.poll_timer.restart()
@@ -720,18 +718,21 @@ class control_center:
 
     def init_all(self):
         self._stitchMode = False
-        #whether camera has connected from controller
+
         self.connected = False
         self._write_seq = 0
         self._write_seq_reset = 0
-        #as reset times for debug
-        #self._reset_seq = 0
+
         self.last_info = None
         # self._read_seq = 0
         self._id = 10000
+
+        # 异步命令列表(对于正在处理的异步命令会追加到该列表中)
         self.async_id_list = []
+        
         self._fifo_read = None
         self._fifo_write_handle  = None
+        
         self._monitor_cam_active_handle = None
         if platform.machine() == 'x86_64' or platform.machine() == 'aarch64' or file_exist('/sdcard/http_local'):
             self.init_fifo()
@@ -739,7 +740,6 @@ class control_center:
 
         self.poll_timer = RepeatedTimer(POLL_TO, self.poll_timeout, "poll_state")
 
-        # Print('self poll timer id {}'.format(id(self.poll_timer)))
         self.connect_sem = Semaphore()
         self.sem_camera = Semaphore()
         self.bSaveOrgEnable = True
@@ -796,11 +796,9 @@ class control_center:
     def set_snd_state(self,param):
         osc_state_handle.set_snd_state(param)
 
-
     #req is reserved
     def get_osc_info(self):
         return osc_info.get_osc_info()
-
 
     # 方法名称: get_osc_state
     # 功能: 查询心跳包信息(由http client发送)
@@ -966,27 +964,16 @@ class control_center:
 
         return st
 
+
     #"MMDDhhmm[[CC]YY][.ss]"
     #091713272014.30
     #usage: hwSetTime year month day hour minute second
     def set_hw_set_cmd(self, str):
         try:
             Info('get hw_time is {}'.format(str))
-            #if file_exist('/system/bin/hwSetTime'):
             Info('hw_time is {}'.format(str))
-            #mon = str[0:2]
-            #day = str[2:4]
-            #hour = str[4:6]
-            #min = str[6:8]
-            #year = str[8:12]
-            #sec = str[-2:]
-            #cmd = join_str_list(('hwSetTime ',year,' ',mon,' ',day,' ',hour,' ',min,' ',sec))
-            #Info('hw set cmd {}'.format(cmd))
             cmd='date ' + str
             os.system(cmd)
-            #sys_cmd(cmd)
-            #cmd = 'hwclock -s'
-            #sys_cmd(cmd)
         except Exception as e:
             Err('set hw exception {}'.format(e))
 
@@ -1002,8 +989,6 @@ class control_center:
 
             # 如果需要设置的时区在系统的支持列表中
             if check_dic_key_exist(nv_timezones, tz):
-                # cmd = join_str_list(('setprop persist.sys.timezone ', 'GMT+00:00'))
-                # sys_cmd(cmd)
 
                 # 设置硬件时间
                 # self.set_hw_set_cmd(req['hw_time'])
@@ -1036,30 +1021,39 @@ class control_center:
             Err('not set sys_time')
 
 
+    #
+    # camera_connect - 连接web_server请求
+    # @param
+    #   req - 请求参数
+    #  
     def camera_connect(self, req):
         Info('[------- APP Req: camera_connect ------] req: {}'.format(req))
         self.aquire_connect_sem()
+
+        # 停止定时器(确保在连接过程中，定时器处于停止状态)
+        self.stop_poll_timer()
+
         try:
             Info('b camera_connect req {}'.format(req))
             self.generate_fp()
             
-            # st = self.get_cam_state()
             ret = OrderedDict({_name:req[_name], _state:config.DONE, config.RESULTS:{config.FINGERPRINT:self.finger_print}})
-            #if st != config.STATE_IDLE:
             url_list = OrderedDict()
+
             self.set_last_info(None)
+
             self.camera_get_last_info()
+
             if self.get_last_info() != None:
                 ret[config.RESULTS]['last_info'] = self.get_last_info()
 
-            # Info('a camera_connect ')
             st = StateMachine.getCamState()
             Info('>>>>>> b camera_connect st {}'.format(hex(st)))
+
             if st != config.STATE_IDLE:
                 if st & config.STATE_PREVIEW == config.STATE_PREVIEW:
                     url_list[config.PREVIEW_URL] = self.get_preview_url()
 
-                #move live before record to avoiding conflict while live rec
                 if ((st & config.STATE_LIVE == config.STATE_LIVE) or (st & config.STATE_LIVE_CONNECTING == config.STATE_LIVE_CONNECTING)):
                     url_list[config.LIVE_URL] = self.get_live_url()
                     ret[config.RESULTS]['last_info']['live']['timePast'] = osc_state_handle.get_live_rec_pass_time()
@@ -1073,12 +1067,11 @@ class control_center:
                 ret[config.RESULTS]['url_list'] = url_list
             else:
                 
-                Info('------------------------------> sync time now.')
-
                 # 参数字典中含有时间参数并且系统没有同步过时间
                 # 是否需要修改时区由time_tz服务来决定
                 # if check_dic_key_exist(req, _param):
                 if check_dic_key_exist(req, _param) and self.has_sync_time is False:
+                    Info('--> Inneed sync time here.')
                     self.set_sys_time(req[_param])
 
             ret[config.RESULTS]['_cam_state'] = st
@@ -1092,13 +1085,10 @@ class control_center:
                 ret[config.RESULTS]['sys_info']['h_v'] = ins_version.get_version()
                 ret[config.RESULTS]['sys_info']['s_v'] = get_s_v()
 
-            #confirm timer stopped 0621
-            self.stop_poll_timer()
-            Print('connect ret {}'.format(ret))
             self.release_connect_sem()
             self.set_connect(True)
             
-            Print('>>>>>>>>> connect ret {}'.format(ret))
+            Print('>>> connect ret {}'.format(ret))
             self.start_poll_timer()
             
             return dict_to_jsonstr(ret) # 返回链接参数string给客户端
@@ -1107,6 +1097,7 @@ class control_center:
             Err('connect exception {}'.format(e))
             self.release_connect_sem()
             return cmd_exception(error_dic('camera_connect', str(e)), req)
+
 
     def camera_disconnect(self, req, from_ui = False):
         Info('[------- APP Req: camera_disconnect ------] req: {}'.format(req))                
@@ -1134,11 +1125,8 @@ class control_center:
         id_dict[_name] = name
         id_dict[config._ID_GOT] = 0
 
-        # id_dict[config._STATE] = state_id
-        Info('add async name {} id_seq {}'.format(name,id_seq))
+        Info('add async name {} id_seq {}'.format(name, id_seq))
         self.async_id_list.append(id_dict)
-        # self._id += 1
-        # Info('append id {} len {} self._id_list {}'.format(id_dict, len(self._id_list),self._id_list))
 
 
     # add_async_finish
@@ -1146,7 +1134,7 @@ class control_center:
     # 对于新版的测速, camerad不再返回'results'相关信息，需要手动填写
     def add_async_finish(self, content):
         Info('add async content {}'.format(content))
-        if check_dic_key_exist(content,'sequence'):
+        if check_dic_key_exist(content, 'sequence'):
             id = content['sequence']
             for async_info in self.async_id_list:
                 if async_info[KEY_ID] == id:
@@ -1160,6 +1148,7 @@ class control_center:
                     async_info[config._ID_GOT] = 1
                     osc_state_handle.send_osc_req(osc_state_handle.make_req(osc_state_handle.ADD_RES_ID, id))
                     return
+
 
     def set_sn(self, req):
         Info('set_sn {}'.format(req))
@@ -3893,20 +3882,14 @@ class control_center:
 
     def get_connect(self):
         self.aquire_connect_sem()
-        try:
-            state = self.connected
-        except Exception as e:
-            Err('get connect e {}'.format(e))
+        state = self.connected
         self.release_connect_sem()
         return state
 
 
-    def set_connect(self,state):
+    def set_connect(self, state):
         self.aquire_connect_sem()
-        try:
-            self.connected = state
-        except Exception as e:
-            Err('set_connect e {}'.format(e))
+        self.connected = state
         self.release_connect_sem()
 
 
@@ -3927,6 +3910,7 @@ class control_center:
         except Exception as e:
             Err('set_stitch_mode e {}'.format(e))
         self.release_connect_sem()
+
 
     def write_req_reset(self, req, write_fd):
         Print('write_req_reset start req {}'.format(req))
@@ -4023,17 +4007,24 @@ class control_center:
             ret = cmd_exception(e,req)
         return ret
 
-
+    # 
+    # osc_cmd_execute - web_server命令执行入口
+    # @param
+    #   fp  - 指纹数据
+    #   req - 请求参数
+    # 
     def osc_cmd_execute(self, fp, req):
         try:
             name = req[_name]
-            Info('osc_cmd_execute req name {} self.get_connect() {}'.format(name, self.get_connect()))
+            Info('[---- Web_server Cmd execute entery: {} Server connect state: {} ----]'.format(name, self.get_connect()))
+            # 连接命令
             if name == config._CONNECT:
                 if self.get_connect():
                     ret = cmd_exception(error_dic('connect error', 'already connected by another'), name)
                 elif self.get_stitch_mode():
                     ret = cmd_exception(error_dic('connect error', 'camera is stitch mode'), name)
                 else:
+                    # 没有客户端建立连接
                     ret = self.camera_connect(req)
             else:
                 if self.get_connect():

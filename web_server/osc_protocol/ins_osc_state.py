@@ -389,7 +389,7 @@ class osc_state(threading.Thread):
         except Exception as e:
             Err('add_res_id exception {}'.format(e))
 
-    def rm_res_id(self,id):
+    def rm_res_id(self, id):
         try:
             Info('rm res is {}'.format(id))
             self.poll_info[ID_RES].remove(id)
