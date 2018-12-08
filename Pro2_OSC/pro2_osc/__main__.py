@@ -162,6 +162,7 @@ def compareFingerprint():
 @app.route('/osc/commands/<option>', methods=['POST'])
 def getResponse(option):
     errorValues = None
+    cmdName = None
     bodyJson = request.get_json()
 
     Info("------------- REQUEST: {}".format(bodyJson))
@@ -238,6 +239,7 @@ def getResponse(option):
     # 请求执行命令
     elif option == 'execute' and bodyJson is not None:
         name = bodyJson['name'].split('.')[1]
+        cmdName = name
         Info("Execute command: " + name)
         
         hasParams = "parameters" in bodyJson.keys()
@@ -268,10 +270,13 @@ def getResponse(option):
         abort(404)
 
 
-    Info("Command Response: {}".format(response))
+    # Info("Command Response: {}".format(response))
 
     finalResponse = make_response(response)
     finalResponse.headers['Content-Type'] = "application/json;charset=utf-8"
+    if cmdName == 'getLivePreview':
+            finalResponse.headers['Content-Type'] = "multipart/x-mixed-replace;boundary='---osclivepreview---'"
+
     finalResponse.headers['X-Content-Type-Options'] = "nosniff"
 
     # 对于Option类型的命令返回响应代表命令处理完成    

@@ -26,6 +26,8 @@ OSC_CAM_RESET       = 'camera.reset'
 CAMERA_RESET        = 'camera._reset'
 
 
+GET_LIVE_PREVIEW    = 'camera.getLivePreview'
+
 _TAKE_PICTURE       = 'camera._takePicture'
 #vendor define
 _START_RECORD           = 'camera._startRecording'
@@ -193,6 +195,8 @@ PATH_CMD_STITCH         = '/osc/commands/stitch'
 PATH_UI_CMD_EXECUTE     = '/ui/commands/execute'
 
 # PATH_PIC_NAME         = '/osc/pic/<media_name>'
+
+
 
 
 #配置文件的路径：

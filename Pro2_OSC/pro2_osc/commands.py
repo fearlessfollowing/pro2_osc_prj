@@ -22,7 +22,7 @@ with open(config.CURRENT_OPTIONS) as optionsFile:
 
 
 
-/system/python/usr/local/bin/python3.5 /system/python/prog/ws_src/pro_osc_main.py
+# /system/python/usr/local/bin/python3.5 /system/python/prog/ws_src/pro_osc_main.py
 
 
 # 
@@ -238,6 +238,9 @@ def getLivePreview(c):
     #
     # 暂时不支持该命令
     # 检查OSC-Server是否已经开启了预览，如果没有启动预览
+    # 打开/mnt/udisk1/preview/preview1.jpg
+
+
     errorValues = commandUtility.buildError('disabledCommand', 'preview disabled in this mode')
     responseValues = ("camera.getLivePreview", "error", errorValues)
     return commandUtility.buildResponse(responseValues)    
@@ -274,12 +277,12 @@ def listFiles(c, cParams):
 
     if fileType in ["all", "video", "image"]:
         if fileType == "all":
-            fileList = __urlListHelper(c, 'ALL')
+            dirList = __urlListHelper(c, 'ALL')
         elif fileType == "video":
-            fileList = __urlListHelper(c, 'VID')
+            dirList = __urlListHelper(c, 'VID')
         elif fileType == "image":
-            fileList = __urlListHelper(c, 'PIC')
-        if startPosition >= len(fileList):
+            dirList = __urlListHelper(c, 'PIC')
+        if startPosition >= len(dirList):
             responseValues = ("camera.listFiles", "done", [''])
             return commandUtility.buildResponse(responseValues)
     else:
@@ -287,49 +290,41 @@ def listFiles(c, cParams):
         responseValues = ("camera.listFiles", "error", errorValues)
         return commandUtility.buildResponse(responseValues)
 
-    totalEntries = len(fileList)
+
+
+    Print('------> print file list first: {}'.format(dirList))
+
     entries = __loadJsonFile(config.ENTRIES_TIMPLATE)
-    fileList = sorted(fileList, key=__getDate, reverse=True)[startPosition:]
-    if entryCount < len(fileList):
-        fileList = fileList[:entryCount]
+    dirList = sorted(dirList, key=__getDate, reverse=True)[startPosition:]
+    if entryCount < len(dirList):
+        dirList = dirList[:entryCount]
 
     entryList = []
-    # xmlDir = storagePath.split(':')[0] + ':' + "8000" + storagePath.split(':')[1][5:]
-    for f in fileList:
-        entries["name"] = f
-        serverIp = c.getServerIp()
-        fileUri = os.path.join(storagePath, f)
-        folderUri = fileUri + '/'
-        entries["size"] = sum(os.path.getsize(folderUri + a) for a in os.listdir(folderUri))
-        # xmlUrl = xmlDir + '/' + f + '/' + "pro.proj"
-        date = f.split('_')[1:]
-        entries["dateTimeZone"] = ':'.join(date[:3]) + ' ' + ':'.join(date[3:])
-        if "VID" in f:
-            fn = "pano.mp4"
-        elif "PIC" in f:
-            fn = "pano.jpg"
-        entries["fileUrl"] = serverIp + os.path.join(storagePath, f, fn)
-        if fn in os.listdir(fileUri):
-            entries["isProcessed"] = True
-            if fn == "pano.jpg":
-                # im = Image.open(folderPath + fn)
-                # (entries["width"], entries["height"]) = im.size
-                if maxThumbSize is not None:
-                    pass
-                    # entries["thumbnail"] = folderUri + "thumbnail.jpg" # how to encode int
-                    # with open(os.path.join(folderUri, "thumbnail.jpg"), "rb") as image_file:
-                    #     encoded_string = base64.b64encode(image_file.read())
-                    # entries["thumbnail"] = encoded_string
-            elif fn == "pano.mp4":
-                entries["previewUrl"] = os.path.join(serverIp, folderUri, "preview.mp4")
-        else:
-            entries["isProcessed"] = False
-        entryList.append(dict(entries))
 
-    results = {"entries": entryList, "totalEntries": totalEntries}
+
+    for fileDir in dirList:
+
+        serverIp = c.getServerIp()
+        fileUri = os.path.join(storagePath, fileDir)  # http:192.168.43.1:8000/mnt/udisk/PIC_201808
+        folderUri = fileUri + '/'                     # /mnt/udisk/PIC_201808/
+
+        for fn in os.listdir(folderUri):
+            entries["name"] = fn
+            entries["size"] = 5000
+            # date = f.split('_')[1:]
+            entries["dateTimeZone"] = "2018:11:15 18:35:42+08:00"
+            #':'.join(date[:3]) + ' ' + ':'.join(date[3:])
+            entries["previewUrl"] = ''
+            entries["fileUrl"] = serverIp + os.path.join(storagePath, folderUri, fn)
+            Print('-------------------------->>> fn: {}'.format(fn))
+            entries["isProcessed"] = True
+            entryList.append(dict(entries))
+
+    results = {"entries": entryList, "totalEntries": len(entryList)}
     responseValues = ("camera.listFiles", "done", results)
     Info(responseValues)
     return commandUtility.buildResponse(responseValues)
+
 
 
 def delete(c, cParams):

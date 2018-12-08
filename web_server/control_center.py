@@ -112,7 +112,6 @@ class control_center:
         self._client_take_live = False
         self._client_stitch_calc = False
 
-        # self.delete_lists
 
         # 
         # 来自客户端的命令
@@ -673,25 +672,6 @@ class control_center:
             ret = cmd_exception(e,req)
         return ret
 
-    def osc_cmd_stitch(self,req):
-        try:
-            name = req[_name]
-            Info('osc_cmd_stitch req name {} '
-                 'self.get_stitch_mode() {}'.format(name,self.get_stitch_mode()))
-            if self.get_stitch_mode() is False:
-                ret = cmd_exception(error_dic('stich error', 'stitch mode not enable'), name)
-            else:
-                if name in self.non_camera_stitch_func:
-                    ret = self.start_non_stich_camera_func(name,req)
-                else:
-                    self.acquire_sem_camera()
-                    ret = self.start_stitch_req(req)
-                    self.release_sem_camera()
-        except Exception as e:
-            Err('osc_cmd_stitch exception e {} req {}'.format(e,req))
-            ret = cmd_exception(str(e),name)
-        return ret
-
 
     def poll_timeout(self):
         Warn('poll_timeout')
@@ -703,12 +683,9 @@ class control_center:
     def start_poll_timer(self):
         self.poll_timer.start()
 
-
     def stop_poll_timer(self):
         self.poll_timer.stop()
 
-    # def restart_timer(self):
-    #     self.poll_timer.restart()
 
     def aquire_connect_sem(self):
         self.connect_sem.acquire()
@@ -717,14 +694,17 @@ class control_center:
         self.connect_sem.release()
 
     def init_all(self):
-        self._stitchMode = False
 
         self.connected = False
+
+        # 连接状态锁,用于保护self.connected的互斥访问
+        self.connectStateLock = Semaphore()
+
         self._write_seq = 0
         self._write_seq_reset = 0
 
         self.last_info = None
-        # self._read_seq = 0
+
         self._id = 10000
 
         # 异步命令列表(对于正在处理的异步命令会追加到该列表中)
@@ -734,14 +714,17 @@ class control_center:
         self._fifo_write_handle  = None
         
         self._monitor_cam_active_handle = None
+
         if platform.machine() == 'x86_64' or platform.machine() == 'aarch64' or file_exist('/sdcard/http_local'):
             self.init_fifo()
+
         self.init_thread()
 
         self.poll_timer = RepeatedTimer(POLL_TO, self.poll_timeout, "poll_state")
 
         self.connect_sem = Semaphore()
         self.sem_camera = Semaphore()
+
         self.bSaveOrgEnable = True
         self.sync_param = None
         self.test_path = None
@@ -752,9 +735,11 @@ class control_center:
         self.url_list = {config.PREVIEW_URL: None, config.RECORD_URL: None, config.LIVE_URL: None}
 
         osc_state_handle.start()
+
         #keep in the end of init 0616 for recing msg from pro_service after fifo create
         self.init_fifo_read_write()
         self.init_fifo_monitor_camera_active()
+
 
     def send_sync_init(self,req):
         Info('send sync init req {}'.format(req))
@@ -3867,7 +3852,6 @@ class control_center:
         osc_state_handle.send_osc_req(
             osc_state_handle.make_req(osc_state_handle.CLEAR_TL_COUNT))
 
-
     def fp_decode(self,data):
         return base64.urlsafe_b64decode(data)
 
@@ -3881,35 +3865,15 @@ class control_center:
 
 
     def get_connect(self):
-        self.aquire_connect_sem()
+        self.connectStateLock.acquire()
         state = self.connected
-        self.release_connect_sem()
+        self.connectStateLock.release()
         return state
-
 
     def set_connect(self, state):
-        self.aquire_connect_sem()
+        self.connectStateLock.acquire()
         self.connected = state
-        self.release_connect_sem()
-
-
-    def get_stitch_mode(self):
-        self.aquire_connect_sem()
-        try:
-            state = self._stitchMode
-        except Exception as e:
-            Err('get_stitch_mode e {}'.format(e))
-        self.release_connect_sem()
-        return state
-
-
-    def set_stitch_mode(self, state):
-        self.aquire_connect_sem()
-        try:
-            self._stitchMode = state
-        except Exception as e:
-            Err('set_stitch_mode e {}'.format(e))
-        self.release_connect_sem()
+        self.connectStateLock.release()
 
 
     def write_req_reset(self, req, write_fd):
@@ -3917,7 +3881,7 @@ class control_center:
         content = json.dumps(req)
         content_len = len(content)
         content = int_to_bytes(self._write_seq_reset) + int_to_bytes(content_len) + str_to_bytes(content)
-        # content_len = len(content)
+
         Print('write_req_reset seq: {}'.format(self._write_seq_reset))
         write_len = fifo_wrapper.write_fifo(write_fd, content)
         read_seq = self._write_seq_reset
@@ -3943,9 +3907,6 @@ class control_center:
         self.close_write()
         Info('reset_fifo c')
         self._write_seq = 0
-        # self.set_stitch_mode(False)
-        #self.clear_url_list()
-        self._stitchMode = False
 
     def check_state_power_offing(self):
         if self.get_cam_state() & config.STATE_POWER_OFF == config.STATE_POWER_OFF:
@@ -3955,24 +3916,23 @@ class control_center:
 
     def osc_path_execute(self, path, fp):
         try:
-            # if self.get_connect():
-            #     if self.check_fp(fp):
-            #         ret = self.osc_path_func[path]()
-            #     else:
-            #         Err('error fingerprint fp {} path {}'.format(fp, path))
-            #         ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
-            # elif self.get_stitch_mode():
-            #     Info('stich get osc path {}'.format(path))
-            #     ret = self.osc_stitch_path_func[path]()
-            # else:
-            #     Err('camera not connected path {}'.format(path))
-            #     ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
+            if self.get_connect():
+                if self.check_fp(fp):
+                    ret = self.osc_path_func[path]()
+                else:
+                    Err('error fingerprint fp {} path {}'.format(fp, path))
+                    ret = cmd_exception(error_dic('invalidParameterValue', join_str_list(['error fingerprint ', fp])), path)
+            else:
+                Err('camera not connected path {}'.format(path))
+                ret = cmd_exception(error_dic('disabledCommand', 'camera not connected'), path)
+            
             # 去掉指纹检查，直接执行命令 - 2018年11月30日
-            ret = self.osc_path_func[path]()
+            # ret = self.osc_path_func[path]()
         except Exception as e:
             Err('osc_path_execute Exception is {} path {}'.format(e, path))
             ret = cmd_exception(error_dic('osc_path_execute', str(e)), path)
         return ret
+
 
     def start_camera_cmd_func(self, name, req, from_ui = False):
         self.acquire_sem_camera()
@@ -4021,8 +3981,6 @@ class control_center:
             if name == config._CONNECT:
                 if self.get_connect():
                     ret = cmd_exception(error_dic('connect error', 'already connected by another'), name)
-                elif self.get_stitch_mode():
-                    ret = cmd_exception(error_dic('connect error', 'camera is stitch mode'), name)
                 else:
                     # 没有客户端建立连接
                     ret = self.camera_connect(req)

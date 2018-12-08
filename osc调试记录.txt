@@ -1,0 +1,2629 @@
+/osc/info:
+{
+    "api": [
+        "/osc/info",
+        "/osc/state",
+        "/osc/checkForUpdates",
+        "/osc/commands/execute",
+        "/osc/commands/status"
+    ],
+    "apiLevel": [2],
+    "endpoints": {
+        "httpPort": 80,
+        "httpUpdatesPort": 80
+    },    
+    "firmwareVersion": "1.11.1",
+    "gps": false,
+    "gyro": true,
+    "manufacturer": "RICOH",
+    "model": "RICOH THETA V",
+    "serialNumber": "00100016",
+    "supportUrl": "https://theta360.com/en/support/",
+    "uptime": 261
+}
+
+/osc/state:
+{
+    "fingerprint": "FIG_0004",
+    "state": {
+        "_apiVersion": 2,
+        "batteryLevel": 0.89,
+        "_batteryState": "disconnect",
+        "_cameraError": [],
+        "_captureStatus": "idle",
+        "_capturedPictures": 0,
+        "_latestFileUrl": "",
+        "_recordableTime": 0,
+        "_recordedTime": 0,
+        "storageUri": "http://192.168.1.1/files/150100525831424d4207a52390afc300/"
+    }
+}
+
+无响应
+/osc/checkForUpdates:
+
+
+
+
+Options:
+captureModeSupport:
+-----------------------------------------------------------------------------
+Request:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureModeSupport"]
+    }
+}
+Response:
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureModeSupport": [
+                "image",
+                "interval",
+                "video"
+            ]
+        }
+    },
+    "state": "done"
+}
+
+captureMode:
+-----------------------------------------------------------------------------
+Request:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureMode"]
+    }
+}
+Response:
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureMode": "interval"
+        }
+    },
+    "state": "done"
+}
+
+
+captureStatusSupport/captureStatus: (Add OSC API2.1, not support)
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureStatusSupport"]
+    }
+}
+
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureStatus"]
+    }
+}
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+
+exposureProgram/exposureProgramSupport
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureProgramSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureProgramSupport": [
+                1,
+                2,
+                4,
+                9
+            ]
+        }
+    },
+    "state": "done"
+}
+
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureProgram"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureProgram": 2
+        }
+    },
+    "state": "done"
+}
+
+
+iso/isoSupport
+-----------------------------------------------------------------------------
+isoSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["isoSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "isoSupport": [
+                0
+            ]
+        }
+    },
+    "state": "done"
+}
+
+iso:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["iso"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "iso": 0
+        }
+    },
+    "state": "done"
+}
+
+
+shutterSpeed/shutterSpeedSupport
+-----------------------------------------------------------------------------
+shutterSpeedSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["shutterSpeedSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "shutterSpeedSupport": [
+                0
+            ]
+        }
+    },
+    "state": "done"
+}
+
+shutterSpeed:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["shutterSpeed"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "shutterSpeed": 0
+        }
+    },
+    "state": "done"
+}
+
+apertureSupport/aperture
+-----------------------------------------------------------------------------
+apertureSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["apertureSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "apertureSupport": [
+                2
+            ]
+        }
+    },
+    "state": "done"
+}
+
+aperture:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["aperture"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "aperture": 2
+        }
+    },
+    "state": "done"
+}
+
+
+whiteBalanceSupport/whiteBalance:
+-----------------------------------------------------------------------------
+whiteBalanceSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["whiteBalanceSupport"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "whiteBalanceSupport": [
+                "auto",
+                "daylight",
+                "shade",
+                "cloudy-daylight",
+                "incandescent",
+                "_warmWhiteFluorescent",
+                "_dayLightFluorescent",
+                "_dayWhiteFluorescent",
+                "fluorescent",
+                "_bulbFluorescent",
+                "_colorTemperature"
+            ]
+        }
+    },
+    "state": "done"
+}
+
+whiteBalance：
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["whiteBalance"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "whiteBalance": "auto"
+        }
+    },
+    "state": "done"
+}
+
+exposureCompensationSupport/exposureCompensation:
+-----------------------------------------------------------------------------
+exposureCompensationSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureCompensationSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureCompensationSupport": [
+                -2,
+                -1.7,
+                -1.3,
+                -1,
+                -0.7,
+                -0.3,
+                0,
+                0.3,
+                0.7,
+                1,
+                1.3,
+                1.7,
+                2
+            ]
+        }
+    },
+    "state": "done"
+}
+
+exposureCompensation:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureCompensation"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureCompensation": 0
+        }
+    },
+    "state": "done"
+}
+
+
+fileFormatSupport/fileFormat（与当前的captureMode相关）
+-----------------------------------------------------------------------------
+fileFormatSupport：
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["fileFormatSupport"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "fileFormatSupport": [
+                {
+                    "height": 2688,
+                    "type": "jpeg",
+                    "width": 5376
+                }
+            ]
+        }
+    },
+    "state": "done"
+}
+
+fileFormat:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["fileFormat"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "fileFormat": {
+                "height": 2688,
+                "type": "jpeg",
+                "width": 5376
+            }
+        }
+    },
+    "state": "done"
+}
+
+
+exposureDelaySupport/exposureDelay:
+-----------------------------------------------------------------------------
+exposureDelaySupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureDelaySupport"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureDelaySupport": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ]
+        }
+    },
+    "state": "done"
+}
+
+exposureDelay:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureDelay"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureDelay": 0
+        }
+    },
+    "state": "done"
+}
+
+
+sleepDelaySupport/sleepDelay:
+-----------------------------------------------------------------------------
+sleepDelaySupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["sleepDelaySupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "sleepDelaySupport": [
+                65535,
+                60,
+                180,
+                300,
+                600
+            ]
+        }
+    },
+    "state": "done"
+}
+
+sleepDelay:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["sleepDelay"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "sleepDelay": 65535
+        }
+    },
+    "state": "done"
+}
+
+
+offDelaySupport/offDelay
+-----------------------------------------------------------------------------
+offDelaySupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["offDelaySupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "offDelaySupport": [
+                0,
+                3600,
+                43200,
+                86400,
+                172800,
+                259200,
+                604800
+            ]
+        }
+    },
+    "state": "done"
+}
+
+offDelay:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["offDelay"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "offDelay": 172800
+        }
+    },
+    "state": "done"
+}
+
+
+totalSpace
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["totalSpace"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "totalSpace": 21088788480
+        }
+    },
+    "state": "done"
+}
+
+
+remainingSpace
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["remainingSpace"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "remainingSpace": 16810358348
+        }
+    },
+    "state": "done"
+}
+
+
+
+remainingPictures
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["remainingPictures"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "remainingPictures": 3992
+        }
+    },
+    "state": "done"
+}
+
+
+gpsInfo
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["gpsInfo"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "gpsInfo": {
+                "_altitude": 0,
+                "_dateTimeZone": "",
+                "_datum": "",
+                "lat": 65535,
+                "lng": 65535
+            }
+        }
+    },
+    "state": "done"
+}
+
+
+dateTimeZone
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["dateTimeZone"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "dateTimeZone": "2018:12:08 11:28:38+08:00"
+        }
+    },
+    "state": "done"
+}
+
+
+
+hdrSupport
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["hdrSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "hdrSupport": [
+                "off",
+                "hdr"
+            ]
+        }
+    },
+    "state": "done"
+}
+
+
+exposureBracketSupport/exposureBracket
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureBracketSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureBracketSupport": {
+                "autoMode": false
+            }
+        }
+    },
+    "state": "done"
+}
+
+exposureBracket:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["exposureBracket"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "exposureBracket": {
+                "autoMode": false
+            }
+        }
+    },
+    "state": "done"
+}
+
+
+gyroSupport/gyro
+-----------------------------------------------------------------------------
+gyroSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["gyroSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "gyroSupport": true
+        }
+    },
+    "state": "done"
+}
+
+gyro:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["gyro"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "gyro": true
+        }
+    },
+    "state": "done"
+}
+
+
+gpsSupport/gps
+-----------------------------------------------------------------------------
+gpsSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["gpsSupport"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "gpsSupport": false
+        }
+    },
+    "state": "done"
+}
+
+gps:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["gps"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "gps": false
+        }
+    },
+    "state": "done"
+}
+
+
+
+imageStabilizationSupport/imageStabilization
+-----------------------------------------------------------------------------
+imageStabilizationSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["imageStabilizationSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "imageStabilizationSupport": [
+                "off"
+            ]
+        }
+    },
+    "state": "done"
+}
+
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["imageStabilization"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "imageStabilization": "off"
+        }
+    },
+    "state": "done"
+}
+
+
+
+
+wifiPassword
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["wifiPassword"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "wifiPassword": "00100016"
+        }
+    },
+    "state": "done"
+}
+
+
+previewFormatSupport/previewFormat
+-----------------------------------------------------------------------------
+previewFormatSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["previewFormatSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "previewFormatSupport": [
+                {
+                    "framerate": 8,
+                    "height": 960,
+                    "width": 1920
+                },
+                {
+                    "framerate": 8,
+                    "height": 512,
+                    "width": 1024
+                },
+                {
+                    "framerate": 8,
+                    "height": 320,
+                    "width": 640
+                }
+            ]
+        }
+    },
+    "state": "done"
+}
+
+previewFormat:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["previewFormat"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "previewFormat": {
+                "framerate": 8,
+                "height": 512,
+                "width": 1024
+            }
+        }
+    },
+    "state": "done"
+}
+
+
+
+
+captureIntervalSupport/captureInterval
+-----------------------------------------------------------------------------
+captureIntervalSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureIntervalSupport"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureIntervalSupport": {
+                "maxInterval": 3600,
+                "minInterval": 4
+            }
+        }
+    },
+    "state": "done"
+}
+
+captureInterval:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureInterval"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureInterval": 4
+        }
+    },
+    "state": "done"
+}
+
+
+
+
+captureNumberSupport/captureNumber
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureNumberSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureNumberSupport": {
+                "_limitless": 0,
+                "maxNumber": 9999,
+                "minNumber": 2
+            }
+        }
+    },
+    "state": "done"
+}
+
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureNumber"]
+    }
+}
+
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureNumber": 0
+        }
+    },
+    "state": "done"
+}
+
+
+remainingVideoSeconds
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["remainingVideoSeconds"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "remainingVideoSeconds": 2279
+        }
+    },
+    "state": "done"
+}
+
+
+
+
+pollingDelay
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["pollingDelay"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "pollingDelay": 1
+        }
+    },
+    "state": "done"
+}
+
+
+
+
+delayProcessingSupport/delayProcessing:
+-----------------------------------------------------------------------------
+delayProcessingSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["delayProcessingSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "delayProcessingSupport": [
+                false
+            ]
+        }
+    },
+    "state": "done"
+}
+
+delayProcessing:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["delayProcessing"]
+    }
+}
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "delayProcessing": false
+        }
+    },
+    "state": "done"
+}
+
+
+
+clientVersion:
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["clientVersion"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "clientVersion": 2
+        }
+    },
+    "state": "done"
+}
+
+
+
+photoStitchingSupport/photoStitching:
+-----------------------------------------------------------------------------
+photoStitchingSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["photoStitchingSupport"]
+    }
+}
+
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+
+photoStitching:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["photoStitching"]
+    }
+}
+
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+
+
+videoStitchingSupport/videoStitching:
+-----------------------------------------------------------------------------
+videoStitchingSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["videoStitchingSupport"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "videoStitchingSupport": [
+                "none",
+                "ondevice"
+            ]
+        }
+    },
+    "state": "done"
+}
+
+videoStitching:
+
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["videoStitching"]
+    }
+}
+
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "videoStitching": "ondevice"
+        }
+    },
+    "state": "done"
+}
+
+
+
+videoGPS/videoGPSSupport:
+-----------------------------------------------------------------------------
+videoGPS:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["videoGPS"]
+    }
+}
+
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+videoGPSSupport:
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["videoGPSSupport"]
+    }
+}
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+
+
+_vendorSpecific:
+-----------------------------------------------------------------------------
+{
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["_vendorSpecific"]
+    }
+}
+{
+    "error": {
+        "code": "missingParameter",
+        "message": "Any required parameter is not specified."
+    },
+    "name": "camera.getOptions",
+    "state": "error"
+}
+
+
+
+camera.listFiles
+
+{
+    "name": "camera.listFiles",
+    "parameters": {
+		"fileType": "image",
+		"startPosition":0,
+        "entryCount":100
+    }
+}
+
+{
+    "name": "camera.listFiles",
+    "results": {
+        "entries": [
+            {
+                "dateTimeZone": "2018:11:15 18:35:42+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012534.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012534.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2851213,
+                "_thumbSize": 10109,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:15 18:35:39+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012533.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012533.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2676612,
+                "_thumbSize": 9906,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:15 18:35:36+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012532.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012532.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2601583,
+                "_thumbSize": 8876,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:15 18:35:32+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012531.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012531.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2498980,
+                "_thumbSize": 8586,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:15 18:35:12+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012530.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012530.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2940769,
+                "_thumbSize": 9588,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:12 18:02:51+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012524.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012524.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2734606,
+                "_thumbSize": 8889,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:12 18:02:42+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012523.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012523.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2142471,
+                "_thumbSize": 7243,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 14:53:10+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012522.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012522.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2650757,
+                "_thumbSize": 9259,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 14:53:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012521.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012521.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2657222,
+                "_thumbSize": 9290,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 14:52:54+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012520.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012520.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2601926,
+                "_thumbSize": 9100,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 14:52:49+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012519.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012519.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2552484,
+                "_thumbSize": 8998,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 10:46:56+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012516.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012516.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1942163,
+                "_thumbSize": 7866,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 10:44:34+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012515.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012515.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1758917,
+                "_thumbSize": 7211,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:10 10:42:52+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012514.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012514.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2222784,
+                "_thumbSize": 7798,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 15:05:10+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012513.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012513.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2719348,
+                "_thumbSize": 8753,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 15:02:15+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012512.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012512.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1839221,
+                "_thumbSize": 7298,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 15:02:05+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012511.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012511.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2043978,
+                "_thumbSize": 8934,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 15:01:57+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012510.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012510.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2043210,
+                "_thumbSize": 8935,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 15:01:48+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012509.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012509.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1826940,
+                "_thumbSize": 7372,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 12:58:27+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012499.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012499.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1683028,
+                "_thumbSize": 6492,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 12:55:28+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012498.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012498.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1318159,
+                "_thumbSize": 6078,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:09 12:54:38+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012497.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012497.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1515358,
+                "_thumbSize": 6745,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:11:07 17:12:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012493.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012493.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2258587,
+                "_thumbSize": 7657,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:26 10:52:03+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012472.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "lat": 22.5526,
+                "lng": 113.8812,
+                "name": "R0012472.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2810109,
+                "_thumbSize": 8201,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:26 10:48:09+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012471.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "lat": 22.5523,
+                "lng": 113.8809,
+                "name": "R0012471.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2639590,
+                "_thumbSize": 8894,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:26 10:46:13+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012470.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "lat": 22.5526,
+                "lng": 113.882,
+                "name": "R0012470.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4262143,
+                "_thumbSize": 14174,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:26 10:43:51+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012469.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "lat": 22.5523,
+                "lng": 113.882,
+                "name": "R0012469.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3145498,
+                "_thumbSize": 12048,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:26 10:34:36+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012468.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "lat": 22.5517,
+                "lng": 113.882,
+                "name": "R0012468.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2591130,
+                "_thumbSize": 9961,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:25 15:56:05+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012467.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012467.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2872975,
+                "_thumbSize": 10366,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:25 15:55:54+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012466.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012466.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2780880,
+                "_thumbSize": 10590,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:25 15:55:50+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012465.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012465.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2898377,
+                "_thumbSize": 10783,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:25 14:50:39+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012464.JPG",
+                "height": 2688,
+                "isProcessed": "true",
+                "name": "R0012464.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2277116,
+                "_thumbSize": 7649,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:29+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012333.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012333.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1383456,
+                "_thumbSize": 5381,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:25+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012332.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012332.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1394839,
+                "_thumbSize": 5504,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:21+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012331.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012331.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1761841,
+                "_thumbSize": 6429,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:16+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012330.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012330.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1631327,
+                "_thumbSize": 5779,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:12+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012329.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012329.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1705174,
+                "_thumbSize": 5991,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:08+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012328.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012328.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1647353,
+                "_thumbSize": 6175,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:26:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012327.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012327.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1220979,
+                "_thumbSize": 4064,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:59+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012326.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012326.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1352836,
+                "_thumbSize": 4717,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:55+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012325.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012325.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1321754,
+                "_thumbSize": 5115,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:51+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012324.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012324.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1250970,
+                "_thumbSize": 4899,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:47+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012323.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012323.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 753538,
+                "_thumbSize": 4041,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:42+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012322.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012322.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1144303,
+                "_thumbSize": 4665,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:38+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012321.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012321.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1261220,
+                "_thumbSize": 5789,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:34+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012320.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012320.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2071787,
+                "_thumbSize": 7591,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:29+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012319.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012319.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1670253,
+                "_thumbSize": 6720,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:25+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012318.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012318.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2334300,
+                "_thumbSize": 7366,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:21+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012317.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012317.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2128874,
+                "_thumbSize": 8604,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:17+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012316.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012316.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1875927,
+                "_thumbSize": 7223,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:12+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012315.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012315.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2534120,
+                "_thumbSize": 8659,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:08+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012314.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012314.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2345961,
+                "_thumbSize": 8059,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012313.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012313.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3163326,
+                "_thumbSize": 10165,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:25:00+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012312.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012312.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2943410,
+                "_thumbSize": 9704,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:55+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012311.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012311.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2904196,
+                "_thumbSize": 9967,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:51+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012310.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012310.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3201139,
+                "_thumbSize": 11024,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:47+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012309.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012309.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3635971,
+                "_thumbSize": 11989,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:42+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012308.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012308.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3712773,
+                "_thumbSize": 11433,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:38+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012307.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012307.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2843670,
+                "_thumbSize": 9636,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:34+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012306.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012306.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2862437,
+                "_thumbSize": 9452,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:30+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012305.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012305.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4354447,
+                "_thumbSize": 11842,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:25+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012304.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012304.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3158487,
+                "_thumbSize": 10956,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:21+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012303.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012303.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3026417,
+                "_thumbSize": 10388,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:17+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012302.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012302.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3598732,
+                "_thumbSize": 12139,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:13+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012301.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012301.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3771769,
+                "_thumbSize": 11526,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:08+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012300.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012300.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3940908,
+                "_thumbSize": 11945,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012299.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012299.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 3558308,
+                "_thumbSize": 10248,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:24:00+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012298.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012298.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2378847,
+                "_thumbSize": 7956,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:55+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012297.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012297.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 1862171,
+                "_thumbSize": 6634,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:51+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012296.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012296.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2456350,
+                "_thumbSize": 7298,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:47+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012295.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012295.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2332988,
+                "_thumbSize": 7940,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:43+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012294.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012294.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 2492560,
+                "_thumbSize": 7719,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:38+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012293.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012293.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4418468,
+                "_thumbSize": 11765,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:34+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012292.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012292.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4548106,
+                "_thumbSize": 11932,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:30+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012291.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012291.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4344152,
+                "_thumbSize": 12220,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:25+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012290.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012290.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4778455,
+                "_thumbSize": 12716,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:21+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012289.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012289.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4908537,
+                "_thumbSize": 12384,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:17+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012288.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012288.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 5208455,
+                "_thumbSize": 13486,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:13+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012287.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012287.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 5275555,
+                "_thumbSize": 13993,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:08+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012286.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012286.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4966593,
+                "_thumbSize": 13137,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:04+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012285.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012285.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4363057,
+                "_thumbSize": 11736,
+                "width": 5376
+            },
+            {
+                "dateTimeZone": "2018:10:23 12:23:00+08:00",
+                "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG",
+                "height": 2688,
+                "_intervalCaptureGroupId": "FB0175A16AEC526",
+                "isProcessed": "true",
+                "lat": 22.5514,
+                "lng": 113.8831,
+                "name": "R0012284.JPG",
+                "previewUrl": "",
+                "_projectionType": "Equirectangular",
+                "size": 4059238,
+                "_thumbSize": 11945,
+                "width": 5376
+            }
+        ],
+        "totalEntries": 82
+    },
+    "state": "done"
+}
+
+
+删除文件：
+camera.delete
+
+{
+    "name": "camera.delete",
+    "parameters": {
+		"fileUrls": ["http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG"]
+    }
+}
+
+{
+    "name": "camera.delete",
+    "state": "done"
+}
+
+
+拍照：camera.takePicture
+{
+    "name": "camera.takePicture"
+}
+{
+    "id": "134",
+    "name": "camera.takePicture",
+    "progress": {
+        "completion": 0
+    },
+    "state": "inProgress"
+}
+
+获取状态：/osc/commands/status
+{
+    "id": "134"
+}
+
+{
+    "name": "camera.takePicture",
+    "results": {
+        "fileUrl": "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012557.JPG"
+    },
+    "state": "done"
+}
+
+
+间隔拍照：
+1.设置采集模式为interval: "captureMode":"interval"
+{
+    "name": "camera.startCapture"
+}
+
+{
+    "name": "camera.startCapture",
+    "state": "done"
+}
+
+{
+    "name": "camera.stopCapture"
+}
+{
+    "name": "camera.stopCapture",
+    "results": {
+        "fileUrls": [
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012558.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012559.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012560.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012561.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012562.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012563.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012564.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012565.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012566.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012567.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012568.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012569.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012570.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012571.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012572.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012573.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012574.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012575.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012576.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012577.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012578.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012579.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012580.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012581.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012582.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012583.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012584.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012585.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012586.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012587.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012588.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012589.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012590.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012591.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012592.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012593.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012594.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012595.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012596.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012597.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012598.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012599.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012600.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012601.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012602.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012603.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012604.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012605.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012606.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012607.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012608.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012609.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012610.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012611.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012612.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012613.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012614.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012615.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012616.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012617.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012618.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012619.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012620.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012621.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012622.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012623.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012624.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012625.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012626.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012627.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012628.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012629.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012630.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012631.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012632.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012633.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012634.JPG",
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012635.JPG"
+        ]
+    },
+    "state": "done"
+}
+
+2.设置为video模式
+{
+    "name": "camera.setOptions",
+    "parameters": {
+        "options": {
+        	"captureMode": "video"
+        }
+    }
+}
+
+{
+    "name": "camera.setOptions",
+    "state": "done"
+}
+
+开始录像
+{
+    "name": "camera.startCapture"
+}
+{
+    "name": "camera.startCapture",
+    "state": "done"
+}
+
+
+停止录像：
+{
+    "name": "camera.stopCapture"
+}
+{
+    "name": "camera.stopCapture",
+    "results": {
+        "fileUrls": [
+            "http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012636.MP4"
+        ]
+    },
+    "state": "done"
+}

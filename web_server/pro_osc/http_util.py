@@ -158,7 +158,7 @@ class connector():
         self.oscStateDict['fingerprint'] = str(hex(oscStateJson['state']['_cam_state']))
         batteryPer = oscStateJson['state']['_battery']['battery_level'] / 100
         if batteryPer == 10:
-            batteryPer = 0
+            batteryPer = 1
         self.oscStateDict['state']['batteryLevel'] = float(batteryPer)
         if oscStateJson['state']['_external_dev']['save_path'] is not None:
             self.oscStateDict['state']['storageUri'] = oscStateJson['state']['_external_dev']['save_path']
@@ -612,6 +612,7 @@ class connector():
                 config.LIST_FILES:      self.start_list_file,
                 config.START_CAPTURE:   self.start_osc_capture,
                 config.STOP_CAPTURE:    self.stop_osc_capture,
+                config.GET_LIVE_PREVIEW:    self.getLivePreview,
             })
             
             name = req[_name]
