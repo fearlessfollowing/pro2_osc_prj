@@ -1511,7 +1511,36 @@ samba相关的问题
 
 
 
-z
+版本号：V1.0.18
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+
+（肖神）
+1.升级程序libusb改为异步模式 
+2.增加回音消除
+
+
+（罗品京）
+1.fixup ios/Mac客户端在插入存满timelapse的大卡时，出现的断连现象
+
+（建聪）
+基于1.0.17版本更改：
+1.解决 独立曝光时，模组曝光时间差异大时，导致303错误
+2.解决 设置完iso cap后，normal和i-log切换，iso cap功能失效的问题
+
+
+测试风险点:
+
+
+遗留问题：
+samba相关的问题
+
+固件类型：测试组测试
+
+
+
 
 
 2018-11-24 10:52:59,941 - INFO: [------- APP Req: camera_take_pic ------] req: {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}

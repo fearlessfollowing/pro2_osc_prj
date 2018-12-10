@@ -271,4 +271,93 @@ oled_disp_type(START_PREVIEW_FAIL)
 
 
 
+MAC WIFI连接不稳定问题？
+初步原因：可能是2.4G的干扰问题
 
+Pro1中hostapd的启动参数：/data/misc/wifi/hostapd.conf
+------------------------------------------------------------
+interface=wlan0
+driver=nl80211
+ctrl_interface=/data/misc/wifi/hostapd
+ssid=Insta360-Pro-123456.OSC
+wpa_passphrase=88888888
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+channel=11
+auth_algs=1
+ieee80211n=1
+hw_mode=g
+ignore_broadcast_ssid=0
+wowlan_triggers=any
+wpa=3
+rsn_pairwise=CCMP
+--------------------------------------------------------------
+Pro1 dnsmasq的启动参数：
+dnsmasq--no-daemon--no-resolv--no-poll--dhcp-range=192.168.43.2,192.168.43.200,10h
+
+
+
+state=ENABLED
+phy=phy0
+freq=2462
+num_sta_non_erp=0
+num_sta_no_short_slot_time=0
+num_sta_no_short_preamble=0
+olbc=0
+num_sta_ht_no_gf=0
+num_sta_no_ht=0
+num_sta_ht_20_mhz=0
+num_sta_ht40_intolerant=0
+olbc_ht=0
+ht_op_mode=0x0
+cac_time_seconds=0
+cac_time_left_seconds=N/A
+channel=11
+secondary_channel=0
+ieee80211n=1
+ieee80211ac=0
+vht_oper_chwidth=0
+vht_oper_centr_freq_seg0_idx=0
+vht_oper_centr_freq_seg1_idx=0
+bss[0]=wlan0
+bssid[0]=00:04:4b:66:70:5f
+ssid[0]=Insta360-Pro-123456.OSC
+
+
+WPA-PSK加密认证的配置文件：
+interface=wlan0
+driver=nl80211
+ctrl_interface=/var/run/hostapd
+ssid=Insta360-Pro2-LPJTEST.OSC
+wpa_passphrase=88888888
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+channel=11
+auth_algs=1
+ieee80211n=1
+hw_mode=g
+ignore_broadcast_ssid=0
+wowlan_triggers=any
+wpa=3
+rsn_pairwise=CCMP
+
+OPEN模式的配置文件：
+------------------------------------------------------
+interface=wlan0
+driver=nl80211
+ctrl_interface=/var/run/hostapd
+ssid=Insta360-Pro2-LPJTEST.OSC
+channel=11
+hw_mode=g
+ignore_broadcast_ssid=0
+
+
+
+1.客户端发给服务器的SYN，建立连接请求：Seq=0, Syn=1
+2018-12-10 14:27:47.344615078	192.168.1.5	192.168.1.1	TCP	74	43286 → 80 [SYN] Seq=0 Win=29200 Len=0 MSS=1460 SACK_PERM=1 TSval=312706621 TSecr=0 WS=128
+
+2.服务器接受到请求后，需要确认请求，向客户端发送ACK， Syn=1, Ack=1
+2018-12-10 14:27:47.349237744	192.168.1.1	192.168.1.5	TCP	74	80 → 43286 [SYN, ACK] Seq=0 Ack=1 Win=28960 Len=0 MSS=1460 SACK_PERM=1 TSval=1679172 TSecr=312706621 WS=256
+
+3.主机A收到后检查ack number是否正确，即第一次发送的seq number+1，以及位码ack是否为1，若正确，主机A会再发送ack number=(主机B的seq+1)，ack=1，主机B收到后确认seq值与ack=1则连接建立成功。
+2018-12-10 14:27:47.349282485	192.168.1.5	192.168.1.1	TCP	66	43286 → 80 [ACK] Seq=1 Ack=1 Win=29312 Len=0 TSval=312706625 TSecr=1679172

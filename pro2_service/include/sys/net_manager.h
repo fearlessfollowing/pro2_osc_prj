@@ -96,6 +96,7 @@ typedef struct stIpInfo {
 enum {
 	AUTH_OPEN,
 	AUTH_WEP,
+    AUTH_WPA,
 	AUTH_WPA2,
 	AUTH_MAX
 };

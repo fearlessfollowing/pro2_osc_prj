@@ -12,7 +12,7 @@
 #define DEFAULT_WIFI_AP_SSID				"Insta360-Pro2-Test"
 #define DEFAULT_WIFI_AP_MODE				"g"
 #define DEFAULT_WIFI_AP_CHANNEL				"6"
-#define DEFAULT_WIFI_AP_CHANNEL_NUM_BG		6
+#define DEFAULT_WIFI_AP_CHANNEL_NUM_BG		11      // 6
 #define DEFAULT_WIFI_AP_CHANNEL_NUM_AN		13
 
 #define OFF_IP								"0.0.0.0"
