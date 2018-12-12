@@ -134,11 +134,12 @@ class osc_state(threading.Thread):
                 self._cur_save_dev_info['free'] = 0
                 self._cur_save_dev_info['total'] = 0    
 
-                # 如果该路径下含有/.pro_suc文件，表示已经通过了测速
-                if file_exist(join_str_list((diskPath, "/.pro_suc"))):
-                    self._cur_save_dev_info['test'] = True
-                else:
-                    self._cur_save_dev_info['test'] = False
+
+            # 如果该路径下含有/.pro_suc文件，表示已经通过了测速
+            if file_exist(join_str_list((diskPath, "/.pro_suc"))):
+                self._cur_save_dev_info['test'] = True
+            else:
+                self._cur_save_dev_info['test'] = False
 
         else:
             Info('locak disk not exist')
@@ -157,7 +158,6 @@ class osc_state(threading.Thread):
         except Exception as e:
             Err('get_vfs exception {}'.format(e, name))
         sem_vfs.release()
-
         return vfs
 
 

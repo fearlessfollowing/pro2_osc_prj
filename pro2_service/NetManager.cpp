@@ -867,11 +867,13 @@ void NetManager::handleMessage(const sp<ARMessage> &msg)
 					} else if (tmpConfig->iAuthMode == AUTH_WPA) {
 						fprintf(iWifiFile, "hw_mode=%s\n", "g");
 						fprintf(iWifiFile, "ignore_broadcast_ssid=0\n");
-						fprintf(iWifiFile, "wpa=%d\n", tmpConfig->iAuthMode);
+						fprintf(iWifiFile, "wpa=3\n");
 						fprintf(iWifiFile, "wpa_passphrase=%s\n", tmpConfig->cPasswd);
 						fprintf(iWifiFile, "wpa_key_mgmt=%s\n", "WPA-PSK");
+						fprintf(iWifiFile, "wpa_pairwise=TKIP\n");
 						fprintf(iWifiFile, "rsn_pairwise=CCMP\n");
 						fprintf(iWifiFile, "auth_algs=1\n");
+						fprintf(iWifiFile, "ieee80211n=1\n");
 
 					} else if (tmpConfig->iAuthMode == AUTH_WPA2) {
 						fprintf(iWifiFile, "hw_mode=%s\n", "g");

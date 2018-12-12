@@ -1542,6 +1542,38 @@ samba相关的问题
 
 
 
+版本号：V1.0.19
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+
+（肖神）
+1.timelapse卡速不足报错卡不对问题
+
+
+（罗品京）
+1.修改wifi ap的工作模式及信道（优化Mac App连接问题）
+2.fixup 心跳包中大卡卡速标识不更新问题
+3.非预览状态下，出现310错误时，显示"No mSD card"文案
+4.升级模组时的调用upgrade的错误检测bug
+5.fixup osc拍照bug
+
+
+（建聪）
+1.增加 timelapse小卡存raw，卡速慢时，返回tx2 313 错误码
+
+
+测试风险点:
+
+
+遗留问题：
+samba相关的问题
+
+固件类型：测试组测试
+
+
+
 
 2018-11-24 10:52:59,941 - INFO: [------- APP Req: camera_take_pic ------] req: {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}
 2018-11-24 10:52:59,957 - INFO: -------> checkAllowTakePic, cam state 8

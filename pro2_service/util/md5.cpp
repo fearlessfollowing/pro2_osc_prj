@@ -254,14 +254,11 @@ int Compute_string_md5(unsigned char *dest_str, unsigned int dest_len, char *md5
 	unsigned char md5_value[MD5_SIZE];
 	MD5_CTX md5;
 
-	// init md5
 	MD5Init(&md5);
-//	printf("dest_len is %d\n", dest_len);
 	MD5Update(&md5, dest_str, dest_len);
 
 	MD5Final(&md5, md5_value);
 
-	// convert md5 value to md5 string
 	for (i = 0; i < MD5_SIZE; i++) {
 		snprintf(md5_str + i*2, 2+1, "%02x", md5_value[i]);
 	}
@@ -295,10 +292,9 @@ bool check_file_key_md5(const char *file_path)
     unsigned int read_size;
     unsigned int left_size = file_size - MD5_STR_LEN;
 
-//    printf("file size %d left size %d\n",file_size,left_size);
     fd = open(file_path, O_RDONLY);
     if (-1 == fd) {
-        Log.e(TAG, "open [%s] failed", file_path);
+        fprintf(stderr, "open [%s] failed", file_path);
         return false;
     }
 
@@ -314,7 +310,7 @@ bool check_file_key_md5(const char *file_path)
             MD5Update(&md5, data, ret);
             left_size -= ret;
         } else {
-            Log.e(TAG, "err read size %d\n",ret);
+            fprintf(stderr, "err read size %d\n",ret);
             goto EXIT;
         }
     }
@@ -324,7 +320,7 @@ bool check_file_key_md5(const char *file_path)
 
 
     if (ret != MD5_STR_LEN) {
-        Log.e(TAG, "read mismatch(%d %d)\n", MD5_STR_LEN, ret);
+        fprintf(stderr, "read mismatch(%d %d)\n", MD5_STR_LEN, ret);
         goto EXIT;
     }
     close(fd);
@@ -342,7 +338,7 @@ bool check_file_key_md5(const char *file_path)
     if(strcmp(md5_check, md5_str) == 0) {
         bRet = true;
     } else {
-		Log.e(TAG, "mismatch read md5 check(%s %s)", md5_check, md5_str);
+		fprintf(stderr, "mismatch read md5 check(%s %s)", md5_check, md5_str);
 	}
 
 EXIT:
@@ -506,9 +502,7 @@ int Compute_file_md5(const char *file_path, char *md5_str)
 	close(fd);
 
 	MD5Final(&md5, md5_value);
-
-	// convert md5 value to md5 string
-	for (i = 0; i < MD5_SIZE; i++) {
+    for (i = 0; i < MD5_SIZE; i++) {
 		snprintf(md5_str + i*2, 2+1, "%02x", md5_value[i]);
 	}
 

@@ -89,7 +89,7 @@ static Mutex gProtoManagerMutex;
 static Mutex gSyncReqMutex;
 
 static const std::string gReqUrl = "http://127.0.0.1:20000/ui/commands/execute";
-static const char* gPExtraHeaders = "Content-Type:application/json\r\nReq-Src:ProtoManager\r\n";     // Req-Src:ProtoManager\r\n
+static const char* gPExtraHeaders = "Content-Type:application/json\r\nConnection:close\r\nReq-Src:ProtoManager\r\n";     // Req-Src:ProtoManager\r\n
 
 int ProtoManager::mSyncReqErrno = 0;
 Json::Value* ProtoManager::mSaveSyncReqRes = NULL;

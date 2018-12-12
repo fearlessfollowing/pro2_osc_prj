@@ -141,6 +141,9 @@ def start_osc_state():
     try:
         Info('[----- osc request: /osc/state ---------]')
         ret = gConnectObj.getCamOscState()
+
+        Info('------ ret {}'.format(ret))
+        
     except Exception as err:
         Err('start_osc_state osc path exception {}'.format(str(err)))
         ret = cmd_exception(error_dic('start_osc_state', str(err)))

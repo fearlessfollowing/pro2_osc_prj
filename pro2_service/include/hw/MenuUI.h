@@ -814,7 +814,10 @@ private:
     void    tipWriteProtectError(int iErrno);   /* 写保护错误 */
     void    tipSDcardSpeedInsufficient();       /* 大卡卡速不足 */
     void    tipmSDcardSpeedInsufficient();      /* 小卡卡速不足 */
-    
+    void    tipNomSDCard();
+
+
+
     /*
      * 格式化
      */

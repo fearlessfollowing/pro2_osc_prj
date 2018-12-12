@@ -793,6 +793,7 @@ class control_center:
         # 停止轮询定时器
         self.stop_poll_timer()
         
+        Info('---------- get osc state -------')
         # 获取状态osc_state
         ret_state = osc_state_handle.get_osc_state(False)
         
@@ -1126,7 +1127,6 @@ class control_center:
                     if check_dic_key_exist(content, _param):
                         async_info[config.RESULTS] = content[_param]
                     else:
-                        #force to {} for get_results
                         async_info[config.RESULTS] = {}
                         
                     Info('add async_info {}'.format(async_info))
@@ -1417,9 +1417,15 @@ class control_center:
         read_info = self.write_and_read(req)
         return read_info
 
-    def camera_take_pic_done(self,req = None):
+
+    def camera_take_pic_done(self, req = None):
         Info('camera_take_pic_done')
         self._client_take_pic = False 
+        
+        if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
+            StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
+        StateMachine.addServerState(config.STATE_PIC_STITCHING)
+
 
 
     def camera_take_pic_fail(self, err = -1):
@@ -1435,7 +1441,8 @@ class control_center:
 
 
     def camera_take_pic(self, req, from_oled = False):
-        Info('[------- APP Req: camera_take_pic ------] req: {}'.format(req))                        
+        Info('[------- APP Req: camera_take_pic ------] req: {}'.format(req))  
+                              
         if StateMachine.checkAllowTakePic():
             StateMachine.addServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
             
@@ -1458,7 +1465,6 @@ class control_center:
         res = False
         if req[_param][config.ORG][config.SAVE_ORG] is True or req[_param][config.STICH]['fileSave'] is True:
             res = True
-        # Info('check_live_save req {} res {}'.format(req,res))
         return res
 
     def checkLiveSave(self, req):
@@ -3123,9 +3129,6 @@ class control_center:
         read_info[config.RESULTS] = OrderedDict()
         read_info[config.RESULTS]['totalEntries'] = len(all_files)
         read_info[config.RESULTS]['entries'] = all_files
-        read_info = dict_to_jsonstr(read_info)
-
-        Info('----------> read_info {}'.format(read_info))
         content = OrderedDict()
         content['sequence'] = self._list_file_seq
         content[_param] = read_info
@@ -3221,7 +3224,7 @@ class control_center:
 
 
     def camera_stop_qr_fail(self,err = -1):
-        self.send_oled_type_err(config.STOP_QR_FAIL,err)
+        self.send_oled_type_err(config.STOP_QR_FAIL, err)
 
     def camera_stop_qr_done(self,req = None):
         self.set_cam_state(self.get_cam_state() & ~config.STATE_START_QR)

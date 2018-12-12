@@ -163,6 +163,9 @@ class connector():
         if oscStateJson['state']['_external_dev']['save_path'] is not None:
             self.oscStateDict['state']['storageUri'] = oscStateJson['state']['_external_dev']['save_path']
             self.storagePath = oscStateJson['state']['_external_dev']['save_path']
+
+        # self.oscStateDict['state'] = oscStateJson['state']
+
         return dict_to_jsonstr(self.oscStateDict)
 
     def setIsCmdProcess(self, result):
@@ -562,6 +565,7 @@ class connector():
                 pass
             try:
                 rmtree(u)
+                pass
             except OSError:
                 errorValues = self.buildError("invalidParameterValue", u + " does not exist")
                 responseValues = ("camera.delete", "error", errorValues)
@@ -612,7 +616,7 @@ class connector():
                 config.LIST_FILES:      self.start_list_file,
                 config.START_CAPTURE:   self.start_osc_capture,
                 config.STOP_CAPTURE:    self.stop_osc_capture,
-                config.GET_LIVE_PREVIEW:    self.getLivePreview,
+                # config.GET_LIVE_PREVIEW:    self.getLivePreview,
             })
             
             name = req[_name]

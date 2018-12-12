@@ -351,12 +351,12 @@ static SYS_ERROR mSysErr[] = {
 };
 
 
-class oled_arhandler : public ARHandler {
+class ui_arhandler : public ARHandler {
 public:
-    oled_arhandler(MenuUI *source): mHandler(source) {
+    ui_arhandler(MenuUI *source): mHandler(source) {
     }
 
-    virtual ~oled_arhandler() override {
+    virtual ~ui_arhandler() override {
     }
 
     virtual void handleMessage(const sp<ARMessage> &msg) override {
@@ -418,7 +418,7 @@ void MenuUI::initUiMsgHandler()
     th_msg_ = thread([this, &pr]
                    {
                        mLooper = sp<ARLooper>(new ARLooper());
-                       mHandler = sp<ARHandler>(new oled_arhandler(this));
+                       mHandler = sp<ARHandler>(new ui_arhandler(this));
                        mHandler->registerTo(mLooper);
                        pr.set_value(true);
                        mLooper->run();
@@ -674,11 +674,14 @@ void MenuUI::init()
 		snprintf(wifiConfig->cApName, 32, "%s-%s", "Insta360-Pro2", pRandSn);
         #endif
 
-		strcpy(wifiConfig->cPasswd, "none");
+        /*
+         * G模，11信号，WPA-PSK加密方式
+         */
+		strcpy(wifiConfig->cPasswd, "88888888");
 		strcpy(wifiConfig->cInterface, WLAN0_NAME);
-		wifiConfig->iApMode = WIFI_HW_MODE_G;
-		wifiConfig->iApChannel = DEFAULT_WIFI_AP_CHANNEL_NUM_BG;
-		wifiConfig->iAuthMode = AUTH_WPA2;			/* 加密认证模式 */
+		wifiConfig->iApMode     = WIFI_HW_MODE_G;
+		wifiConfig->iApChannel  = DEFAULT_WIFI_AP_CHANNEL_NUM_BG;
+		wifiConfig->iAuthMode   = AUTH_WPA;			/* 加密认证模式 */
 
 		LOGDBG(TAG, "SSID[%s], Passwd[%s], Inter[%s], Mode[%d], Channel[%d], Auth[%d]",
 								wifiConfig->cApName,
@@ -1020,26 +1023,22 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            dispStr((const u8*)"Error 434. SD card", 13, 0, false, 128);
-            dispStr((const u8*)"speed insufficient.Please", 0, 16, false, 128);
-            dispStr((const u8*)"do a full overwrite", 16, 32, false, 128);
-            dispStr((const u8*)"format before use.", 14, 48, false, 128); 
+            dispStr((const u8*)"Error 310.", 37, 16, false, 128);
+            dispStr((const u8*)"No mSD card", 30, 32, false, 128);
             #endif
             break;
         }
 
         case DISP_NEED_QUERY_TFCARD: {
-            #if 1
+
             clearArea();
+            #if 1
             dispStr((const u8*)"Please ensure mSD", 16, 8, false, 128);
             dispStr((const u8*)"cards exist and query", 8, 24, false, 128);
             dispStr((const u8*)"storage space first...", 6, 40, false, 128);
             #else
-            clearArea();
-
-            dispStr((const u8*)"Reading storage devices", 0, 16, false, 128);
-            dispStr((const u8*)"ServerIP:192.168.1.188", 0, 32, false, 128);
-            dispStr((const u8*)"192.168.1.188", 12, 48, false, 128);
+            dispStr((const u8*)"Error 310.", 37, 16, false, 128);
+            dispStr((const u8*)"No mSD card", 30, 32, false, 128);
             #endif
             break;
         }
@@ -1912,8 +1911,6 @@ void MenuUI::cfgPicVidLiveSelectMode(MENU_INFO* pParentMenu, vector<struct stPic
 }
 
 
-
-
 /*
  * 界面没变,IP地址发生变化
  * IP地址没变,界面发生变化
@@ -1949,13 +1946,8 @@ void MenuUI::sendExit()
 
 int MenuUI::oled_reset_disp(int type)
 {
-    mCamState = STATE_IDLE;
-    
-    //keep sys error back to menu top
+    mCamState = STATE_IDLE;    
     disp_sys_err(type, MENU_TOP);
-    
-//    init_menu_select();
-    //reset wifi config
     return 0;
 }
 
@@ -5144,7 +5136,6 @@ void MenuUI::enterMenu(bool bUpdateAllMenuUI)
             break;
         }
 
-
         case MENU_SYS_ERR: {         /* 显示系统错误菜单 */
             setLightDirect(BACK_RED|FRONT_RED);
             dispIconByType(ICON_ERROR_128_64128_64);
@@ -6499,7 +6490,7 @@ void MenuUI::disp_err_code(int code, int back_menu)
 
     set_back_menu(MENU_SYS_ERR, back_menu);
 
-    /* 拍摄timelapse期间出错,返回MENU_PIC_INFO页面 */
+    /* 拍摄timelapse期间出错,返回MENU_PIC_INFO页面 STATE_IDLE */
     if (mTakeVideInTimelapseMode == true) {     /* 拍摄timelapse有错误时，返回PIC菜单页 */
         set_back_menu(MENU_SYS_ERR, MENU_PIC_INFO);
         mTakeVideInTimelapseMode = false;
@@ -6559,6 +6550,12 @@ void MenuUI::disp_err_code(int code, int back_menu)
                     tipWriteProtectError(code);
                     break;
                 }
+
+                /* 非预览状态下，显示310错误 */
+                case ERR_NO_mSD: {
+                    tipNomSDCard();
+                    break;
+                } 
 
                 default: {
                     dispIconByType(ICON_ERROR_128_64128_64);
@@ -9756,6 +9753,14 @@ void MenuUI::tipHighTempError(int iErrno)
     dispStr((const u8*)"temperature high.Please", 0, 16, false, 128);
     dispStr((const u8*)"turn on the fan or take", 0, 32, false, 128);
     dispStr((const u8*)"a break before continue", 0, 48, false, 128); 
+}
+
+
+void MenuUI::tipNomSDCard()
+{
+    clearArea();
+    dispStr((const u8*)"Error 310.", 37, 16, false, 128);
+    dispStr((const u8*)"No mSD card", 30, 32, false, 128);
 }
 
 
