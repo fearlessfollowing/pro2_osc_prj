@@ -96,3 +96,7 @@ pro2_service_env.Program('./out/pro2_service', pro2_service_obj)
 #com_env.Program('./out/kern_log', kern_log_obj)
 
 
+############################ web_osc ##################################
+web_osc_obj = SConscript('./web_osc/SConscript')
+com_env.Program('./out/osc_server', web_osc_obj)
+
