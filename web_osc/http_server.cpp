@@ -100,15 +100,6 @@ bool HttpServer::registerUrlHandler(std::shared_ptr<struct HttpRequest> uriHandl
 }
 
 
-void HttpServer::SendRsp(mg_connection *connection, std::string rsp)
-{
-	mg_printf(connection, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
-	mg_printf_http_chunk(connection, "{ \"result\": %s }", rsp.c_str());
-	mg_send_http_chunk(connection, "", 0);
-}
-
-
-
 void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 {
 	/*
@@ -131,7 +122,6 @@ void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 
 	printf("body: %s\n", reqBody.c_str());
 
-
 	std::shared_ptr<struct HttpRequest> tmpRequest;
 	u32 i = 0;
 	for (i = 0; i < sInstance->mSupportRequest.size(); i++) {
@@ -147,7 +137,7 @@ void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 				}
 
 				if (method & tmpRequest->mReqMethod) {	/* 支持该方法 */
-					tmpRequest->mHandler(reqUri, reqBody, connection, SendRsp);
+					tmpRequest->mHandler(connection, reqBody);
 					bHandled = true;
 				}
 			}

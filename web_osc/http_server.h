@@ -11,8 +11,7 @@
 #include "web_http.h"
 
 
-typedef void OnRspCallback(mg_connection *c, std::string);
-using ReqHandler = std::function<bool (std::string, std::string, mg_connection *c, OnRspCallback)>;
+using ReqHandler = std::function<bool(mg_connection *conn, std::string body)>;
 
 #define		METHOD_GET	(1 << 0)
 #define		METHOD_POST	(1 << 1)
@@ -53,7 +52,6 @@ private:
 						HttpServer();
 	static void			OnHttpEvent(mg_connection *connection, int event_type, void *event_data);
 	static void			HandleEvent(mg_connection *connection, http_message *http_req);
-	static void			SendRsp(mg_connection *connection, std::string rsp);
 
 	std::vector<std::shared_ptr<struct HttpRequest>>	mSupportRequest;
 
