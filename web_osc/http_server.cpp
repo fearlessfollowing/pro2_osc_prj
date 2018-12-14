@@ -3,17 +3,36 @@
 #include "http_server.h"
 
 
-void HttpServer::Init(const std::string &port)
+HttpServer* HttpServer::sInstance = nullptr;
+static std::mutex gInstanceLock;
+
+typedef void (*pHttpEventFunc)(mg_connection *connection, int event_type, void *event_data);
+
+
+
+HttpServer*	HttpServer::Instance()
 {
-	mPort = port;
-	s_server_option.enable_directory_listing = "yes";
-	s_server_option.document_root = s_web_dir.c_str();
+	std::unique_lock<std::mutex> lock(gInstanceLock);    
+    if (!sInstance)
+        sInstance = new HttpServer();
+    return sInstance;
+}
+
+HttpServer::HttpServer()
+{
+	mPort = DEFAULT_WEB_PORT;
+}
+
+void HttpServer::setPort(const std::string dstPort)
+{
+	mPort = dstPort;
 }
 
 
 bool HttpServer::startHttpServer()
 {
 	mg_mgr_init(&mMgr, NULL);
+
 	mg_connection *connection = mg_bind(&mMgr, mPort.c_str(), OnHttpEvent);
 	if (connection == NULL)
 		return false;
@@ -54,14 +73,13 @@ void HttpServer::OnHttpEvent(mg_connection *connection, int event_type, void *ev
 }
 
 
-
-
 bool HttpServer::registerUrlHandler(std::shared_ptr<struct HttpRequest> uriHandler)
 {
 	std::shared_ptr<struct HttpRequest> tmpPtr = nullptr;
 	bool bResult = false;
 	u32 i = 0;
-	std::unique_lock<std::mutex> _lock(mRegLock);
+
+	// std::unique_lock<std::mutex> _lock(gListLock);
 
 	for (i = 0; i < mSupportRequest.size(); i++) {
 		tmpPtr = mSupportRequest.at(i);
@@ -116,8 +134,8 @@ void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 
 	std::shared_ptr<struct HttpRequest> tmpRequest;
 	u32 i = 0;
-	for (i = 0; i < mSupportRequest.size(); i++) {
-		tmpRequest = mSupportRequest.at(i);
+	for (i = 0; i < sInstance->mSupportRequest.size(); i++) {
+		tmpRequest = sInstance->mSupportRequest.at(i);
 		if (tmpRequest) {
 			if (reqUri == tmpRequest->mUrl) {
 				int method = 0;

@@ -3,11 +3,6 @@
 #include "http_server.h"
 
 
-mg_serve_http_opts HttpServer::s_server_option;
-std::string HttpServer::s_web_dir = "./web";
-std::unordered_map<std::string, ReqHandler> HttpServer::s_handler_map;
-
-
 bool handle_fun1(std::string url, std::string body, mg_connection *c, OnRspCallback rsp_callback)
 {
 	// do sth
@@ -38,16 +33,16 @@ int main(int argc, char *argv[])
 {
 	std::string port = "80";
 
-	auto httpServer = std::shared_ptr<HttpServer>(new HttpServer);
-	httpServer->Init(port);
+	// auto httpServer = std::shared_ptr<HttpServer>(new HttpServer);
+	// // httpServer->Init(port);
 
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/info", METHOD_GET | METHOD_POST, handle_fun1));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/state", METHOD_GET | METHOD_POST, handle_fun1));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/execute", METHOD_GET | METHOD_POST, handle_fun1));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/status", METHOD_GET | METHOD_POST, handle_fun1));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/checkForUpdate", METHOD_GET | METHOD_POST, handle_fun1));
+	// httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/info", METHOD_GET | METHOD_POST, handle_fun1));
+	// httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/state", METHOD_GET | METHOD_POST, handle_fun1));
+	// httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/execute", METHOD_GET | METHOD_POST, handle_fun1));
+	// httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/status", METHOD_GET | METHOD_POST, handle_fun1));
+	// httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/checkForUpdate", METHOD_GET | METHOD_POST, handle_fun1));
 
-	httpServer->startHttpServer();
+	// httpServer->startHttpServer();
 
 	return 0;
 }

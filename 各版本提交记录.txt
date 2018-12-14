@@ -1574,6 +1574,34 @@ samba相关的问题
 
 
 
+版本号：V1.0.20
+固件地址：禅道
+开发自测通过：是
+
+修改点：
+
+（肖神）
+1.更新hdr视频gyro延时
+
+
+（罗品京）
+1.修复偶现的WIFI启动异常
+
+
+（建聪）
+1.更改 hdr视频的rolling shutter时间和gyro delay time
+2.完善 get videoparam命令，增加hdr标识字段
+
+
+测试风险点:
+WIFI启动异常
+
+遗留问题：
+samba相关的问题
+
+固件类型：测试组测试
+
+
 
 2018-11-24 10:52:59,941 - INFO: [------- APP Req: camera_take_pic ------] req: {'name': 'camera._takePicture', 'parameters': {'stiching': {'height': 3840, 'mode': 'pano', 'algorithm': 'opticalFlow', 'mime': 'jpeg', 'width': 7680}, 'delay': 0, 'origin': {'height': 3000, 'saveOrigin': True, 'mime': 'jpeg', 'width': 4000}, 'stabilization': False}}
 2018-11-24 10:52:59,957 - INFO: -------> checkAllowTakePic, cam state 8

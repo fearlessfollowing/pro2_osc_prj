@@ -913,6 +913,23 @@ void MenuUI::disp_top_info()
 }
 
 
+
+static int extraSpeedInsuffCnt(char* pProName, char* pUnspeedArry)
+{
+	char *p; 
+	const char *delim = "_"; 
+	int iCnt = 0;
+
+	p = strtok(pProName, delim); 
+	while (p) { 
+		pUnspeedArry[iCnt] = atoi(p);
+		iCnt++;
+		p = strtok(NULL, delim); 
+	} 
+	return iCnt;
+}
+
+
 /*
  * disp_msg_box - 显示消息框
  */
@@ -926,7 +943,6 @@ void MenuUI::disp_msg_box(int type)
     }
 
     if (cur_menu != MENU_DISP_MSG_BOX) {
-        //force light back to front or off 170731
         if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && checkStateEqual(serverState, STATE_IDLE))) {
             if (mProCfg->get_val(KEY_LIGHT_ON) == 1) {
                 setLightDirect(front_light);
@@ -980,7 +996,7 @@ void MenuUI::disp_msg_box(int type)
             break;
 		
         case DISP_WIFI_ON:
-            dispStr((const u8 *)"not allowed",0,16);
+            dispStr((const u8 *)"not allowed", 0, 16);
             break;
 		
         case DISP_ADB_OPEN:
@@ -1023,23 +1039,35 @@ void MenuUI::disp_msg_box(int type)
             dispStr((const u8*)"USB disk are inserted", 8, 40, false, 128);
             #else 
 
-            dispStr((const u8*)"Error 310.", 37, 16, false, 128);
-            dispStr((const u8*)"No mSD card", 30, 32, false, 128);
+            /* lost 1 card */
+            tipmSDcardSpeedInsufficient();
+
             #endif
+
             break;
         }
 
         case DISP_NEED_QUERY_TFCARD: {
 
             clearArea();
+
             #if 1
             dispStr((const u8*)"Please ensure mSD", 16, 8, false, 128);
             dispStr((const u8*)"cards exist and query", 8, 24, false, 128);
             dispStr((const u8*)"storage space first...", 6, 40, false, 128);
+            
             #else
-            dispStr((const u8*)"Error 310.", 37, 16, false, 128);
-            dispStr((const u8*)"No mSD card", 30, 32, false, 128);
+
+            char cCardBuf[128] = {0};
+            sprintf(cCardBuf, "Error 313. mSD card(6)");
+    
+            dispStr((const u8*)cCardBuf, 0, 0, false, 128);
+            dispStr((const u8*)"speed insufficient.", 16, 16, false, 128);
+            dispStr((const u8*)"Please do a full over-", 6, 32, false, 128);
+            dispStr((const u8*)"write format before use", 2, 48, false, 128);  
+
             #endif
+
             break;
         }
         
@@ -9770,20 +9798,65 @@ void MenuUI::tipNomSDCard()
 void MenuUI::tipmSDcardSpeedInsufficient()
 {
     const char* pCard = property_get("module.unspeed");
-    char cCardBuf[128] = {0};
+    char propVal[128] = {0};
+    char cUnSpeedIndex[10] = {0};
+    char cLineOne[128] = {0};
+    char cLineTwo[128] = {0};
+    int iNum = 0;
+
+    clearArea();      
 
     if (pCard) {
-        sprintf(cCardBuf, "Error 313. mSD card(%s)", pCard);
-    } else {
-        sprintf(cCardBuf, "Error 313. mSD card(6)");
+        strcpy(propVal, pCard);
+        iNum = extraSpeedInsuffCnt(propVal, cUnSpeedIndex);
     }
-    
-    clearArea();      
-    dispStr((const u8*)cCardBuf, 0, 0, false, 128);
-    dispStr((const u8*)"speed insufficient.", 16, 16, false, 128);
+
+    switch (iNum) {
+        case 1: {
+            sprintf(cLineOne, "Error 313. mSD card(%d)", cUnSpeedIndex[0]);
+            sprintf(cLineTwo, "speed insufficient.");
+            dispStr((const u8*)cLineOne, 0, 0, false, 128);
+            dispStr((const u8*)cLineTwo, 16, 16, false, 128);
+            break;
+        }
+
+        case 2: {
+            sprintf(cLineOne, "Error 313. mSD card");
+            sprintf(cLineTwo, "(%d,%d)speed insufficient.", cUnSpeedIndex[0], cUnSpeedIndex[1]);
+            dispStr((const u8*)cLineOne, 9, 0, false, 128);
+            dispStr((const u8*)cLineTwo, 1, 16, false, 128);
+            break;
+        }
+
+        case 3: {
+            sprintf(cLineOne, "Error 313. mSD card(%d,", cUnSpeedIndex[0]);
+            sprintf(cLineTwo, "%d,%d)speed insufficient.", cUnSpeedIndex[1], cUnSpeedIndex[2]);
+            dispStr((const u8*)cLineOne, 0, 0, false, 128);
+            dispStr((const u8*)cLineTwo, 4, 16, false, 128);
+            break;
+        }
+
+        case 4:
+        case 5:
+        case 6: {
+            sprintf(cLineOne, "Error 313.mSD card(%d,%d", cUnSpeedIndex[0], cUnSpeedIndex[1]);
+            sprintf(cLineTwo, ",%d,%d)speed insufficient.", cUnSpeedIndex[2], cUnSpeedIndex[3]);
+            dispStr((const u8*)cLineOne, 0, 0, false, 128);
+            dispStr((const u8*)cLineTwo, 1, 16, false, 128);
+            break;
+        }
+
+        default: {  /* 默认按一张卡处理 */
+            sprintf(cLineOne, "Error 313. mSD card(6)");
+            sprintf(cLineTwo, "speed insufficient.");
+            dispStr((const u8*)cLineOne, 0, 0, false, 128);
+            dispStr((const u8*)cLineTwo, 16, 16, false, 128);
+            break;
+        }
+    }
+
     dispStr((const u8*)"Please do a full over-", 6, 32, false, 128);
-    dispStr((const u8*)"write format before use", 2, 48, false, 128);  
-    
+    dispStr((const u8*)"write format before use", 2, 48, false, 128);    
 }
 
 

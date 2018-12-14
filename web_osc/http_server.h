@@ -17,6 +17,9 @@ using ReqHandler = std::function<bool (std::string, std::string, mg_connection *
 #define		METHOD_GET	(1 << 0)
 #define		METHOD_POST	(1 << 1)
 
+#define 	DEFAULT_WEB_PORT	"80"
+
+
 struct HttpRequest {
 	std::string 	mUrl;
 	int 			mReqMethod;
@@ -33,28 +36,32 @@ struct HttpRequest {
 
 class HttpServer {
 public:
-					HttpServer() {}
-					~HttpServer() {}
-	void 			Init(const std::string &port); 
-	bool 			startHttpServer(); 
-	bool 			stopHttpServer(); 
 
-	bool			registerUrlHandler(std::shared_ptr<struct HttpRequest>);
+	virtual				~HttpServer() {}
 
-	static 			std::string 		s_web_dir;
-	static 			mg_serve_http_opts	s_server_option;
+    static HttpServer*	Instance();	
+
+	void				setPort(const std::string dstPort);
+
+	bool 				startHttpServer(); 
+	bool 				stopHttpServer(); 
+
+	bool				registerUrlHandler(std::shared_ptr<struct HttpRequest>);
+
 
 private:
-
-	void 	OnHttpEvent(mg_connection *connection, int event_type, void *event_data);
-	void 			HandleEvent(mg_connection *connection, http_message *http_req);
-	static void 	SendRsp(mg_connection *connection, std::string rsp);
+						HttpServer();
+	static void			OnHttpEvent(mg_connection *connection, int event_type, void *event_data);
+	static void			HandleEvent(mg_connection *connection, http_message *http_req);
+	static void			SendRsp(mg_connection *connection, std::string rsp);
 
 	std::vector<std::shared_ptr<struct HttpRequest>>	mSupportRequest;
 
-	std::mutex 											mRegLock;
+    static HttpServer*   								sInstance;
+	std::mutex											mRegLock;
 	std::string 										mPort;    
-	mg_mgr 												mMgr;          
+	mg_mgr 												mMgr;      
+	
 };
 
 #endif /* _HTT_SERVER_H_ */
