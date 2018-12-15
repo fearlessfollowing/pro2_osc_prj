@@ -84,7 +84,7 @@ Pro2 bootloader， kernel titian文件系统
 
 static bool genDefaultOptions(Json::Value& optionsJson)
 {
-
+	printf("---------------- genDefaultOptions\n");
 	optionsJson.clear();
 
 	optionsJson["captureMode"] = "image";
@@ -137,16 +137,28 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["shutterSpeedSupport"][5] = 0.125f;
 	optionsJson["shutterSpeedSupport"][6] = 0.1f;
 	optionsJson["shutterSpeedSupport"][7] = 0.067f;
+	optionsJson["shutterSpeedSupport"][8] = 0.05f;
+	optionsJson["shutterSpeedSupport"][9] = 0.04;
+	optionsJson["shutterSpeedSupport"][10] = 0.033f;
+	optionsJson["shutterSpeedSupport"][11] = 0.025f;
+	optionsJson["shutterSpeedSupport"][12] = 0.02f;
+	optionsJson["shutterSpeedSupport"][13] = 0.0167f;
+	optionsJson["shutterSpeedSupport"][14] = 0.0125f;
+	optionsJson["shutterSpeedSupport"][15] = 0.01f;
+	optionsJson["shutterSpeedSupport"][16] = 0.0083f;
+	optionsJson["shutterSpeedSupport"][17] = 0.00625f;
+	optionsJson["shutterSpeedSupport"][18] = 0.005f;
+	optionsJson["shutterSpeedSupport"][19] = 0.004167f;
 
+	optionsJson["shutterSpeedSupport"][20] = 0.003125f;
+	optionsJson["shutterSpeedSupport"][21] = 0.0025f;
 
-    "shutterSpeedSupport":[0.05,
-                           0.04, 0.033, 0.025, 0.02, 0.0167, 0.0125, 0.01,
-                           0.0083, 0.00625, 0.005, 0.004167, 0.003125, 0.0025,
-                           0.002, 0.0015625, 0.00125, 0.001, 0.0008, 0.000625,
-                           0.0005, 0.0004, 0.0003125, 0.00025, 0.0002,
-                           0.00015625, 0.000125],
-
-
+	optionsJson["shutterSpeedSupport"][22] = 0.002f;
+	optionsJson["shutterSpeedSupport"][23] = 0.0015625f;
+	optionsJson["shutterSpeedSupport"][24] = 0.00125f;
+	optionsJson["shutterSpeedSupport"][25] = 0.001f;
+	optionsJson["shutterSpeedSupport"][26] = 0.0008f;
+	optionsJson["shutterSpeedSupport"][27] = 0.000625f;
 
 	optionsJson["aperture"] = 2.4f;
 	optionsJson["apertureSupport"][0] = 2.4f;
@@ -159,61 +171,56 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["whiteBalanceSupport"][3] = "cloudy-daylight";
 
 	optionsJson["exposureCompensation"] = 0;
-    
-    "exposureCompensationSupport":[-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5,
-                                    2, 2.5, 3],
- 
+
+	optionsJson["exposureCompensation"][0] = -3;
+	optionsJson["exposureCompensation"][1] = -2.5;
+	optionsJson["exposureCompensation"][2] = -2;
+	optionsJson["exposureCompensation"][3] = -1.5;
+	optionsJson["exposureCompensation"][4] = -1;
+	optionsJson["exposureCompensation"][5] = -0.5;
+	optionsJson["exposureCompensation"][6] = 0;
+	optionsJson["exposureCompensation"][7] = 0.5;
+	optionsJson["exposureCompensation"][8] = 1;
+	optionsJson["exposureCompensation"][9] = 1.5;
+	optionsJson["exposureCompensation"][10] = 2;
+	optionsJson["exposureCompensation"][11] = 2.5;
+	optionsJson["exposureCompensation"][12] = 3;
  
  	optionsJson["fileFormat"]["type"] = "jpeg";
  	optionsJson["fileFormat"]["width"] = 4000;
  	optionsJson["fileFormat"]["height"] = 3000;
 
-    "fileFormatSupport": [
-        {
-            "type":"jpeg",
-            "width": 4000,
-            "height": 3000
-        },
-        {
-            "type":"mp4",
-            "width": 7680,
-            "height": 3840,
-            "framerate": 30
-        },
-        {
-            "type":"mp4",
-            "width": 5120,
-            "height": 2560,
-            "framerate": 30
-        },
-        {
-            "type":"mp4",
-            "width": 6400,
-            "height": 3200,
-            "framerate": 30
-        },
-        {
-            "type":"mp4",
-            "width": 4320,
-            "height": 2160,
-            "framerate": 30
-        },
-        {
-            "type":"mp4",
-            "width": 3840,
-            "height": 1920,
-            "framerate": 30
-        },
-        {
-            "type":"mp4",
-            "width": 3840,
-            "height": 1920,
-            "framerate": 120
-        }
-    ],
+ 	optionsJson["fileFormatSupport"][0]["type"] = "jpeg";
+ 	optionsJson["fileFormatSupport"][0]["width"] = 4000;
+ 	optionsJson["fileFormatSupport"][0]["height"] = 3000;
 
-    "exposureDelay":0,
-    "exposureDelaySupport":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60],
+ 	optionsJson["fileFormatSupport"][1]["type"] = "mp4";
+ 	optionsJson["fileFormatSupport"][1]["width"] = 7680;
+ 	optionsJson["fileFormatSupport"][1]["height"] = 3840;
+ 	optionsJson["fileFormatSupport"][1]["framerate"] = 30;
+
+
+ 	optionsJson["fileFormatSupport"][2]["type"] = "mp4";
+ 	optionsJson["fileFormatSupport"][2]["width"] = 3840;
+ 	optionsJson["fileFormatSupport"][2]["height"] = 1920;
+ 	optionsJson["fileFormatSupport"][2]["framerate"] = 30;
+
+
+	optionsJson["exposureDelay"] = 0;
+	optionsJson["exposureDelaySupport"][0] = 0;
+	optionsJson["exposureDelaySupport"][1] = 1;
+	optionsJson["exposureDelaySupport"][2] = 2;
+	optionsJson["exposureDelaySupport"][3] = 3;
+	optionsJson["exposureDelaySupport"][4] = 4;
+	optionsJson["exposureDelaySupport"][5] = 5;
+	optionsJson["exposureDelaySupport"][6] = 6;
+	optionsJson["exposureDelaySupport"][7] = 7;
+	optionsJson["exposureDelaySupport"][8] = 8;
+	optionsJson["exposureDelaySupport"][9] = 9;
+	optionsJson["exposureDelaySupport"][10] = 10;
+	optionsJson["exposureDelaySupport"][11] = 20;
+	optionsJson["exposureDelaySupport"][12] = 30;
+	optionsJson["exposureDelaySupport"][13] = 60;
 
 
 	optionsJson["sleepDelay"] = 65536;
@@ -238,17 +245,13 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["hdr"][0] = "off";
 	optionsJson["hdr"][1] = "hdr";
 
+	optionsJson["exposureBracket"]["shots"] = 3;
+	optionsJson["exposureBracket"]["increment"] = 1;
 
-    "exposureBracket":{
-        "shots": 3,
-        "increment": 1
-    },
-
-    "exposureBracketSupport":{
-        "autoMode": false,
-        "shotsSupport": [3],
-        "incrementSupport": [1, 2]
-    },
+	optionsJson["exposureBracketSupport"]["autoMode"] = false;
+	optionsJson["exposureBracketSupport"]["shotsSupport"][0] = 3;
+	optionsJson["exposureBracketSupport"]["incrementSupport"][0] = 1;
+	optionsJson["exposureBracketSupport"]["incrementSupport"][1] = 2;
 
 	optionsJson["gyro"] = true;
 	optionsJson["gyroSupport"] = true;
@@ -272,8 +275,6 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["previewFormatSupport"][0]["width"] = 1920;
 	optionsJson["previewFormatSupport"][0]["height"] = 960;
 	optionsJson["previewFormatSupport"][0]["framerate"] = 30;
-
-
 
 	optionsJson["captureInterval"] = 2;
 	optionsJson["captureIntervalSupport"][0] = 2;
@@ -373,8 +374,9 @@ static bool oscCfgInit()
 
 	printJson(gOscInfo);
 
+	genDefaultOptions(gOptions);
 
-
+	printJson(gOptions);
 
 	return true;
 }
@@ -516,71 +518,69 @@ bool oscCheckForUpdateHandler(mg_connection *conn, std::string body)
 
 bool handleGetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 bool handleSetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 
 
 bool handleTakePictureRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 bool handleSwitchWifiRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 bool handleDeleteRequest(Json::Value& jsonReply)
-{
-
+{	
+	return true;
 }
 
 
 bool handleGetLivePreviewRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
-
-
 
 
 bool handleListFileRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 
 bool handleStartCaptureRequest(Json::Value& jsonReply)
-{
-
+{	
+	return true;
 }
 
 
 bool handleStopCaptureRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 bool handleUploadFileRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 bool handleResetRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 
 bool handleProcessPictureRequest(Json::Value& jsonReply)
 {
-
+	return true;
 }
 
 /*
@@ -626,9 +626,6 @@ bool oscCommandHandler(mg_connection *conn, std::string body)
 			} else if (oscCmd == OSC_CMD_DELETE) {
 
 			}
-
-
-
 		}
 	} else {
 		fprintf(stderr, "Parse request body failed\n");
