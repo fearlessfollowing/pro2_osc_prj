@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <sys/ins_types.h>
 #include <json/value.h>
 #include <json/json.h>
 #include <iostream>
@@ -72,19 +73,12 @@ static int getUptime()
 	return iUptime;
 }
 
-#if 0
-bootloader:		  Titan
-内核:	 		   Pro2
-文件系统: 		    Titan
-
-
-Pro2 bootloader， kernel titian文件系统
-#endif 
-
 
 static bool genDefaultOptions(Json::Value& optionsJson)
 {
 	printf("---------------- genDefaultOptions\n");
+	// Json::Value& optionsJson = *pOriginOptions;
+
 	optionsJson.clear();
 
 	optionsJson["captureMode"] = "image";
@@ -128,8 +122,9 @@ static bool genDefaultOptions(Json::Value& optionsJson)
     optionsJson["isoSupport"][18] = 5000;
     optionsJson["isoSupport"][19] = 6400;
 
+
 	optionsJson["shutterSpeed"] = 0;
-	optionsJson["shutterSpeedSupport"][0] = 0;
+	optionsJson["shutterSpeedSupport"][0] = 0.0f;
 	optionsJson["shutterSpeedSupport"][1] = 0.5f;
 	optionsJson["shutterSpeedSupport"][2] = 0.333f;
 	optionsJson["shutterSpeedSupport"][3] = 0.25f;
@@ -138,7 +133,7 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["shutterSpeedSupport"][6] = 0.1f;
 	optionsJson["shutterSpeedSupport"][7] = 0.067f;
 	optionsJson["shutterSpeedSupport"][8] = 0.05f;
-	optionsJson["shutterSpeedSupport"][9] = 0.04;
+	optionsJson["shutterSpeedSupport"][9] = 0.04f;
 	optionsJson["shutterSpeedSupport"][10] = 0.033f;
 	optionsJson["shutterSpeedSupport"][11] = 0.025f;
 	optionsJson["shutterSpeedSupport"][12] = 0.02f;
@@ -170,21 +165,22 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["whiteBalanceSupport"][2] = "daylight";
 	optionsJson["whiteBalanceSupport"][3] = "cloudy-daylight";
 
-	optionsJson["exposureCompensation"] = 0;
+	optionsJson["exposureCompensation"] = 0.0f;
 
-	optionsJson["exposureCompensation"][0] = -3;
-	optionsJson["exposureCompensation"][1] = -2.5;
-	optionsJson["exposureCompensation"][2] = -2;
-	optionsJson["exposureCompensation"][3] = -1.5;
-	optionsJson["exposureCompensation"][4] = -1;
-	optionsJson["exposureCompensation"][5] = -0.5;
-	optionsJson["exposureCompensation"][6] = 0;
-	optionsJson["exposureCompensation"][7] = 0.5;
-	optionsJson["exposureCompensation"][8] = 1;
-	optionsJson["exposureCompensation"][9] = 1.5;
-	optionsJson["exposureCompensation"][10] = 2;
-	optionsJson["exposureCompensation"][11] = 2.5;
-	optionsJson["exposureCompensation"][12] = 3;
+	optionsJson["exposureCompensationSupport"][0] = -3.0f;
+	optionsJson["exposureCompensationSupport"][1] = -2.5f;
+	optionsJson["exposureCompensationSupport"][2] = -2.0f;
+	optionsJson["exposureCompensationSupport"][3] = -1.5f;
+	optionsJson["exposureCompensationSupport"][4] = -1.0f;
+	optionsJson["exposureCompensationSupport"][5] = -0.5f;
+	optionsJson["exposureCompensationSupport"][6] = 0.0f;
+	optionsJson["exposureCompensationSupport"][7] = 0.5f;
+	optionsJson["exposureCompensationSupport"][8] = 1.0f;
+	optionsJson["exposureCompensationSupport"][9] = 1.5f;
+	optionsJson["exposureCompensationSupport"][10] = 2.0f;
+	optionsJson["exposureCompensationSupport"][11] = 2.5f;
+	optionsJson["exposureCompensationSupport"][12] = 3.0f;
+ 
  
  	optionsJson["fileFormat"]["type"] = "jpeg";
  	optionsJson["fileFormat"]["width"] = 4000;
@@ -198,7 +194,6 @@ static bool genDefaultOptions(Json::Value& optionsJson)
  	optionsJson["fileFormatSupport"][1]["width"] = 7680;
  	optionsJson["fileFormatSupport"][1]["height"] = 3840;
  	optionsJson["fileFormatSupport"][1]["framerate"] = 30;
-
 
  	optionsJson["fileFormatSupport"][2]["type"] = "mp4";
  	optionsJson["fileFormatSupport"][2]["width"] = 3840;
@@ -242,8 +237,8 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 
 
 	optionsJson["hdr"] = "off";
-	optionsJson["hdr"][0] = "off";
-	optionsJson["hdr"][1] = "hdr";
+	optionsJson["hdrSupport"][0] = "off";
+	optionsJson["hdrSupport"][1] = "hdr";
 
 	optionsJson["exposureBracket"]["shots"] = 3;
 	optionsJson["exposureBracket"]["increment"] = 1;
@@ -260,12 +255,12 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 	optionsJson["gps"] = true;
 	optionsJson["gpsSupport"] = true;
 
+
 	optionsJson["imageStabilization"] = "on";
 	optionsJson["imageStabilizationSupport"][0] = "on";
 	optionsJson["imageStabilizationSupport"][1] = "off";
 
 	optionsJson["wifiPassword"] = "88888888";
-    
     
 	optionsJson["previewFormat"]["width"] = 1920;
 	optionsJson["previewFormat"]["height"] = 960;
@@ -307,6 +302,7 @@ static bool genDefaultOptions(Json::Value& optionsJson)
 
 	optionsJson["videoGPS"] = "none";
 	optionsJson["videoGPSSupport"][0] = "none";
+
 }
 
 
@@ -381,6 +377,11 @@ static bool oscCfgInit()
 	return true;
 }
 
+
+Json::Value& getCurOptions()
+{
+	return gOptions;
+}
 
 
 static void sendResponse(mg_connection *c, std::string reply,  bool bSendClose)
@@ -515,14 +516,148 @@ bool oscCheckForUpdateHandler(mg_connection *conn, std::string body)
 #define OSC_CMD_PROCESS_PICTURE		"camera.processPicture"
 #define OSC_CMD_RESET				"camera.reset"
 
+#define INVALID_PARAMETER_NAME 		"invalidParameterName"
+#define MISSING_PARAMETER			"missingParameter"
+#define INVALID_PARAMETER_VAL		"invalidParameterValue"
 
-bool handleGetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
+
+#define _param						"parameters"
+#define _state  					"state"
+#define _done						"done"
+#define _error  					"error"
+#define _code  						"code"
+#define _message					"message"
+#define _fileUrls					"fileUrls"
+#define _results					"results"
+
+
+
+/*
+Example:
+Request:
 {
+    "name": "camera.getOptions",
+    "parameters": {
+        "optionNames": ["captureModeSupport"]
+    }
+}
+Response:
+{
+    "name": "camera.getOptions",
+    "results": {
+        "options": {
+            "captureModeSupport": [
+                "image",
+                "interval",
+                "video"
+            ]
+        }
+    },
+    "state": "done"
+}
+*/
+
+bool handleGetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, Json::Value& jsonReply)
+{
+	jsonReply.clear();
+	jsonReply["name"] = OSC_CMD_GET_OPTIONS;
+
+	if (jsonReq.isMember(_param)) {
+		if (jsonReq[_param].isMember("optionNames")) {
+			Json::Value optionNames = jsonReq[_param]["optionNames"];
+			Json::Value resultOptions;
+			int i = 0;
+
+			printf("optionNames size: %d\n", optionNames.size());
+			
+			for (i = 0; i < optionNames.size(); i++) {
+				std::string optionMember = optionNames[i].asString();
+				if (sysCurOptions.isMember(optionMember)) {
+					resultOptions[optionMember] = sysCurOptions[optionMember];
+				}
+			}
+			
+			if (i >= optionNames.size()) {
+				jsonReply["results"]["options"] = resultOptions;
+				jsonReply["state"] = "done";
+			} else {
+				jsonReply["state"] = "error";
+				jsonReply["error"]["code"] = "invalidParameterName";
+				jsonReply["error"]["message"] = "Parameter optionNames contains unrecognized or unsupported";
+			}
+		}
+	} else {
+		jsonReply["state"] = "error";
+		jsonReply["error"]["code"] = "invalidParameterName";
+		jsonReply["error"]["message"] = "Parameter format is invalid";
+	}
 	return true;
 }
 
-bool handleSetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
+
+
+/*
+Example:
 {
+    "name": "camera.setOptions",
+    "parameters": {
+        "options": {
+        	"captureMode": "video"
+        }
+    }
+}
+
+{
+    "name": "camera.setOptions",
+    "state": "done"
+}
+*/
+bool handleSetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, Json::Value& jsonReply)
+{
+	jsonReply.clear();
+	jsonReply["name"] = OSC_CMD_SET_OPTIONS;
+	bool bParseResult = true;
+
+	if (jsonReq.isMember(_param)) {
+		if (jsonReq[_param].isMember("options")) {
+			Json::Value optionsMap = jsonReq[_param]["options"];
+
+			Json::Value::Members members;  
+        	members = optionsMap.getMemberNames();   // 获取所有key的值
+			printf("setOptions -> options: \n");
+			printJson(optionsMap);
+
+
+			for (Json::Value::Members::iterator iterMember = members.begin(); 
+										iterMember != members.end(); iterMember++) {	// 遍历每个key 
+				
+				/* 1.首先检查该keyName是否在curOptions的成员
+				 * 2.检查keyVal是否为curOptions对应的option支持的值
+				 */
+				std::string strKey = *iterMember; 
+				if (sysCurOptions.isMember(strKey)) {	/* keyName为curOptions的成员 */
+					/* TODO: 对设置的值合法性进行校验 */
+					sysCurOptions[strKey] = optionsMap[strKey];
+				} else {
+					fprintf(stderr, "Unsupport keyName[%s],break now\n", strKey.c_str());
+					bParseResult = false;
+					break;
+				}
+			}
+
+			if (bParseResult) {
+				jsonReply["state"] = "done";
+			} else {
+				jsonReply["state"] = "error";
+				jsonReply["error"]["code"] = "invalidParameterName";
+				jsonReply["error"]["message"] = "Parameter optionNames contains unrecognized or unsupported";
+			}
+		}
+	} else {
+		jsonReply["state"] = "error";
+		jsonReply["error"]["code"] = "invalidParameterName";
+		jsonReply["error"]["message"] = "Parameter format is invalid";
+	}
 	return true;
 }
 
@@ -583,6 +718,219 @@ bool handleProcessPictureRequest(Json::Value& jsonReply)
 	return true;
 }
 
+
+
+
+
+void genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg)
+{
+	replyJson[_state] = _error;
+	replyJson[_error][_code] = code;
+	replyJson[_error][_message] = errMsg;
+}
+
+
+
+std::string extraAbsDirFromUri(std::string fileUrl)
+{
+	const char *delim = "/";
+	std::vector<std::string> vUris;
+	char cUri[1024] = {0};
+
+	strncpy(cUri, fileUrl.c_str(), (fileUrl.length() > 1024)? 1024: fileUrl.length());
+    char* p = strtok(cUri, delim);
+    while(p) {
+		std::string tmpStr = p;
+		vUris.push_back(tmpStr);
+        p = strtok(NULL, delim);
+    }
+
+	if (vUris.size() < 3) {
+		return "none";
+	} else {
+		std::string result = "/";
+		u32 i = 2;
+		for (i = 2; i < vUris.size() - 1; i++) {
+			result += vUris.at(i);
+			
+			if (i != vUris.size() - 2)
+				result += "/";
+		}
+		return result;
+	}
+}
+
+/*
+Example:
+camera.delete
+{
+    "name": "camera.delete",
+    "parameters": {	
+		"fileUrls": ["http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG"]
+    }
+}
+参数的特殊情况:
+"fileUrls"列表中只包含"all", "image", "video"
+
+
+成功:
+{
+    "name": "camera.delete",
+    "state": "done"
+}
+
+失败:
+1.参数错误
+{
+	"name":"camera.delete",
+	"state":"error",
+	"error": {
+		"code": "missingParameter",	// "missingParameter": 指定的fileUrls不存在; "invalidParameterName":不认识的参数名; "invalidParameterValue":参数名识别，值非法
+		"message":"XXXX"
+	}
+}
+2.文件删除失败
+{
+	"name":"camera.delete",
+	"state":"done",
+	"results":{
+		"fileUrls":[]		// 删除失败的URL列表
+	}
+}
+*/
+bool endWith(const std::string &str, const std::string &tail) 
+{
+	return str.compare(str.size() - tail.size(), tail.size(), tail) == 0;
+}
+ 
+bool startWith(const std::string &str, const std::string &head) 
+{
+	return str.compare(0, head.size(), head) == 0;
+}
+
+
+bool handleDeleteFile(std::string rootPath, Json::Value& reqBody, Json::Value& reqReply)
+{
+	reqReply.clear();
+	reqReply["name"] = OSC_CMD_DELETE;
+	Json::Value delFailedUris;
+	bool bParseUri = true;	
+
+	if (reqBody.isMember(_param)) {
+		if (reqBody[_param].isMember(_fileUrls)) {	/* 存在‘fileUrls’字段，分为两种情况: 1.按类别删除；2.按指定的urls删除 */
+			Json::Value delUrls = reqBody[_param][_fileUrls];
+			if (delUrls.size() == 1 && (delUrls[0].asString() == "all" || delUrls[0].asString() == "ALL" 
+										|| delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE"
+										|| delUrls[0].asString() == "video" || delUrls[0].asString() == "VIDEO")) {
+				
+				if (access(rootPath.c_str(), F_OK) == 0) {
+
+#define DELETE_TYPE_ALL		1
+#define DELETE_TYPE_IMAGE	2
+#define DELETE_TYPE_VIDEO	3
+
+					int iDelType = 1;
+
+					if (delUrls[0].asString() == "all" || delUrls[0].asString() == "ALL") {	/* 删除顶层目录下所有以PIC, VID开头的目录 */
+						iDelType = DELETE_TYPE_ALL;
+					} else if (delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE") {
+						iDelType = DELETE_TYPE_IMAGE;
+					} else if (delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE") {
+						iDelType = DELETE_TYPE_VIDEO;
+					}
+
+					DIR *dir;
+					struct dirent *de;
+
+    				dir = opendir(rootPath.c_str());
+    				if (dir != NULL) {
+						while ((de = readdir(dir))) {
+							if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+								continue;
+
+							std::string dirName = de->d_name;
+							bool bIsPicDir = false;
+							bool bIsVidDir = false;
+							if ((bIsPicDir = startWith(dirName, "PIC")) || (bIsVidDir = startWith(dirName, "VID"))) {
+								std::string dstPath = rootPath + "/" + dirName;
+								bool bRealDel = false;
+								switch (iDelType) {
+									case DELETE_TYPE_ALL: {
+										bRealDel = true;
+										break;
+									}
+
+									case DELETE_TYPE_IMAGE: {
+										if (bIsPicDir) bRealDel = true;
+										break;
+									}
+
+									case DELETE_TYPE_VIDEO: {
+										if (bIsVidDir) bRealDel = true;
+										break;
+									}
+								}
+								if (bRealDel) {
+									std::string rmCmd = "rm -rf " + dstPath;
+									printf("Remove dir [%s]\n", rmCmd.c_str());
+									system(rmCmd.c_str());
+								}
+							}
+						}
+						closedir(dir);
+					}
+					reqReply[_state] = _done;
+				} else {	/* 存储设备不存在,返回错误 */
+					genErrorReply(reqReply, INVALID_PARAMETER_VAL, "Storage device not exist");
+				}
+			} else {
+				/* 得到对应的删除列表 */
+				std::string dirPath;
+				for (int i = 0; i < delUrls.size(); i++) {
+					dirPath = extraAbsDirFromUri(delUrls[i].asString());
+					printf("dir path: %s\n", dirPath.c_str());
+					if (access(dirPath.c_str(), F_OK) == 0) {	/* 删除整个目录 */
+						std::string rmCmd = "rm -rf " + dirPath;
+						int retry = 0;
+						for (retry = 0; retry < 3; retry++) {
+							system(rmCmd.c_str());
+							if (access(dirPath.c_str(), F_OK) != 0) break;
+						}
+
+						if (retry >= 3) {	/* 删除失败，将该fileUrl加入到删除失败返回列表中 */
+							delFailedUris[_fileUrls].append(dirPath);
+						}
+					} else {
+						fprintf(stderr, "Uri: %s not exist\n", dirPath.c_str());
+						bParseUri = false;
+						break;
+					}
+				}
+
+				if (bParseUri) {
+					/* 根据删除失败列表来决定返回值 */
+					if (delFailedUris.isMember(_fileUrls)) {	/* 有未删除的uri */
+						reqReply[_state] = _done;
+						reqReply[_results] = delFailedUris;
+					} else {	/* 全部删除成功 */
+						reqReply[_state] = _done;
+					}
+				} else {
+					genErrorReply(reqReply, INVALID_PARAMETER_VAL, "Parameter url " + dirPath + " not exist");			
+				}
+			}
+		} else {
+			genErrorReply(reqReply, MISSING_PARAMETER, "Missing parameter fileUrls");
+		}
+	} else {
+		genErrorReply(reqReply, INVALID_PARAMETER_NAME, "Missing parameter");
+	}
+	return true;
+}
+
+
+
+
 /*
  * camera.takePicture
  * camera.takeVideo
@@ -612,9 +960,11 @@ bool oscCommandHandler(mg_connection *conn, std::string body)
 			std::string oscCmd = reqBody["name"].asString();
 			
 			if (oscCmd == OSC_CMD_GET_OPTIONS) {
-				handleGetOptionsRequest(reqBody, reqReply);
+				handleGetOptionsRequest(getCurOptions(), reqBody, reqReply);
+				sendResponse(conn, convJson2String(reqReply), true);
 			} else if (oscCmd == OSC_CMD_SET_OPTIONS) {
-				handleSetOptionsRequest(reqBody, reqReply);
+				handleSetOptionsRequest(getCurOptions(), reqBody, reqReply);
+				sendResponse(conn, convJson2String(reqReply), true);
 			} else if (oscCmd == OSC_CMD_LIST_FILES) {
 
 			} else if (oscCmd == OSC_CMD_TAKE_PICTURE) {
@@ -624,14 +974,15 @@ bool oscCommandHandler(mg_connection *conn, std::string body)
 			} else if (oscCmd == OSC_CMD_STOP_CAPTURE) {
 
 			} else if (oscCmd == OSC_CMD_DELETE) {
-
+				std::string volPath = "/mnt/sdcard";
+				handleDeleteFile(volPath, reqBody, reqReply);		/* Debug */
 			}
 		}
 	} else {
 		fprintf(stderr, "Parse request body failed\n");
 	}
 
-	sendResponse(conn, "", true);
+	// sendResponse(conn, "", true);
 	return true;
 }
 
