@@ -67,6 +67,11 @@ void HttpServer::OnHttpEvent(mg_connection *connection, int event_type, void *ev
 			break;
 		}
 
+        case MG_EV_SEND: {
+            printf("---> send over on socket[%d], send [%d]bytes data\n", connection->sock, *((int*)event_data) );
+            break;
+        }
+
 		default:
 			break;
 	}
@@ -105,7 +110,7 @@ void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 	/*
 	 * message:包括请求行 + 头 + 请求体
 	 */
-#if DEBUG_HTTP_SERVER	
+#ifdef  DEBUG_HTTP_SERVER	
 	std::string req_str = std::string(httpReq->message.p, httpReq->message.len);	
 	printf("Request Message: %s\n", req_str.c_str());
 #endif
@@ -116,11 +121,13 @@ void HttpServer::HandleEvent(mg_connection *connection, http_message *httpReq)
 	std::string reqProto = std::string(httpReq->proto.p, httpReq->proto.len);
 	std::string reqBody = std::string(httpReq->body.p, httpReq->body.len);
 
+#ifdef  DEBUG_HTTP_SERVER	
+
 	printf("Req Method: %s", reqMethod.c_str());
 	printf("Req Uri: %s", reqUri.c_str());
 	printf("Req Proto: %s", reqProto.c_str());
-
 	printf("body: %s\n", reqBody.c_str());
+#endif    
 
 	std::shared_ptr<struct HttpRequest> tmpRequest;
 	u32 i = 0;

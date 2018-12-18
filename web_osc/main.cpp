@@ -16,8 +16,53 @@ static Json::Value gOptions;
 #define OSC_INFO_TEMP_PATH_NAME		"/home/nvidia/insta360/etc/osc_info.json"
 #define OSC_DEFAULT_OPTIONS_PATH	"/home/nvidia/insta360/etc/default_options.json"
 
-#define SN_FIRM_VER_PATH_NAME	"/home/nvidia/insta360/etc/sn_firm.json"
-#define UP_TIME_PATH			"/proc/uptime"
+#define SN_FIRM_VER_PATH_NAME		"/home/nvidia/insta360/etc/sn_firm.json"
+#define UP_TIME_PATH				"/proc/uptime"
+
+#define OSC_CMD_GET_OPTIONS			"camera.getOptions"
+#define OSC_CMD_SET_OPTIONS			"camera.setOptions"
+#define OSC_CMD_LIST_FILES			"camera.listFiles"
+
+#define OSC_CMD_TAKE_PICTURE		"camera.takePicture"
+#define OSC_CMD_START_CAPTURE		"camera.startCapture"
+#define OSC_CMD_STOP_CAPTURE		"camera.stopCapture"
+
+#define OSC_CMD_DELETE				"camera.delete"
+#define OSC_CMD_GET_LIVE_PREVIEW	"camera.getLivePreview"
+
+
+#define OSC_CMD_UPLOAD_FILE			"camera.uploadFile"
+#define OSC_CMD_SWITCH_WIFI			"camera.switchWifi"
+#define OSC_CMD_PROCESS_PICTURE		"camera.processPicture"
+#define OSC_CMD_RESET				"camera.reset"
+
+/*
+ * 错误码: Code
+ */
+#define INVALID_PARAMETER_NAME 		"invalidParameterName"
+#define MISSING_PARAMETER			"missingParameter"
+#define INVALID_PARAMETER_VAL		"invalidParameterValue"
+#define UNKOWN_COMMAND				"unkownCommand"
+#define DISABLED_COMMAND            "disabledCommand"
+
+
+#define _name						"name"
+#define _param						"parameters"
+#define _state  					"state"
+#define _done						"done"
+#define _error  					"error"
+#define _code  						"code"
+#define _message					"message"
+#define _fileUrls					"fileUrls"
+#define _results					"results"
+
+
+enum {
+	DELETE_TYPE_ALL = 1,
+	DELETE_TYPE_IMAGE = 2,
+	DELETE_TYPE_VIDEO = 3
+};
+
 
 
 static void printJson(Json::Value& json)
@@ -74,7 +119,47 @@ static int getUptime()
 }
 
 
-static bool genDefaultOptions(Json::Value& optionsJson)
+
+std::string extraAbsDirFromUri(std::string fileUrl)
+{
+	const char *delim = "/";
+	std::vector<std::string> vUris;
+	char cUri[1024] = {0};
+
+	strncpy(cUri, fileUrl.c_str(), (fileUrl.length() > 1024)? 1024: fileUrl.length());
+    char* p = strtok(cUri, delim);
+    while(p) {
+		std::string tmpStr = p;
+		vUris.push_back(tmpStr);
+        p = strtok(NULL, delim);
+    }
+
+	if (vUris.size() < 3) {
+		return "none";
+	} else {
+		std::string result = "/";
+		u32 i = 2;
+		for (i = 2; i < vUris.size() - 1; i++) {
+			result += vUris.at(i);
+			
+			if (i != vUris.size() - 2)
+				result += "/";
+		}
+		return result;
+	}
+}
+
+bool endWith(const std::string &str, const std::string &tail) 
+{
+	return str.compare(str.size() - tail.size(), tail.size(), tail) == 0;
+}
+ 
+bool startWith(const std::string &str, const std::string &head) 
+{
+	return str.compare(0, head.size(), head) == 0;
+}
+
+static void genDefaultOptions(Json::Value& optionsJson)
 {
 	printf("---------------- genDefaultOptions\n");
 	// Json::Value& optionsJson = *pOriginOptions;
@@ -264,12 +349,11 @@ static bool genDefaultOptions(Json::Value& optionsJson)
     
 	optionsJson["previewFormat"]["width"] = 1920;
 	optionsJson["previewFormat"]["height"] = 960;
-	optionsJson["previewFormat"]["framerate"] = 30;
-
+	optionsJson["previewFormat"]["framerate"] = 5;
 
 	optionsJson["previewFormatSupport"][0]["width"] = 1920;
 	optionsJson["previewFormatSupport"][0]["height"] = 960;
-	optionsJson["previewFormatSupport"][0]["framerate"] = 30;
+	optionsJson["previewFormatSupport"][0]["framerate"] = 5;
 
 	optionsJson["captureInterval"] = 2;
 	optionsJson["captureIntervalSupport"][0] = 2;
@@ -383,6 +467,14 @@ Json::Value& getCurOptions()
 	return gOptions;
 }
 
+void genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg)
+{
+	replyJson[_state] = _error;
+	replyJson[_error][_code] = code;
+	replyJson[_error][_message] = errMsg;
+}
+
+
 
 static void sendResponse(mg_connection *c, std::string reply,  bool bSendClose)
 {
@@ -487,75 +579,50 @@ bool oscStateHandler(mg_connection *conn, std::string body)
 }
 
 
-
+/*
+ * @/osc/checkForUpdates
+ * Example:
+ * {
+ * 		"error": {
+ * 			"code": "unknownCommand",
+ * 			"message": "Command executed is unknown."
+ * 		},
+ * 		"name": "unknown",
+ * 		"state": "error"
+ * }
+ */
 bool oscCheckForUpdateHandler(mg_connection *conn, std::string body)
 {
-	// do sth
-	std::cout << "handle fun1" << std::endl;
-	std::cout << "body: " << body << std::endl;
-
-
+	printf("--------------------> oscCheckForUpdateHandler\n");
+	Json::Value replyJson;
+	replyJson[_name] = "unkown";
+	genErrorReply(replyJson, UNKOWN_COMMAND, "Command executed is unknown.");
+	sendResponse(conn, convJson2String(replyJson), true);
 	return true;
 }
 
 
-#define OSC_CMD_GET_OPTIONS			"camera.getOptions"
-#define OSC_CMD_SET_OPTIONS			"camera.setOptions"
-#define OSC_CMD_LIST_FILES			"camera.listFiles"
-
-#define OSC_CMD_TAKE_PICTURE		"camera.takePicture"
-#define OSC_CMD_START_CAPTURE		"camera.startCapture"
-#define OSC_CMD_STOP_CAPTURE		"camera.stopCapture"
-
-#define OSC_CMD_DELETE				"camera.delete"
-#define OSC_CMD_GET_LIVE_PREVIEW	"camera.getLivePreview"
-
-
-#define OSC_CMD_UPLOAD_FILE			"camera.uploadFile"
-#define OSC_CMD_SWITCH_WIFI			"camera.switchWifi"
-#define OSC_CMD_PROCESS_PICTURE		"camera.processPicture"
-#define OSC_CMD_RESET				"camera.reset"
-
-#define INVALID_PARAMETER_NAME 		"invalidParameterName"
-#define MISSING_PARAMETER			"missingParameter"
-#define INVALID_PARAMETER_VAL		"invalidParameterValue"
-
-
-#define _param						"parameters"
-#define _state  					"state"
-#define _done						"done"
-#define _error  					"error"
-#define _code  						"code"
-#define _message					"message"
-#define _fileUrls					"fileUrls"
-#define _results					"results"
-
-
 
 /*
-Example:
-Request:
-{
-    "name": "camera.getOptions",
-    "parameters": {
-        "optionNames": ["captureModeSupport"]
-    }
-}
-Response:
-{
-    "name": "camera.getOptions",
-    "results": {
-        "options": {
-            "captureModeSupport": [
-                "image",
-                "interval",
-                "video"
-            ]
-        }
-    },
-    "state": "done"
-}
-*/
+ * Example:
+ * Request:
+ * {
+ * 		"name": "camera.getOptions",
+ * 		"parameters": {
+ * 			"optionNames": ["captureModeSupport"]
+ * 		}
+ * }
+ * Response:
+ * {
+ * 		"name": "camera.getOptions",
+ * 		"results": {
+ * 			"options": {
+ * 				"captureModeSupport": ["image", "interval", "video"]
+ * 			}
+ * 		},
+ * 		"state": "done"
+ * }
+ */
 
 bool handleGetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, Json::Value& jsonReply)
 {
@@ -566,7 +633,7 @@ bool handleGetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, J
 		if (jsonReq[_param].isMember("optionNames")) {
 			Json::Value optionNames = jsonReq[_param]["optionNames"];
 			Json::Value resultOptions;
-			int i = 0;
+			u32 i = 0;
 
 			printf("optionNames size: %d\n", optionNames.size());
 			
@@ -597,21 +664,21 @@ bool handleGetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, J
 
 
 /*
-Example:
-{
-    "name": "camera.setOptions",
-    "parameters": {
-        "options": {
-        	"captureMode": "video"
-        }
-    }
-}
-
-{
-    "name": "camera.setOptions",
-    "state": "done"
-}
-*/
+ * Example:
+ * {
+ * 		"name": "camera.setOptions",
+ * 		"parameters": {
+ * 			"options": {
+ * 				"captureMode": "video"
+ * 			}
+ * 		}
+ * }
+ * Response:
+ * {
+ * 		"name": "camera.setOptions",
+ * 		"state": "done"
+ * }
+ */
 bool handleSetOptionsRequest(Json::Value& sysCurOptions, Json::Value& jsonReq, Json::Value& jsonReply)
 {
 	jsonReply.clear();
@@ -679,14 +746,10 @@ bool handleDeleteRequest(Json::Value& jsonReply)
 }
 
 
-bool handleGetLivePreviewRequest(Json::Value& jsonReply)
+bool handleListFileRequest(Json::Value& jsonReq, Json::Value& jsonReply)
 {
-	return true;
-}
-
-
-bool handleListFileRequest(Json::Value& jsonReply)
-{
+    jsonReply[_name] = OSC_CMD_LIST_FILES;
+    genErrorReply(jsonReply, DISABLED_COMMAND, "Storage device not exist");
 	return true;
 }
 
@@ -720,95 +783,180 @@ bool handleProcessPictureRequest(Json::Value& jsonReply)
 
 
 
+/*
+ * command: getLiewPreview
+ * Example:
+ * {
+ * 		"name":"camera.getLivePreview"
+ * }
+ * Response:
+ * 1.首先发响应头:
+ * HTTP/1.1 200 OK
+ * Connection: Keep-Alive
+ * Content-Type: multipart/x-mixed-replace; boundary="---osclivepreview---"
+ * X-Content-Type-Options: nosniff
+ * Transfer-Encoding: Chunked
+ * \r\n
+ * 5d2ba
+ * ---osclivepreview---
+ * Content-type: image/jpeg
+ * Content-Length: 381548
+ * \r\n
+ * JFIF图片数据
+ * \r\n(\r\n)
+ * 5d479
+ * ---osclivepreview---
+ * Content-type: image/jpeg
+ * Content-Length: 381995
+ * \r\n
+ * JFIF图片数据
+ * 
+ */
 
-
-void genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg)
+static void sendGetLivePreviewResponseHead(mg_connection *conn)
 {
-	replyJson[_state] = _error;
-	replyJson[_error][_code] = code;
-	replyJson[_error][_message] = errMsg;
+    mg_printf(conn, "HTTP/1.1 200 OK\r\n"	\
+            "Connection: Keep-Alive\r\n"	\
+            "Content-Type: multipart/x-mixed-replace; boundary=\"---osclivepreview---\"\r\n"	\
+            "X-Content-Type-Options:nosniff\r\n"	\
+            "Transfer-Encoding: Chunked\r\n");    
 }
 
-
-
-std::string extraAbsDirFromUri(std::string fileUrl)
+static void sendOneFrameData(mg_connection *conn, int iFrameId)
 {
-	const char *delim = "/";
-	std::vector<std::string> vUris;
-	char cUri[1024] = {0};
+    printf("send one frame data here, id = %d\n", iFrameId);
+    char filePath[512] = {0};
+    char buffer[1024] = {0};
 
-	strncpy(cUri, fileUrl.c_str(), (fileUrl.length() > 1024)? 1024: fileUrl.length());
-    char* p = strtok(cUri, delim);
-    while(p) {
-		std::string tmpStr = p;
-		vUris.push_back(tmpStr);
-        p = strtok(NULL, delim);
+    sprintf(filePath, "/home/nvidia/Pictures/pic%d.jpg", iFrameId);
+    int iFd = open(filePath, O_RDONLY);
+    if (iFd > 0) {
+        struct stat fileStat;
+        fstat(iFd, &fileStat);
+        int iFileSize = fileStat.st_size;
+        int iReadLen;
+        mg_printf(conn, 
+                "%x\r\n"    \
+                "---osclivepreview---\r\n"  \
+                "Content-type: image/jpeg\r\n"  \
+                "Content-Length: %d\r\n\r\n", iFileSize + 78, iFileSize);
+        
+        while ((iReadLen = read(iFd, buffer, 1024)) > 0) {
+            mg_send(conn, buffer, iReadLen);            
+        }
+        mg_send(conn, "\r\n", strlen("\r\n"));
+        close(iFd);
+    } else {
+        fprintf(stderr, "open File[%s] failed\n", filePath);
     }
+    /* 发送头部
+     * %x\r\n
+     * ---osclivepreview---\r\n             22
+     * Content-type: image/jpeg\r\n         26
+     * Content-Length: 381548\r\n           24
+     * \r\n
+     *
+     */
 
-	if (vUris.size() < 3) {
-		return "none";
-	} else {
-		std::string result = "/";
-		u32 i = 2;
-		for (i = 2; i < vUris.size() - 1; i++) {
-			result += vUris.at(i);
-			
-			if (i != vUris.size() - 2)
-				result += "/";
-		}
-		return result;
-	}
 }
+
+bool handleGetLivePreviewRequest(mg_connection *conn, Json::Value& jsonReq, Json::Value& jsonReply)
+{
+
+    printf("------------------------------> getLivePrevew request here.....\n");    
+    /*
+     * 1.发送响应头
+     * 2.根据当前的配置帧率启动一个定时器(1/5HZ)，可以直接用select监听改socket
+     * 3.发送数据
+     */
+    sendGetLivePreviewResponseHead(conn);
+
+#if 1
+    int iSockFd = conn->sock;
+    bool bFirstTime = true;
+    int iIndex = 0;
+    
+    printf("In livepreview response, socket fd = %d\n", iSockFd); 
+
+    while (true) {
+
+        fd_set read_fds;
+        fd_set write_fds;
+        int rc = 0;
+        int max = -1;
+        struct timeval timeout;        
+
+        FD_ZERO(&read_fds);
+        FD_ZERO(&write_fds);
+
+        if (iSockFd > 0) {
+            FD_SET(iSockFd, &write_fds);	
+            if (iSockFd > max)
+                max = iSockFd;
+        }
+
+        if (bFirstTime) {
+            bFirstTime = false;
+            timeout.tv_sec  = 0;
+            timeout.tv_usec = 0;            
+        } else {
+            timeout.tv_sec  = 0;
+            timeout.tv_usec = 200*1000;    // 1000 * 1000 us / 5
+        }
+
+        if ((rc = select(max + 1, &read_fds, &write_fds, NULL, &timeout)) < 0) {	
+            fprintf(stderr, "----> select error occured here, maybe socket closed.\n");
+            break;
+        } else if (!rc) {   /* 超时了，也需要判断是否可以写数据了 */
+            printf("select timeout, maybe send network data slowly.\n");
+        }
+
+        if (FD_ISSET(iSockFd, &write_fds)) {    /* 数据发送完成，可以写下一帧数据了 */
+            sendOneFrameData(conn, iIndex);
+            iIndex = (iIndex+1) % 5;
+        }
+
+    }
+#endif
+	return true;
+}
+
+
 
 /*
-Example:
-camera.delete
-{
-    "name": "camera.delete",
-    "parameters": {	
-		"fileUrls": ["http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG"]
-    }
-}
-参数的特殊情况:
-"fileUrls"列表中只包含"all", "image", "video"
-
-
-成功:
-{
-    "name": "camera.delete",
-    "state": "done"
-}
-
-失败:
-1.参数错误
-{
-	"name":"camera.delete",
-	"state":"error",
-	"error": {
-		"code": "missingParameter",	// "missingParameter": 指定的fileUrls不存在; "invalidParameterName":不认识的参数名; "invalidParameterValue":参数名识别，值非法
-		"message":"XXXX"
-	}
-}
-2.文件删除失败
-{
-	"name":"camera.delete",
-	"state":"done",
-	"results":{
-		"fileUrls":[]		// 删除失败的URL列表
-	}
-}
-*/
-bool endWith(const std::string &str, const std::string &tail) 
-{
-	return str.compare(str.size() - tail.size(), tail.size(), tail) == 0;
-}
- 
-bool startWith(const std::string &str, const std::string &head) 
-{
-	return str.compare(0, head.size(), head) == 0;
-}
-
-
+ * Example:
+ * {
+ * 		"name": "camera.delete",
+ * 		"parameters": {	
+ * 			"fileUrls": ["http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG"]
+ * 		}
+ * }
+ * 参数的特殊情况:
+ * "fileUrls"列表中只包含"all", "image", "video"
+ * 成功:
+ * {
+ * 		"name": "camera.delete",
+ * 		"state": "done"
+ * }
+ * 失败
+ * 1.参数错误
+ * {
+ * 		"name":"camera.delete",
+ * 		"state":"error",
+ * 		"error": {
+ * 			"code": "missingParameter",	// "missingParameter": 指定的fileUrls不存在; "invalidParameterName":不认识的参数名; "invalidParameterValue":参数名识别，值非法
+ * 			"message":"XXXX"
+ * 		}
+ * }
+ * 2.文件删除失败
+ * {
+ * 		"name":"camera.delete",
+ * 		"state":"done",
+ * 		"results":{
+ * 			"fileUrls":[]		// 删除失败的URL列表
+ * 		}
+ * }
+ */
 bool handleDeleteFile(std::string rootPath, Json::Value& reqBody, Json::Value& reqReply)
 {
 	reqReply.clear();
@@ -824,10 +972,6 @@ bool handleDeleteFile(std::string rootPath, Json::Value& reqBody, Json::Value& r
 										|| delUrls[0].asString() == "video" || delUrls[0].asString() == "VIDEO")) {
 				
 				if (access(rootPath.c_str(), F_OK) == 0) {
-
-#define DELETE_TYPE_ALL		1
-#define DELETE_TYPE_IMAGE	2
-#define DELETE_TYPE_VIDEO	3
 
 					int iDelType = 1;
 
@@ -870,6 +1014,7 @@ bool handleDeleteFile(std::string rootPath, Json::Value& reqBody, Json::Value& r
 										break;
 									}
 								}
+							
 								if (bRealDel) {
 									std::string rmCmd = "rm -rf " + dstPath;
 									printf("Remove dir [%s]\n", rmCmd.c_str());
@@ -886,7 +1031,7 @@ bool handleDeleteFile(std::string rootPath, Json::Value& reqBody, Json::Value& r
 			} else {
 				/* 得到对应的删除列表 */
 				std::string dirPath;
-				for (int i = 0; i < delUrls.size(); i++) {
+				for (u32 i = 0; i < delUrls.size(); i++) {
 					dirPath = extraAbsDirFromUri(delUrls[i].asString());
 					printf("dir path: %s\n", dirPath.c_str());
 					if (access(dirPath.c_str(), F_OK) == 0) {	/* 删除整个目录 */
@@ -959,30 +1104,34 @@ bool oscCommandHandler(mg_connection *conn, std::string body)
 			printf("Command name: %s\n", reqBody["name"].asCString());
 			std::string oscCmd = reqBody["name"].asString();
 			
-			if (oscCmd == OSC_CMD_GET_OPTIONS) {
+			if (oscCmd == OSC_CMD_GET_OPTIONS) {				/* camera.getOptions */
 				handleGetOptionsRequest(getCurOptions(), reqBody, reqReply);
-				sendResponse(conn, convJson2String(reqReply), true);
-			} else if (oscCmd == OSC_CMD_SET_OPTIONS) {
+			} else if (oscCmd == OSC_CMD_SET_OPTIONS) {			/* camera.setOptions */
 				handleSetOptionsRequest(getCurOptions(), reqBody, reqReply);
-				sendResponse(conn, convJson2String(reqReply), true);
-			} else if (oscCmd == OSC_CMD_LIST_FILES) {
-
-			} else if (oscCmd == OSC_CMD_TAKE_PICTURE) {
+			} else if (oscCmd == OSC_CMD_LIST_FILES) {			/* camera.listFiles */
+                handleListFileRequest(reqBody, reqReply);
+			} else if (oscCmd == OSC_CMD_TAKE_PICTURE) {		/* camera.takePicture */
 				handleTakePictureRequest(reqReply);
-			} else if (oscCmd == OSC_CMD_START_CAPTURE) {
+			} else if (oscCmd == OSC_CMD_START_CAPTURE) {		/* camera.startCapture */
 
-			} else if (oscCmd == OSC_CMD_STOP_CAPTURE) {
+			} else if (oscCmd == OSC_CMD_STOP_CAPTURE) {		/* camera.stopCapture */
 
-			} else if (oscCmd == OSC_CMD_DELETE) {
+			} else if (oscCmd == OSC_CMD_DELETE) {				/* camera.delete */
 				std::string volPath = "/mnt/sdcard";
-				handleDeleteFile(volPath, reqBody, reqReply);		/* Debug */
+				handleDeleteFile(volPath, reqBody, reqReply);		
+			} else if (oscCmd == OSC_CMD_GET_LIVE_PREVIEW) {	/* camera.getLivePreview */
+                handleGetLivePreviewRequest(conn, reqBody, reqReply);
 			}
+            
+            if (oscCmd != OSC_CMD_GET_LIVE_PREVIEW) {
+    			sendResponse(conn, convJson2String(reqReply), true);				
+            }
 		}
 	} else {
 		fprintf(stderr, "Parse request body failed\n");
+		genErrorReply(reqReply, MISSING_PARAMETER, "Parse parameter failed");
+		sendResponse(conn, convJson2String(reqReply), true);				
 	}
-
-	// sendResponse(conn, "", true);
 	return true;
 }
 
@@ -1006,10 +1155,9 @@ int main(int argc, char *argv[])
 
 	HttpServer* httpServer = HttpServer::Instance();
 
-
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/info", METHOD_GET | METHOD_POST, oscInfoHandler));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/state", METHOD_GET | METHOD_POST, oscStateHandler));
-	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/checkForUpdate", METHOD_GET | METHOD_POST, oscCheckForUpdateHandler));
+	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/info", METHOD_GET, oscInfoHandler));
+	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/state", METHOD_POST, oscStateHandler));
+	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/checkForUpdates", METHOD_GET | METHOD_POST, oscCheckForUpdateHandler));
 
 	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/execute", METHOD_GET | METHOD_POST, oscCommandHandler));
 	httpServer->registerUrlHandler(std::make_shared<struct HttpRequest>("/osc/commands/status", METHOD_GET | METHOD_POST, oscStatusHandler));
