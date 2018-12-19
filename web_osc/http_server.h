@@ -30,36 +30,34 @@ struct HttpRequest {
 		mHandler = handler;
 	}
 
+	HttpRequest(std::string url, int method) {
+		mUrl = url;
+		mReqMethod = method;
+		mHandler = nullptr;
+	}
 };
 
 
 class HttpServer {
 public:
-
+						HttpServer();
 	virtual				~HttpServer() {}
-
-    static HttpServer*	Instance();	
 
 	void				setPort(const std::string dstPort);
 
 	bool 				startHttpServer(); 
 	bool 				stopHttpServer(); 
 
-	bool				registerUrlHandler(std::shared_ptr<struct HttpRequest>);
-
+protected:
+	virtual void		HandleEvent(mg_connection *connection, http_message *http_req);
 
 private:
-						HttpServer();
+
 	static void			OnHttpEvent(mg_connection *connection, int event_type, void *event_data);
-	static void			HandleEvent(mg_connection *connection, http_message *http_req);
 
-	std::vector<std::shared_ptr<struct HttpRequest>>	mSupportRequest;
-
-    static HttpServer*   								sInstance;
-	std::mutex											mRegLock;
-	std::string 										mPort;    
-	mg_mgr 												mMgr;      
-	
+	std::string					mPort;    
+	mg_mgr						mMgr;    
+	static HttpServer*			mInstance;
 };
 
 #endif /* _HTT_SERVER_H_ */
