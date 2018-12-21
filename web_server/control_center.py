@@ -1424,8 +1424,8 @@ class control_center:
         
         if StateMachine.checkStateIn(config.STATE_TAKE_CAPTURE_IN_PROCESS):
             StateMachine.rmServerState(config.STATE_TAKE_CAPTURE_IN_PROCESS)
-        StateMachine.addServerState(config.STATE_PIC_STITCHING)
 
+        StateMachine.addServerState(config.STATE_PIC_STITCHING)
 
 
     def camera_take_pic_fail(self, err = -1):

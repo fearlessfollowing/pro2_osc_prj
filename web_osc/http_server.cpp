@@ -2,10 +2,12 @@
 #include <sys/ins_types.h>
 #include "http_server.h"
 
+HttpServer* HttpServer::mInstance;
 
 HttpServer::HttpServer()
 {
 	mPort = DEFAULT_WEB_PORT;
+	mInstance = this;
 }
 
 void HttpServer::setPort(const std::string dstPort)

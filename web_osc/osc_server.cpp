@@ -10,6 +10,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <system_properties.h>
+
 #include "osc_server.h"
 #include "utils.h"
 
@@ -119,6 +121,308 @@ bool OscServer::oscStateHandler(mg_connection *conn)
 	return true;
 }
 
+/*
+ * @/osc/checkForUpdates
+ * Example:
+ * {
+ * 		"error": {
+ * 			"code": "unknownCommand",
+ * 			"message": "Command executed is unknown."
+ * 		},
+ * 		"name": "unknown",
+ * 		"state": "error"
+ * }
+ */
+bool OscServer::oscCheckForUpdateHandler(mg_connection *conn)
+{
+	printf("--------------------> oscCheckForUpdateHandler\n");
+	Json::Value replyJson;
+	replyJson[_name] = "unkown";
+	genErrorReply(replyJson, UNKOWN_COMMAND, "Command executed is unknown.");
+	sendResponse(conn, convJson2String(replyJson), true);
+	return true;
+}
+
+
+/*
+ * Example:
+ * Request:
+ * {
+ * 		"name": "camera.getOptions",
+ * 		"parameters": {
+ * 			"optionNames": ["captureModeSupport"]
+ * 		}
+ * }
+ * Response:
+ * {
+ * 		"name": "camera.getOptions",
+ * 		"results": {
+ * 			"options": {
+ * 				"captureModeSupport": ["image", "interval", "video"]
+ * 			}
+ * 		},
+ * 		"state": "done"
+ * }
+ */
+
+void OscServer::handleGetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
+{
+	jsonReply.clear();
+	jsonReply["name"] = OSC_CMD_GET_OPTIONS;
+
+	if (jsonReq.isMember(_param)) {
+		if (jsonReq[_param].isMember("optionNames")) {
+			Json::Value optionNames = jsonReq[_param]["optionNames"];
+			Json::Value resultOptions;
+			u32 i = 0;
+
+			printf("optionNames size: %d\n", optionNames.size());
+			
+			for (i = 0; i < optionNames.size(); i++) {
+				std::string optionMember = optionNames[i].asString();
+				if (mCurOptions.isMember(optionMember)) {
+					resultOptions[optionMember] = mCurOptions[optionMember];
+				}
+			}
+			
+			if (i >= optionNames.size()) {
+				jsonReply["results"]["options"] = resultOptions;
+				jsonReply["state"] = "done";
+			} else {
+				jsonReply["state"] = "error";
+				jsonReply["error"]["code"] = "invalidParameterName";
+				jsonReply["error"]["message"] = "Parameter optionNames contains unrecognized or unsupported";
+			}
+		}
+	} else {
+		jsonReply["state"] = "error";
+		jsonReply["error"]["code"] = "invalidParameterName";
+		jsonReply["error"]["message"] = "Parameter format is invalid";
+	}
+}
+
+
+
+/*
+ * Example:
+ * {
+ * 		"name": "camera.setOptions",
+ * 		"parameters": {
+ * 			"options": {
+ * 				"captureMode": "video"
+ * 			}
+ * 		}
+ * }
+ * Response:
+ * {
+ * 		"name": "camera.setOptions",
+ * 		"state": "done"
+ * }
+ */
+void OscServer::handleSetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply)
+{
+	jsonReply.clear();
+	jsonReply["name"] = OSC_CMD_SET_OPTIONS;
+	bool bParseResult = true;
+
+	if (jsonReq.isMember(_param)) {
+		if (jsonReq[_param].isMember("options")) {
+			Json::Value optionsMap = jsonReq[_param]["options"];
+
+			Json::Value::Members members;  
+        	members = optionsMap.getMemberNames();   // 获取所有key的值
+			printf("setOptions -> options: \n");
+			printJson(optionsMap);
+
+			for (Json::Value::Members::iterator iterMember = members.begin(); 
+										iterMember != members.end(); iterMember++) {	// 遍历每个key 
+				
+				/* 1.首先检查该keyName是否在curOptions的成员
+				 * 2.检查keyVal是否为curOptions对应的option支持的值
+				 */
+				std::string strKey = *iterMember; 
+				if (mCurOptions.isMember(strKey)) {	/* keyName为curOptions的成员 */
+					/* TODO: 对设置的值合法性进行校验 */
+					mCurOptions[strKey] = optionsMap[strKey];
+				} else {
+					fprintf(stderr, "Unsupport keyName[%s],break now\n", strKey.c_str());
+					bParseResult = false;
+					break;
+				}
+			}
+
+			if (bParseResult) {
+				jsonReply["state"] = "done";
+			} else {
+				jsonReply["state"] = "error";
+				jsonReply["error"]["code"] = "invalidParameterName";
+				jsonReply["error"]["message"] = "Parameter optionNames contains unrecognized or unsupported";
+			}
+		}
+	} else {
+		jsonReply["state"] = "error";
+		jsonReply["error"]["code"] = "invalidParameterName";
+		jsonReply["error"]["message"] = "Parameter format is invalid";
+	}
+}
+
+
+/*
+ * Example:
+ * {
+ * 		"name": "camera.delete",
+ * 		"parameters": {	
+ * 			"fileUrls": ["http://192.168.1.1/files/150100525831424d4207a52390afc300/100RICOH/R0012284.JPG"]
+ * 		}
+ * }
+ * 参数的特殊情况:
+ * "fileUrls"列表中只包含"all", "image", "video"
+ * 成功:
+ * {
+ * 		"name": "camera.delete",
+ * 		"state": "done"
+ * }
+ * 失败
+ * 1.参数错误
+ * {
+ * 		"name":"camera.delete",
+ * 		"state":"error",
+ * 		"error": {
+ * 			"code": "missingParameter",	// "missingParameter": 指定的fileUrls不存在; "invalidParameterName":不认识的参数名; "invalidParameterValue":参数名识别，值非法
+ * 			"message":"XXXX"
+ * 		}
+ * }
+ * 2.文件删除失败
+ * {
+ * 		"name":"camera.delete",
+ * 		"state":"done",
+ * 		"results":{
+ * 			"fileUrls":[]		// 删除失败的URL列表
+ * 		}
+ * }
+ */
+bool OscServer::handleDeleteFile(Json::Value& reqBody, Json::Value& reqReply)
+{
+	reqReply.clear();
+	reqReply["name"] = OSC_CMD_DELETE;
+	Json::Value delFailedUris;
+	bool bParseUri = true;	
+
+	if (reqBody.isMember(_param)) {
+		if (reqBody[_param].isMember(_fileUrls)) {	/* 存在‘fileUrls’字段，分为两种情况: 1.按类别删除；2.按指定的urls删除 */
+			Json::Value delUrls = reqBody[_param][_fileUrls];
+
+			if (delUrls.size() == 1 && (delUrls[0].asString() == "all" || delUrls[0].asString() == "ALL" 
+										|| delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE"
+										|| delUrls[0].asString() == "video" || delUrls[0].asString() == "VIDEO")) {
+				
+				std::string rootPath = "/mnt/sdcard";
+				if (property_get("sys.save_path")) {
+					rootPath = property_get("sys.save_path");
+				}
+
+				if (access(rootPath.c_str(), F_OK) == 0) {
+
+					int iDelType = 1;
+
+					if (delUrls[0].asString() == "all" || delUrls[0].asString() == "ALL") {	/* 删除顶层目录下所有以PIC, VID开头的目录 */
+						iDelType = DELETE_TYPE_ALL;
+					} else if (delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE") {
+						iDelType = DELETE_TYPE_IMAGE;
+					} else if (delUrls[0].asString() == "image" || delUrls[0].asString() == "IMAGE") {
+						iDelType = DELETE_TYPE_VIDEO;
+					}
+
+					DIR *dir;
+					struct dirent *de;
+
+    				dir = opendir(rootPath.c_str());
+    				if (dir != NULL) {
+						while ((de = readdir(dir))) {
+							if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+								continue;
+
+							std::string dirName = de->d_name;
+							bool bIsPicDir = false;
+							bool bIsVidDir = false;
+							if ((bIsPicDir = startWith(dirName, "PIC")) || (bIsVidDir = startWith(dirName, "VID"))) {
+								std::string dstPath = rootPath + "/" + dirName;
+								bool bRealDel = false;
+								switch (iDelType) {
+									case DELETE_TYPE_ALL: {
+										bRealDel = true;
+										break;
+									}
+
+									case DELETE_TYPE_IMAGE: {
+										if (bIsPicDir) bRealDel = true;
+										break;
+									}
+
+									case DELETE_TYPE_VIDEO: {
+										if (bIsVidDir) bRealDel = true;
+										break;
+									}
+								}
+							
+								if (bRealDel) {
+									std::string rmCmd = "rm -rf " + dstPath;
+									printf("Remove dir [%s]\n", rmCmd.c_str());
+									system(rmCmd.c_str());
+								}
+							}
+						}
+						closedir(dir);
+					}
+					reqReply[_state] = _done;
+				} else {	/* 存储设备不存在,返回错误 */
+					genErrorReply(reqReply, INVALID_PARAMETER_VAL, "Storage device not exist");
+				}
+			} else {
+				/* 得到对应的删除列表 */
+				std::string dirPath;
+				for (u32 i = 0; i < delUrls.size(); i++) {
+					dirPath = extraAbsDirFromUri(delUrls[i].asString());
+					printf("----> dir path: %s\n", dirPath.c_str());
+					if (access(dirPath.c_str(), F_OK) == 0) {	/* 删除整个目录 */
+						std::string rmCmd = "rm -rf " + dirPath;
+						int retry = 0;
+						for (retry = 0; retry < 3; retry++) {
+							system(rmCmd.c_str());
+							if (access(dirPath.c_str(), F_OK) != 0) break;
+						}
+
+						if (retry >= 3) {	/* 删除失败，将该fileUrl加入到删除失败返回列表中 */
+							delFailedUris[_fileUrls].append(dirPath);
+						}
+					} else {
+						fprintf(stderr, "Uri: %s not exist\n", dirPath.c_str());
+						bParseUri = false;
+						break;
+					}
+				}
+
+				if (bParseUri) {
+					/* 根据删除失败列表来决定返回值 */
+					if (delFailedUris.isMember(_fileUrls)) {	/* 有未删除的uri */
+						reqReply[_state] = _done;
+						reqReply[_results] = delFailedUris;
+					} else {	/* 全部删除成功 */
+						reqReply[_state] = _done;
+					}
+				} else {
+					genErrorReply(reqReply, INVALID_PARAMETER_VAL, "Parameter url " + dirPath + " not exist");			
+				}
+			}
+		} else {
+			genErrorReply(reqReply, MISSING_PARAMETER, "Missing parameter fileUrls");
+		}
+	} else {
+		genErrorReply(reqReply, INVALID_PARAMETER_NAME, "Missing parameter");
+	}
+	return true;
+}
+
 
 /*
  * camera.takePicture
@@ -130,12 +434,43 @@ bool OscServer::oscStateHandler(mg_connection *conn)
  * camera.setOptions
  * 6353d4fe9f3b22971f3ce9d1ca80b373  /boot/Image
  */
-bool OscServer::oscCommandHandler(mg_connection *conn, std::string body)
+bool OscServer::oscCommandHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef)
 {
 	printf("----------------> path: /osc/commands/excute handler\n");
+	Json::Value reqReply;
+
+	switch (reqRef->iReqCmd) {
+		case OSC_CMD_GET_OPTIONS: handleGetOptionsRequest(reqRef->oscReq, reqReply); break;
+		case OSC_CMD_SET_OPTIONS: handleSetOptionsRequest(reqRef->oscReq, reqReply); break;
+		case OSC_CMD_DELETE: 	  handleDeleteFile(reqRef->oscReq, reqReply); break;
+
+		case OSC_CMD_LIST_FILES: {
+			break;
+		}
+
+		case OSC_CMD_START_CAPTURE: {
+			break;
+		}
+
+		case OSC_CMD_STOP_CAPTURE: {
+			break;
+		}
+
+		case OSC_CMD_RESET: {
+			break;
+		}
+
+		case OSC_CMD_SWITCH_WIFI:
+		case OSC_CMD_UPLOAD_FILE:
+		default: 
+			break;
+
+	}
+
+
+#if 0
 	printf("body: %s\n", body.c_str());
 	Json::Value reqBody;
-	Json::Value reqReply;
 
 	Json::CharReaderBuilder builder;
 	builder["collectComments"] = false;
@@ -143,14 +478,7 @@ bool OscServer::oscCommandHandler(mg_connection *conn, std::string body)
 	Json::CharReader* reader = builder.newCharReader();
 
 	if (reader->parse(body.c_str(), body.c_str() + body.length(), &reqBody, &errs)) {
-		if (reqBody.isMember("name")) {
-			printf("Command name: %s\n", reqBody["name"].asCString());
-			std::string oscCmd = reqBody["name"].asString();
 			
-			if (oscCmd == OSC_CMD_GET_OPTIONS) {				/* camera.getOptions */
-				handleGetOptionsRequest(getCurOptions(), reqBody, reqReply);
-			} else if (oscCmd == OSC_CMD_SET_OPTIONS) {			/* camera.setOptions */
-				handleSetOptionsRequest(getCurOptions(), reqBody, reqReply);
 			} else if (oscCmd == OSC_CMD_LIST_FILES) {			/* camera.listFiles */
                 handleListFileRequest(reqBody, reqReply);
 			} else if (oscCmd == OSC_CMD_TAKE_PICTURE) {		/* camera.takePicture */
@@ -175,31 +503,17 @@ bool OscServer::oscCommandHandler(mg_connection *conn, std::string body)
 		genErrorReply(reqReply, MISSING_PARAMETER, "Parse parameter failed");
 		sendResponse(conn, convJson2String(reqReply), true);				
 	}
+#endif
+
 	return true;
+
 }
 
-
-/*
- * @/osc/checkForUpdates
- * Example:
- * {
- * 		"error": {
- * 			"code": "unknownCommand",
- * 			"message": "Command executed is unknown."
- * 		},
- * 		"name": "unknown",
- * 		"state": "error"
- * }
- */
-bool OscServer::oscCheckForUpdateHandler(mg_connection *conn)
+bool OscServer::oscStatusHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef)
 {
-	printf("--------------------> oscCheckForUpdateHandler\n");
-	Json::Value replyJson;
-	replyJson[_name] = "unkown";
-	genErrorReply(replyJson, UNKOWN_COMMAND, "Command executed is unknown.");
-	sendResponse(conn, convJson2String(replyJson), true);
 	return true;
 }
+
 
 
 void OscServer::fastWorkerLooper()
@@ -228,7 +542,7 @@ void OscServer::fastWorkerLooper()
 
 		if (bHaveEvent) {	/* 有事件,处理请求 */
 			if (tmpReq) {
-				Json::Value& reqJson = tmpReq->oscReq;
+				// Json::Value& reqJson = tmpReq->oscReq;
 				switch (tmpReq->iReqType) {
 					case OSC_TYPE_PATH_INFO: {
 						oscInfoHandler(tmpReq->conn);
@@ -246,45 +560,12 @@ void OscServer::fastWorkerLooper()
 					}
 
 					case OSC_TYPE_PATH_CMD: {
-						switch (tmpReq->iReqCmd) {
-							case OSC_CMD_GET_OPTIONS: {
-								break;
-							}
-
-							case OSC_CMD_SET_OPTIONS: {
-								break;
-							}
-
-							case OSC_CMD_DELETE: {
-								break;
-							}
-
-							case OSC_CMD_LIST_FILES: {
-								break;
-							}
-
-							case OSC_CMD_START_CAPTURE: {
-								break;
-							}
-
-							case OSC_CMD_STOP_CAPTURE: {
-								break;
-							}
-
-							case OSC_CMD_RESET: {
-								break;
-							}
-
-							case OSC_CMD_SWITCH_WIFI:
-							case OSC_CMD_UPLOAD_FILE:
-							default: 
-								break;
-
-						}
+						oscCommandHandler(tmpReq->conn, tmpReq);
 						break;
 					}
 
 					case OSC_TYPE_PATH_STATUS: {	/* 查找指定id的结果 */
+						oscStatusHandler(tmpReq->conn, tmpReq);
 						break;
 					}
 
@@ -307,17 +588,11 @@ void OscServer::previewWorkerLooper()
 	printf("---------> preview worker loop thread startup.\n");
 
 	while (!mPreviewWorkerExit) {
-
+		std::this_thread::sleep_for(std::chrono::microseconds(1000));
 	}
 
 }
-
-
-#define OSC_REQ_URI_INFO			"/osc/info"
-#define OSC_REQ_URI_STATE			"/osc/state"
-#define OSC_REQ_URI_CHECKFORUPDATE	"/osc/checkForUpdates"
-#define OSC_REQ_URI_COMMAND_EXECUTE	"/osc/commands/execute"
-#define OSC_REQ_URI_COMMAND_STATUS	"/osc/commands/status"				
+	
 
 void OscServer::init()
 {
@@ -325,7 +600,8 @@ void OscServer::init()
 	mPreviewWorkerExit = false;
 	mCurOptions.clear();
 	mOscInfo.clear();
-	mOscState.clear();	
+	mOscState.clear();
+	mReqCnt = 0;	
 
 	/* 1.注册URI处理接口 */
 	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_INFO, METHOD_GET));
@@ -664,29 +940,151 @@ void OscServer::stopOscServer()
 
 }
 
+#if 0
+struct tOscReq {
+    int                     iReqCnt;
+    int                     iReqType;   /* 请求路径 */
+    int                     iReqCmd;    /* 请求命令 */
+    struct mg_connection*   conn;
+    Json::Value             oscReq; 
+};
 
-bool OscServer::oscServiceEntry(mg_connection *conn, std::string url, std::string body)
+#endif
+
+enum {
+	TYPE_FAST_REQ,
+	TYPE_SLOW_REQ,
+	TYPE_MAX_REQ
+};
+
+std::shared_ptr<struct tOscReq> OscServer::getOscRequest(int iType)
 {
-	if (url == OSC_REQ_URI_INFO) {			/* 构造一个tOscReq,并丢入到mReqFastList中 */
+	std::shared_ptr<struct tOscReq> tmpReq = nullptr;
 
-	} else if (url == OSC_REQ_URI_STATE) {
+	if (TYPE_FAST_REQ == iType) {
+		{
+			std::unique_lock<std::mutex> _lock(mFastReqListLock);
+			tmpReq = mFastReqList.at(0);
+			mFastReqList.erase(mFastReqList.begin());
+		}		
+	} else {
+		std::unique_lock<std::mutex> _lock(mSlowReqListLock);
+		tmpReq = mSlowReqList.at(0);
+		mSlowReqList.erase(mSlowReqList.begin());
+	}
+	return tmpReq;
+}
 
-	} else if (url == OSC_REQ_URI_CHECKFORUPDATE) {
 
-	} else if (url == OSC_REQ_URI_COMMAND_EXECUTE) {
+std::vector<std::shared_ptr<struct tOscReq>> OscServer::getOscRequests(int iType)
+{
+	std::vector<std::shared_ptr<struct tOscReq>> tmpReqs;
+	tmpReqs.clear();
 
-	} else if (url == OSC_REQ_URI_COMMAND_STATUS) {
-
-	} 
-	return true;
+	if (TYPE_FAST_REQ == iType) {
+		{
+			std::unique_lock<std::mutex> _lock(mFastReqListLock);
+			tmpReqs = mFastReqList;
+		}		
+	} else {
+		std::unique_lock<std::mutex> _lock(mSlowReqListLock);
+		tmpReqs = mSlowReqList;
+	}
+	return tmpReqs;
 }
 
 
 
-
-
-bool OscServer::oscStatusHandler(mg_connection *conn, std::string body)
+bool OscServer::postOscRequest(std::shared_ptr<struct tOscReq> pReq)
 {
+	if (pReq->iReqType == OSC_TYPE_PATH_CMD && pReq->iReqCmd == OSC_CMD_GET_LIVE_PREVIEW) {
+		{
+			std::unique_lock<std::mutex> _lock(mSlowReqListLock);
+			printf("----> post slow request\n");
+			mSlowReqList.push_back(pReq);
+		}
+	} else {
+		{
+			std::unique_lock<std::mutex> _lock(mFastReqListLock);
+			printf("----> post fast request\n");
+			mFastReqList.push_back(pReq);
+		}
+	}
+	return true;
+}
+
+
+bool OscServer::oscServiceEntry(mg_connection *conn, std::string url, std::string body)
+{
+	bool bNeedPost = true;
+	std::shared_ptr<struct tOscReq> oscReq = nullptr;
+	oscReq = std::make_shared<struct tOscReq>();
+	oscReq->iReqCnt = ++mReqCnt;
+	oscReq->conn = conn;
+
+	if (url == OSC_REQ_URI_INFO) {						/* /osc/info */
+		oscReq->iReqType = OSC_TYPE_PATH_INFO;
+	} else if (url == OSC_REQ_URI_STATE) {				/* /osc/state */
+		oscReq->iReqType = OSC_TYPE_PATH_STATE;
+	} else if (url == OSC_REQ_URI_CHECKFORUPDATE) {		/* /osc/checkForUpdates */
+		oscReq->iReqType = OSC_TYPE_PATH_CHECKFORUPDATE;
+	} else if (url == OSC_REQ_URI_COMMAND_EXECUTE) {	/* /osc/commands/execute */
+		oscReq->iReqType = OSC_TYPE_PATH_CMD;
+
+		printf("body: %s\n", body.c_str());
+		Json::Value reqBody;
+		Json::Value reqReply;
+
+		Json::CharReaderBuilder builder;
+		builder["collectComments"] = false;
+		JSONCPP_STRING errs;
+		Json::CharReader* reader = builder.newCharReader();
+
+		if (reader->parse(body.c_str(), body.c_str() + body.length(), &reqBody, &errs)) {
+			if (reqBody.isMember("name")) {
+				std::string oscCmd = reqBody["name"].asString();
+				printf("-----> Command name: %s\n", oscCmd.c_str());
+				
+				oscReq->oscReq = reqBody;
+				
+				if (oscCmd == "camera.getOptions") {				/* camera.getOptions */
+					oscReq->iReqCmd = OSC_CMD_GET_OPTIONS;
+				} else if (oscCmd == "camera.setOptions") {			/* camera.setOptions */
+					oscReq->iReqCmd = OSC_CMD_SET_OPTIONS;
+				} else if (oscCmd == "camera.listFiles") {			/* camera.listFiles */
+					oscReq->iReqCmd = OSC_CMD_LIST_FILES;
+				} else if (oscCmd == "camera.takePicture") {		/* camera.takePicture */
+					oscReq->iReqCmd = OSC_CMD_TAKE_PICTURE;
+				} else if (oscCmd == "camera.startCapture") {		/* camera.startCapture */
+					oscReq->iReqCmd = OSC_CMD_START_CAPTURE;
+				} else if (oscCmd == "camera.stopCapture") {		/* camera.stopCapture */
+					oscReq->iReqCmd = OSC_CMD_STOP_CAPTURE;
+				} else if (oscCmd == "camera.delete") {				/* camera.delete */
+					oscReq->iReqCmd = OSC_CMD_DELETE;
+				} else if (oscCmd == "camera.getLivePreview") {		/* camera.getLivePreview */
+					oscReq->iReqCmd = OSC_CMD_GET_LIVE_PREVIEW;
+				}
+			} else {
+				fprintf(stderr, "Parse request body, missing name failed\n");
+				genErrorReply(reqReply, MISSING_PARAMETER, "Parse parameter failed");
+				sendResponse(conn, convJson2String(reqReply), true);				
+				bNeedPost = false;			
+			}
+		} else {	/* 解析请求体失败 */
+			fprintf(stderr, "Parse request body failed\n");
+			genErrorReply(reqReply, MISSING_PARAMETER, "Parse parameter failed");
+			sendResponse(conn, convJson2String(reqReply), true);
+			bNeedPost = false;			
+		}
+
+	} else if (url == OSC_REQ_URI_COMMAND_STATUS) {		/* /osc/commands/status */
+		oscReq->iReqType = OSC_TYPE_PATH_STATUS;
+	} 
+
+	if (bNeedPost) {
+		postOscRequest(oscReq);
+	}
+
 	return true;
 }
 

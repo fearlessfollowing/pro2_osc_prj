@@ -50,6 +50,7 @@ public:
 
 protected:
 	virtual void		HandleEvent(mg_connection *connection, http_message *http_req);
+	static HttpServer*	mInstance;
 
 private:
 
@@ -57,7 +58,6 @@ private:
 
 	std::string					mPort;    
 	mg_mgr						mMgr;    
-	static HttpServer*			mInstance;
 };
 
 #endif /* _HTT_SERVER_H_ */

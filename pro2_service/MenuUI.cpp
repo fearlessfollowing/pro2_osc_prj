@@ -931,7 +931,7 @@ static int extraSpeedInsuffCnt(char* pProName, char* pUnspeedArry)
 
 
 /*
- * disp_msg_box - 显示消息框
+ * disp_msg_box - 显示消息框 STATE_IDLE
  */
 void MenuUI::disp_msg_box(int type)
 {
@@ -7150,13 +7150,6 @@ int MenuUI::oled_disp_type(int type)
 /************************************ 拍照相关 START **********************************************/	
         case CAPTURE: {     /* 检查是拍照还是拍timelapse */
 
-            /* 如果是客户端发起拍照，server端会先设置该状态，UI不需要再去设置该状态 
-             * 2018年11月24日（V1.0.10）
-             */
-            if (checkServerStateIn(serverState, STATE_TAKE_CAPTURE_IN_PROCESS) == false) {
-                addState(STATE_TAKE_CAPTURE_IN_PROCESS);
-            }
-
             /* mControlAct不为NULL,有两种情况 
                 * - 来自客户端的拍照请求(直接拍照)
                 * - 识别二维码的请求
@@ -7165,6 +7158,16 @@ int MenuUI::oled_disp_type(int type)
                 LOGDBG(TAG, "+++++++++++++++>>>> CAPTURE Come from Client");
                 mNeedSendAction = false;
             } else {
+
+                /* 如果是客户端发起拍照，server端会先设置该状态，UI不需要再去设置该状态 
+                 * 2018年11月24日（V1.0.10）
+                 * Change: 
+                 *  - 如果是客户端发起的拍照，需要先请求服务器设置 STATE_TAKE_CAPTURE_IN_PROCESS状态，避免此时客户端的非法操作
+                 *  2018年12月21日（V1.1.x）
+                 */
+                if (checkServerStateIn(serverState, STATE_TAKE_CAPTURE_IN_PROCESS) == false) {
+                    addState(STATE_TAKE_CAPTURE_IN_PROCESS);
+                }
 
                 mNeedSendAction = true;
                 int item = getMenuSelectIndex(MENU_PIC_SET_DEF);

@@ -14,13 +14,14 @@ struct tOscReq {
     Json::Value             oscReq; 
 };
 
-#if 0
 
 #define OSC_INFO_TEMP_PATH_NAME		"/home/nvidia/insta360/etc/osc_info.json"
 #define OSC_DEFAULT_OPTIONS_PATH	"/home/nvidia/insta360/etc/default_options.json"
 
 #define SN_FIRM_VER_PATH_NAME		"/home/nvidia/insta360/etc/sn_firm.json"
 #define UP_TIME_PATH				"/proc/uptime"
+
+#if 0
 
 #define OSC_CMD_GET_OPTIONS			"camera.getOptions"
 #define OSC_CMD_SET_OPTIONS			"camera.setOptions"
@@ -55,6 +56,13 @@ enum {
     OSC_CMD_PROCESS_PICTURE,
     OSC_CMD_RESET
 };
+
+#define OSC_REQ_URI_INFO			"/osc/info"
+#define OSC_REQ_URI_STATE			"/osc/state"
+#define OSC_REQ_URI_CHECKFORUPDATE	"/osc/checkForUpdates"
+#define OSC_REQ_URI_COMMAND_EXECUTE	"/osc/commands/execute"
+#define OSC_REQ_URI_COMMAND_STATUS	"/osc/commands/status"	
+
 
 /*
  * 错误码: Code
@@ -117,6 +125,12 @@ private:
     void                sendResponse(mg_connection *conn, std::string reply,  bool bSendClose);
     void                genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg);
 
+    bool                postOscRequest(std::shared_ptr<struct tOscReq> pReq);
+
+    std::shared_ptr<struct tOscReq> getOscRequest(int iType);
+
+    std::vector<std::shared_ptr<struct tOscReq>> getOscRequests(int iType);
+
     bool                registerUrlHandler(std::shared_ptr<struct HttpRequest> uriHandler);
 
     void                fastWorkerLooper();
@@ -125,14 +139,23 @@ private:
     void                init();
     void                deinit();
 
+    /**
+     * Commands  
+     */
+    void                handleGetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply);
+    void                handleSetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply);
+    bool                handleDeleteFile(Json::Value& reqBody, Json::Value& reqReply);
+
+
     bool                oscServiceEntry(mg_connection *conn, std::string url, std::string body);
 
     bool                oscInfoHandler(mg_connection *conn);
     bool                oscStateHandler(mg_connection *conn);
     bool                oscCheckForUpdateHandler(mg_connection *conn);
 
-    bool                oscStatusHandler(mg_connection *conn, std::string body);
-    bool                oscCommandHandler(mg_connection *conn, std::string body);
+
+    bool                oscCommandHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
+    bool                oscStatusHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
 
 
     std::vector<std::shared_ptr<struct tOscReq>>        mFastReqList;
@@ -154,7 +177,7 @@ private:
     std::mutex              mFastReqListLock;
     std::mutex              mSlowReqListLock;
 
-
+    int                     mReqCnt;
     bool                    mFastWorkerExit;
     bool                    mPreviewWorkerExit;
 };
