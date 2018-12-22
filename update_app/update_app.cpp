@@ -883,6 +883,7 @@ static int installSamba(const char* cmdPath)
 	int i;
 
 	for (i = 0; i < 3; i++) {
+#if 1
 		int iRet = forkExecvpExt(ARRAY_SIZE(args), (char **)args, &status, false);
 		if (iRet != 0) {
 			LOGERR(TAG, "install samba failed due to logwrap error");
@@ -902,6 +903,12 @@ static int installSamba(const char* cmdPath)
 			LOGERR(TAG, ">>> install samba failed (unknown exit code %d)", status);
 			continue;
 		}
+#else 
+		if (system(cmdPath) == 0) {
+			break;
+		}
+#endif
+
 	}	
 
 	if (i >= 3) {

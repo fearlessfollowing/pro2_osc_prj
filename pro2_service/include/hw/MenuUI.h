@@ -1178,6 +1178,8 @@ private:
 
     bool                        mFormartState  = false;                        /* 是否处在格式化中 */
   
+    bool                        mHaveLowPowerMsgSend = false;
+
     /*
      * GPS状态(0: 无设备; 1: 无效定位; 2:)
      */

@@ -2,6 +2,7 @@ Import('com_env')
 import config
 
 src = Glob('*.cpp')
+src += Glob('*.c')
 
 
 src += [config.LIBLOG + '/logd_write.c']

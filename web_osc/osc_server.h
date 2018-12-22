@@ -114,7 +114,7 @@ protected:
     /*
      * 主线程将http请求转换为
      */
-    void		        HandleEvent(mg_connection *connection, http_message *http_req);
+    void		        HandleEvent(struct mg_connection *connection, http_message *http_req);
 
 private:
                         OscServer();
@@ -122,7 +122,7 @@ private:
 
     void                oscCfgInit();
     void                genDefaultOptions(Json::Value& optionsJson);
-    void                sendResponse(mg_connection *conn, std::string reply,  bool bSendClose);
+    void                sendResponse(struct mg_connection *conn, std::string reply,  bool bSendClose);
     void                genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg);
 
     bool                postOscRequest(std::shared_ptr<struct tOscReq> pReq);
@@ -134,7 +134,7 @@ private:
     bool                registerUrlHandler(std::shared_ptr<struct HttpRequest> uriHandler);
 
     void                fastWorkerLooper();
-    void                previewWorkerLooper();
+    void                previewWorkerLooper(struct mg_connection *conn);
 
     void                init();
     void                deinit();
@@ -146,16 +146,20 @@ private:
     void                handleSetOptionsRequest(Json::Value& jsonReq, Json::Value& jsonReply);
     bool                handleDeleteFile(Json::Value& reqBody, Json::Value& reqReply);
 
+    bool                handleGetLiewPreview(struct mg_connection *conn, Json::Value& reqBody);
 
-    bool                oscServiceEntry(mg_connection *conn, std::string url, std::string body);
+    void                sendGetLivePreviewResponseHead(struct mg_connection *conn);
+    void                sendOneFrameData(mg_connection *conn, int iFrameId);
 
-    bool                oscInfoHandler(mg_connection *conn);
-    bool                oscStateHandler(mg_connection *conn);
-    bool                oscCheckForUpdateHandler(mg_connection *conn);
+    bool                oscServiceEntry(struct mg_connection *conn, std::string url, std::string body);
+
+    bool                oscInfoHandler(struct mg_connection *conn);
+    bool                oscStateHandler(struct mg_connection *conn);
+    bool                oscCheckForUpdateHandler(struct mg_connection *conn);
 
 
-    bool                oscCommandHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
-    bool                oscStatusHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
+    bool                oscCommandHandler(struct mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
+    bool                oscStatusHandler(struct mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef);
 
 
     std::vector<std::shared_ptr<struct tOscReq>>        mFastReqList;

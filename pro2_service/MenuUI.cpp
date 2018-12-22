@@ -6168,7 +6168,8 @@ void MenuUI::procDownKeyEvent()
 void MenuUI::exit_sys_err()
 {
     uint64_t serverState = getServerState();
-    if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && checkStateEqual(serverState, STATE_IDLE))) {
+    // if (cur_menu == MENU_SYS_ERR || ((MENU_LOW_BAT == cur_menu) && checkStateEqual(serverState, STATE_IDLE))) {
+    if (cur_menu == MENU_SYS_ERR) {
 
         LOGDBG(TAG, "exit_sys_err ( %d 0x%x )", cur_menu, serverState);
 
@@ -6211,7 +6212,7 @@ bool MenuUI::check_allow_update_top()
 int MenuUI::oled_disp_battery()
 {
 
-#ifdef DEBUG_BATTERY
+#if 1
     LOGDBG(TAG, "mBatInterface->isSuc()  %d "
                   "m_bat_info_->bCharge %d "
                   "m_bat_info_->battery_level %d",
@@ -7670,20 +7671,27 @@ int MenuUI::oled_disp_type(int type)
             break;
         }
 
-        case START_LOW_BAT_SUC:
-            if (MENU_LOW_BAT != cur_menu) {
-                setCurMenu(MENU_LOW_BAT);
-            } else {
-                setLightDirect(BACK_RED|FRONT_RED);
-            }
+        case START_LOW_BAT_SUC: {
+            if (mHaveLowPowerMsgSend == false) {
+                if (MENU_LOW_BAT != cur_menu) {
+                    setCurMenu(MENU_LOW_BAT);
+                } else {
+                    setLightDirect(BACK_RED|FRONT_RED);
+                }
+            } 
+            mHaveLowPowerMsgSend = false;
             break;
+        }
 
         case START_LOW_BAT_FAIL: {
-            if (MENU_LOW_BAT != cur_menu) {
-                setCurMenu(MENU_LOW_BAT);
-            } else {
-                setLightDirect(BACK_RED|FRONT_RED);
-            }
+            if (mHaveLowPowerMsgSend == false) {
+                if (MENU_LOW_BAT != cur_menu) {
+                    setCurMenu(MENU_LOW_BAT);
+                } else {
+                    setLightDirect(BACK_RED|FRONT_RED);
+                }
+            } 
+            mHaveLowPowerMsgSend = false;
             break;
         }
 
@@ -7881,9 +7889,20 @@ void MenuUI::flick_light()
 bool MenuUI::is_bat_low()
 {
     bool ret = false;
-    if (mBatInterface->isSuc() && !m_bat_info_->bCharge && m_bat_info_->battery_level <= BAT_LOW_VAL) {
+    
+    #if 0
+    LOGDBG(TAG, "mBatInterface->isSuc()  %d "
+                  "m_bat_info_->bCharge %d "
+                  "m_bat_info_->battery_level %d",
+                mBatInterface->isSuc(), m_bat_info_->bCharge, m_bat_info_->battery_level);
+    #endif
+
+    if (mBatInterface->isSuc() && !m_bat_info_->bCharge && m_bat_info_->battery_level <= 5) {
+        // LOGDBG(TAG, "------------> is_bat_low ");
+
         ret = true;
     }
+
     return ret;
 }
 
@@ -7892,6 +7911,7 @@ void MenuUI::func_low_bat()
 {
     ProtoManager* pm = ProtoManager::Instance();
     pm->sendLowPowerReq();
+    mHaveLowPowerMsgSend = true;
 }
 
 void MenuUI::setLightDirect(u8 val)
@@ -8782,6 +8802,8 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
 
     bool bUpdate = mBatInterface->read_bat_update(m_bat_info_);
 
+    LOGDBG(TAG, "-----> battery info: %d\n", m_bat_info_->battery_level);
+
     double dInterTmp, dExternTmp; 
     uint64_t serverState = getServerState();
 
@@ -8848,7 +8870,6 @@ bool MenuUI::handleCheckBatteryState(bool bUpload)
 
     if (is_bat_low()) { /* 电池电量低 */
         if (cur_menu != MENU_LOW_BAT) { /* 当前处于非电量低菜单 */
-            // LOGDBG(TAG, "bat low menu[%s] %d state 0x%x", getMenuName(cur_menu), serverState);
             if (checkServerStateIn(serverState, STATE_RECORD)) {
                 setCurMenu(MENU_LOW_BAT, MENU_TOP);
                 addState(STATE_LOW_BAT);

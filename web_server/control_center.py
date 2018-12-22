@@ -3285,7 +3285,6 @@ class control_center:
         return res
 
     def start_power_off(self, req):
-        self.set_stitch_mode(False)
         StateMachine.addCamState(config.STATE_POWER_OFF)
         read_info = self.write_and_read(req, True)
         return read_info

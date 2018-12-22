@@ -424,6 +424,16 @@ bool OscServer::handleDeleteFile(Json::Value& reqBody, Json::Value& reqReply)
 }
 
 
+bool OscServer::handleGetLiewPreview(struct mg_connection *conn, Json::Value& reqBody)
+{
+
+	std::thread t1(&OscServer::previewWorkerLooper, this, conn);
+	t1.detach();
+	
+	return true;	
+}
+
+
 /*
  * camera.takePicture
  * camera.takeVideo
@@ -434,7 +444,7 @@ bool OscServer::handleDeleteFile(Json::Value& reqBody, Json::Value& reqReply)
  * camera.setOptions
  * 6353d4fe9f3b22971f3ce9d1ca80b373  /boot/Image
  */
-bool OscServer::oscCommandHandler(mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef)
+bool OscServer::oscCommandHandler(struct mg_connection *conn, std::shared_ptr<struct tOscReq>& reqRef)
 {
 	printf("----------------> path: /osc/commands/excute handler\n");
 	Json::Value reqReply;
@@ -453,6 +463,11 @@ bool OscServer::oscCommandHandler(mg_connection *conn, std::shared_ptr<struct tO
 		}
 
 		case OSC_CMD_STOP_CAPTURE: {
+			break;
+		}
+
+		case OSC_CMD_GET_LIVE_PREVIEW: {
+			handleGetLiewPreview(conn, reqRef->oscReq); break;
 			break;
 		}
 
@@ -583,13 +598,149 @@ void OscServer::fastWorkerLooper()
 }
 
 
-void OscServer::previewWorkerLooper()
+/*
+ * command: getLiewPreview
+ * Example:
+ * {
+ * 		"name":"camera.getLivePreview"
+ * }
+ * Response:
+ * 1.首先发响应头:
+ * HTTP/1.1 200 OK
+ * Connection: Keep-Alive
+ * Content-Type: multipart/x-mixed-replace; boundary="---osclivepreview---"
+ * X-Content-Type-Options: nosniff
+ * Transfer-Encoding: Chunked
+ * \r\n
+ * 5d2ba
+ * ---osclivepreview---
+ * Content-type: image/jpeg
+ * Content-Length: 381548
+ * \r\n
+ * JFIF图片数据
+ * \r\n(\r\n)
+ * 5d479
+ * ---osclivepreview---
+ * Content-type: image/jpeg
+ * Content-Length: 381995
+ * \r\n
+ * JFIF图片数据
+ * 
+ */
+
+void OscServer::sendGetLivePreviewResponseHead(struct mg_connection* conn)
+{
+    mg_printf(conn, "HTTP/1.1 200 OK\r\n"	\
+            "Connection: Keep-Alive\r\n"	\
+            "Content-Type: multipart/x-mixed-replace; boundary=\"---osclivepreview---\"\r\n"	\
+            "X-Content-Type-Options: nosniff\r\n"	\
+            "Transfer-Encoding: Chunked\r\n\r\n");    
+}
+
+
+void OscServer::sendOneFrameData(mg_connection *conn, int iFrameId)
+{
+    printf("send one frame data here, id = %d\n", iFrameId);
+    char filePath[512] = {0};
+    char buffer[1024] = {0};
+
+    sprintf(filePath, "/home/nvidia/Pictures/pic%d.jpg", iFrameId);
+    int iFd = open(filePath, O_RDONLY);
+    if (iFd > 0) {
+        struct stat fileStat;
+        fstat(iFd, &fileStat);
+        int iFileSize = fileStat.st_size;
+        int iReadLen;
+        mg_printf(conn, 
+                "%x\r\n"    \
+                "---osclivepreview---\r\n"  \
+                "Content-type: image/jpeg\r\n"  \
+                "Content-Length: %d\r\n\r\n", iFileSize + 78, iFileSize);
+        
+        while ((iReadLen = read(iFd, buffer, 1024)) > 0) {
+            mg_send(conn, buffer, iReadLen);            
+        }
+        mg_send(conn, "\r\n", strlen("\r\n"));
+        close(iFd);
+    } else {
+        fprintf(stderr, "open File[%s] failed\n", filePath);
+    }
+
+    /* 发送头部
+     * %x\r\n
+     * ---osclivepreview---\r\n             22
+     * Content-type: image/jpeg\r\n         26
+     * Content-Length: 381548\r\n           24
+     * \r\n
+     *
+     */
+
+}
+
+/*
+ * 服务器接收到getLivePreview之后,启动预览线程即可
+ * 1.发送头部
+ * 2.发送一帧数据
+ * 3.检查是否退出
+ * 3.1 退出，线程结束
+ * 3.2 不退出，继续发送下一帧数据
+ */
+void OscServer::previewWorkerLooper(struct mg_connection* conn)
 {
 	printf("---------> preview worker loop thread startup.\n");
+    
+	int iSockFd = conn->sock;
+    bool bFirstTime = true;
+    int iIndex = 0;
 
-	while (!mPreviewWorkerExit) {
+	/* 发送头部 */
+	sendGetLivePreviewResponseHead(conn);
+
+    printf("In livepreview response, socket fd = %d\n", iSockFd); 
+
+ 	do {
+        fd_set write_fds;
+        int rc = 0;
+        int max = -1;
+        struct timeval timeout;        
+
+        FD_ZERO(&write_fds);
+
+        if (iSockFd > 0) {
+            FD_SET(iSockFd, &write_fds);	
+            if (iSockFd > max)
+                max = iSockFd;
+        }
+
+        if (bFirstTime) {
+            bFirstTime = false;
+            timeout.tv_sec  = 0;
+            timeout.tv_usec = 0;            
+        } else {
+            timeout.tv_sec  = 10;
+            timeout.tv_usec = 0;    // 1000 * 1000 us / 5
+        }
+
+        if ((rc = select(max + 1, NULL, &write_fds, NULL, &timeout)) < 0) {	
+            fprintf(stderr, "----> select error occured here, maybe socket closed.\n");
+            break;
+        } else if (!rc) {   /* 超时了，也需要判断是否可以写数据了 */
+            printf("select timeout, maybe send network data slowly.\n");
+        }
+		// sleep(1);
+
+		printf("------------> seep one min\n");
+
 		std::this_thread::sleep_for(std::chrono::microseconds(1000));
-	}
+
+        if (FD_ISSET(iSockFd, &write_fds)) {    /* 数据发送完成，可以写下一帧数据了 */
+            sendOneFrameData(conn, iIndex);
+            iIndex = (iIndex+1) % 5;
+        }
+
+    } while (mPreviewWorkerExit == false);
+
+	printf("---------> preview worker loop thread  over.\n");
 
 }
 	
@@ -615,7 +766,7 @@ void OscServer::init()
 
 	/* 3.创建工作线程 */
     mFastWorker = std::thread([this]{ fastWorkerLooper();});
-    mPreviewWorker = std::thread([this]{ previewWorkerLooper();});
+    // mPreviewWorker = std::thread([this]{ previewWorkerLooper();});
 
 }
 
@@ -997,19 +1148,19 @@ std::vector<std::shared_ptr<struct tOscReq>> OscServer::getOscRequests(int iType
 
 bool OscServer::postOscRequest(std::shared_ptr<struct tOscReq> pReq)
 {
-	if (pReq->iReqType == OSC_TYPE_PATH_CMD && pReq->iReqCmd == OSC_CMD_GET_LIVE_PREVIEW) {
-		{
-			std::unique_lock<std::mutex> _lock(mSlowReqListLock);
-			printf("----> post slow request\n");
-			mSlowReqList.push_back(pReq);
-		}
-	} else {
+	// if (pReq->iReqType == OSC_TYPE_PATH_CMD && pReq->iReqCmd == OSC_CMD_GET_LIVE_PREVIEW) {
+	// 	{
+	// 		std::unique_lock<std::mutex> _lock(mSlowReqListLock);
+	// 		printf("----> post slow request\n");
+	// 		mSlowReqList.push_back(pReq);
+	// 	}
+	// } else {
 		{
 			std::unique_lock<std::mutex> _lock(mFastReqListLock);
 			printf("----> post fast request\n");
 			mFastReqList.push_back(pReq);
 		}
-	}
+	// }
 	return true;
 }
 
