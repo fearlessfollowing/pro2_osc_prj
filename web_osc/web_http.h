@@ -3920,31 +3920,33 @@ struct mg_connection {
   void *mgr_data; /* Implementation-specific event manager's data. */
   struct mg_iface *iface;
   unsigned long flags;
+
 /* Flags set by Mongoose */
-#define MG_F_LISTENING (1 << 0)          /* This connection is listening */
-#define MG_F_UDP (1 << 1)                /* This connection is UDP */
-#define MG_F_RESOLVING (1 << 2)          /* Waiting for async resolver */
-#define MG_F_CONNECTING (1 << 3)         /* connect() call in progress */
-#define MG_F_SSL (1 << 4)                /* SSL is enabled on the connection */
-#define MG_F_SSL_HANDSHAKE_DONE (1 << 5) /* SSL hanshake has completed */
-#define MG_F_WANT_READ (1 << 6)          /* SSL specific */
-#define MG_F_WANT_WRITE (1 << 7)         /* SSL specific */
-#define MG_F_IS_WEBSOCKET (1 << 8)       /* Websocket specific */
+#define MG_F_LISTENING            (1 << 0)            /* This connection is listening */
+#define MG_F_UDP                  (1 << 1)            /* This connection is UDP */
+#define MG_F_RESOLVING            (1 << 2)            /* Waiting for async resolver */
+#define MG_F_CONNECTING           (1 << 3)            /* connect() call in progress */
+#define MG_F_SSL                  (1 << 4)            /* SSL is enabled on the connection */
+#define MG_F_SSL_HANDSHAKE_DONE   (1 << 5)            /* SSL hanshake has completed */
+#define MG_F_WANT_READ            (1 << 6)            /* SSL specific */
+#define MG_F_WANT_WRITE           (1 << 7)            /* SSL specific */
+#define MG_F_IS_WEBSOCKET         (1 << 8)            /* Websocket specific */
 
 /* Flags that are settable by user */
-#define MG_F_SEND_AND_CLOSE (1 << 10)      /* Push remaining data and close  */
-#define MG_F_CLOSE_IMMEDIATELY (1 << 11)   /* Disconnect */
-#define MG_F_WEBSOCKET_NO_DEFRAG (1 << 12) /* Websocket specific */
-#define MG_F_DELETE_CHUNK (1 << 13)        /* HTTP specific */
-#define MG_F_ENABLE_BROADCAST (1 << 14)    /* Allow broadcast address usage */
+#define MG_F_SEND_AND_CLOSE       (1 << 10)       /* Push remaining data and close: 0x400  */
+#define MG_F_CLOSE_IMMEDIATELY    (1 << 11)       /* Disconnect: 0x800 */
+#define MG_F_WEBSOCKET_NO_DEFRAG  (1 << 12)       /* Websocket specific: 0x1000 */
+#define MG_F_DELETE_CHUNK         (1 << 13)       /* HTTP specific: 0x2000 */
+#define MG_F_ENABLE_BROADCAST     (1 << 14)       /* Allow broadcast address usage: 0x4000 */
 
-#define MG_F_USER_1 (1 << 20) /* Flags left for application */
-#define MG_F_USER_2 (1 << 21)
-#define MG_F_USER_3 (1 << 22)
-#define MG_F_USER_4 (1 << 23)
-#define MG_F_USER_5 (1 << 24)
-#define MG_F_USER_6 (1 << 25)
+#define MG_F_USER_1               (1 << 20)       /* Flags left for application */
+#define MG_F_USER_2               (1 << 21)
+#define MG_F_USER_3               (1 << 22)
+#define MG_F_USER_4               (1 << 23)
+#define MG_F_USER_5               (1 << 24)
+#define MG_F_USER_6               (1 << 25)
 };
+
 
 /*
  * Initialise Mongoose manager. Side effect: ignores SIGPIPE signal.
@@ -3972,10 +3974,10 @@ void mg_mgr_init(struct mg_mgr *mgr, void *user_data);
  * `num_ifaces` pointers it contains will be reclaimed by `mg_mgr_free`.
  */
 struct mg_mgr_init_opts {
-  const struct mg_iface_vtable *main_iface;
-  int num_ifaces;
-  const struct mg_iface_vtable **ifaces;
-  const char *nameserver;
+    const struct mg_iface_vtable *main_iface;
+    int num_ifaces;
+    const struct mg_iface_vtable **ifaces;
+    const char *nameserver;
 };
 
 /*
@@ -4036,6 +4038,7 @@ void mg_broadcast(struct mg_mgr *mgr, mg_event_handler_t cb, void *data,
  */
 struct mg_connection *mg_next(struct mg_mgr *mgr, struct mg_connection *c);
 
+
 /*
  * Optional parameters to `mg_add_sock_opt()`.
  *
@@ -4043,10 +4046,10 @@ struct mg_connection *mg_next(struct mg_mgr *mgr, struct mg_connection *c);
  * see `MG_F_*` flags definitions.
  */
 struct mg_add_sock_opts {
-  void *user_data;           /* Initial value for connection's user_data */
-  unsigned int flags;        /* Initial connection flags */
-  const char **error_string; /* Placeholder for the error string */
-  struct mg_iface *iface;    /* Interface instance */
+    void *user_data;           /* Initial value for connection's user_data */
+    unsigned int flags;        /* Initial connection flags */
+    const char **error_string; /* Placeholder for the error string */
+    struct mg_iface *iface;    /* Interface instance */
 };
 
 /*
@@ -6578,6 +6581,7 @@ struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
 #ifdef MG_MODULE_LINES
 #line 1 "mongoose/src/mg_socks.h"
 #endif
+
 /*
  * Copyright (c) 2017 Cesanta Software Limited
  * All rights reserved
