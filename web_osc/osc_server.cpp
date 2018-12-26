@@ -642,7 +642,7 @@ void OscServer::sendOneFrameData(mg_connection *conn, int iFrameId)
 {
     printf("send one frame data here, id = %d\n", iFrameId);
     char filePath[512] = {0};
-    char buffer[1024] = {0};
+    char buffer[1024 * 1024] = {0};
 
     sprintf(filePath, "/home/nvidia/Pictures/pic%d.jpg", iFrameId);
     int iFd = open(filePath, O_RDONLY);
@@ -650,6 +650,8 @@ void OscServer::sendOneFrameData(mg_connection *conn, int iFrameId)
         struct stat fileStat;
         fstat(iFd, &fileStat);
         int iFileSize = fileStat.st_size;
+
+	#if 1
         int iReadLen;
         mg_printf(conn, 
                 "%x\r\n"    \
@@ -657,11 +659,23 @@ void OscServer::sendOneFrameData(mg_connection *conn, int iFrameId)
                 "Content-type: image/jpeg\r\n"  \
                 "Content-Length: %d\r\n\r\n", iFileSize + 78, iFileSize);
         
-        while ((iReadLen = read(iFd, buffer, 1024)) > 0) {
+        while ((iReadLen = read(iFd, buffer, 1024 * 1024)) > 0) {
             mg_send(conn, buffer, iReadLen);            
         }
-        mg_send(conn, "\r\n", strlen("\r\n"));
+        mg_send(conn, "\r\n\r\n\r\n", 6);
+		// mg_send_http_chunk(conn, "", 0);		
+
+	#else 
+		printf("----> file info: 0x%lx\n", iFileSize);
+		char* pMapFile = (char*)
+
+	#endif
+		printf("---> copy one frame data to send buffer over!\n");
+
         close(iFd);
+
+// mg_send_http_chunk
+
     } else {
         fprintf(stderr, "open File[%s] failed\n", filePath);
     }
@@ -699,6 +713,8 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
     printf("In livepreview response, socket fd = %d\n", iSockFd); 
 
  	do {
+
+#if 0		 
         fd_set write_fds;
         int rc = 0;
         int max = -1;
@@ -727,7 +743,7 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
         } else if (!rc) {   /* 超时了，也需要判断是否可以写数据了 */
             printf("select timeout, maybe send network data slowly.\n");
         }
-		// sleep(1);
+		sleep(1);
 
 		printf("------------> seep one min\n");
 
@@ -737,6 +753,13 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
             sendOneFrameData(conn, iIndex);
             iIndex = (iIndex+1) % 5;
         }
+
+#else 
+		sendOneFrameData(conn, iIndex);
+		iIndex = (iIndex+1) % 5;
+		printf("---> data have send to buffer, sleep 30s here...\n");		
+		sleep(30);
+#endif 
 
     } while (mPreviewWorkerExit == false);
 

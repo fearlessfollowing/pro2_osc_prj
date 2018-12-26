@@ -2257,7 +2257,8 @@ MG_INTERNAL void mg_call(struct mg_connection *nc,
         }
     }
   
-    if (ev != MG_EV_POLL) nc->mgr->num_calls++;
+    if (ev != MG_EV_POLL) 
+      nc->mgr->num_calls++;
     
     if (ev != MG_EV_POLL) {
         DBG(("%p after %s flags=0x%lx rmbl=%d smbl=%d", nc,
@@ -2759,24 +2760,28 @@ static int mg_recv_tcp(struct mg_connection *nc, char *buf, size_t len)
         }
     } else
 #endif
+
     {
         n = nc->iface->vtable->tcp_recv(nc, buf, len);
         DBG(("%p <- %d bytes", nc, n));
     }
+
     if (n > 0) {
         nc->recv_mbuf.len += n;
         nc->last_io_time = (time_t) mg_time();
 
-#if !defined(NO_LIBC) && MG_ENABLE_HEXDUMP
+        #if !defined(NO_LIBC) && MG_ENABLE_HEXDUMP
         if (nc->mgr && nc->mgr->hexdump_file != NULL) {
             mg_hexdump_connection(nc, nc->mgr->hexdump_file, buf, n, MG_EV_RECV);
         }
-#endif
+        #endif
+        
         mbuf_trim(&nc->recv_mbuf);
         mg_call(nc, NULL, nc->user_data, MG_EV_RECV, &n);
     } else if (n < 0) {
         nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     }
+
     mbuf_trim(&nc->recv_mbuf);
     return n;
 }
@@ -2892,6 +2897,7 @@ void mg_if_can_send_cb(struct mg_connection *nc)
         }
     } else
 #endif
+
     if (len > 0) {
         if (nc->flags & MG_F_UDP) {
             n = nc->iface->vtable->udp_send(nc, buf, len);
@@ -7082,13 +7088,13 @@ int mg_get_http_var(const struct mg_str *buf, const char *name, char *dst,
 }
 
 void mg_send_http_chunk(struct mg_connection *nc, const char *buf, size_t len) {
-  char chunk_size[50];
-  int n;
+    char chunk_size[50];
+    int n;
 
-  n = snprintf(chunk_size, sizeof(chunk_size), "%lX\r\n", (unsigned long) len);
-  mg_send(nc, chunk_size, n);
-  mg_send(nc, buf, len);
-  mg_send(nc, "\r\n", 2);
+    n = snprintf(chunk_size, sizeof(chunk_size), "%lX\r\n", (unsigned long) len);
+    mg_send(nc, chunk_size, n);
+    mg_send(nc, buf, len);
+    mg_send(nc, "\r\n", 2);
 }
 
 void mg_printf_http_chunk(struct mg_connection *nc, const char *fmt, ...) {
