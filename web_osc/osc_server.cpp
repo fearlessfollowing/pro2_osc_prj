@@ -450,9 +450,21 @@ bool OscServer::oscCommandHandler(struct mg_connection *conn, std::shared_ptr<st
 	Json::Value reqReply;
 
 	switch (reqRef->iReqCmd) {
-		case OSC_CMD_GET_OPTIONS: handleGetOptionsRequest(reqRef->oscReq, reqReply); break;
-		case OSC_CMD_SET_OPTIONS: handleSetOptionsRequest(reqRef->oscReq, reqReply); break;
-		case OSC_CMD_DELETE: 	  handleDeleteFile(reqRef->oscReq, reqReply); break;
+		case OSC_CMD_GET_OPTIONS: {
+			handleGetOptionsRequest(reqRef->oscReq, reqReply); 
+			sendResponse(conn, convJson2String(reqReply), true);	
+			break;
+		}
+		case OSC_CMD_SET_OPTIONS: {
+			handleSetOptionsRequest(reqRef->oscReq, reqReply); 
+			sendResponse(conn, convJson2String(reqReply), true);	
+			break;
+		}
+
+		case OSC_CMD_DELETE: 	  {
+			handleDeleteFile(reqRef->oscReq, reqReply); 
+			break;
+		}
 
 		case OSC_CMD_LIST_FILES: {
 			break;
@@ -671,10 +683,7 @@ void OscServer::sendOneFrameData(mg_connection *conn, int iFrameId)
 
 	#endif
 		printf("---> copy one frame data to send buffer over!\n");
-
         close(iFd);
-
-// mg_send_http_chunk
 
     } else {
         fprintf(stderr, "open File[%s] failed\n", filePath);
@@ -758,7 +767,7 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
 		sendOneFrameData(conn, iIndex);
 		iIndex = (iIndex+1) % 5;
 		printf("---> data have send to buffer, sleep 30s here...\n");		
-		sleep(30);
+		sleep(1);
 #endif 
 
     } while (mPreviewWorkerExit == false);
@@ -779,7 +788,7 @@ void OscServer::init()
 
 	/* 1.注册URI处理接口 */
 	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_INFO, METHOD_GET));
-	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_STATE, METHOD_POST));
+	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_STATE, METHOD_GET|METHOD_POST));
 	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_CHECKFORUPDATE, METHOD_GET | METHOD_POST));
 	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_COMMAND_EXECUTE, METHOD_GET | METHOD_POST));
 	registerUrlHandler(std::make_shared<struct HttpRequest>(OSC_REQ_URI_COMMAND_STATUS, METHOD_GET | METHOD_POST));
@@ -1188,6 +1197,10 @@ bool OscServer::postOscRequest(std::shared_ptr<struct tOscReq> pReq)
 }
 
 
+
+/*
+ * osc服务处理入口
+ */
 bool OscServer::oscServiceEntry(mg_connection *conn, std::string url, std::string body)
 {
 	bool bNeedPost = true;
@@ -1359,10 +1372,12 @@ void OscServer::sendResponse(mg_connection *conn, std::string reply,  bool bSend
             	0);
 	}
 	
-	
+#if 0	
 	if (bSendClose) {
 		conn->flags |= MG_F_SEND_AND_CLOSE;
 	}
+#endif
+
 }
 
 void OscServer::genErrorReply(Json::Value& replyJson, std::string code, std::string errMsg)

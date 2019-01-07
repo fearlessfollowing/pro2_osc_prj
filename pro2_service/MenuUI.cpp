@@ -879,6 +879,7 @@ void MenuUI::play_sound(u32 type)
              */
             snprintf(cmd, sizeof(cmd), "aplay -D hw:1,0 %s/%s", "/home/nvidia/insta360/wav", sound_str[type]);
             system(cmd);
+            
             #else 
             AudioManager::Instance()->playWav(sound_str[type]);
             #endif

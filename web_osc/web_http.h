@@ -3454,7 +3454,7 @@ struct {								\
 #endif
 
 #ifndef MG_ENABLE_DEBUG
-#define MG_ENABLE_DEBUG 0
+#define MG_ENABLE_DEBUG 1
 #endif
 
 #ifndef MG_ENABLE_DIRECTORY_LISTING
@@ -4080,10 +4080,11 @@ struct mg_connection *mg_add_sock_opt(struct mg_mgr *mgr, sock_t sock,
  * see `MG_F_*` flags definitions.
  */
 struct mg_bind_opts {
-  void *user_data;           /* Initial value for connection's user_data */
-  unsigned int flags;        /* Extra connection flags */
-  const char **error_string; /* Placeholder for the error string */
-  struct mg_iface *iface;    /* Interface instance */
+    void *user_data;           /* Initial value for connection's user_data */
+    unsigned int flags;        /* Extra connection flags */
+    const char **error_string; /* Placeholder for the error string */
+    struct mg_iface *iface;    /* Interface instance */
+
 #if MG_ENABLE_SSL
   /*
    * SSL settings.

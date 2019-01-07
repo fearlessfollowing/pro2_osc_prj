@@ -3129,6 +3129,7 @@ class control_center:
         read_info[config.RESULTS] = OrderedDict()
         read_info[config.RESULTS]['totalEntries'] = len(all_files)
         read_info[config.RESULTS]['entries'] = all_files
+        # read_info = dict_to_jsonstr(read_info)
         content = OrderedDict()
         content['sequence'] = self._list_file_seq
         content[_param] = read_info

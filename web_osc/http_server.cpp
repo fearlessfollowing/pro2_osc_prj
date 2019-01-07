@@ -29,8 +29,8 @@ bool HttpServer::startHttpServer()
 	printf("starting http server at port: %s\n", mPort.c_str());
 
 	while (true) {
-		printf("------------------> mg_mgr_poll\n");
-		mg_mgr_poll(&mMgr, 20*1000); 	// ms
+		// printf("------------------> mg_mgr_poll\n");
+		mg_mgr_poll(&mMgr, 20); 	// ms
 	}
 
 	return true;
