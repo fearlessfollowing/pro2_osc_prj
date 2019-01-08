@@ -140,6 +140,8 @@ COM_FLAGS += ' -DENBALE_INPUT_EVENT_WHEN_ENTER_UDISK '
 # 机身Photo Delay 0s
 # COM_FLAGS += ' -DENABLE_PHOTO_DELAY_OFF '
 
+# WEB HTTP使用buffer lock
+COM_FLAGS += ' -DENABLE_USE_BUFFER_LOCK '
 
 #
 # 使能拔掉电源适配器后自动停止录像，关机

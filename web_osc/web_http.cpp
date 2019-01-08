@@ -1,16 +1,11 @@
 #include "web_http.h"
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_internal.h"
-#endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
+#include "../include/log/log_wrapper.h"
+
+#undef  TAG 
+#define TAG "webHttp"
 
 #ifndef CS_MONGOOSE_SRC_INTERNAL_H_
 #define CS_MONGOOSE_SRC_INTERNAL_H_
-
-/* Amalgamated: #include "common/mg_mem.h" */
 
 #ifndef MBUF_REALLOC
 #define MBUF_REALLOC MG_REALLOC
@@ -160,25 +155,7 @@ MG_INTERNAL int mg_sntp_parse_reply(const char *buf, int len,
 #endif
 
 #endif /* CS_MONGOOSE_SRC_INTERNAL_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/mg_mem.h"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 #ifndef CS_COMMON_MG_MEM_H_
 #define CS_COMMON_MG_MEM_H_
@@ -208,33 +185,13 @@ extern "C" {
 #endif
 
 #endif /* CS_COMMON_MG_MEM_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_base64.c"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
+
 
 #ifndef EXCLUDE_COMMON
 
-/* Amalgamated: #include "common/cs_base64.h" */
-
 #include <string.h>
 
-/* Amalgamated: #include "common/cs_dbg.h" */
 
 /* ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/ */
 
@@ -247,64 +204,68 @@ extern "C" {
  *
  * Doesn't use memory, thus it's safe to use to safely dump memory in crashdumps
  */
-static void cs_base64_emit_code(struct cs_base64_ctx *ctx, int v) {
-  if (v < NUM_UPPERCASES) {
-    ctx->b64_putc(v + 'A', ctx->user_data);
-  } else if (v < (NUM_LETTERS)) {
-    ctx->b64_putc(v - NUM_UPPERCASES + 'a', ctx->user_data);
-  } else if (v < (NUM_LETTERS + NUM_DIGITS)) {
-    ctx->b64_putc(v - NUM_LETTERS + '0', ctx->user_data);
-  } else {
-    ctx->b64_putc(v - NUM_LETTERS - NUM_DIGITS == 0 ? '+' : '/',
-                  ctx->user_data);
-  }
-}
-
-static void cs_base64_emit_chunk(struct cs_base64_ctx *ctx) {
-  int a, b, c;
-
-  a = ctx->chunk[0];
-  b = ctx->chunk[1];
-  c = ctx->chunk[2];
-
-  cs_base64_emit_code(ctx, a >> 2);
-  cs_base64_emit_code(ctx, ((a & 3) << 4) | (b >> 4));
-  if (ctx->chunk_size > 1) {
-    cs_base64_emit_code(ctx, (b & 15) << 2 | (c >> 6));
-  }
-  if (ctx->chunk_size > 2) {
-    cs_base64_emit_code(ctx, c & 63);
-  }
-}
-
-void cs_base64_init(struct cs_base64_ctx *ctx, cs_base64_putc_t b64_putc,
-                    void *user_data) {
-  ctx->chunk_size = 0;
-  ctx->b64_putc = b64_putc;
-  ctx->user_data = user_data;
-}
-
-void cs_base64_update(struct cs_base64_ctx *ctx, const char *str, size_t len) {
-  const unsigned char *src = (const unsigned char *) str;
-  size_t i;
-  for (i = 0; i < len; i++) {
-    ctx->chunk[ctx->chunk_size++] = src[i];
-    if (ctx->chunk_size == 3) {
-      cs_base64_emit_chunk(ctx);
-      ctx->chunk_size = 0;
+static void cs_base64_emit_code(struct cs_base64_ctx *ctx, int v) 
+{
+    if (v < NUM_UPPERCASES) {
+        ctx->b64_putc(v + 'A', ctx->user_data);
+    } else if (v < (NUM_LETTERS)) {
+        ctx->b64_putc(v - NUM_UPPERCASES + 'a', ctx->user_data);
+    } else if (v < (NUM_LETTERS + NUM_DIGITS)) {
+        ctx->b64_putc(v - NUM_LETTERS + '0', ctx->user_data);
+    } else {
+        ctx->b64_putc(v - NUM_LETTERS - NUM_DIGITS == 0 ? '+' : '/', ctx->user_data);
     }
-  }
 }
 
-void cs_base64_finish(struct cs_base64_ctx *ctx) {
-  if (ctx->chunk_size > 0) {
-    int i;
-    memset(&ctx->chunk[ctx->chunk_size], 0, 3 - ctx->chunk_size);
-    cs_base64_emit_chunk(ctx);
-    for (i = 0; i < (3 - ctx->chunk_size); i++) {
-      ctx->b64_putc('=', ctx->user_data);
+static void cs_base64_emit_chunk(struct cs_base64_ctx *ctx) 
+{
+    int a, b, c;
+
+    a = ctx->chunk[0];
+    b = ctx->chunk[1];
+    c = ctx->chunk[2];
+
+    cs_base64_emit_code(ctx, a >> 2);
+    cs_base64_emit_code(ctx, ((a & 3) << 4) | (b >> 4));
+    if (ctx->chunk_size > 1) {
+        cs_base64_emit_code(ctx, (b & 15) << 2 | (c >> 6));
     }
-  }
+    
+    if (ctx->chunk_size > 2) {
+        cs_base64_emit_code(ctx, c & 63);
+    }
+}
+
+void cs_base64_init(struct cs_base64_ctx *ctx, cs_base64_putc_t b64_putc, void *user_data) 
+{
+    ctx->chunk_size = 0;
+    ctx->b64_putc = b64_putc;
+    ctx->user_data = user_data;
+}
+
+void cs_base64_update(struct cs_base64_ctx *ctx, const char *str, size_t len) 
+{
+    const unsigned char *src = (const unsigned char *) str;
+    size_t i;
+    for (i = 0; i < len; i++) {
+        ctx->chunk[ctx->chunk_size++] = src[i];
+        if (ctx->chunk_size == 3) {
+            cs_base64_emit_chunk(ctx);
+            ctx->chunk_size = 0;
+        }
+    }
+}
+
+void cs_base64_finish(struct cs_base64_ctx *ctx) 
+{
+    if (ctx->chunk_size > 0) {
+        int i;
+        memset(&ctx->chunk[ctx->chunk_size], 0, 3 - ctx->chunk_size);
+        cs_base64_emit_chunk(ctx);
+        for (i = 0; i < (3 - ctx->chunk_size); i++) {
+            ctx->b64_putc('=', ctx->user_data);
+        }
+    }
 }
 
 #define BASE64_ENCODE_BODY                                                \
@@ -406,52 +367,36 @@ static unsigned char from_b64(unsigned char ch) {
   return tab[ch & 127];
 }
 
-int cs_base64_decode(const unsigned char *s, int len, char *dst, int *dec_len) {
-  unsigned char a, b, c, d;
-  int orig_len = len;
-  char *orig_dst = dst;
-  while (len >= 4 && (a = from_b64(s[0])) != 255 &&
+int cs_base64_decode(const unsigned char *s, int len, char *dst, int *dec_len) 
+{
+    unsigned char a, b, c, d;
+    int orig_len = len;
+    char *orig_dst = dst;
+    while (len >= 4 && (a = from_b64(s[0])) != 255 &&
          (b = from_b64(s[1])) != 255 && (c = from_b64(s[2])) != 255 &&
          (d = from_b64(s[3])) != 255) {
-    s += 4;
-    len -= 4;
-    if (a == 200 || b == 200) break; /* '=' can't be there */
-    *dst++ = a << 2 | b >> 4;
-    if (c == 200) break;
-    *dst++ = b << 4 | c >> 2;
-    if (d == 200) break;
-    *dst++ = c << 6 | d;
-  }
-  *dst = 0;
-  if (dec_len != NULL) *dec_len = (dst - orig_dst);
-  return orig_len - len;
+    
+        s += 4;
+        len -= 4;
+        if (a == 200 || b == 200) break; /* '=' can't be there */
+        *dst++ = a << 2 | b >> 4;
+        if (c == 200) break;
+        *dst++ = b << 4 | c >> 2;
+        if (d == 200) break;
+        *dst++ = c << 6 | d;
+    }
+  
+    *dst = 0;
+    if (dec_len != NULL) *dec_len = (dst - orig_dst);
+    return orig_len - len;
 }
 
 #endif /* EXCLUDE_COMMON */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_dbg.h"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 #ifndef CS_COMMON_CS_DBG_H_
 #define CS_COMMON_CS_DBG_H_
 
-/* Amalgamated: #include "common/platform.h" */
 
 #if CS_ENABLE_STDIO
 #include <stdio.h>
@@ -576,9 +521,7 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 
 #ifndef CS_NDEBUG
 
-/*
- * Shortcut for `LOG(LL_VERBOSE_DEBUG, (...))`
- */
+
 #define DBG(x) LOG(LL_VERBOSE_DEBUG, x)
 
 #else /* NDEBUG */
@@ -600,27 +543,7 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 
 
 #endif /* CS_COMMON_CS_DBG_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_dbg.c"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/* Amalgamated: #include "common/cs_dbg.h" */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -727,33 +650,12 @@ void cs_log_set_level(enum cs_log_level level)
 #endif
 }
 
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_dirent.h"
-#endif
 
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_CS_DIRENT_H_
 #define CS_COMMON_CS_DIRENT_H_
 
 #include <limits.h>
-
-/* Amalgamated: #include "common/platform.h" */
 
 #ifdef __cplusplus
 extern "C" {
@@ -765,7 +667,7 @@ typedef struct { int dummy; } DIR;
 struct dirent {
     int d_ino;
     /* TODO(rojer): Use PATH_MAX but make sure it's sane on every platform */
-      char d_name[256];
+    char d_name[256];
 };
 
 DIR *opendir(const char *dir_name);
@@ -778,32 +680,11 @@ struct dirent *readdir(DIR *dir);
 #endif /* __cplusplus */
 
 #endif /* CS_COMMON_CS_DIRENT_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_dirent.c"
-#endif
 
 
 /* ISO C requires a translation unit to contain at least one declaration */
 typedef int cs_dirent_dummy;
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_time.c"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 /* Amalgamated: #include "common/cs_time.h" */
 
@@ -866,26 +747,6 @@ double cs_timegm(const struct tm *tm)
     return rt < 0 ? -1 : (double) rt;
 }
 
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_endian.h"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef CS_COMMON_CS_ENDIAN_H_
 #define CS_COMMON_CS_ENDIAN_H_
 
@@ -913,28 +774,7 @@ extern "C" {
 #endif
 
 #endif /* CS_COMMON_CS_ENDIAN_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_md5.c"
-#endif
-/*
- * This code implements the MD5 message-digest algorithm.
- * The algorithm is due to Ron Rivest.  This code was
- * written by Colin Plumb in 1993, no copyright is claimed.
- * This code is in the public domain; do with it what you wish.
- *
- * Equivalent code is available from RSA Data Security, Inc.
- * This code has been tested against that, and is equivalent,
- * except that you don't need to include two pages of legalese
- * with every copy.
- *
- * To compute the message digest of a chunk of bytes, declare an
- * MD5Context structure, pass it to MD5Init, call MD5Update as
- * needed on buffers full of bytes, and then call MD5Final, which
- * will fill a supplied 16-byte array with the digest.
- */
 
-/* Amalgamated: #include "common/cs_md5.h" */
-/* Amalgamated: #include "common/str_util.h" */
 
 #if !defined(EXCLUDE_COMMON)
 #if !CS_DISABLE_MD5
@@ -944,15 +784,15 @@ extern "C" {
 static void byteReverse(unsigned char *buf, unsigned longs) {
 /* Forrest: MD5 expect LITTLE_ENDIAN, swap if BIG_ENDIAN */
 #if BYTE_ORDER == BIG_ENDIAN
-  do {
-    uint32_t t = (uint32_t)((unsigned) buf[3] << 8 | buf[2]) << 16 |
+    do {
+        uint32_t t = (uint32_t)((unsigned) buf[3] << 8 | buf[2]) << 16 |
                  ((unsigned) buf[1] << 8 | buf[0]);
-    *(uint32_t *) buf = t;
-    buf += 4;
-  } while (--longs);
+        *(uint32_t *) buf = t;
+        buf += 4;
+    } while (--longs);
 #else
-  (void) buf;
-  (void) longs;
+    (void) buf;
+    (void) longs;
 #endif
 }
 
@@ -1067,76 +907,73 @@ void cs_md5_update(cs_md5_ctx *ctx, const unsigned char *buf, size_t len)
     uint32_t t;
 
     t = ctx->bits[0];
-    if ((ctx->bits[0] = t + ((uint32_t) len << 3)) < t) ctx->bits[1]++;
+    if ((ctx->bits[0] = t + ((uint32_t) len << 3)) < t) 
+        ctx->bits[1]++;
     ctx->bits[1] += (uint32_t) len >> 29;
 
-  t = (t >> 3) & 0x3f;
+    t = (t >> 3) & 0x3f;
 
-  if (t) {
-    unsigned char *p = (unsigned char *) ctx->in + t;
+    if (t) {
+        unsigned char *p = (unsigned char *) ctx->in + t;
 
-    t = 64 - t;
-    if (len < t) {
-      memcpy(p, buf, len);
-      return;
+        t = 64 - t;
+        if (len < t) {
+            memcpy(p, buf, len);
+            return;
+        }
+        
+        memcpy(p, buf, t);
+        byteReverse(ctx->in, 16);
+        cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += t;
+        len -= t;
     }
-    memcpy(p, buf, t);
-    byteReverse(ctx->in, 16);
-    cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
-    buf += t;
-    len -= t;
-  }
 
-  while (len >= 64) {
-    memcpy(ctx->in, buf, 64);
-    byteReverse(ctx->in, 16);
-    cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
-    buf += 64;
-    len -= 64;
-  }
+    while (len >= 64) {
+        memcpy(ctx->in, buf, 64);
+        byteReverse(ctx->in, 16);
+        cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
+        buf += 64;
+        len -= 64;
+    }
 
-  memcpy(ctx->in, buf, len);
+    memcpy(ctx->in, buf, len);
 }
 
-void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) {
-  unsigned count;
-  unsigned char *p;
-  uint32_t *a;
+void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) 
+{
+    unsigned count;
+    unsigned char *p;
+    uint32_t *a;
 
-  count = (ctx->bits[0] >> 3) & 0x3F;
+    count = (ctx->bits[0] >> 3) & 0x3F;
 
-  p = ctx->in + count;
-  *p++ = 0x80;
-  count = 64 - 1 - count;
-  if (count < 8) {
-    memset(p, 0, count);
-    byteReverse(ctx->in, 16);
+    p = ctx->in + count;
+    *p++ = 0x80;
+    count = 64 - 1 - count;
+    if (count < 8) {
+        memset(p, 0, count);
+        byteReverse(ctx->in, 16);
+        cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
+        memset(ctx->in, 0, 56);
+    } else {
+        memset(p, 0, count - 8);
+    }
+    byteReverse(ctx->in, 14);
+
+    a = (uint32_t *) ctx->in;
+    a[14] = ctx->bits[0];
+    a[15] = ctx->bits[1];
+
     cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
-    memset(ctx->in, 0, 56);
-  } else {
-    memset(p, 0, count - 8);
-  }
-  byteReverse(ctx->in, 14);
-
-  a = (uint32_t *) ctx->in;
-  a[14] = ctx->bits[0];
-  a[15] = ctx->bits[1];
-
-  cs_md5_transform(ctx->buf, (uint32_t *) ctx->in);
-  byteReverse((unsigned char *) ctx->buf, 4);
-  memcpy(digest, ctx->buf, 16);
-  memset((char *) ctx, 0, sizeof(*ctx));
+    byteReverse((unsigned char *) ctx->buf, 4);
+    memcpy(digest, ctx->buf, 16);
+    memset((char *) ctx, 0, sizeof(*ctx));
 }
 
 #endif /* CS_DISABLE_MD5 */
 #endif /* EXCLUDE_COMMON */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_sha1.c"
-#endif
-/* Copyright(c) By Steve Reid <steve@edmweb.com> */
-/* 100% Public Domain */
 
-/* Amalgamated: #include "common/cs_sha1.h" */
 
 #if !CS_DISABLE_SHA1 && !defined(EXCLUDE_COMMON)
 
@@ -1148,19 +985,19 @@ void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) {
 #endif
 
 union char64long16 {
-  unsigned char c[64];
-  uint32_t l[16];
+    unsigned char c[64];
+    uint32_t l[16];
 };
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
-static uint32_t blk0(union char64long16 *block, int i) {
+static uint32_t blk0(union char64long16 *block, int i) 
+{
 /* Forrest: SHA expect BIG_ENDIAN, swap if LITTLE_ENDIAN */
 #if BYTE_ORDER == LITTLE_ENDIAN
-  block->l[i] =
-      (rol(block->l[i], 24) & 0xFF00FF00) | (rol(block->l[i], 8) & 0x00FF00FF);
+    block->l[i] = (rol(block->l[i], 24) & 0xFF00FF00) | (rol(block->l[i], 8) & 0x00FF00FF);
 #endif
-  return block->l[i];
+    return block->l[i];
 }
 
 /* Avoid redefine warning (ARM /usr/include/sys/ucontext.h define R0~R4) */
@@ -1191,110 +1028,111 @@ static uint32_t blk0(union char64long16 *block, int i) {
   z += (w ^ x ^ y) + blk(i) + 0xCA62C1D6 + rol(v, 5); \
   w = rol(w, 30);
 
-void cs_sha1_transform(uint32_t state[5], const unsigned char buffer[64]) {
-  uint32_t a, b, c, d, e;
-  union char64long16 block[1];
+void cs_sha1_transform(uint32_t state[5], const unsigned char buffer[64]) 
+{
+    uint32_t a, b, c, d, e;
+    union char64long16 block[1];
 
-  memcpy(block, buffer, 64);
-  a = state[0];
-  b = state[1];
-  c = state[2];
-  d = state[3];
-  e = state[4];
-  R0(a, b, c, d, e, 0);
-  R0(e, a, b, c, d, 1);
-  R0(d, e, a, b, c, 2);
-  R0(c, d, e, a, b, 3);
-  R0(b, c, d, e, a, 4);
-  R0(a, b, c, d, e, 5);
-  R0(e, a, b, c, d, 6);
-  R0(d, e, a, b, c, 7);
-  R0(c, d, e, a, b, 8);
-  R0(b, c, d, e, a, 9);
-  R0(a, b, c, d, e, 10);
-  R0(e, a, b, c, d, 11);
-  R0(d, e, a, b, c, 12);
-  R0(c, d, e, a, b, 13);
-  R0(b, c, d, e, a, 14);
-  R0(a, b, c, d, e, 15);
-  R1(e, a, b, c, d, 16);
-  R1(d, e, a, b, c, 17);
-  R1(c, d, e, a, b, 18);
-  R1(b, c, d, e, a, 19);
-  R2(a, b, c, d, e, 20);
-  R2(e, a, b, c, d, 21);
-  R2(d, e, a, b, c, 22);
-  R2(c, d, e, a, b, 23);
-  R2(b, c, d, e, a, 24);
-  R2(a, b, c, d, e, 25);
-  R2(e, a, b, c, d, 26);
-  R2(d, e, a, b, c, 27);
-  R2(c, d, e, a, b, 28);
-  R2(b, c, d, e, a, 29);
-  R2(a, b, c, d, e, 30);
-  R2(e, a, b, c, d, 31);
-  R2(d, e, a, b, c, 32);
-  R2(c, d, e, a, b, 33);
-  R2(b, c, d, e, a, 34);
-  R2(a, b, c, d, e, 35);
-  R2(e, a, b, c, d, 36);
-  R2(d, e, a, b, c, 37);
-  R2(c, d, e, a, b, 38);
-  R2(b, c, d, e, a, 39);
-  R3(a, b, c, d, e, 40);
-  R3(e, a, b, c, d, 41);
-  R3(d, e, a, b, c, 42);
-  R3(c, d, e, a, b, 43);
-  R3(b, c, d, e, a, 44);
-  R3(a, b, c, d, e, 45);
-  R3(e, a, b, c, d, 46);
-  R3(d, e, a, b, c, 47);
-  R3(c, d, e, a, b, 48);
-  R3(b, c, d, e, a, 49);
-  R3(a, b, c, d, e, 50);
-  R3(e, a, b, c, d, 51);
-  R3(d, e, a, b, c, 52);
-  R3(c, d, e, a, b, 53);
-  R3(b, c, d, e, a, 54);
-  R3(a, b, c, d, e, 55);
-  R3(e, a, b, c, d, 56);
-  R3(d, e, a, b, c, 57);
-  R3(c, d, e, a, b, 58);
-  R3(b, c, d, e, a, 59);
-  R4(a, b, c, d, e, 60);
-  R4(e, a, b, c, d, 61);
-  R4(d, e, a, b, c, 62);
-  R4(c, d, e, a, b, 63);
-  R4(b, c, d, e, a, 64);
-  R4(a, b, c, d, e, 65);
-  R4(e, a, b, c, d, 66);
-  R4(d, e, a, b, c, 67);
-  R4(c, d, e, a, b, 68);
-  R4(b, c, d, e, a, 69);
-  R4(a, b, c, d, e, 70);
-  R4(e, a, b, c, d, 71);
-  R4(d, e, a, b, c, 72);
-  R4(c, d, e, a, b, 73);
-  R4(b, c, d, e, a, 74);
-  R4(a, b, c, d, e, 75);
-  R4(e, a, b, c, d, 76);
-  R4(d, e, a, b, c, 77);
-  R4(c, d, e, a, b, 78);
-  R4(b, c, d, e, a, 79);
-  state[0] += a;
-  state[1] += b;
-  state[2] += c;
-  state[3] += d;
-  state[4] += e;
-  /* Erase working structures. The order of operations is important,
-   * used to ensure that compiler doesn't optimize those out. */
-  memset(block, 0, sizeof(block));
-  a = b = c = d = e = 0;
-  (void) a;
-  (void) b;
-  (void) c;
-  (void) d;
-  (void) e;
+    memcpy(block, buffer, 64);
+    a = state[0];
+    b = state[1];
+    c = state[2];
+    d = state[3];
+    e = state[4];
+    R0(a, b, c, d, e, 0);
+    R0(e, a, b, c, d, 1);
+    R0(d, e, a, b, c, 2);
+    R0(c, d, e, a, b, 3);
+    R0(b, c, d, e, a, 4);
+    R0(a, b, c, d, e, 5);
+    R0(e, a, b, c, d, 6);
+    R0(d, e, a, b, c, 7);
+    R0(c, d, e, a, b, 8);
+    R0(b, c, d, e, a, 9);
+    R0(a, b, c, d, e, 10);
+    R0(e, a, b, c, d, 11);
+    R0(d, e, a, b, c, 12);
+    R0(c, d, e, a, b, 13);
+    R0(b, c, d, e, a, 14);
+    R0(a, b, c, d, e, 15);
+    R1(e, a, b, c, d, 16);
+    R1(d, e, a, b, c, 17);
+    R1(c, d, e, a, b, 18);
+    R1(b, c, d, e, a, 19);
+    R2(a, b, c, d, e, 20);
+    R2(e, a, b, c, d, 21);
+    R2(d, e, a, b, c, 22);
+    R2(c, d, e, a, b, 23);
+    R2(b, c, d, e, a, 24);
+    R2(a, b, c, d, e, 25);
+    R2(e, a, b, c, d, 26);
+    R2(d, e, a, b, c, 27);
+    R2(c, d, e, a, b, 28);
+    R2(b, c, d, e, a, 29);
+    R2(a, b, c, d, e, 30);
+    R2(e, a, b, c, d, 31);
+    R2(d, e, a, b, c, 32);
+    R2(c, d, e, a, b, 33);
+    R2(b, c, d, e, a, 34);
+    R2(a, b, c, d, e, 35);
+    R2(e, a, b, c, d, 36);
+    R2(d, e, a, b, c, 37);
+    R2(c, d, e, a, b, 38);
+    R2(b, c, d, e, a, 39);
+    R3(a, b, c, d, e, 40);
+    R3(e, a, b, c, d, 41);
+    R3(d, e, a, b, c, 42);
+    R3(c, d, e, a, b, 43);
+    R3(b, c, d, e, a, 44);
+    R3(a, b, c, d, e, 45);
+    R3(e, a, b, c, d, 46);
+    R3(d, e, a, b, c, 47);
+    R3(c, d, e, a, b, 48);
+    R3(b, c, d, e, a, 49);
+    R3(a, b, c, d, e, 50);
+    R3(e, a, b, c, d, 51);
+    R3(d, e, a, b, c, 52);
+    R3(c, d, e, a, b, 53);
+    R3(b, c, d, e, a, 54);
+    R3(a, b, c, d, e, 55);
+    R3(e, a, b, c, d, 56);
+    R3(d, e, a, b, c, 57);
+    R3(c, d, e, a, b, 58);
+    R3(b, c, d, e, a, 59);
+    R4(a, b, c, d, e, 60);
+    R4(e, a, b, c, d, 61);
+    R4(d, e, a, b, c, 62);
+    R4(c, d, e, a, b, 63);
+    R4(b, c, d, e, a, 64);
+    R4(a, b, c, d, e, 65);
+    R4(e, a, b, c, d, 66);
+    R4(d, e, a, b, c, 67);
+    R4(c, d, e, a, b, 68);
+    R4(b, c, d, e, a, 69);
+    R4(a, b, c, d, e, 70);
+    R4(e, a, b, c, d, 71);
+    R4(d, e, a, b, c, 72);
+    R4(c, d, e, a, b, 73);
+    R4(b, c, d, e, a, 74);
+    R4(a, b, c, d, e, 75);
+    R4(e, a, b, c, d, 76);
+    R4(d, e, a, b, c, 77);
+    R4(c, d, e, a, b, 78);
+    R4(b, c, d, e, a, 79);
+    state[0] += a;
+    state[1] += b;
+    state[2] += c;
+    state[3] += d;
+    state[4] += e;
+    /* Erase working structures. The order of operations is important,
+    * used to ensure that compiler doesn't optimize those out. */
+    memset(block, 0, sizeof(block));
+    a = b = c = d = e = 0;
+    (void) a;
+    (void) b;
+    (void) c;
+    (void) d;
+    (void) e;
 }
 
 void cs_sha1_init(cs_sha1_ctx *context) 
@@ -1327,91 +1165,74 @@ void cs_sha1_update(cs_sha1_ctx *context, const unsigned char *data, uint32_t le
     memcpy(&context->buffer[j], &data[i], len - i);
 }
 
-void cs_sha1_final(unsigned char digest[20], cs_sha1_ctx *context) {
-  unsigned i;
-  unsigned char finalcount[8], c;
+void cs_sha1_final(unsigned char digest[20], cs_sha1_ctx *context) 
+{
+    unsigned i;
+    unsigned char finalcount[8], c;
 
-  for (i = 0; i < 8; i++) {
-    finalcount[i] = (unsigned char) ((context->count[(i >= 4 ? 0 : 1)] >>
-                                      ((3 - (i & 3)) * 8)) &
-                                     255);
-  }
-  c = 0200;
-  cs_sha1_update(context, &c, 1);
-  while ((context->count[0] & 504) != 448) {
-    c = 0000;
+    for (i = 0; i < 8; i++) {
+        finalcount[i] = (unsigned char) ((context->count[(i >= 4 ? 0 : 1)] >>
+                                      ((3 - (i & 3)) * 8)) & 255);
+    }
+  
+    c = 0200;
     cs_sha1_update(context, &c, 1);
-  }
-  cs_sha1_update(context, finalcount, 8);
-  for (i = 0; i < 20; i++) {
-    digest[i] =
-        (unsigned char) ((context->state[i >> 2] >> ((3 - (i & 3)) * 8)) & 255);
-  }
-  memset(context, '\0', sizeof(*context));
-  memset(&finalcount, '\0', sizeof(finalcount));
+    while ((context->count[0] & 504) != 448) {
+        c = 0000;
+        cs_sha1_update(context, &c, 1);
+    }
+    
+    cs_sha1_update(context, finalcount, 8);
+    for (i = 0; i < 20; i++) {
+        digest[i] = (unsigned char) ((context->state[i >> 2] >> ((3 - (i & 3)) * 8)) & 255);
+    }
+    memset(context, '\0', sizeof(*context));
+    memset(&finalcount, '\0', sizeof(finalcount));
 }
 
 void cs_hmac_sha1(const unsigned char *key, size_t keylen,
                   const unsigned char *data, size_t datalen,
-                  unsigned char out[20]) {
-  cs_sha1_ctx ctx;
-  unsigned char buf1[64], buf2[64], tmp_key[20], i;
+                  unsigned char out[20]) 
+{
+    cs_sha1_ctx ctx;
+    unsigned char buf1[64], buf2[64], tmp_key[20], i;
 
-  if (keylen > sizeof(buf1)) {
+    if (keylen > sizeof(buf1)) {
+        cs_sha1_init(&ctx);
+        cs_sha1_update(&ctx, key, keylen);
+        cs_sha1_final(tmp_key, &ctx);
+        key = tmp_key;
+        keylen = sizeof(tmp_key);
+    }
+
+    memset(buf1, 0, sizeof(buf1));
+    memset(buf2, 0, sizeof(buf2));
+    memcpy(buf1, key, keylen);
+    memcpy(buf2, key, keylen);
+
+    for (i = 0; i < sizeof(buf1); i++) {
+        buf1[i] ^= 0x36;
+        buf2[i] ^= 0x5c;
+    }
+
     cs_sha1_init(&ctx);
-    cs_sha1_update(&ctx, key, keylen);
-    cs_sha1_final(tmp_key, &ctx);
-    key = tmp_key;
-    keylen = sizeof(tmp_key);
-  }
+    cs_sha1_update(&ctx, buf1, sizeof(buf1));
+    cs_sha1_update(&ctx, data, datalen);
+    cs_sha1_final(out, &ctx);
 
-  memset(buf1, 0, sizeof(buf1));
-  memset(buf2, 0, sizeof(buf2));
-  memcpy(buf1, key, keylen);
-  memcpy(buf2, key, keylen);
-
-  for (i = 0; i < sizeof(buf1); i++) {
-    buf1[i] ^= 0x36;
-    buf2[i] ^= 0x5c;
-  }
-
-  cs_sha1_init(&ctx);
-  cs_sha1_update(&ctx, buf1, sizeof(buf1));
-  cs_sha1_update(&ctx, data, datalen);
-  cs_sha1_final(out, &ctx);
-
-  cs_sha1_init(&ctx);
-  cs_sha1_update(&ctx, buf2, sizeof(buf2));
-  cs_sha1_update(&ctx, out, 20);
-  cs_sha1_final(out, &ctx);
+    cs_sha1_init(&ctx);
+    cs_sha1_update(&ctx, buf2, sizeof(buf2));
+    cs_sha1_update(&ctx, out, 20);
+    cs_sha1_final(out, &ctx);
 }
 
 #endif /* EXCLUDE_COMMON */
-#ifdef MG_MODULE_LINES
-#line 1 "common/mbuf.c"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef EXCLUDE_COMMON
 
 #include <assert.h>
 #include <string.h>
-/* Amalgamated: #include "common/mbuf.h" */
+
 
 #ifndef MBUF_REALLOC
 #define MBUF_REALLOC realloc
@@ -1461,47 +1282,50 @@ void mbuf_trim(struct mbuf *mbuf)
 }
 
 size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t) WEAK;
-size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t len) {
-  char *p = NULL;
+size_t mbuf_insert(struct mbuf *a, size_t off, const void *buf, size_t len) 
+{
+    char *p = NULL;
 
-  assert(a != NULL);
-  assert(a->len <= a->size);
-  assert(off <= a->len);
+    assert(a != NULL);
+    assert(a->len <= a->size);
+    assert(off <= a->len);
 
-  /* check overflow */
-  if (~(size_t) 0 - (size_t) a->buf < len) return 0;
+    /* check overflow */
+    if (~(size_t) 0 - (size_t) a->buf < len) return 0;
 
-  if (a->len + len <= a->size) {
-    memmove(a->buf + off + len, a->buf + off, a->len - off);
-    if (buf != NULL) {
-      memcpy(a->buf + off, buf, len);
-    }
-    a->len += len;
-  } else {
-    size_t min_size = (a->len + len);
-    size_t new_size = (size_t)(min_size * MBUF_SIZE_MULTIPLIER);
-    if (new_size - min_size > MBUF_SIZE_MAX_HEADROOM) {
-      new_size = min_size + MBUF_SIZE_MAX_HEADROOM;
-    }
-    p = (char *) MBUF_REALLOC(a->buf, new_size);
-    if (p == NULL && new_size != min_size) {
-      new_size = min_size;
-      p = (char *) MBUF_REALLOC(a->buf, new_size);
-    }
-    if (p != NULL) {
-      a->buf = p;
-      if (off != a->len) {
+    if (a->len + len <= a->size) {
         memmove(a->buf + off + len, a->buf + off, a->len - off);
-      }
-      if (buf != NULL) memcpy(a->buf + off, buf, len);
-      a->len += len;
-      a->size = new_size;
+        if (buf != NULL) {
+            memcpy(a->buf + off, buf, len);
+        }
+        a->len += len;
     } else {
-      len = 0;
+        size_t min_size = (a->len + len);
+        size_t new_size = (size_t)(min_size * MBUF_SIZE_MULTIPLIER);
+        if (new_size - min_size > MBUF_SIZE_MAX_HEADROOM) {
+            new_size = min_size + MBUF_SIZE_MAX_HEADROOM;
+        }
+        
+        p = (char *) MBUF_REALLOC(a->buf, new_size);
+        if (p == NULL && new_size != min_size) {
+            new_size = min_size;
+            p = (char *) MBUF_REALLOC(a->buf, new_size);
+        }
+    
+        if (p != NULL) {
+            a->buf = p;
+            if (off != a->len) {
+                memmove(a->buf + off + len, a->buf + off, a->len - off);
+            }
+            if (buf != NULL) memcpy(a->buf + off, buf, len);
+            a->len += len;
+            a->size = new_size;
+        } else {
+            len = 0;
+        }
     }
-  }
 
-  return len;
+    return len;
 }
 
 size_t mbuf_append(struct mbuf *a, const void *buf, size_t len) WEAK;
@@ -1520,8 +1344,6 @@ void mbuf_remove(struct mbuf *mb, size_t n)
 }
 
 #endif /* EXCLUDE_COMMON */
-
-
 
 #include <stdlib.h>
 #include <string.h>
@@ -1544,136 +1366,124 @@ struct mg_str mg_mk_str_n(const char *s, size_t len)
 }
 
 int mg_vcmp(const struct mg_str *str1, const char *str2) WEAK;
-int mg_vcmp(const struct mg_str *str1, const char *str2) {
-  size_t n2 = strlen(str2), n1 = str1->len;
-  int r = strncmp(str1->p, str2, (n1 < n2) ? n1 : n2);
-  if (r == 0) {
-    return n1 - n2;
-  }
-  return r;
+int mg_vcmp(const struct mg_str *str1, const char *str2) 
+{
+    size_t n2 = strlen(str2), n1 = str1->len;
+    int r = strncmp(str1->p, str2, (n1 < n2) ? n1 : n2);
+    if (r == 0) {
+        return n1 - n2;
+    }
+    return r;
 }
 
 int mg_vcasecmp(const struct mg_str *str1, const char *str2) WEAK;
-int mg_vcasecmp(const struct mg_str *str1, const char *str2) {
-  size_t n2 = strlen(str2), n1 = str1->len;
-  int r = mg_ncasecmp(str1->p, str2, (n1 < n2) ? n1 : n2);
-  if (r == 0) {
-    return n1 - n2;
-  }
-  return r;
+int mg_vcasecmp(const struct mg_str *str1, const char *str2) 
+{
+    size_t n2 = strlen(str2), n1 = str1->len;
+    int r = mg_ncasecmp(str1->p, str2, (n1 < n2) ? n1 : n2);
+    if (r == 0) {
+        return n1 - n2;
+    }
+    return r;
 }
 
-static struct mg_str mg_strdup_common(const struct mg_str s,
-                                      int nul_terminate) {
-  struct mg_str r = {NULL, 0};
-  if (s.len > 0 && s.p != NULL) {
-    char *sc = (char *) MG_MALLOC(s.len + (nul_terminate ? 1 : 0));
-    if (sc != NULL) {
-      memcpy(sc, s.p, s.len);
-      if (nul_terminate) sc[s.len] = '\0';
-      r.p = sc;
-      r.len = s.len;
+static struct mg_str mg_strdup_common(const struct mg_str s, int nul_terminate) 
+{
+    struct mg_str r = {NULL, 0};
+    if (s.len > 0 && s.p != NULL) {
+        char *sc = (char *) MG_MALLOC(s.len + (nul_terminate ? 1 : 0));
+        if (sc != NULL) {
+            memcpy(sc, s.p, s.len);
+            if (nul_terminate) sc[s.len] = '\0';
+            r.p = sc;
+            r.len = s.len;
+        }
     }
-  }
-  return r;
+    return r;
 }
 
 struct mg_str mg_strdup(const struct mg_str s) WEAK;
-struct mg_str mg_strdup(const struct mg_str s) {
-  return mg_strdup_common(s, 0 /* NUL-terminate */);
+struct mg_str mg_strdup(const struct mg_str s) 
+{
+    return mg_strdup_common(s, 0 /* NUL-terminate */);
 }
 
 struct mg_str mg_strdup_nul(const struct mg_str s) WEAK;
-struct mg_str mg_strdup_nul(const struct mg_str s) {
-  return mg_strdup_common(s, 1 /* NUL-terminate */);
+struct mg_str mg_strdup_nul(const struct mg_str s) 
+{
+    return mg_strdup_common(s, 1 /* NUL-terminate */);
 }
 
 const char *mg_strchr(const struct mg_str s, int c) WEAK;
-const char *mg_strchr(const struct mg_str s, int c) {
-  size_t i;
-  for (i = 0; i < s.len; i++) {
-    if (s.p[i] == c) return &s.p[i];
-  }
-  return NULL;
+const char *mg_strchr(const struct mg_str s, int c) 
+{
+    size_t i;
+    for (i = 0; i < s.len; i++) {
+        if (s.p[i] == c) return &s.p[i];
+    }
+    return NULL;
 }
 
 int mg_strcmp(const struct mg_str str1, const struct mg_str str2) WEAK;
-int mg_strcmp(const struct mg_str str1, const struct mg_str str2) {
-  size_t i = 0;
-  while (i < str1.len && i < str2.len) {
-    if (str1.p[i] < str2.p[i]) return -1;
-    if (str1.p[i] > str2.p[i]) return 1;
-    i++;
-  }
-  if (i < str1.len) return 1;
-  if (i < str2.len) return -1;
-  return 0;
+int mg_strcmp(const struct mg_str str1, const struct mg_str str2) 
+{
+    size_t i = 0;
+    while (i < str1.len && i < str2.len) {
+        if (str1.p[i] < str2.p[i]) return -1;
+        if (str1.p[i] > str2.p[i]) return 1;
+        i++;
+    }
+    if (i < str1.len) return 1;
+    if (i < str2.len) return -1;
+    return 0;
 }
 
 int mg_strncmp(const struct mg_str, const struct mg_str, size_t n) WEAK;
-int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n) {
-  struct mg_str s1 = str1;
-  struct mg_str s2 = str2;
+int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n) 
+{
+    struct mg_str s1 = str1;
+    struct mg_str s2 = str2;
 
-  if (s1.len > n) {
-    s1.len = n;
-  }
-  if (s2.len > n) {
-    s2.len = n;
-  }
-  return mg_strcmp(s1, s2);
+    if (s1.len > n) {
+        s1.len = n;
+    }
+    
+    if (s2.len > n) {
+        s2.len = n;
+    }
+    return mg_strcmp(s1, s2);
 }
 
 const char *mg_strstr(const struct mg_str haystack,
                       const struct mg_str needle) WEAK;
-const char *mg_strstr(const struct mg_str haystack,
-                      const struct mg_str needle) {
-  size_t i;
-  if (needle.len > haystack.len) return NULL;
-  for (i = 0; i <= haystack.len - needle.len; i++) {
-    if (memcmp(haystack.p + i, needle.p, needle.len) == 0) {
-      return haystack.p + i;
+const char *mg_strstr(const struct mg_str haystack, const struct mg_str needle) 
+{
+    size_t i;
+    if (needle.len > haystack.len) 
+        return NULL;
+    for (i = 0; i <= haystack.len - needle.len; i++) {
+        if (memcmp(haystack.p + i, needle.p, needle.len) == 0) {
+            return haystack.p + i;
+        }
     }
-  }
-  return NULL;
+    return NULL;
 }
 
 struct mg_str mg_strstrip(struct mg_str s) WEAK;
-struct mg_str mg_strstrip(struct mg_str s) {
-  while (s.len > 0 && isspace((int) *s.p)) {
-    s.p++;
-    s.len--;
-  }
-  while (s.len > 0 && isspace((int) *(s.p + s.len - 1))) {
-    s.len--;
-  }
-  return s;
+struct mg_str mg_strstrip(struct mg_str s) 
+{
+    while (s.len > 0 && isspace((int) *s.p)) {
+        s.p++;
+        s.len--;
+    }
+    while (s.len > 0 && isspace((int) *(s.p + s.len - 1))) {
+        s.len--;
+    }
+    return s;
 }
-#ifdef MG_MODULE_LINES
-#line 1 "common/str_util.c"
-#endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 #ifndef EXCLUDE_COMMON
-
-/* Amalgamated: #include "common/str_util.h" */
-/* Amalgamated: #include "common/mg_mem.h" */
-/* Amalgamated: #include "common/platform.h" */
 
 #ifndef C_DISABLE_BUILTIN_SNPRINTF
 #define C_DISABLE_BUILTIN_SNPRINTF 0
@@ -1682,11 +1492,12 @@ struct mg_str mg_strstrip(struct mg_str s) {
 /* Amalgamated: #include "common/mg_mem.h" */
 
 size_t c_strnlen(const char *s, size_t maxlen) WEAK;
-size_t c_strnlen(const char *s, size_t maxlen) {
-  size_t l = 0;
-  for (; l < maxlen && s[l] != '\0'; l++) {
-  }
-  return l;
+size_t c_strnlen(const char *s, size_t maxlen)
+{
+    size_t l = 0;
+    for (; l < maxlen && s[l] != '\0'; l++) {
+    }
+    return l;
 }
 
 #define C_SNPRINTF_APPEND_CHAR(ch)       \
@@ -1703,118 +1514,120 @@ int c_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap) {
   return vsnprintf(buf, buf_size, fmt, ap);
 }
 #else
-static int c_itoa(char *buf, size_t buf_size, int64_t num, int base, int flags,
-                  int field_width) {
-  char tmp[40];
-  int i = 0, k = 0, neg = 0;
+static int c_itoa(char *buf, size_t buf_size, int64_t num, int base, int flags, int field_width) 
+{
+    char tmp[40];
+    int i = 0, k = 0, neg = 0;
 
-  if (num < 0) {
-    neg++;
-    num = -num;
-  }
-
-  /* Print into temporary buffer - in reverse order */
-  do {
-    int rem = num % base;
-    if (rem < 10) {
-      tmp[k++] = '0' + rem;
-    } else {
-      tmp[k++] = 'a' + (rem - 10);
+    if (num < 0) {
+        neg++;
+        num = -num;
     }
-    num /= base;
-  } while (num > 0);
 
-  /* Zero padding */
-  if (flags && C_SNPRINTF_FLAG_ZERO) {
-    while (k < field_width && k < (int) sizeof(tmp) - 1) {
-      tmp[k++] = '0';
+    /* Print into temporary buffer - in reverse order */
+    do {
+        int rem = num % base;
+        if (rem < 10) {
+            tmp[k++] = '0' + rem;
+        } else {
+            tmp[k++] = 'a' + (rem - 10);
+        }
+        num /= base;
+    } while (num > 0);
+
+    /* Zero padding */
+    if (flags && C_SNPRINTF_FLAG_ZERO) {
+        while (k < field_width && k < (int) sizeof(tmp) - 1) {
+            tmp[k++] = '0';
+        }
     }
-  }
 
-  /* And sign */
-  if (neg) {
-    tmp[k++] = '-';
-  }
+    /* And sign */
+    if (neg) {
+        tmp[k++] = '-';
+    }
 
-  /* Now output */
-  while (--k >= 0) {
-    C_SNPRINTF_APPEND_CHAR(tmp[k]);
-  }
+    /* Now output */
+    while (--k >= 0) {
+        C_SNPRINTF_APPEND_CHAR(tmp[k]);
+    }
 
-  return i;
+    return i;
 }
 
 int c_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap) WEAK;
-int c_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap) {
-  int ch, i = 0, len_mod, flags, precision, field_width;
+int c_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap) 
+{
+    int ch, i = 0, len_mod, flags, precision, field_width;
 
-  while ((ch = *fmt++) != '\0') {
-    if (ch != '%') {
-      C_SNPRINTF_APPEND_CHAR(ch);
-    } else {
-      /*
-       * Conversion specification:
-       *   zero or more flags (one of: # 0 - <space> + ')
-       *   an optional minimum  field  width (digits)
-       *   an  optional precision (. followed by digits, or *)
-       *   an optional length modifier (one of: hh h l ll L q j z t)
-       *   conversion specifier (one of: d i o u x X e E f F g G a A c s p n)
-       */
-      flags = field_width = precision = len_mod = 0;
-
-      /* Flags. only zero-pad flag is supported. */
-      if (*fmt == '0') {
-        flags |= C_SNPRINTF_FLAG_ZERO;
-      }
-
-      /* Field width */
-      while (*fmt >= '0' && *fmt <= '9') {
-        field_width *= 10;
-        field_width += *fmt++ - '0';
-      }
-      /* Dynamic field width */
-      if (*fmt == '*') {
-        field_width = va_arg(ap, int);
-        fmt++;
-      }
-
-      /* Precision */
-      if (*fmt == '.') {
-        fmt++;
-        if (*fmt == '*') {
-          precision = va_arg(ap, int);
-          fmt++;
+    while ((ch = *fmt++) != '\0') {
+        if (ch != '%') {
+            C_SNPRINTF_APPEND_CHAR(ch);
         } else {
-          while (*fmt >= '0' && *fmt <= '9') {
-            precision *= 10;
-            precision += *fmt++ - '0';
-          }
-        }
-      }
+            /*
+            * Conversion specification:
+            *   zero or more flags (one of: # 0 - <space> + ')
+            *   an optional minimum  field  width (digits)
+            *   an  optional precision (. followed by digits, or *)
+            *   an optional length modifier (one of: hh h l ll L q j z t)
+            *   conversion specifier (one of: d i o u x X e E f F g G a A c s p n)
+            */
+            flags = field_width = precision = len_mod = 0;
 
-      /* Length modifier */
-      switch (*fmt) {
-        case 'h':
-        case 'l':
-        case 'L':
-        case 'I':
-        case 'q':
-        case 'j':
-        case 'z':
-        case 't':
-          len_mod = *fmt++;
-          if (*fmt == 'h') {
-            len_mod = 'H';
-            fmt++;
-          }
-          if (*fmt == 'l') {
-            len_mod = 'q';
-            fmt++;
-          }
-          break;
-      }
+            /* Flags. only zero-pad flag is supported. */
+            if (*fmt == '0') {
+                flags |= C_SNPRINTF_FLAG_ZERO;
+            }
 
-      ch = *fmt++;
+            /* Field width */
+            while (*fmt >= '0' && *fmt <= '9') {
+                field_width *= 10;
+                field_width += *fmt++ - '0';
+            }
+      
+            /* Dynamic field width */
+            if (*fmt == '*') {
+                field_width = va_arg(ap, int);
+                fmt++;
+            }
+
+            /* Precision */
+            if (*fmt == '.') {
+                fmt++;
+                if (*fmt == '*') {
+                    precision = va_arg(ap, int);
+                    fmt++;
+                } else {
+                    while (*fmt >= '0' && *fmt <= '9') {
+                        precision *= 10;
+                        precision += *fmt++ - '0';
+                    }
+                }
+            }
+
+            /* Length modifier */
+            switch (*fmt) {
+                case 'h':
+                case 'l':
+                case 'L':
+                case 'I':
+                case 'q':
+                case 'j':
+                case 'z':
+                case 't':
+                    len_mod = *fmt++;
+                    if (*fmt == 'h') {
+                        len_mod = 'H';
+                        fmt++;
+                    }
+                    if (*fmt == 'l') {
+                        len_mod = 'q';
+                        fmt++;
+                    }
+                    break;
+            }
+
+            ch = *fmt++;
       if (ch == 's') {
         const char *s = va_arg(ap, const char *); /* Always fetch parameter */
         int j;
@@ -1873,12 +1686,12 @@ int c_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap) {
     }
   }
 
-  /* Zero-terminate the result */
-  if (buf_size > 0) {
-    buf[i < (int) buf_size ? i : (int) buf_size - 1] = '\0';
-  }
+    /* Zero-terminate the result */
+    if (buf_size > 0) {
+        buf[i < (int) buf_size ? i : (int) buf_size - 1] = '\0';
+    }
 
-  return i;
+    return i;
 }
 #endif
 
@@ -1896,114 +1709,125 @@ int c_snprintf(char *buf, size_t buf_size, const char *fmt, ...)
 
 /* The simplest O(mn) algorithm. Better implementation are GPLed */
 const char *c_strnstr(const char *s, const char *find, size_t slen) WEAK;
-const char *c_strnstr(const char *s, const char *find, size_t slen) {
-  size_t find_length = strlen(find);
-  size_t i;
+const char *c_strnstr(const char *s, const char *find, size_t slen) 
+{
+    size_t find_length = strlen(find);
+    size_t i;
 
-  for (i = 0; i < slen; i++) {
-    if (i + find_length > slen) {
-      return NULL;
+    for (i = 0; i < slen; i++) {
+        if (i + find_length > slen) {
+            return NULL;
+        }
+
+        if (strncmp(&s[i], find, find_length) == 0) {
+            return &s[i];
+        }
     }
 
-    if (strncmp(&s[i], find, find_length) == 0) {
-      return &s[i];
-    }
-  }
-
-  return NULL;
+    return NULL;
 }
 
 #if CS_ENABLE_STRDUP
 char *strdup(const char *src) WEAK;
-char *strdup(const char *src) {
-  size_t len = strlen(src) + 1;
-  char *ret = MG_MALLOC(len);
-  if (ret != NULL) {
-    strcpy(ret, src);
-  }
-  return ret;
+char *strdup(const char *src) 
+{
+    size_t len = strlen(src) + 1;
+    char *ret = MG_MALLOC(len);
+    if (ret != NULL) {
+        strcpy(ret, src);
+    }
+    return ret;
 }
 #endif
 
 void cs_to_hex(char *to, const unsigned char *p, size_t len) WEAK;
-void cs_to_hex(char *to, const unsigned char *p, size_t len) {
-  static const char *hex = "0123456789abcdef";
+void cs_to_hex(char *to, const unsigned char *p, size_t len) 
+{
+    static const char *hex = "0123456789abcdef";
 
-  for (; len--; p++) {
-    *to++ = hex[p[0] >> 4];
-    *to++ = hex[p[0] & 0x0f];
-  }
-  *to = '\0';
+    for (; len--; p++) {
+        *to++ = hex[p[0] >> 4];
+        *to++ = hex[p[0] & 0x0f];
+    }
+    *to = '\0';
 }
 
-static int fourbit(int ch) {
-  if (ch >= '0' && ch <= '9') {
-    return ch - '0';
-  } else if (ch >= 'a' && ch <= 'f') {
-    return ch - 'a' + 10;
-  } else if (ch >= 'A' && ch <= 'F') {
-    return ch - 'A' + 10;
-  }
-  return 0;
+static int fourbit(int ch) 
+{
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0';
+    } else if (ch >= 'a' && ch <= 'f') {
+        return ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'F') {
+        return ch - 'A' + 10;
+    }
+    return 0;
 }
 
 void cs_from_hex(char *to, const char *p, size_t len) WEAK;
-void cs_from_hex(char *to, const char *p, size_t len) {
-  size_t i;
+void cs_from_hex(char *to, const char *p, size_t len) 
+{
+    size_t i;
 
-  for (i = 0; i < len; i += 2) {
-    *to++ = (fourbit(p[i]) << 4) + fourbit(p[i + 1]);
-  }
-  *to = '\0';
+    for (i = 0; i < len; i += 2) {
+        *to++ = (fourbit(p[i]) << 4) + fourbit(p[i + 1]);
+    }
+    *to = '\0';
 }
 
 #if CS_ENABLE_TO64
 int64_t cs_to64(const char *s) WEAK;
-int64_t cs_to64(const char *s) {
-  int64_t result = 0;
-  int64_t neg = 1;
-  while (*s && isspace((unsigned char) *s)) s++;
-  if (*s == '-') {
-    neg = -1;
-    s++;
-  }
-  while (isdigit((unsigned char) *s)) {
-    result *= 10;
-    result += (*s - '0');
-    s++;
-  }
-  return result * neg;
+int64_t cs_to64(const char *s) 
+{
+    int64_t result = 0;
+    int64_t neg = 1;
+    while (*s && isspace((unsigned char) *s)) s++;
+    if (*s == '-') {
+        neg = -1;
+        s++;
+    }
+    while (isdigit((unsigned char) *s)) {
+        result *= 10;
+        result += (*s - '0');
+        s++;
+    }
+    return result * neg;
 }
 #endif
 
-static int str_util_lowercase(const char *s) {
-  return tolower(*(const unsigned char *) s);
+static int str_util_lowercase(const char *s) 
+{
+    return tolower(*(const unsigned char *) s);
 }
 
 int mg_ncasecmp(const char *s1, const char *s2, size_t len) WEAK;
-int mg_ncasecmp(const char *s1, const char *s2, size_t len) {
-  int diff = 0;
+int mg_ncasecmp(const char *s1, const char *s2, size_t len) 
+{
+    int diff = 0;
 
-  if (len > 0) do {
-      diff = str_util_lowercase(s1++) - str_util_lowercase(s2++);
-    } while (diff == 0 && s1[-1] != '\0' && --len > 0);
+    if (len > 0) 
+        do {
+            diff = str_util_lowercase(s1++) - str_util_lowercase(s2++);
+        } while (diff == 0 && s1[-1] != '\0' && --len > 0);
 
-  return diff;
+    return diff;
 }
 
 int mg_casecmp(const char *s1, const char *s2) WEAK;
-int mg_casecmp(const char *s1, const char *s2) {
-  return mg_ncasecmp(s1, s2, (size_t) ~0);
+int mg_casecmp(const char *s1, const char *s2) 
+{
+    return mg_ncasecmp(s1, s2, (size_t) ~0);
 }
 
 int mg_asprintf(char **buf, size_t size, const char *fmt, ...) WEAK;
-int mg_asprintf(char **buf, size_t size, const char *fmt, ...) {
-  int ret;
-  va_list ap;
-  va_start(ap, fmt);
-  ret = mg_avprintf(buf, size, fmt, ap);
-  va_end(ap);
-  return ret;
+int mg_asprintf(char **buf, size_t size, const char *fmt, ...) 
+{
+    int ret;
+    va_list ap;
+    va_start(ap, fmt);
+    ret = mg_avprintf(buf, size, fmt, ap);
+    va_end(ap);
+    return ret;
 }
 
 int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap) WEAK;
@@ -2059,8 +1883,8 @@ const char *mg_next_comma_list_entry(const char *, struct mg_str *,
                                      struct mg_str *) WEAK;
 const char *mg_next_comma_list_entry(const char *list, struct mg_str *val,
                                      struct mg_str *eq_val) {
-  struct mg_str ret = mg_next_comma_list_entry_n(mg_mk_str(list), val, eq_val);
-  return ret.p;
+    struct mg_str ret = mg_next_comma_list_entry_n(mg_mk_str(list), val, eq_val);
+    return ret.p;
 }
 
 struct mg_str mg_next_comma_list_entry_n(struct mg_str list, struct mg_str *val,
@@ -2156,10 +1980,6 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 }
 
 #endif /* EXCLUDE_COMMON */
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_net.c"
-#endif
-
 
 #define MG_MAX_HOST_LEN 200
 
@@ -2190,7 +2010,7 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 
 MG_INTERNAL void mg_add_conn(struct mg_mgr *mgr, struct mg_connection *c) 
 {
-    DBG(("mgr obj addr[%p], connection obj addr[%p]", mgr, c));
+    LOGDBG(TAG, "--> Add connection: mgr[%p], connection[%p]", mgr, c);
     c->mgr = mgr;
     c->next = mgr->active_connections;
     mgr->active_connections = c;
@@ -2258,7 +2078,7 @@ MG_INTERNAL void mg_call(struct mg_connection *nc,
     }
   
     if (ev != MG_EV_POLL) 
-      nc->mgr->num_calls++;
+        nc->mgr->num_calls++;
     
     if (ev != MG_EV_POLL) {
         DBG(("%p after %s flags=0x%lx rmbl=%d smbl=%d", nc,
@@ -2296,7 +2116,10 @@ static int mg_do_recv(struct mg_connection *nc);
 
 int mg_if_poll(struct mg_connection *nc, double now) 
 {
-    if ((nc->flags & MG_F_CLOSE_IMMEDIATELY) || (nc->send_mbuf.len == 0 && (nc->flags & MG_F_SEND_AND_CLOSE))) {
+    if ((nc->flags & MG_F_CLOSE_IMMEDIATELY) || 
+        (nc->send_mbuf.len == 0 && (nc->flags & MG_F_SEND_AND_CLOSE))) {
+        
+        LOGDBG(TAG, "--> close connection[%p] now", nc);
         mg_close_conn(nc);
         return 0;
     }
@@ -2315,6 +2138,7 @@ int mg_if_poll(struct mg_connection *nc, double now)
 #endif /* MG_ENABLE_SSL */
 
     mg_timer(nc, now);
+
     {
         time_t now_t = (time_t) now;
         mg_call(nc, NULL, nc->user_data, MG_EV_POLL, &now_t);
@@ -2328,7 +2152,10 @@ void mg_destroy_conn(struct mg_connection *conn, int destroy_if)
     if (conn->sock != INVALID_SOCKET) { /* Don't print timer-only conns */
         LOG(LL_DEBUG, ("%p 0x%lx %d", conn, conn->flags, destroy_if));
     }
-    if (destroy_if) conn->iface->vtable->destroy_conn(conn);
+
+    if (destroy_if) 
+        conn->iface->vtable->destroy_conn(conn);
+
     if (conn->proto_data != NULL && conn->proto_data_destructor != NULL) {
         conn->proto_data_destructor(conn->proto_data);
     }
@@ -2336,6 +2163,7 @@ void mg_destroy_conn(struct mg_connection *conn, int destroy_if)
 #if MG_ENABLE_SSL
     mg_ssl_if_conn_free(conn);
 #endif
+
     mbuf_free(&conn->recv_mbuf);
     mbuf_free(&conn->send_mbuf);
 
@@ -2351,6 +2179,7 @@ void mg_close_conn(struct mg_connection *conn)
         mg_ssl_if_conn_close_notify(conn);
     }
 #endif
+
     /*
      * Clearly mark the connection as going away (if not already).
      * Some net_if impls (LwIP) need this for cleanly handling half-dead conns.
@@ -2425,7 +2254,8 @@ void mg_mgr_free(struct mg_mgr *m)
 {
     struct mg_connection *conn, *tmp_conn;
 
-    DBG(("%p", m));
+    LOGDBG(TAG, "--> free mgr here...");
+
     if (m == NULL) return;
     
     /* Do one last poll, see https://github.com/cesanta/mongoose/issues/286 */
@@ -2554,109 +2384,111 @@ MG_INTERNAL struct mg_connection *mg_create_connection(struct mg_mgr *mgr,
  *   >0   length of the address string
  */
 MG_INTERNAL int mg_parse_address(const char *str, union socket_address *sa,
-                                 int *proto, char *host, size_t host_len) {
-  unsigned int a, b, c, d, port = 0;
-  int ch, len = 0;
+                                 int *proto, char *host, size_t host_len) 
+{
+    unsigned int a, b, c, d, port = 0;
+    int ch, len = 0;
 #if MG_ENABLE_IPV6
-  char buf[100];
+    char buf[100];
 #endif
 
-  /*
-   * MacOS needs that. If we do not zero it, subsequent bind() will fail.
-   * Also, all-zeroes in the socket address means binding to all addresses
-   * for both IPv4 and IPv6 (INADDR_ANY and IN6ADDR_ANY_INIT).
-   */
-  memset(sa, 0, sizeof(*sa));
-  sa->sin.sin_family = AF_INET;
+    /*
+    * MacOS needs that. If we do not zero it, subsequent bind() will fail.
+    * Also, all-zeroes in the socket address means binding to all addresses
+    * for both IPv4 and IPv6 (INADDR_ANY and IN6ADDR_ANY_INIT).
+    */
+    memset(sa, 0, sizeof(*sa));
+    sa->sin.sin_family = AF_INET;
 
-  *proto = SOCK_STREAM;
+    *proto = SOCK_STREAM;
 
-  if (strncmp(str, "udp://", 6) == 0) {
-    str += 6;
-    *proto = SOCK_DGRAM;
-  } else if (strncmp(str, "tcp://", 6) == 0) {
-    str += 6;
-  }
+    if (strncmp(str, "udp://", 6) == 0) {
+        str += 6;
+        *proto = SOCK_DGRAM;
+    } else if (strncmp(str, "tcp://", 6) == 0) {
+        str += 6;
+    }
 
-  if (sscanf(str, "%u.%u.%u.%u:%u%n", &a, &b, &c, &d, &port, &len) == 5) {
-    /* Bind to a specific IPv4 address, e.g. 192.168.1.5:8080 */
-    sa->sin.sin_addr.s_addr =
-        htonl(((uint32_t) a << 24) | ((uint32_t) b << 16) | c << 8 | d);
-    sa->sin.sin_port = htons((uint16_t) port);
+    if (sscanf(str, "%u.%u.%u.%u:%u%n", &a, &b, &c, &d, &port, &len) == 5) {
+        /* Bind to a specific IPv4 address, e.g. 192.168.1.5:8080 */
+        sa->sin.sin_addr.s_addr =
+            htonl(((uint32_t) a << 24) | ((uint32_t) b << 16) | c << 8 | d);
+        sa->sin.sin_port = htons((uint16_t) port);
 #if MG_ENABLE_IPV6
-  } else if (sscanf(str, "[%99[^]]]:%u%n", buf, &port, &len) == 2 &&
+    } else if (sscanf(str, "[%99[^]]]:%u%n", buf, &port, &len) == 2 &&
              inet_pton(AF_INET6, buf, &sa->sin6.sin6_addr)) {
-    /* IPv6 address, e.g. [3ffe:2a00:100:7031::1]:8080 */
-    sa->sin6.sin6_family = AF_INET6;
-    sa->sin.sin_port = htons((uint16_t) port);
+        /* IPv6 address, e.g. [3ffe:2a00:100:7031::1]:8080 */
+        sa->sin6.sin6_family = AF_INET6;
+        sa->sin.sin_port = htons((uint16_t) port);
 #endif
 #if MG_ENABLE_ASYNC_RESOLVER
-  } else if (strlen(str) < host_len &&
+    } else if (strlen(str) < host_len &&
              sscanf(str, "%[^ :]:%u%n", host, &port, &len) == 2) {
-    sa->sin.sin_port = htons((uint16_t) port);
-    if (mg_resolve_from_hosts_file(host, sa) != 0) {
-      /*
-       * if resolving from hosts file failed and the host
-       * we are trying to resolve is `localhost` - we should
-       * try to resolve it using `gethostbyname` and do not try
-       * to resolve it via DNS server if gethostbyname has failed too
-       */
-      if (mg_ncasecmp(host, "localhost", 9) != 0) {
-        return 0;
-      }
+        sa->sin.sin_port = htons((uint16_t) port);
+        if (mg_resolve_from_hosts_file(host, sa) != 0) {
+            /*
+            * if resolving from hosts file failed and the host
+            * we are trying to resolve is `localhost` - we should
+            * try to resolve it using `gethostbyname` and do not try
+            * to resolve it via DNS server if gethostbyname has failed too
+            */
+            if (mg_ncasecmp(host, "localhost", 9) != 0) {
+                return 0;
+            }
 
 #if MG_ENABLE_SYNC_RESOLVER
-      if (!mg_resolve2(host, &sa->sin.sin_addr)) {
-        return -1;
-      }
-#else
-      return -1;
+            if (!mg_resolve2(host, &sa->sin.sin_addr)) {
+                return -1;
+            }
+#else   
+            return -1;
 #endif
-    }
+        }
 #endif
-  } else if (sscanf(str, ":%u%n", &port, &len) == 1 ||
+    } else if (sscanf(str, ":%u%n", &port, &len) == 1 ||
              sscanf(str, "%u%n", &port, &len) == 1) {
-    /* If only port is specified, bind to IPv4, INADDR_ANY */
-    sa->sin.sin_port = htons((uint16_t) port);
-  } else {
-    return -1;
-  }
+        /* If only port is specified, bind to IPv4, INADDR_ANY */
+        sa->sin.sin_port = htons((uint16_t) port);
+    } else {
+        return -1;
+    }
 
-  /* Required for MG_ENABLE_ASYNC_RESOLVER=0 */
-  (void) host;
-  (void) host_len;
+    /* Required for MG_ENABLE_ASYNC_RESOLVER=0 */
+    (void) host;
+    (void) host_len;
 
-  ch = str[len]; /* Character that follows the address */
-  return port < 0xffffUL && (ch == '\0' || ch == ',' || isspace(ch)) ? len : -1;
+    ch = str[len]; /* Character that follows the address */
+    return port < 0xffffUL && (ch == '\0' || ch == ',' || isspace(ch)) ? len : -1;
 }
 
 #if MG_ENABLE_SSL
-MG_INTERNAL void mg_ssl_handshake(struct mg_connection *nc) {
-  int err = 0;
-  int server_side = (nc->listener != NULL);
-  enum mg_ssl_if_result res;
-  if (nc->flags & MG_F_SSL_HANDSHAKE_DONE) return;
-  res = mg_ssl_if_handshake(nc);
+MG_INTERNAL void mg_ssl_handshake(struct mg_connection *nc) 
+{
+    int err = 0;
+    int server_side = (nc->listener != NULL);
+    enum mg_ssl_if_result res;
+    if (nc->flags & MG_F_SSL_HANDSHAKE_DONE) return;
+    res = mg_ssl_if_handshake(nc);
 
-  if (res == MG_SSL_OK) {
-    nc->flags |= MG_F_SSL_HANDSHAKE_DONE;
-    nc->flags &= ~(MG_F_WANT_READ | MG_F_WANT_WRITE);
-    if (server_side) {
-      mg_call(nc, NULL, nc->user_data, MG_EV_ACCEPT, &nc->sa);
+    if (res == MG_SSL_OK) {
+        nc->flags |= MG_F_SSL_HANDSHAKE_DONE;
+        nc->flags &= ~(MG_F_WANT_READ | MG_F_WANT_WRITE);
+        if (server_side) {
+            mg_call(nc, NULL, nc->user_data, MG_EV_ACCEPT, &nc->sa);
+        } else {
+            mg_call(nc, NULL, nc->user_data, MG_EV_CONNECT, &err);
+        }
+    } else if (res == MG_SSL_WANT_READ) {
+        nc->flags |= MG_F_WANT_READ;
+    } else if (res == MG_SSL_WANT_WRITE) {
+        nc->flags |= MG_F_WANT_WRITE;
     } else {
-      mg_call(nc, NULL, nc->user_data, MG_EV_CONNECT, &err);
+        if (!server_side) {
+            err = res;
+            mg_call(nc, NULL, nc->user_data, MG_EV_CONNECT, &err);
+        }
+        nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     }
-  } else if (res == MG_SSL_WANT_READ) {
-    nc->flags |= MG_F_WANT_READ;
-  } else if (res == MG_SSL_WANT_WRITE) {
-    nc->flags |= MG_F_WANT_WRITE;
-  } else {
-    if (!server_side) {
-      err = res;
-      mg_call(nc, NULL, nc->user_data, MG_EV_CONNECT, &err);
-    }
-    nc->flags |= MG_F_CLOSE_IMMEDIATELY;
-  }
 }
 #endif /* MG_ENABLE_SSL */
 
@@ -2669,14 +2501,17 @@ struct mg_connection *mg_if_accept_new_conn(struct mg_connection *lc)
     memset(&opts, 0, sizeof(opts));
     nc = mg_create_connection(lc->mgr, lc->handler, opts);
     
-    if (nc == NULL) return NULL;
+    if (nc == NULL) 
+        return NULL;
     nc->listener = lc;
     nc->proto_handler = lc->proto_handler;
     nc->user_data = lc->user_data;
     nc->recv_mbuf_limit = lc->recv_mbuf_limit;
     nc->iface = lc->iface;
   
-    if (lc->flags & MG_F_SSL) nc->flags |= MG_F_SSL;
+    if (lc->flags & MG_F_SSL) 
+        nc->flags |= MG_F_SSL;
+
     mg_add_conn(nc->mgr, nc);
     LOG(LL_DEBUG, ("%p %p %d %d", lc, nc, nc->sock, (int) nc->flags));
     return nc;
@@ -2706,9 +2541,16 @@ void mg_if_accept_tcp_cb(struct mg_connection *nc, union socket_address *sa, siz
 
 void mg_send(struct mg_connection *nc, const void *buf, int len) 
 {
-    nc->last_io_time = (time_t) mg_time();
+
+#ifdef ENABLE_USE_BUFFER_LOCK
+	std::unique_lock<std::mutex> _lock(nc->send_mbuf.bufLock);    
+#endif
+
+    nc->last_io_time = (time_t) 
+    mg_time();
     mbuf_append(&nc->send_mbuf, buf, len);
 }
+
 
 static int mg_recv_tcp(struct mg_connection *nc, char *buf, size_t len);
 static int mg_recv_udp(struct mg_connection *nc, char *buf, size_t len);
@@ -2875,9 +2717,15 @@ out:
     return n;
 }
 
+
 void mg_if_can_send_cb(struct mg_connection *nc) 
-{
+{    
     int n = 0;
+
+#ifdef ENABLE_USE_BUFFER_LOCK
+	std::unique_lock<std::mutex> _lock(nc->send_mbuf.bufLock);    
+#endif 
+
     const char *buf = nc->send_mbuf.buf;
     size_t len = nc->send_mbuf.len;
 
@@ -2914,6 +2762,7 @@ void mg_if_can_send_cb(struct mg_connection *nc)
 #endif
 
     if (len > 0) {
+        /* 发送数据是从mbuf的头部开始发送 */
         if (nc->flags & MG_F_UDP) {
             n = nc->iface->vtable->udp_send(nc, buf, len);
         } else {
@@ -2928,17 +2777,22 @@ void mg_if_can_send_cb(struct mg_connection *nc)
     }
 #endif
 
-    if (n < 0) {  /* 成功发送的字节数小于0,将立即关闭该套接字 */
+    if (n < 0) {            /* 成功发送的字节数小于0,将立即关闭该套接字 */
         nc->flags |= MG_F_CLOSE_IMMEDIATELY;
-    } else if (n > 0) {
+    } else if (n > 0) {     /* 发送成功后,调整发送缓冲区指针 */
         nc->last_io_time = (time_t) mg_time();
+        
+        /* 将缓冲区offset为n之后的数据前移动首部 */
         mbuf_remove(&nc->send_mbuf, n);
+        
+        /* 重新更新真个缓冲区的大小 */
         mbuf_trim(&nc->send_mbuf);
     }
 
     if (n != 0) 
         mg_call(nc, NULL, nc->user_data, MG_EV_SEND, &n);
 }
+
 
 /*
  * Schedules an async connect for a resolved address and proto.
@@ -3135,10 +2989,13 @@ struct mg_connection *mg_bind_opt(struct mg_mgr *mgr, const char *address,
     if (nc == NULL) {
         return NULL;
     }
+    LOGDBG(TAG, "mg_bind_opt: create first connection[%p]", nc);
+
 
     nc->sa = sa;
     nc->flags |= MG_F_LISTENING;
-    if (proto == SOCK_DGRAM) nc->flags |= MG_F_UDP;
+    if (proto == SOCK_DGRAM) 
+        nc->flags |= MG_F_UDP;
 
 #if MG_ENABLE_SSL
     DBG(("%p %s %s,%s,%s", nc, address, (opts.ssl_cert ? opts.ssl_cert : "-"),
@@ -3179,6 +3036,8 @@ struct mg_connection *mg_bind_opt(struct mg_mgr *mgr, const char *address,
         mg_destroy_conn(nc, 1 /* destroy_if */);
         return NULL;
     }
+
+    LOGDBG(TAG, "mg_bind_opt: add connection[%p] to mgr", nc);
     mg_add_conn(nc->mgr, nc);
     return nc;
 }
@@ -3233,28 +3092,28 @@ static int parse_net(const char *spec, uint32_t *net, uint32_t *mask)
     return len;
 }
 
-int mg_check_ip_acl(const char *acl, uint32_t remote_ip) {
-  int allowed, flag;
-  uint32_t net, mask;
-  struct mg_str vec;
+int mg_check_ip_acl(const char *acl, uint32_t remote_ip) 
+{
+    int allowed, flag;
+    uint32_t net, mask;
+    struct mg_str vec;
 
-  /* If any ACL is set, deny by default */
-  allowed = (acl == NULL || *acl == '\0') ? '+' : '-';
+      /* If any ACL is set, deny by default */
+    allowed = (acl == NULL || *acl == '\0') ? '+' : '-';
 
-  while ((acl = mg_next_comma_list_entry(acl, &vec, NULL)) != NULL) {
-    flag = vec.p[0];
-    if ((flag != '+' && flag != '-') ||
-        parse_net(&vec.p[1], &net, &mask) == 0) {
-      return -1;
+    while ((acl = mg_next_comma_list_entry(acl, &vec, NULL)) != NULL) {
+        flag = vec.p[0];
+        if ((flag != '+' && flag != '-') || parse_net(&vec.p[1], &net, &mask) == 0) {
+            return -1;
+        }
+
+        if (net == (remote_ip & mask)) {
+            allowed = flag;
+        }
     }
 
-    if (net == (remote_ip & mask)) {
-      allowed = flag;
-    }
-  }
-
-  DBG(("%08x %c", (unsigned int) remote_ip, allowed));
-  return allowed == '+';
+    DBG(("%08x %c", (unsigned int) remote_ip, allowed));
+    return allowed == '+';
 }
 
 /* Move data from one connection to another */
@@ -3346,13 +3205,6 @@ extern const struct mg_iface_vtable mg_socket_iface_vtable;
 #endif /* __cplusplus */
 
 #endif /* CS_MONGOOSE_SRC_NET_IF_SOCKET_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_net_if_socks.h"
-#endif
-/*
-* Copyright (c) 2014-2017 Cesanta Software Limited
-* All rights reserved
-*/
 
 #ifndef CS_MONGOOSE_SRC_NET_IF_SOCKS_H_
 #define CS_MONGOOSE_SRC_NET_IF_SOCKS_H_
@@ -3372,13 +3224,6 @@ extern const struct mg_iface_vtable mg_socks_iface_vtable;
 #endif /* MG_ENABLE_SOCKS */
 
 #endif /* CS_MONGOOSE_SRC_NET_IF_SOCKS_H_ */
-
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_net_if.c"
-#endif
-/* Amalgamated: #include "mg_net_if.h" */
-/* Amalgamated: #include "mg_internal.h" */
-/* Amalgamated: #include "mg_net_if_socket.h" */
 
 extern const struct mg_iface_vtable mg_default_iface_vtable;
 
@@ -3433,14 +3278,6 @@ double mg_mgr_min_timer(const struct mg_mgr *mgr)
 }
 
 
-
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_net_if_socket.c"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #if MG_ENABLE_NET_IF_SOCKET
 
@@ -3519,6 +3356,7 @@ static int mg_socket_if_listen_udp(struct mg_connection *nc, union socket_addres
     return 0;
 }
 
+
 static int mg_socket_if_tcp_send(struct mg_connection *nc, const void *buf, size_t len) 
 {
     int n = (int) MG_SEND_FUNC(nc->sock, buf, len, 0);
@@ -3592,7 +3430,7 @@ static int mg_accept_conn(struct mg_connection *lc)
     sock_t sock = accept(lc->sock, &sa.sa, &sa_len);
     if (sock == INVALID_SOCKET) {
         if (mg_is_error()) {
-            DBG(("%p: failed to accept: %d", lc, mg_get_errno()));
+            LOGERR(TAG, "Accept failed, connection(0x%p), err:%d", lc, mg_get_errno());
         }
         return 0;
     }
@@ -3603,7 +3441,8 @@ static int mg_accept_conn(struct mg_connection *lc)
         return 0;
     }
 
-    DBG(("%p conn from %s:%d", nc, inet_ntoa(sa.sin.sin_addr), ntohs(sa.sin.sin_port)));
+    LOGDBG(TAG, "mg_accept_conn: conn[%p] from remote ip:port[%s: %d]", nc, inet_ntoa(sa.sin.sin_addr), ntohs(sa.sin.sin_port));
+    
     mg_sock_set(nc, sock);
     mg_if_accept_tcp_cb(nc, &sa, sa_len);
     return 1;
@@ -3717,8 +3556,10 @@ void mg_mgr_handle_conn(struct mg_connection *nc, int fd_flags, double now)
     }
 
     /* 检查该连接是否可以发数据 */
-    if (fd_flags & _MG_F_FD_CAN_WRITE) 
+    if (fd_flags & _MG_F_FD_CAN_WRITE) {
+        // LOGDBG(TAG, "--> Send data here...");
         mg_if_can_send_cb(nc);    /* 往该连接发送数据 */
+    }
 
     if (worth_logging) {
         DBG(("%p after fd=%d nc_flags=0x%lx rmbl=%d smbl=%d", nc, nc->sock,
@@ -3734,6 +3575,7 @@ static void mg_mgr_handle_ctl_sock(struct mg_mgr *mgr)
     int len = (int) MG_RECV_FUNC(mgr->ctl[1], (char *) &ctl_msg, sizeof(ctl_msg), 0);
     size_t dummy = MG_SEND_FUNC(mgr->ctl[1], ctl_msg.message, 1, 0);
     DBG(("read %d from ctl socket", len));
+    
     (void) dummy; /* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=25509 */
     if (len >= (int) sizeof(ctl_msg.callback) && ctl_msg.callback != NULL) {
         struct mg_connection *nc;
@@ -3807,6 +3649,7 @@ time_t mg_socket_if_poll(struct mg_iface *iface, int timeout_ms)
     fd_set read_set, write_set, err_set;
     sock_t max_fd = INVALID_SOCKET;
     int num_fds, num_ev, num_timers = 0;
+    int iActiveConn = 0;
 
 #ifdef __unix__
     int try_dup = 1;
@@ -3826,11 +3669,12 @@ time_t mg_socket_if_poll(struct mg_iface *iface, int timeout_ms)
      */
     min_timer = 0;
     for (nc = mgr->active_connections, num_fds = 0; nc != NULL; nc = tmp) {
+        
         tmp = nc->next;
 
         if (nc->sock != INVALID_SOCKET) {
             num_fds++;
-
+            iActiveConn++;
         #ifdef __unix__
             /* A hack to make sure all our file descriptos fit into FD_SETSIZE. */
             if (nc->sock >= (sock_t) FD_SETSIZE && try_dup) {
@@ -3880,18 +3724,17 @@ time_t mg_socket_if_poll(struct mg_iface *iface, int timeout_ms)
             timeout_ms = (int) timer_timeout_ms;
         }
     }
-    if (timeout_ms < 0) timeout_ms = 0;
+    
+    if (timeout_ms < 0) 
+        timeout_ms = 0;
 
     tv.tv_sec = timeout_ms / 1000;
     tv.tv_usec = (timeout_ms % 1000) * 1000;
 
+    // LOGDBG(TAG, "mg_socket_if_poll: select here, active num[%d]", iActiveConn);
+    
     num_ev = select((int) max_fd + 1, &read_set, &write_set, &err_set, &tv);
     now = mg_time();
-
-#if 0
-  DBG(("select @ %ld num_ev=%d of %d, timeout=%d", (long) now, num_ev, num_fds,
-       timeout_ms));
-#endif
 
 #if MG_ENABLE_BROADCAST
     if (num_ev > 0 && mgr->ctl[1] != INVALID_SOCKET && FD_ISSET(mgr->ctl[1], &read_set)) {
@@ -3940,47 +3783,48 @@ mg_socketpair_accept(sock_t sock, union socket_address *sa, socklen_t sa_len)
     return rc;
 }
 
-int mg_socketpair(sock_t sp[2], int sock_type) {
-  union socket_address sa, sa2;
-  sock_t sock;
-  socklen_t len = sizeof(sa.sin);
-  int ret = 0;
+int mg_socketpair(sock_t sp[2], int sock_type) 
+{
+    union socket_address sa, sa2;
+    sock_t sock;
+    socklen_t len = sizeof(sa.sin);
+    int ret = 0;
 
-  sock = sp[0] = sp[1] = INVALID_SOCKET;
+    sock = sp[0] = sp[1] = INVALID_SOCKET;
 
-  (void) memset(&sa, 0, sizeof(sa));
-  sa.sin.sin_family = AF_INET;
-  sa.sin.sin_addr.s_addr = htonl(0x7f000001); /* 127.0.0.1 */
-  sa2 = sa;
+    (void) memset(&sa, 0, sizeof(sa));
+    sa.sin.sin_family = AF_INET;
+    sa.sin.sin_addr.s_addr = htonl(0x7f000001); /* 127.0.0.1 */
+    sa2 = sa;
 
-  if ((sock = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
-  } else if (bind(sock, &sa.sa, len) != 0) {
-  } else if (sock_type == SOCK_STREAM && listen(sock, 1) != 0) {
-  } else if (getsockname(sock, &sa.sa, &len) != 0) {
-  } else if ((sp[0] = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
-  } else if (sock_type == SOCK_STREAM && connect(sp[0], &sa.sa, len) != 0) {
-  } else if (sock_type == SOCK_DGRAM &&
+    if ((sock = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
+    } else if (bind(sock, &sa.sa, len) != 0) {
+    } else if (sock_type == SOCK_STREAM && listen(sock, 1) != 0) {
+    } else if (getsockname(sock, &sa.sa, &len) != 0) {
+    } else if ((sp[0] = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
+    } else if (sock_type == SOCK_STREAM && connect(sp[0], &sa.sa, len) != 0) {
+    } else if (sock_type == SOCK_DGRAM &&
              (bind(sp[0], &sa2.sa, len) != 0 ||
               getsockname(sp[0], &sa2.sa, &len) != 0 ||
               connect(sp[0], &sa.sa, len) != 0 ||
               connect(sock, &sa2.sa, len) != 0)) {
-  } else if ((sp[1] = (sock_type == SOCK_DGRAM ? sock : mg_socketpair_accept(
+    } else if ((sp[1] = (sock_type == SOCK_DGRAM ? sock : mg_socketpair_accept(
                                                             sock, &sa, len))) ==
              INVALID_SOCKET) {
-  } else {
-    mg_set_close_on_exec(sp[0]);
-    mg_set_close_on_exec(sp[1]);
-    if (sock_type == SOCK_STREAM) mg_socketpair_close(&sock);
-    ret = 1;
-  }
+    } else {
+        mg_set_close_on_exec(sp[0]);
+        mg_set_close_on_exec(sp[1]);
+        if (sock_type == SOCK_STREAM) mg_socketpair_close(&sock);
+        ret = 1;
+    }
 
-  if (!ret) {
-    if (sp[0] != INVALID_SOCKET) mg_socketpair_close(&sp[0]);
-    if (sp[1] != INVALID_SOCKET) mg_socketpair_close(&sp[1]);
-    if (sock != INVALID_SOCKET) mg_socketpair_close(&sock);
-  }
+    if (!ret) {
+        if (sp[0] != INVALID_SOCKET) mg_socketpair_close(&sp[0]);
+        if (sp[1] != INVALID_SOCKET) mg_socketpair_close(&sp[1]);
+        if (sock != INVALID_SOCKET) mg_socketpair_close(&sock);
+    }
 
-  return ret;
+    return ret;
 }
 #endif /* MG_ENABLE_BROADCAST */
 
@@ -4042,13 +3886,6 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_SOCKET_IFACE_VTABLE;
 #endif /* MG_ENABLE_NET_IF_SOCKET */
 
 
-#ifdef MG_MODULE_LINES
-#line 1 "mongoose/src/mg_ssl_if_openssl.c"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #if MG_ENABLE_SSL && MG_SSL_IF == MG_SSL_IF_OPENSSL
 
@@ -4062,14 +3899,15 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_SOCKET_IFACE_VTABLE;
 #endif
 
 struct mg_ssl_if_ctx {
-  SSL *ssl;
-  SSL_CTX *ssl_ctx;
-  struct mbuf psk;
-  size_t identity_len;
+    SSL *ssl;
+    SSL_CTX *ssl_ctx;
+    struct mbuf psk;
+    size_t identity_len;
 };
 
-void mg_ssl_if_init() {
-  SSL_library_init();
+void mg_ssl_if_init() 
+{
+    SSL_library_init();
 }
 
 enum mg_ssl_if_result mg_ssl_if_conn_accept(struct mg_connection *nc,
@@ -10251,21 +10089,23 @@ static void relay_data(struct mg_connection *c) {
   }
 }
 
-static void serv_ev_handler(struct mg_connection *c, int ev, void *ev_data) {
-  if (ev == MG_EV_CLOSE) {
-    disband(c);
-  } else if (ev == MG_EV_RECV) {
-    relay_data(c);
-  } else if (ev == MG_EV_CONNECT) {
-    int res = *(int *) ev_data;
-    if (res != 0) LOG(LL_ERROR, ("connect error: %d", res));
-  }
+static void serv_ev_handler(struct mg_connection *c, int ev, void *ev_data) 
+{
+    if (ev == MG_EV_CLOSE) {
+        disband(c);
+    } else if (ev == MG_EV_RECV) {
+        relay_data(c);
+    } else if (ev == MG_EV_CONNECT) {
+        int res = *(int *) ev_data;
+        if (res != 0) LOG(LL_ERROR, ("connect error: %d", res));
+    }
 }
 
-static void mg_socks5_connect(struct mg_connection *c, const char *addr) {
-  struct mg_connection *serv = mg_connect(c->mgr, addr, serv_ev_handler);
-  serv->user_data = c;
-  c->user_data = serv;
+static void mg_socks5_connect(struct mg_connection *c, const char *addr) 
+{
+    struct mg_connection *serv = mg_connect(c->mgr, addr, serv_ev_handler);
+    serv->user_data = c;
+    c->user_data = serv;
 }
 
 /*
@@ -10335,22 +10175,23 @@ static void mg_socks5_handle_request(struct mg_connection *c) {
   c->flags |= MG_SOCKS_CONNECT_DONE; /* Mark ourselves as connected */
 }
 
-static void socks_handler(struct mg_connection *c, int ev, void *ev_data) {
-  if (ev == MG_EV_RECV) {
-    if (!(c->flags & MG_SOCKS_HANDSHAKE_DONE)) mg_socks5_handshake(c);
-    if (c->flags & MG_SOCKS_HANDSHAKE_DONE &&
-        !(c->flags & MG_SOCKS_CONNECT_DONE)) {
-      mg_socks5_handle_request(c);
+static void socks_handler(struct mg_connection *c, int ev, void *ev_data) 
+{
+    if (ev == MG_EV_RECV) {
+        if (!(c->flags & MG_SOCKS_HANDSHAKE_DONE)) mg_socks5_handshake(c);
+        if (c->flags & MG_SOCKS_HANDSHAKE_DONE && !(c->flags & MG_SOCKS_CONNECT_DONE)) {
+            mg_socks5_handle_request(c);
+        }
+        if (c->flags & MG_SOCKS_CONNECT_DONE) relay_data(c);
+    } else if (ev == MG_EV_CLOSE) {
+        disband(c);
     }
-    if (c->flags & MG_SOCKS_CONNECT_DONE) relay_data(c);
-  } else if (ev == MG_EV_CLOSE) {
-    disband(c);
-  }
-  (void) ev_data;
+    (void) ev_data;
 }
 
-void mg_set_protocol_socks(struct mg_connection *c) {
-  c->proto_handler = socks_handler;
+void mg_set_protocol_socks(struct mg_connection *c) 
+{
+    c->proto_handler = socks_handler;
 }
 #endif
 #ifdef MG_MODULE_LINES
@@ -10419,6 +10260,4 @@ int gettimeofday(struct timeval *tp, void *tzp) {
   return 0;
 }
 #endif
-#ifdef MG_MODULE_LINES
-#line 1 "common/platforms/simplelink/sl_fs_slfs.h"
-#endif
+

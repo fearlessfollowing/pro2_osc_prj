@@ -30,7 +30,7 @@ bool HttpServer::startHttpServer()
 
 	while (true) {
 		// printf("------------------> mg_mgr_poll\n");
-		mg_mgr_poll(&mMgr, 20); 	// ms
+		mg_mgr_poll(&mMgr, 5); 	// ms
 	}
 
 	return true;
@@ -57,7 +57,7 @@ void HttpServer::OnHttpEvent(mg_connection *connection, int event_type, void *ev
 		}
 
         case MG_EV_SEND: {
-            printf("---> send over on socket[%d], send [%d]bytes data\n", connection->sock, *((int*)event_data) );
+            // printf("---> send over on socket[%d], send [%d]bytes data\n", connection->sock, *((int*)event_data) );
             break;
         }
 

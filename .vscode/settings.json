@@ -47,6 +47,13 @@
         "cstring": "cpp",
         "cinttypes": "cpp",
         "cstddef": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "log_wrapper.h": "c",
+        "log_wrapper.h\u0000apper.h": "c",
+        "log_wrapper.h\u0000g_wrapper.h": "c",
+        "log_wrapper.h\u0000log_wrapper.h": "c",
+        "log_wrapper.h\u0000pper.h": "c",
+        "log_wrapper.h\u0000wrapper.h": "c",
+        "log_wrapper.h\u0000_wrapper.h": "c"
     }
 }

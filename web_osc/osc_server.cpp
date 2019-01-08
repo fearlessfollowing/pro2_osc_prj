@@ -12,8 +12,13 @@
 
 #include <system_properties.h>
 
+
+#include "log_wrapper.h"
 #include "osc_server.h"
 #include "utils.h"
+
+#undef  TAG
+#define TAG "osc_server"
 
 OscServer* OscServer::sInstance = nullptr;
 static std::mutex gInstanceLock;
@@ -716,10 +721,10 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
     bool bFirstTime = true;
     int iIndex = 0;
 
+    LOGDBG(TAG, "---> Preview Worker connection[0x%p]", conn);
+
 	/* 发送头部 */
 	sendGetLivePreviewResponseHead(conn);
-
-    printf("In livepreview response, socket fd = %d\n", iSockFd); 
 
  	do {
 
@@ -766,8 +771,10 @@ void OscServer::previewWorkerLooper(struct mg_connection* conn)
 #else 
 		sendOneFrameData(conn, iIndex);
 		iIndex = (iIndex+1) % 5;
-		printf("---> data have send to buffer, sleep 30s here...\n");		
-		sleep(1);
+		// sleep(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        // LOGDBG(TAG, "--> Have Send One Frame");
+
 #endif 
 
     } while (mPreviewWorkerExit == false);
